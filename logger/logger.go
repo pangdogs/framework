@@ -26,6 +26,8 @@ const (
 	WarnLevel
 	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
 	ErrorLevel
+	// PanicLevel level. Logs and call `panic()`.
+	PanicLevel
 	// FatalLevel level. Logs and then calls `logger.Exit(1)`. highest level of severity.
 	FatalLevel
 )
@@ -42,6 +44,8 @@ func (l Level) String() string {
 		return "warn"
 	case ErrorLevel:
 		return "error"
+	case PanicLevel:
+		return "panic"
 	case FatalLevel:
 		return "fatal"
 	}
@@ -67,6 +71,8 @@ func GetLevel(levelStr string) (Level, error) {
 		return WarnLevel, nil
 	case ErrorLevel.String():
 		return ErrorLevel, nil
+	case PanicLevel.String():
+		return PanicLevel, nil
 	case FatalLevel.String():
 		return FatalLevel, nil
 	}

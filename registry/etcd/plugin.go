@@ -1,9 +1,12 @@
 package etcd
 
 import (
-	"github.com/galaxy-kit/galaxy-go/define"
-	"github.com/galaxy-kit/plugins-go/registry"
+	"github.com/golaxy-kit/golaxy/define"
+	"github.com/golaxy-kit/plugins/registry"
 )
 
-// Plugin 定义本插件
-var Plugin = define.DefinePlugin[registry.Registry, WithEtcdOption]().ServicePlugin(newRegistry)
+var plugin = define.DefineServicePlugin[registry.Registry, EtcdOption](newRegistry)
+
+var Install = plugin.Install
+
+var Uninstall = plugin.Uninstall
