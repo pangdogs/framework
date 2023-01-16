@@ -3,7 +3,7 @@ module github.com/golaxy-kit/plugins
 go 1.19
 
 require (
-	github.com/golaxy-kit/golaxy v0.0.0-20230116070614-abab007c197a
+	github.com/golaxy-kit/golaxy v0.0.0-20230116072238-551251edb645
 	github.com/mitchellh/hashstructure v1.1.0
 	go.etcd.io/etcd/api/v3 v3.5.6
 	go.etcd.io/etcd/client/v3 v3.5.6
