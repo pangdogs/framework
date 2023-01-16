@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/galaxy-kit/galaxy-go/service"
-	"github.com/galaxy-kit/plugins-go/logger"
-	"github.com/galaxy-kit/plugins-go/registry"
+	"github.com/golaxy-kit/golaxy/service"
+	"github.com/golaxy-kit/plugins/logger"
+	"github.com/golaxy-kit/plugins/registry"
 	hash "github.com/mitchellh/hashstructure"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -19,12 +19,12 @@ import (
 )
 
 var (
-	prefix = "/galaxy/registry/"
+	prefix = "/golaxy/registry/"
 )
 
-func newRegistry(options ...WithEtcdOption) registry.Registry {
+func newRegistry(options ...EtcdOption) registry.Registry {
 	opts := EtcdOptions{}
-	EtcdOption.Default()(&opts)
+	WithEtcdOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -62,7 +62,7 @@ func (r *_EtcdRegistry) Shut() {
 	}
 }
 
-func (r *_EtcdRegistry) Register(ctx context.Context, service registry.Service, options ...registry.WithRegisterOption) error {
+func (r *_EtcdRegistry) Register(ctx context.Context, service registry.Service, options ...registry.RegisterOption) error {
 	if len(service.Nodes) <= 0 {
 		return errors.New("require at least one node")
 	}
@@ -104,7 +104,7 @@ func (r *_EtcdRegistry) Deregister(ctx context.Context, service registry.Service
 		ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
 		defer cancel()
 
-		logger.Tracef(r.serviceCtx, "deregistering %s id %s", service.Name, node.Id)
+		logger.Trace(r.serviceCtx, "deregistering %s id %s", service.Name, node.Id)
 
 		_, err := r.client.Delete(ctx, np)
 		if err != nil {
@@ -214,7 +214,6 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 		DialTimeout: r.options.Timeout,
 		Username:    r.options.Username,
 		Password:    r.options.Password,
-		LogConfig:   r.options.ZapConfig,
 	}
 
 	if r.options.Secure || r.options.TLSConfig != nil {

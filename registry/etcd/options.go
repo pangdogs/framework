@@ -16,37 +16,33 @@ type EtcdOptions struct {
 	Secure     bool
 	TLSConfig  *tls.Config
 	ZapLogger  *zap.Logger
-	ZapConfig  *zap.Config
 	EtcdConfig *clientv3.Config
 }
 
-type WithEtcdOption func(options *EtcdOptions)
+type EtcdOption func(options *EtcdOptions)
 
-var EtcdOption = _EtcdOption{}
+type WithEtcdOption struct{}
 
-type _EtcdOption struct{}
-
-func (_EtcdOption) Default() WithEtcdOption {
+func (WithEtcdOption) Default() EtcdOption {
 	return func(options *EtcdOptions) {
-		EtcdOption.Auth("", "")(options)
-		EtcdOption.Endpoints("127.0.0.1:2379")(options)
-		EtcdOption.Timeout(5 * time.Second)(options)
-		EtcdOption.Secure(false)(options)
-		EtcdOption.TLSConfig(nil)(options)
-		EtcdOption.ZapLogger(nil)(options)
-		EtcdOption.ZapConfig(nil)(options)
-		EtcdOption.EtcdConfig(nil)(options)
+		WithEtcdOption{}.Auth("", "")(options)
+		WithEtcdOption{}.Endpoints("127.0.0.1:2379")(options)
+		WithEtcdOption{}.Timeout(5 * time.Second)(options)
+		WithEtcdOption{}.Secure(false)(options)
+		WithEtcdOption{}.TLSConfig(nil)(options)
+		WithEtcdOption{}.ZapLogger(nil)(options)
+		WithEtcdOption{}.EtcdConfig(nil)(options)
 	}
 }
 
-func (_EtcdOption) Auth(username, password string) WithEtcdOption {
+func (WithEtcdOption) Auth(username, password string) EtcdOption {
 	return func(options *EtcdOptions) {
 		options.Username = username
 		options.Password = password
 	}
 }
 
-func (_EtcdOption) Endpoints(endpoints ...string) WithEtcdOption {
+func (WithEtcdOption) Endpoints(endpoints ...string) EtcdOption {
 	return func(options *EtcdOptions) {
 		for _, endpoint := range endpoints {
 			if _, _, err := net.SplitHostPort(endpoint); err != nil {
@@ -57,37 +53,31 @@ func (_EtcdOption) Endpoints(endpoints ...string) WithEtcdOption {
 	}
 }
 
-func (_EtcdOption) Timeout(dur time.Duration) WithEtcdOption {
+func (WithEtcdOption) Timeout(dur time.Duration) EtcdOption {
 	return func(options *EtcdOptions) {
 		options.Timeout = dur
 	}
 }
 
-func (_EtcdOption) Secure(secure bool) WithEtcdOption {
+func (WithEtcdOption) Secure(secure bool) EtcdOption {
 	return func(o *EtcdOptions) {
 		o.Secure = secure
 	}
 }
 
-func (_EtcdOption) TLSConfig(config *tls.Config) WithEtcdOption {
+func (WithEtcdOption) TLSConfig(config *tls.Config) EtcdOption {
 	return func(o *EtcdOptions) {
 		o.TLSConfig = config
 	}
 }
 
-func (_EtcdOption) ZapLogger(zapLogger *zap.Logger) WithEtcdOption {
+func (WithEtcdOption) ZapLogger(zapLogger *zap.Logger) EtcdOption {
 	return func(o *EtcdOptions) {
 		o.ZapLogger = zapLogger
 	}
 }
 
-func (_EtcdOption) ZapConfig(zapConfig *zap.Config) WithEtcdOption {
-	return func(o *EtcdOptions) {
-		o.ZapConfig = zapConfig
-	}
-}
-
-func (_EtcdOption) EtcdConfig(config *clientv3.Config) WithEtcdOption {
+func (WithEtcdOption) EtcdConfig(config *clientv3.Config) EtcdOption {
 	return func(o *EtcdOptions) {
 		o.EtcdConfig = config
 	}

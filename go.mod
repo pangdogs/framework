@@ -1,22 +1,22 @@
-module github.com/galaxy-kit/plugins-go
+module github.com/golaxy-kit/plugins
 
-go 1.18
+go 1.19
 
 require (
-	github.com/galaxy-kit/galaxy-go v0.0.0-20221113173947-500df2e189f0
+	github.com/golaxy-kit/golaxy v0.0.0-20230115130835-58d61352b1c6
 	github.com/mitchellh/hashstructure v1.1.0
-	go.etcd.io/etcd/api/v3 v3.5.5
-	go.etcd.io/etcd/client/v3 v3.5.5
-	go.uber.org/zap v1.23.0
+	go.etcd.io/etcd/api/v3 v3.5.6
+	go.etcd.io/etcd/client/v3 v3.5.6
+	go.uber.org/zap v1.24.0
 )
 
 require (
-	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
+	github.com/segmentio/ksuid v1.0.4 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.6 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect

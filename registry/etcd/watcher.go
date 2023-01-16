@@ -3,7 +3,7 @@ package etcd
 import (
 	"context"
 	"errors"
-	"github.com/galaxy-kit/plugins-go/registry"
+	"github.com/golaxy-kit/plugins/registry"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 )

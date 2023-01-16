@@ -1,6 +1,13 @@
 package registry
 
-import "github.com/galaxy-kit/galaxy-go/define"
+import (
+	"github.com/golaxy-kit/golaxy/define"
+)
 
-// Plugin 定义本插件接口
-var Plugin = define.DefinePluginInterface[Registry]().ServicePluginInterface()
+var plugin = define.DefineServicePluginInterface[Registry]()
+
+var Name = plugin.Name
+
+var Get = plugin.Get
+
+var TryGet = plugin.TryGet

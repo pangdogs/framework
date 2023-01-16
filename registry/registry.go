@@ -9,7 +9,7 @@ import (
 // and an abstraction over varying implementations
 // {consul, etcd, zookeeper, ...}
 type Registry interface {
-	Register(ctx context.Context, service Service, options ...WithRegisterOption) error
+	Register(ctx context.Context, service Service, options ...RegisterOption) error
 	Deregister(ctx context.Context, service Service) error
 	GetService(ctx context.Context, serviceName string) ([]Service, error)
 	ListServices(ctx context.Context) ([]Service, error)

@@ -6,14 +6,18 @@ type RegisterOptions struct {
 	TTL time.Duration
 }
 
-type WithRegisterOption func(options *RegisterOptions)
+type RegisterOption func(o *RegisterOptions)
 
-var RegisterOption = _RegisterOption{}
+type WithRegisterOption struct{}
 
-type _RegisterOption struct{}
+func (WithRegisterOption) Default() RegisterOption {
+	return func(o *RegisterOptions) {
+		o.TTL = 3 * time.Second
+	}
+}
 
-func (_RegisterOption) TTL(ttl time.Duration) WithRegisterOption {
-	return func(options *RegisterOptions) {
-		options.TTL = ttl
+func (WithRegisterOption) TTL(ttl time.Duration) RegisterOption {
+	return func(o *RegisterOptions) {
+		o.TTL = ttl
 	}
 }
