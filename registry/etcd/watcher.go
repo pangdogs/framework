@@ -3,8 +3,8 @@ package etcd
 import (
 	"context"
 	"errors"
-	"github.com/golaxy-kit/plugins/registry"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"kit.golaxy.org/plugins/registry"
 	"time"
 )
 

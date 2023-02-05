@@ -2,7 +2,7 @@ package broker
 
 import (
 	"crypto/tls"
-	"github.com/golaxy-kit/plugins/registry"
+	"kit.golaxy.org/plugins/registry"
 )
 
 type Options struct {

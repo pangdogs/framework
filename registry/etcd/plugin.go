@@ -1,8 +1,8 @@
 package etcd
 
 import (
-	"github.com/golaxy-kit/golaxy/define"
-	"github.com/golaxy-kit/plugins/registry"
+	"kit.golaxy.org/golaxy/define"
+	"kit.golaxy.org/plugins/registry"
 )
 
 var plugin = define.DefineServicePlugin[registry.Registry, EtcdOption](newRegistry)

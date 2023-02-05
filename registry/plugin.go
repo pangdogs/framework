@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/golaxy-kit/golaxy/define"
+	"kit.golaxy.org/golaxy/define"
 )
 
 var plugin = define.DefineServicePluginInterface[Registry]()
