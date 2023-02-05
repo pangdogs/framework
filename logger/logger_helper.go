@@ -1,6 +1,6 @@
 package logger
 
-import "github.com/golaxy-kit/golaxy/service"
+import "kit.golaxy.org/golaxy/service"
 
 func Trace(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)

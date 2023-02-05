@@ -1,6 +1,6 @@
 package broker
 
-import "github.com/golaxy-kit/golaxy/define"
+import "kit.golaxy.org/golaxy/define"
 
 var plugin = define.DefineServicePluginInterface[Broker]()
 
