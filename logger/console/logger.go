@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,7 @@ type _ConsoleLogger struct {
 	options      ConsoleOptions
 	serviceCtx   service.Context
 	serviceField string
+	mutex        sync.Mutex
 }
 
 // Init 初始化
@@ -112,6 +114,9 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int, info, endln strin
 			}
 		}
 	}
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	fmt.Fprint(writer, l.serviceField, l.options.Separator, time.Now().Format(l.options.TimeLayout), l.options.Separator, level, l.options.Separator, file, ":", line, l.options.Separator, info, endln)
 
