@@ -25,13 +25,15 @@ func newConsoleLogger(options ...ConsoleOption) logger.Logger {
 }
 
 type _ConsoleLogger struct {
-	options    ConsoleOptions
-	serviceCtx service.Context
+	options      ConsoleOptions
+	serviceCtx   service.Context
+	serviceField string
 }
 
 // Init 初始化
 func (l *_ConsoleLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
+	l.serviceField = l.serviceCtx.String()
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
@@ -86,5 +88,5 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, info, endln string) {
 		}
 	}
 
-	fmt.Fprint(writer, time.Now().Format(l.options.TimeLayout), l.options.Separator, level, l.options.Separator, file, ":", line, l.options.Separator, info, endln)
+	fmt.Fprint(writer, l.serviceField, l.options.Separator, time.Now().Format(l.options.TimeLayout), l.options.Separator, level, l.options.Separator, file, ":", line, l.options.Separator, info, endln)
 }
