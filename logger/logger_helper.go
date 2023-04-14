@@ -2,6 +2,7 @@ package logger
 
 import "kit.golaxy.org/golaxy/service"
 
+//go:inline
 func Trace(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -9,6 +10,7 @@ func Trace(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Tracef(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -16,6 +18,7 @@ func Tracef(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Debug(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -23,6 +26,7 @@ func Debug(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Debugf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -30,6 +34,7 @@ func Debugf(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Info(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -37,6 +42,7 @@ func Info(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Infof(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -44,6 +50,7 @@ func Infof(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Warn(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -51,6 +58,7 @@ func Warn(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Warnf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -58,6 +66,7 @@ func Warnf(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Error(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -65,6 +74,7 @@ func Error(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Errorf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -72,6 +82,7 @@ func Errorf(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Panic(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -79,6 +90,7 @@ func Panic(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Panicf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -86,6 +98,7 @@ func Panicf(ctx service.Context, format string, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Fatal(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
@@ -93,6 +106,7 @@ func Fatal(ctx service.Context, v ...interface{}) {
 	}
 }
 
+//go:inline
 func Fatalf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
