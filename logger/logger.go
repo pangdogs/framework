@@ -1,13 +1,11 @@
 package logger
 
-import (
-	"fmt"
-)
-
 // Logger is a generic logging interface
 type Logger interface {
-	// Log writes a log entry
+	// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
 	Log(level Level, v ...interface{})
+	// Logln writes a log entry, spaces are always added between operands and a newline is appended
+	Logln(level Level, v ...interface{})
 	// Logf writes a formatted log entry
 	Logf(level Level, format string, v ...interface{})
 }
@@ -16,7 +14,7 @@ type Level int8
 
 const (
 	// TraceLevel level. Designates finer-grained informational events than the Debug.
-	TraceLevel Level = iota - 2
+	TraceLevel Level = iota
 	// DebugLevel level. Usually only enabled when debugging. Very verbose logging.
 	DebugLevel
 	// InfoLevel is the default logging priority.
@@ -49,7 +47,7 @@ func (l Level) String() string {
 	case FatalLevel:
 		return "fatal"
 	}
-	return ""
+	return "unknown"
 }
 
 // Enabled returns true if the given level is at or above this level.
@@ -58,23 +56,23 @@ func (l Level) Enabled(level Level) bool {
 }
 
 // GetLevel converts a level string into a logger Level value.
-// returns an error if the input string does not match known values.
-func GetLevel(levelStr string) (Level, error) {
+// returns info level if the input string does not match known values.
+func GetLevel(levelStr string) Level {
 	switch levelStr {
 	case TraceLevel.String():
-		return TraceLevel, nil
+		return TraceLevel
 	case DebugLevel.String():
-		return DebugLevel, nil
+		return DebugLevel
 	case InfoLevel.String():
-		return InfoLevel, nil
+		return InfoLevel
 	case WarnLevel.String():
-		return WarnLevel, nil
+		return WarnLevel
 	case ErrorLevel.String():
-		return ErrorLevel, nil
+		return ErrorLevel
 	case PanicLevel.String():
-		return PanicLevel, nil
+		return PanicLevel
 	case FatalLevel.String():
-		return FatalLevel, nil
+		return FatalLevel
 	}
-	return InfoLevel, fmt.Errorf("unknown Level String: '%s', defaulting to InfoLevel", levelStr)
+	return InfoLevel
 }
