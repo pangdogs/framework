@@ -2,114 +2,100 @@ package logger
 
 import "kit.golaxy.org/golaxy/service"
 
-//go:inline
 func Trace(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(TraceLevel, v...)
+		log.Log(TraceLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Tracef(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(TraceLevel, format, v...)
+		log.Logf(TraceLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Debug(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(DebugLevel, v...)
+		log.Log(DebugLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Debugf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(DebugLevel, format, v...)
+		log.Logf(DebugLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Info(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(InfoLevel, v...)
+		log.Log(InfoLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Infof(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(InfoLevel, format, v...)
+		log.Logf(InfoLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Warn(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(WarnLevel, v...)
+		log.Log(WarnLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Warnf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(WarnLevel, format, v...)
+		log.Logf(WarnLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Error(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(ErrorLevel, v...)
+		log.Log(ErrorLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Errorf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(ErrorLevel, format, v...)
+		log.Logf(ErrorLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Panic(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(PanicLevel, v...)
+		log.Log(PanicLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Panicf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(PanicLevel, format, v...)
+		log.Logf(PanicLevel|Level(HelperFlag), format, v...)
 	}
 }
 
-//go:inline
 func Fatal(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(FatalLevel, v...)
+		log.Log(FatalLevel|Level(HelperFlag), v...)
 	}
 }
 
-//go:inline
 func Fatalf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(FatalLevel, format, v...)
+		log.Logf(FatalLevel|Level(HelperFlag), format, v...)
 	}
 }
