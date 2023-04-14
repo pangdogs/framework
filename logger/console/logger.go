@@ -66,9 +66,10 @@ func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{
 func (l *_ConsoleLogger) logInfo(level logger.Level, info, endln string) {
 	var writer io.Writer
 
-	if level == logger.ErrorLevel {
+	switch level {
+	case logger.ErrorLevel:
 		writer = os.Stderr
-	} else {
+	default:
 		writer = os.Stdout
 	}
 
@@ -89,4 +90,11 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, info, endln string) {
 	}
 
 	fmt.Fprint(writer, l.serviceField, l.options.Separator, time.Now().Format(l.options.TimeLayout), l.options.Separator, level, l.options.Separator, file, ":", line, l.options.Separator, info, endln)
+
+	switch level {
+	case logger.PanicLevel:
+		panic(info)
+	case logger.FatalLevel:
+		os.Exit(1)
+	}
 }
