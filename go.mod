@@ -1,13 +1,13 @@
 module kit.golaxy.org/plugins
 
-go 1.19
+go 1.20
 
 require (
 	github.com/mitchellh/hashstructure v1.1.0
 	go.etcd.io/etcd/api/v3 v3.5.6
 	go.etcd.io/etcd/client/v3 v3.5.6
 	go.uber.org/zap v1.24.0
-	kit.golaxy.org/golaxy v0.1.11
+	kit.golaxy.org/golaxy v0.1.20
 )
 
 require (
