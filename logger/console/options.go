@@ -20,7 +20,7 @@ func (WithConsoleOption) Default() ConsoleOption {
 	return func(options *ConsoleOptions) {
 		WithConsoleOption{}.Level(logger.InfoLevel)(options)
 		WithConsoleOption{}.Separator(`|`)(options)
-		WithConsoleOption{}.TimeLayout(time.RFC3339)(options)
+		WithConsoleOption{}.TimeLayout(time.RFC3339Nano)(options)
 		WithConsoleOption{}.FullCallerName(false)(options)
 	}
 }
