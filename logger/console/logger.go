@@ -74,6 +74,7 @@ func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
 func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{}) {
 	helper := (level & logger.Level(logger.HelperFlag)) != 0
 
+	level &= 0x0f
 	if !level.Enabled(l.options.Level) {
 		return
 	}
