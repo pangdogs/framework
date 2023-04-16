@@ -113,7 +113,47 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int, info, endln strin
 		}
 	}
 
-	fmt.Fprint(writer, l.serviceField, l.options.Separator, time.Now().Format(l.options.TimeLayout), l.options.Separator, level, l.options.Separator, file, ":", line, l.options.Separator, info, endln)
+	var fields [12]any
+	var count int32
+
+	if l.options.Fields&ServiceField != 0 {
+		fields[count] = l.serviceField
+		count++
+		fields[count] = l.options.Separator
+		count++
+	}
+
+	if l.options.Fields&TimestampField != 0 {
+		fields[count] = time.Now().Format(l.options.TimeLayout)
+		count++
+		fields[count] = l.options.Separator
+		count++
+	}
+
+	if l.options.Fields&LevelField != 0 {
+		fields[count] = level
+		count++
+		fields[count] = l.options.Separator
+		count++
+	}
+
+	if l.options.Fields&CallerField != 0 {
+		fields[count] = file
+		count++
+		fields[count] = ":"
+		count++
+		fields[count] = line
+		count++
+		fields[count] = l.options.Separator
+		count++
+	}
+
+	fields[count] = info
+	count++
+	fields[count] = endln
+	count++
+
+	fmt.Fprint(writer, fields[:count]...)
 
 	switch level {
 	case logger.PanicLevel:
