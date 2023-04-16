@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	hash "github.com/mitchellh/hashstructure"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -12,17 +13,14 @@ import (
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
-var (
-	prefix = "/golaxy/registry/"
-)
-
-func newRegistry(options ...EtcdOption) registry.Registry {
+func newEtcdRegistry(options ...EtcdOption) registry.Registry {
 	opts := EtcdOptions{}
 	WithEtcdOption{}.Default()(&opts)
 
@@ -43,10 +41,13 @@ type _EtcdRegistry struct {
 	client     *clientv3.Client
 	register   map[string]uint64
 	leases     map[string]clientv3.LeaseID
-	sync.RWMutex
+	mutex      sync.RWMutex
 }
 
+// Init 初始化
 func (r *_EtcdRegistry) Init(ctx service.Context) {
+	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_EtcdRegistry{}))
+
 	r.serviceCtx = ctx
 
 	client, err := clientv3.New(r.configure())
@@ -56,70 +57,79 @@ func (r *_EtcdRegistry) Init(ctx service.Context) {
 	r.client = client
 }
 
+// Shut 关闭
 func (r *_EtcdRegistry) Shut() {
+	logger.Infof(r.serviceCtx, "shut plugin %s", plugin.Name)
+
 	if r.client != nil {
 		r.client.Close()
 	}
 }
 
+// Register 注册服务
 func (r *_EtcdRegistry) Register(ctx context.Context, service registry.Service, options ...registry.RegisterOption) error {
 	if len(service.Nodes) <= 0 {
 		return errors.New("require at least one node")
 	}
 
 	var opts registry.RegisterOptions
+	registry.WithRegisterOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
 	}
 
-	var anyErr error
+	var errorList []error
 
 	for _, node := range service.Nodes {
 		if err := r.registerNode(ctx, service, node, opts.TTL); err != nil {
-			anyErr = err
+			errorList = append(errorList, fmt.Errorf("%s:%s", node.Id, err))
 		}
 	}
 
-	return anyErr
+	return errors.Join(errorList...)
 }
 
+// Deregister 取消注册服务
 func (r *_EtcdRegistry) Deregister(ctx context.Context, service registry.Service) error {
 	if len(service.Nodes) <= 0 {
 		return errors.New("require at least one node")
 	}
 
-	var anyErr error
+	var errorList []error
 
 	for _, node := range service.Nodes {
-		np := nodePath(service.Name, node.Id)
+		func() {
+			r.mutex.Lock()
+			defer r.mutex.Unlock()
 
-		r.Lock()
-		// delete our hash of the service
-		delete(r.register, np)
-		// delete our lease of the service
-		delete(r.leases, np)
-		r.Unlock()
+			logger.Trace(r.serviceCtx, "deregistering %s id %s", service.Name, node.Id)
 
-		ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-		defer cancel()
+			np := nodePath(r.options.KeyPrefix, service.Name, node.Id)
 
-		logger.Trace(r.serviceCtx, "deregistering %s id %s", service.Name, node.Id)
+			// delete our hash of the service
+			delete(r.register, np)
+			// delete our lease of the service
+			delete(r.leases, np)
 
-		_, err := r.client.Delete(ctx, np)
-		if err != nil {
-			anyErr = err
-		}
+			ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
+			defer cancel()
+
+			if _, err := r.client.Delete(ctx, np); err != nil {
+				errorList = append(errorList, err)
+			}
+		}()
 	}
 
-	return anyErr
+	return errors.Join(errorList...)
 }
 
+// GetService 查询服务
 func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
 	defer cancel()
 
-	rsp, err := r.client.Get(ctx, servicePath(serviceName)+"/", clientv3.WithPrefix(), clientv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, servicePath(r.options.KeyPrefix, serviceName), clientv3.WithPrefix(), clientv3.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -156,11 +166,12 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 	return services, nil
 }
 
+// ListServices 查询所有服务
 func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
 	defer cancel()
 
-	rsp, err := r.client.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, r.options.KeyPrefix, clientv3.WithPrefix(), clientv3.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +211,7 @@ func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, e
 	return services, nil
 }
 
+// Watch 获取服务监听器
 func (r *_EtcdRegistry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
 	return newEtcdWatcher(ctx, r, r.options.Timeout, serviceName)
 }
@@ -210,7 +222,7 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 	}
 
 	config := clientv3.Config{
-		Endpoints:   r.options.Endpoints,
+		Endpoints:   r.options.Addresses,
 		DialTimeout: r.options.Timeout,
 		Username:    r.options.Username,
 		Password:    r.options.Password,
@@ -234,49 +246,56 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 		return errors.New("require at least one node")
 	}
 
-	np := nodePath(service.Name, node.Id)
+	np := nodePath(r.options.KeyPrefix, service.Name, node.Id)
 
 	// check existing lease cache
-	r.RLock()
+	r.mutex.RLock()
 	leaseID, ok := r.leases[np]
-	r.RUnlock()
+	r.mutex.RUnlock()
 
+	// missing lease, check if the key exists
 	if !ok {
-		// missing lease, check if the key exists
-		ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-		defer cancel()
+		err := func() error {
+			ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
+			defer cancel()
 
-		// look for the existing key
-		rsp, err := r.client.Get(ctx, np, clientv3.WithSerializable())
+			// look for the existing key
+			rsp, err := r.client.Get(ctx, np, clientv3.WithSerializable())
+			if err != nil {
+				return err
+			}
+
+			// get the existing lease
+			for _, kv := range rsp.Kvs {
+				if kv.Lease > 0 {
+					leaseID = clientv3.LeaseID(kv.Lease)
+
+					// decode the existing node
+					srv := decode(kv.Value)
+					if srv == nil || len(srv.Nodes) <= 0 {
+						continue
+					}
+
+					// create hash of service; uint64
+					h, err := hash.Hash(srv.Nodes[0], nil)
+					if err != nil {
+						continue
+					}
+
+					// save the info
+					r.mutex.Lock()
+					r.leases[np] = leaseID
+					r.register[np] = h
+					r.mutex.Unlock()
+
+					return nil
+				}
+			}
+
+			return nil
+		}()
 		if err != nil {
 			return err
-		}
-
-		// get the existing lease
-		for _, kv := range rsp.Kvs {
-			if kv.Lease > 0 {
-				leaseID = clientv3.LeaseID(kv.Lease)
-
-				// decode the existing node
-				srv := decode(kv.Value)
-				if srv == nil || len(srv.Nodes) <= 0 {
-					continue
-				}
-
-				// create hash of service; uint64
-				h, err := hash.Hash(srv.Nodes[0], nil)
-				if err != nil {
-					continue
-				}
-
-				// save the info
-				r.Lock()
-				r.leases[np] = leaseID
-				r.register[np] = h
-				r.Unlock()
-
-				break
-			}
 		}
 	}
 
@@ -304,9 +323,9 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	}
 
 	// get existing hash for the service node
-	r.Lock()
+	r.mutex.Lock()
 	v, ok := r.register[np]
-	r.Unlock()
+	r.mutex.Unlock()
 
 	// the service is unchanged, skip registering
 	if ok && v == h && !leaseNotFound {
@@ -345,14 +364,14 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 		return err
 	}
 
-	r.Lock()
+	r.mutex.Lock()
 	// save our hash of the service
 	r.register[np] = h
 	// save our leaseID of the service
 	if lgr != nil {
 		r.leases[np] = lgr.ID
 	}
-	r.Unlock()
+	r.mutex.Unlock()
 
 	return nil
 }
@@ -368,12 +387,12 @@ func decode(ds []byte) *registry.Service {
 	return s
 }
 
-func nodePath(s, id string) string {
+func nodePath(prefix, s, id string) string {
 	service := strings.ReplaceAll(s, "/", "-")
 	node := strings.ReplaceAll(id, "/", "-")
 	return path.Join(prefix, service, node)
 }
 
-func servicePath(s string) string {
-	return path.Join(prefix, strings.ReplaceAll(s, "/", "-"))
+func servicePath(prefix, s string) string {
+	return path.Join(prefix, strings.ReplaceAll(s, "/", "-")) + "/"
 }
