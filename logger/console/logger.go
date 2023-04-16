@@ -44,7 +44,7 @@ func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
 	}
 
 	level &= 0x0f
-	if !level.Enabled(l.options.Level) {
+	if !l.options.Level.Enabled(level) {
 		return
 	}
 
@@ -59,7 +59,7 @@ func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
 	}
 
 	level &= 0x0f
-	if !level.Enabled(l.options.Level) {
+	if !l.options.Level.Enabled(level) {
 		return
 	}
 
@@ -74,7 +74,7 @@ func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{
 	}
 
 	level &= 0x0f
-	if !level.Enabled(l.options.Level) {
+	if !l.options.Level.Enabled(level) {
 		return
 	}
 
