@@ -24,9 +24,9 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, timeout time.Duration
 		cancel()
 	}()
 
-	watchPath := prefix
+	watchPath := r.options.KeyPrefix
 	if serviceName != "" {
-		watchPath = servicePath(serviceName) + "/"
+		watchPath = servicePath(r.options.KeyPrefix, serviceName)
 	}
 
 	return &_EtcdWatcher{
