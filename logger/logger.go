@@ -76,7 +76,3 @@ func GetLevel(levelStr string) Level {
 	}
 	return InfoLevel
 }
-
-const (
-	HelperFlag int8 = 0x10
-)
