@@ -97,22 +97,6 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int, info, endln strin
 		writer = os.Stdout
 	}
 
-	_, file, line, ok := runtime.Caller(skip)
-	if !ok {
-		file = "???"
-		line = 0
-	} else {
-		if !l.options.FullCallerName {
-			idx := strings.LastIndexByte(file, '/')
-			if idx > 0 {
-				idx = strings.LastIndexByte(file[:idx], '/')
-				if idx > 0 {
-					file = file[idx+1:]
-				}
-			}
-		}
-	}
-
 	var fields [12]any
 	var count int32
 
@@ -124,7 +108,7 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int, info, endln strin
 	}
 
 	if l.options.Fields&TimestampField != 0 {
-		fields[count] = time.Now().Format(l.options.TimeLayout)
+		fields[count] = time.Now().Format(l.options.TimestampLayout)
 		count++
 		fields[count] = l.options.Separator
 		count++
@@ -138,6 +122,22 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int, info, endln strin
 	}
 
 	if l.options.Fields&CallerField != 0 {
+		_, file, line, ok := runtime.Caller(skip)
+		if !ok {
+			file = "???"
+			line = 0
+		} else {
+			if !l.options.CallerFullName {
+				idx := strings.LastIndexByte(file, '/')
+				if idx > 0 {
+					idx = strings.LastIndexByte(file[:idx], '/')
+					if idx > 0 {
+						file = file[idx+1:]
+					}
+				}
+			}
+		}
+
 		fields[count] = file
 		count++
 		fields[count] = ":"

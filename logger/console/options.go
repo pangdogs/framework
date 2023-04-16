@@ -15,11 +15,11 @@ const (
 )
 
 type ConsoleOptions struct {
-	Level          logger.Level
-	Fields         Field
-	Separator      string
-	TimeLayout     string
-	FullCallerName bool
+	Level           logger.Level
+	Fields          Field
+	Separator       string
+	TimestampLayout string
+	CallerFullName  bool
 }
 
 type ConsoleOption func(options *ConsoleOptions)
@@ -31,8 +31,8 @@ func (WithConsoleOption) Default() ConsoleOption {
 		WithConsoleOption{}.Level(logger.InfoLevel)(options)
 		WithConsoleOption{}.Fields(ServiceField | TimestampField | LevelField | CallerField)(options)
 		WithConsoleOption{}.Separator(`|`)(options)
-		WithConsoleOption{}.TimeLayout(time.RFC3339Nano)(options)
-		WithConsoleOption{}.FullCallerName(false)(options)
+		WithConsoleOption{}.TimestampLayout(time.RFC3339Nano)(options)
+		WithConsoleOption{}.CallerFullName(false)(options)
 	}
 }
 
@@ -54,14 +54,14 @@ func (WithConsoleOption) Separator(v string) ConsoleOption {
 	}
 }
 
-func (WithConsoleOption) TimeLayout(v string) ConsoleOption {
+func (WithConsoleOption) TimestampLayout(v string) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.TimeLayout = v
+		options.TimestampLayout = v
 	}
 }
 
-func (WithConsoleOption) FullCallerName(v bool) ConsoleOption {
+func (WithConsoleOption) CallerFullName(v bool) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.FullCallerName = v
+		options.CallerFullName = v
 	}
 }
