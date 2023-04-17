@@ -46,7 +46,7 @@ type _EtcdRegistry struct {
 
 // Init 初始化
 func (r *_EtcdRegistry) Init(ctx service.Context) {
-	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_EtcdRegistry{}))
+	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_EtcdRegistry{}).Elem())
 
 	r.serviceCtx = ctx
 
