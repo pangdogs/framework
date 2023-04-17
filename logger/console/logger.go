@@ -36,7 +36,7 @@ func (l *_ConsoleLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
 	l.serviceField = l.serviceCtx.String()
 
-	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ConsoleLogger{}).Elem())
+	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
 // Shut 关闭
