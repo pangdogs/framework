@@ -6,6 +6,7 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"os"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -34,6 +35,13 @@ type _ConsoleLogger struct {
 func (l *_ConsoleLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
 	l.serviceField = l.serviceCtx.String()
+
+	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ConsoleLogger{}).Elem())
+}
+
+// Shut 关闭
+func (l *_ConsoleLogger) Shut() {
+	logger.Infof(l.serviceCtx, "shut plugin %s", plugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
