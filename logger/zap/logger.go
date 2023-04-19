@@ -23,17 +23,16 @@ func newZapLogger(options ...ZapOption) logger.Logger {
 type _ZapLogger struct {
 	options        ZapOptions
 	serviceCtx     service.Context
-	serviceField   string
 	sugaredLoggers [10]*zap.SugaredLogger
 }
 
 // Init 初始化
 func (l *_ZapLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
-	l.serviceField = l.serviceCtx.String()
 
+	zaplogger := l.options.ZapLogger.With(zap.String("service_field", l.serviceCtx.String()))
 	for i := range l.sugaredLoggers {
-		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
+		l.sugaredLoggers[i] = zaplogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
 	}
 
 	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ZapLogger{}))
