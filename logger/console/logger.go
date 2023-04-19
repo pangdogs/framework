@@ -46,47 +46,35 @@ func (l *_ConsoleLogger) Shut() {
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
 func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
-	skip := int8(level >> 4)
-	if skip <= 0 {
-		skip = 2
-	}
+	level, skip := level.UnpackSkip()
 
-	level &= 0x0f
 	if !l.options.Level.Enabled(level) {
 		return
 	}
 
-	l.logInfo(level, skip, fmt.Sprint(v...), "\n")
+	l.logInfo(level, skip+2, fmt.Sprint(v...), "\n")
 }
 
 // Logln writes a log entry, spaces are always added between operands and a newline is appended
 func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
-	skip := int8(level >> 4)
-	if skip <= 0 {
-		skip = 2
-	}
+	level, skip := level.UnpackSkip()
 
-	level &= 0x0f
 	if !l.options.Level.Enabled(level) {
 		return
 	}
 
-	l.logInfo(level, skip, fmt.Sprintln(v...), "")
+	l.logInfo(level, skip+2, fmt.Sprintln(v...), "")
 }
 
 // Logf writes a formatted log entry
 func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{}) {
-	skip := int8(level >> 4)
-	if skip <= 0 {
-		skip = 2
-	}
+	level, skip := level.UnpackSkip()
 
-	level &= 0x0f
 	if !l.options.Level.Enabled(level) {
 		return
 	}
 
-	l.logInfo(level, skip, fmt.Sprintf(format, v...), "\n")
+	l.logInfo(level, skip+2, fmt.Sprintf(format, v...), "\n")
 }
 
 func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln string) {
