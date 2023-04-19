@@ -6,7 +6,7 @@ import "kit.golaxy.org/golaxy/service"
 func Trace(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(TraceLevel|(Level(3)<<4), v...)
+		log.Log(TraceLevel.PackSkip(1), v...)
 	}
 }
 
@@ -14,7 +14,7 @@ func Trace(ctx service.Context, v ...interface{}) {
 func Traceln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(TraceLevel|(Level(3)<<4), v...)
+		log.Logln(TraceLevel.PackSkip(1), v...)
 	}
 }
 
@@ -22,7 +22,7 @@ func Traceln(ctx service.Context, v ...interface{}) {
 func Tracef(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(TraceLevel|(Level(3)<<4), format, v...)
+		log.Logf(TraceLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -30,7 +30,7 @@ func Tracef(ctx service.Context, format string, v ...interface{}) {
 func Debug(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(DebugLevel|(Level(3)<<4), v...)
+		log.Log(DebugLevel.PackSkip(1), v...)
 	}
 }
 
@@ -38,7 +38,7 @@ func Debug(ctx service.Context, v ...interface{}) {
 func Debugln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(DebugLevel|(Level(3)<<4), v...)
+		log.Logln(DebugLevel.PackSkip(1), v...)
 	}
 }
 
@@ -46,7 +46,7 @@ func Debugln(ctx service.Context, v ...interface{}) {
 func Debugf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(DebugLevel|(Level(3)<<4), format, v...)
+		log.Logf(DebugLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -54,7 +54,7 @@ func Debugf(ctx service.Context, format string, v ...interface{}) {
 func Info(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(InfoLevel|(Level(3)<<4), v...)
+		log.Log(InfoLevel.PackSkip(1), v...)
 	}
 }
 
@@ -62,7 +62,7 @@ func Info(ctx service.Context, v ...interface{}) {
 func Infoln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(InfoLevel|(Level(3)<<4), v...)
+		log.Logln(InfoLevel.PackSkip(1), v...)
 	}
 }
 
@@ -70,7 +70,7 @@ func Infoln(ctx service.Context, v ...interface{}) {
 func Infof(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(InfoLevel|(Level(3)<<4), format, v...)
+		log.Logf(InfoLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -78,7 +78,7 @@ func Infof(ctx service.Context, format string, v ...interface{}) {
 func Warn(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(WarnLevel|(Level(3)<<4), v...)
+		log.Log(WarnLevel.PackSkip(1), v...)
 	}
 }
 
@@ -86,7 +86,7 @@ func Warn(ctx service.Context, v ...interface{}) {
 func Warnln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(WarnLevel|(Level(3)<<4), v...)
+		log.Logln(WarnLevel.PackSkip(1), v...)
 	}
 }
 
@@ -94,7 +94,7 @@ func Warnln(ctx service.Context, v ...interface{}) {
 func Warnf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(WarnLevel|(Level(3)<<4), format, v...)
+		log.Logf(WarnLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -102,7 +102,7 @@ func Warnf(ctx service.Context, format string, v ...interface{}) {
 func Error(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(ErrorLevel|(Level(3)<<4), v...)
+		log.Log(ErrorLevel.PackSkip(1), v...)
 	}
 }
 
@@ -110,7 +110,7 @@ func Error(ctx service.Context, v ...interface{}) {
 func Errorln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(ErrorLevel|(Level(3)<<4), v...)
+		log.Logln(ErrorLevel.PackSkip(1), v...)
 	}
 }
 
@@ -118,7 +118,7 @@ func Errorln(ctx service.Context, v ...interface{}) {
 func Errorf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(ErrorLevel|(Level(3)<<4), format, v...)
+		log.Logf(ErrorLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -126,7 +126,7 @@ func Errorf(ctx service.Context, format string, v ...interface{}) {
 func Panic(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(PanicLevel|(Level(3)<<4), v...)
+		log.Log(PanicLevel.PackSkip(1), v...)
 	}
 }
 
@@ -134,7 +134,7 @@ func Panic(ctx service.Context, v ...interface{}) {
 func Panicln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(PanicLevel|(Level(3)<<4), v...)
+		log.Logln(PanicLevel.PackSkip(1), v...)
 	}
 }
 
@@ -142,7 +142,7 @@ func Panicln(ctx service.Context, v ...interface{}) {
 func Panicf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(PanicLevel|(Level(3)<<4), format, v...)
+		log.Logf(PanicLevel.PackSkip(1), format, v...)
 	}
 }
 
@@ -150,7 +150,7 @@ func Panicf(ctx service.Context, format string, v ...interface{}) {
 func Fatal(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Log(FatalLevel|(Level(3)<<4), v...)
+		log.Log(FatalLevel.PackSkip(1), v...)
 	}
 }
 
@@ -158,7 +158,7 @@ func Fatal(ctx service.Context, v ...interface{}) {
 func Fatalln(ctx service.Context, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logln(FatalLevel|(Level(3)<<4), v...)
+		log.Logln(FatalLevel.PackSkip(1), v...)
 	}
 }
 
@@ -166,6 +166,6 @@ func Fatalln(ctx service.Context, v ...interface{}) {
 func Fatalf(ctx service.Context, format string, v ...interface{}) {
 	log, ok := TryGet(ctx)
 	if ok {
-		log.Logf(FatalLevel|(Level(3)<<4), format, v...)
+		log.Logf(FatalLevel.PackSkip(1), format, v...)
 	}
 }
