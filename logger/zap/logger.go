@@ -2,7 +2,6 @@ package zap
 
 import (
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"reflect"
@@ -30,19 +29,9 @@ type _ZapLogger struct {
 // Init 初始化
 func (l *_ZapLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
-
-	zapCore := l.options.ZapLogger.Core().With([]zapcore.Field{
-		{
-			Key:       "service_field",
-			Type:      zapcore.StringType,
-			String:    l.serviceCtx.String(),
-			Interface: l.serviceCtx.String(),
-		},
-	})
-	zapLogger := zap.New(zapCore)
-
+	
 	for i := range l.sugaredLoggers {
-		l.sugaredLoggers[i] = zapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
+		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
 	}
 
 	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ZapLogger{}))
