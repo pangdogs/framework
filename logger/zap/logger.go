@@ -29,7 +29,11 @@ type _ZapLogger struct {
 // Init 初始化
 func (l *_ZapLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
-	
+
+	if l.options.ZapLogger == nil {
+		panic("option ZapLogger is nil, must be set")
+	}
+
 	for i := range l.sugaredLoggers {
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
 	}
