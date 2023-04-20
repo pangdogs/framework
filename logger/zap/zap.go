@@ -12,7 +12,7 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 	// 日志分割器与写入器
 	rollingLogger := lumberjack.Logger{
 		Filename: fileName, // 日志文件路径
-		MaxSize:  maxSize,  // 每个日志文件保存100M
+		MaxSize:  maxSize,  // 每个日志文件大小
 	}
 	write := zapcore.AddSync(&rollingLogger)
 	if stdout {
@@ -62,7 +62,7 @@ func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout,
 	// 日志分割器与写入器
 	rollingLogger := lumberjack.Logger{
 		Filename: fileName, // 日志文件路径
-		MaxSize:  maxSize,  // 每个日志文件保存100M
+		MaxSize:  maxSize,  // 每个日志文件大小
 	}
 	write := zapcore.AddSync(&rollingLogger)
 	if stdout {
