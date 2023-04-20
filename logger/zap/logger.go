@@ -32,7 +32,11 @@ func (l *_ZapLogger) Init(ctx service.Context) {
 
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 	for i := range l.sugaredLoggers {
-		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i), zap.Fields(zap.String("service", ctx.String()))).Sugar()
+		options := []zap.Option{zap.AddCallerSkip(i)}
+		if l.options.ServiceField {
+			options = append(options, zap.Fields(zap.String("service", ctx.String())))
+		}
+		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
 
 	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ZapLogger{}))

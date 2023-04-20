@@ -7,7 +7,7 @@ import (
 type ZapOptions struct {
 	ZapLogger     *zap.Logger
 	CallerMaxSkip int8
-	Service       bool
+	ServiceField  bool
 }
 
 type ZapOption func(options *ZapOptions)
@@ -18,6 +18,7 @@ func (WithZapOption) Default() ZapOption {
 	return func(options *ZapOptions) {
 		WithZapOption{}.ZapLogger(zap.NewExample())(options)
 		WithZapOption{}.CallerMaxSkip(3)(options)
+		WithZapOption{}.ServiceField(true)(options)
 	}
 }
 
@@ -36,5 +37,11 @@ func (WithZapOption) CallerMaxSkip(v int8) ZapOption {
 			panic("options.CallerMaxSkip can't be set to a value less than 0")
 		}
 		options.CallerMaxSkip = v
+	}
+}
+
+func (WithZapOption) ServiceField(v bool) ZapOption {
+	return func(options *ZapOptions) {
+		options.ServiceField = v
 	}
 }
