@@ -7,11 +7,11 @@ import (
 
 // Logger is a generic logging interface
 type Logger interface {
-	// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
+	// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
 	Log(level Level, v ...interface{})
-	// Logln writes a log entry, spaces are always added between operands and a newline is appended
+	// Logln writes a log entry, spaces are always added between operands and a newline is appended.
 	Logln(level Level, v ...interface{})
-	// Logf writes a formatted log entry
+	// Logf writes a formatted log entry.
 	Logf(level Level, format string, v ...interface{})
 }
 
@@ -29,6 +29,8 @@ const (
 	WarnLevel
 	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
 	ErrorLevel
+	// DPanicLevel level. Logs and call `panic()` in development mode.
+	DPanicLevel
 	// PanicLevel level. Logs and call `panic()`.
 	PanicLevel
 	// FatalLevel level. Logs and then calls `logger.Exit(1)`. highest level of severity.
@@ -49,6 +51,8 @@ func (l Level) String() string {
 		return "warn"
 	case ErrorLevel:
 		return "error"
+	case DPanicLevel:
+		return "dpanic"
 	case PanicLevel:
 		return "panic"
 	case FatalLevel:
@@ -76,6 +80,8 @@ func (l *Level) Set(str string) error {
 		*l = WarnLevel
 	case ErrorLevel.String():
 		*l = ErrorLevel
+	case DPanicLevel.String():
+		*l = DPanicLevel
 	case PanicLevel.String():
 		*l = PanicLevel
 	case FatalLevel.String():

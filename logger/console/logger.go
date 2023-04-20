@@ -31,7 +31,7 @@ type _ConsoleLogger struct {
 	serviceField string
 }
 
-// Init 初始化
+// Init init plugin
 func (l *_ConsoleLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
 	l.serviceField = l.serviceCtx.String()
@@ -39,12 +39,12 @@ func (l *_ConsoleLogger) Init(ctx service.Context) {
 	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
-// Shut 关闭
+// Shut shut plugin
 func (l *_ConsoleLogger) Shut() {
 	logger.Infof(l.serviceCtx, "shut plugin %s", plugin.Name)
 }
 
-// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
+// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
 func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
 
@@ -55,7 +55,7 @@ func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
 	l.logInfo(level, skip+2, fmt.Sprint(v...), "\n")
 }
 
-// Logln writes a log entry, spaces are always added between operands and a newline is appended
+// Logln writes a log entry, spaces are always added between operands and a newline is appended.
 func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
 
@@ -66,7 +66,7 @@ func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
 	l.logInfo(level, skip+2, fmt.Sprintln(v...), "")
 }
 
-// Logf writes a formatted log entry
+// Logf writes a formatted log entry.
 func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{}) {
 	level, skip := level.UnpackSkip()
 
@@ -81,7 +81,7 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln stri
 	var writer io.Writer
 
 	switch level {
-	case logger.ErrorLevel:
+	case logger.ErrorLevel, logger.DPanicLevel, logger.PanicLevel, logger.FatalLevel:
 		writer = os.Stderr
 	default:
 		writer = os.Stdout
@@ -146,6 +146,10 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln stri
 	fmt.Fprint(writer, fields[:count]...)
 
 	switch level {
+	case logger.DPanicLevel:
+		if l.options.Development {
+			panic(info)
+		}
 	case logger.PanicLevel:
 		panic(info)
 	case logger.FatalLevel:

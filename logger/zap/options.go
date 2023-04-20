@@ -7,6 +7,7 @@ import (
 type ZapOptions struct {
 	ZapLogger     *zap.Logger
 	CallerMaxSkip int8
+	Service       bool
 }
 
 type ZapOption func(options *ZapOptions)

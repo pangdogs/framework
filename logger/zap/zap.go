@@ -10,11 +10,11 @@ import (
 // NewZapConsoleLogger 创建控制台样式日志记录器
 func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
 	// 日志分割器与写入器
-	rollingLogger := lumberjack.Logger{
-		Filename: fileName, // 日志文件路径
-		MaxSize:  maxSize,  // 每个日志文件大小
+	rollingWrite := lumberjack.Logger{
+		Filename: fileName,
+		MaxSize:  maxSize,
 	}
-	write := zapcore.AddSync(&rollingLogger)
+	write := zapcore.AddSync(&rollingWrite)
 	if stdout {
 		write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(write))
 	}
@@ -31,8 +31,8 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 		StacktraceKey:    "stacktrace",
 		MessageKey:       "msg",
 		LineEnding:       zapcore.DefaultLineEnding,
-		EncodeLevel:      zapcore.LowercaseLevelEncoder, // 小写编码器
-		EncodeTime:       zapcore.ISO8601TimeEncoder,    // ISO8601 UTC 时间格式
+		EncodeLevel:      zapcore.LowercaseColorLevelEncoder,
+		EncodeTime:       zapcore.ISO8601TimeEncoder,
 		EncodeDuration:   zapcore.NanosDurationEncoder,
 		EncodeCaller:     zapcore.ShortCallerEncoder,
 		ConsoleSeparator: separator,
@@ -46,7 +46,7 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 	)
 
 	var options []zap.Option
-	options = append(options, zap.AddCaller(), zap.AddStacktrace(zap.PanicLevel))
+	options = append(options, zap.AddCaller(), zap.AddStacktrace(zap.DPanicLevel))
 
 	if development {
 		options = append(options, zap.Development())
@@ -60,11 +60,11 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 // NewZapJsonLogger 创建Json样式日志记录器
 func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
 	// 日志分割器与写入器
-	rollingLogger := lumberjack.Logger{
-		Filename: fileName, // 日志文件路径
-		MaxSize:  maxSize,  // 每个日志文件大小
+	rollingWrite := lumberjack.Logger{
+		Filename: fileName,
+		MaxSize:  maxSize,
 	}
-	write := zapcore.AddSync(&rollingLogger)
+	write := zapcore.AddSync(&rollingWrite)
 	if stdout {
 		write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(write))
 	}
@@ -81,8 +81,8 @@ func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout,
 		StacktraceKey:  "stacktrace",
 		MessageKey:     "msg",
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder, // 小写编码器
-		EncodeTime:     zapcore.ISO8601TimeEncoder,    // ISO8601 UTC 时间格式
+		EncodeLevel:    zapcore.LowercaseColorLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.NanosDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
@@ -95,7 +95,7 @@ func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout,
 	)
 
 	var options []zap.Option
-	options = append(options, zap.AddCaller(), zap.AddStacktrace(zap.PanicLevel))
+	options = append(options, zap.AddCaller(), zap.AddStacktrace(zap.DPanicLevel))
 
 	if development {
 		options = append(options, zap.Development())

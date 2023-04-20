@@ -32,7 +32,7 @@ func (l *_ZapLogger) Init(ctx service.Context) {
 
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 	for i := range l.sugaredLoggers {
-		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
+		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i), zap.Fields(zap.String("service", ctx.String()))).Sugar()
 	}
 
 	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ZapLogger{}))
@@ -63,8 +63,10 @@ func (l *_ZapLogger) Log(level logger.Level, v ...interface{}) {
 		sugaredLogger.Warn(v...)
 	case logger.ErrorLevel:
 		sugaredLogger.Error(v...)
-	case logger.PanicLevel:
+	case logger.DPanicLevel:
 		sugaredLogger.DPanic(v...)
+	case logger.PanicLevel:
+		sugaredLogger.Panic(v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatal(v...)
 	}
@@ -90,8 +92,10 @@ func (l *_ZapLogger) Logln(level logger.Level, v ...interface{}) {
 		sugaredLogger.Warnln(v...)
 	case logger.ErrorLevel:
 		sugaredLogger.Errorln(v...)
-	case logger.PanicLevel:
+	case logger.DPanicLevel:
 		sugaredLogger.DPanicln(v...)
+	case logger.PanicLevel:
+		sugaredLogger.Panicln(v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatalln(v...)
 	}
@@ -117,8 +121,10 @@ func (l *_ZapLogger) Logf(level logger.Level, format string, v ...interface{}) {
 		sugaredLogger.Warnf(format, v...)
 	case logger.ErrorLevel:
 		sugaredLogger.Errorf(format, v...)
-	case logger.PanicLevel:
+	case logger.DPanicLevel:
 		sugaredLogger.DPanicf(format, v...)
+	case logger.PanicLevel:
+		sugaredLogger.Panicf(format, v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatalf(format, v...)
 	}
