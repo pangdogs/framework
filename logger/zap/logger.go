@@ -64,7 +64,7 @@ func (l *_ZapLogger) Log(level logger.Level, v ...interface{}) {
 	case logger.ErrorLevel:
 		sugaredLogger.Error(v...)
 	case logger.PanicLevel:
-		sugaredLogger.Panic(v...)
+		sugaredLogger.DPanic(v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatal(v...)
 	}
@@ -91,7 +91,7 @@ func (l *_ZapLogger) Logln(level logger.Level, v ...interface{}) {
 	case logger.ErrorLevel:
 		sugaredLogger.Errorln(v...)
 	case logger.PanicLevel:
-		sugaredLogger.Panicln(v...)
+		sugaredLogger.DPanicln(v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatalln(v...)
 	}
@@ -118,7 +118,7 @@ func (l *_ZapLogger) Logf(level logger.Level, format string, v ...interface{}) {
 	case logger.ErrorLevel:
 		sugaredLogger.Errorf(format, v...)
 	case logger.PanicLevel:
-		sugaredLogger.Panicf(format, v...)
+		sugaredLogger.DPanicf(format, v...)
 	case logger.FatalLevel:
 		sugaredLogger.Fatalf(format, v...)
 	}
