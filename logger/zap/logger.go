@@ -23,17 +23,14 @@ func newZapLogger(options ...ZapOption) logger.Logger {
 type _ZapLogger struct {
 	options        ZapOptions
 	serviceCtx     service.Context
-	sugaredLoggers [10]*zap.SugaredLogger
+	sugaredLoggers []*zap.SugaredLogger
 }
 
 // Init 初始化
 func (l *_ZapLogger) Init(ctx service.Context) {
 	l.serviceCtx = ctx
 
-	if l.options.ZapLogger == nil {
-		panic("option ZapLogger is nil, must be set")
-	}
-
+	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 	for i := range l.sugaredLoggers {
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(zap.AddCallerSkip(i)).Sugar()
 	}
@@ -49,13 +46,11 @@ func (l *_ZapLogger) Shut() {
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
 func (l *_ZapLogger) Log(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
-	skip += 1
 
-	if skip < 0 || int(skip) >= len(l.sugaredLoggers) {
+	sugaredLogger := l.getSugaredLogger(skip + 1)
+	if sugaredLogger == nil {
 		return
 	}
-
-	sugaredLogger := l.sugaredLoggers[skip]
 
 	switch level {
 	case logger.TraceLevel:
@@ -78,13 +73,11 @@ func (l *_ZapLogger) Log(level logger.Level, v ...interface{}) {
 // Logln writes a log entry, spaces are always added between operands and a newline is appended
 func (l *_ZapLogger) Logln(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
-	skip += 1
 
-	if skip < 0 || int(skip) >= len(l.sugaredLoggers) {
+	sugaredLogger := l.getSugaredLogger(skip + 1)
+	if sugaredLogger == nil {
 		return
 	}
-
-	sugaredLogger := l.sugaredLoggers[skip]
 
 	switch level {
 	case logger.TraceLevel:
@@ -107,13 +100,11 @@ func (l *_ZapLogger) Logln(level logger.Level, v ...interface{}) {
 // Logf writes a formatted log entry
 func (l *_ZapLogger) Logf(level logger.Level, format string, v ...interface{}) {
 	level, skip := level.UnpackSkip()
-	skip += 1
 
-	if skip < 0 || int(skip) >= len(l.sugaredLoggers) {
+	sugaredLogger := l.getSugaredLogger(skip + 1)
+	if sugaredLogger == nil {
 		return
 	}
-
-	sugaredLogger := l.sugaredLoggers[skip]
 
 	switch level {
 	case logger.TraceLevel:
@@ -131,4 +122,11 @@ func (l *_ZapLogger) Logf(level logger.Level, format string, v ...interface{}) {
 	case logger.FatalLevel:
 		sugaredLogger.Fatalf(format, v...)
 	}
+}
+
+func (l *_ZapLogger) getSugaredLogger(skip int8) *zap.SugaredLogger {
+	if skip >= 0 && int(skip) < len(l.sugaredLoggers) {
+		return l.sugaredLoggers[skip]
+	}
+	return nil
 }
