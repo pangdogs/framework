@@ -7,6 +7,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.6
 	go.etcd.io/etcd/client/v3 v3.5.6
 	go.uber.org/zap v1.24.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	kit.golaxy.org/golaxy v0.1.24
 )
 
