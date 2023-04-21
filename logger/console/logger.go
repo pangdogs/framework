@@ -3,11 +3,12 @@ package console
 import (
 	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"os"
 	"reflect"
-	"runtime"
+	goruntime "runtime"
 	"strings"
 	"time"
 )
@@ -27,21 +28,33 @@ func newConsoleLogger(options ...ConsoleOption) logger.Logger {
 
 type _ConsoleLogger struct {
 	options      ConsoleOptions
-	serviceCtx   service.Context
 	serviceField string
+	runtimeField string
 }
 
-// Init init plugin
-func (l *_ConsoleLogger) Init(ctx service.Context) {
-	l.serviceCtx = ctx
-	l.serviceField = l.serviceCtx.String()
+// InitService init service plugin
+func (l *_ConsoleLogger) InitService(ctx service.Context) {
+	l.serviceField = ctx.String()
 
-	logger.Infof(ctx, "init plugin %s with %s", plugin.Name, reflect.TypeOf(_ConsoleLogger{}))
+	logger.Infof(ctx, "init service plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
-// Shut shut plugin
-func (l *_ConsoleLogger) Shut() {
-	logger.Infof(l.serviceCtx, "shut plugin %s", plugin.Name)
+// ShutService shut service plugin
+func (l *_ConsoleLogger) ShutService(ctx service.Context) {
+	logger.Infof(ctx, "shut service plugin %s", definePlugin.Name)
+}
+
+// InitRuntime init runtime plugin
+func (l *_ConsoleLogger) InitRuntime(ctx runtime.Context) {
+	l.serviceField = service.Get(ctx).String()
+	l.runtimeField = ctx.String()
+
+	logger.Infof(ctx, "init runtime plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
+}
+
+// ShutRuntime shut runtime plugin
+func (l *_ConsoleLogger) ShutRuntime(ctx runtime.Context) {
+	logger.Infof(ctx, "shut runtime plugin %s", definePlugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
@@ -87,11 +100,18 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln stri
 		writer = os.Stdout
 	}
 
-	var fields [12]any
+	var fields [16]any
 	var count int32
 
-	if l.options.Fields&ServiceField != 0 {
+	if l.serviceField != "" && l.options.Fields&ServiceField != 0 {
 		fields[count] = l.serviceField
+		count++
+		fields[count] = l.options.Separator
+		count++
+	}
+
+	if l.runtimeField != "" && l.options.Fields&RuntimeField != 0 {
+		fields[count] = l.runtimeField
 		count++
 		fields[count] = l.options.Separator
 		count++
@@ -112,7 +132,7 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln stri
 	}
 
 	if l.options.Fields&CallerField != 0 {
-		_, file, line, ok := runtime.Caller(int(skip))
+		_, file, line, ok := goruntime.Caller(int(skip))
 		if !ok {
 			file = "???"
 			line = 0
