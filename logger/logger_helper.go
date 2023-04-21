@@ -1,7 +1,10 @@
 package logger
 
 import (
+	"errors"
+	"fmt"
 	"kit.golaxy.org/golaxy/plugin"
+	"os"
 )
 
 // Trace logs a message at TraceLevel, spaces are added between operands when neither is a string and a newline is appended.
@@ -129,6 +132,8 @@ func DPanic(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Log(DPanicLevel.PackSkip(1), v...)
+	} else {
+		panic(errors.New(fmt.Sprint(v...)))
 	}
 }
 
@@ -137,6 +142,8 @@ func DPanicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logln(DPanicLevel.PackSkip(1), v...)
+	} else {
+		panic(errors.New(fmt.Sprintln(v...)))
 	}
 }
 
@@ -145,6 +152,8 @@ func DPanicf(pluginResolver plugin.PluginResolver, format string, v ...interface
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logf(DPanicLevel.PackSkip(1), format, v...)
+	} else {
+		panic(fmt.Errorf(format, v...))
 	}
 }
 
@@ -153,6 +162,8 @@ func Panic(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Log(PanicLevel.PackSkip(1), v...)
+	} else {
+		panic(errors.New(fmt.Sprint(v...)))
 	}
 }
 
@@ -161,6 +172,8 @@ func Panicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logln(PanicLevel.PackSkip(1), v...)
+	} else {
+		panic(errors.New(fmt.Sprintln(v...)))
 	}
 }
 
@@ -169,6 +182,8 @@ func Panicf(pluginResolver plugin.PluginResolver, format string, v ...interface{
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logf(PanicLevel.PackSkip(1), format, v...)
+	} else {
+		panic(fmt.Errorf(format, v...))
 	}
 }
 
@@ -177,6 +192,8 @@ func Fatal(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Log(FatalLevel.PackSkip(1), v...)
+	} else {
+		os.Exit(1)
 	}
 }
 
@@ -185,6 +202,8 @@ func Fatalln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logln(FatalLevel.PackSkip(1), v...)
+	} else {
+		os.Exit(1)
 	}
 }
 
@@ -193,5 +212,7 @@ func Fatalf(pluginResolver plugin.PluginResolver, format string, v ...interface{
 	log, ok := TryGet(pluginResolver)
 	if ok {
 		log.Logf(FatalLevel.PackSkip(1), format, v...)
+	} else {
+		os.Exit(1)
 	}
 }
