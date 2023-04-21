@@ -33,7 +33,7 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 		LineEnding:       zapcore.DefaultLineEnding,
 		EncodeLevel:      zapcore.LowercaseColorLevelEncoder,
 		EncodeTime:       zapcore.ISO8601TimeEncoder,
-		EncodeDuration:   zapcore.NanosDurationEncoder,
+		EncodeDuration:   zapcore.SecondsDurationEncoder,
 		EncodeCaller:     zapcore.ShortCallerEncoder,
 		ConsoleSeparator: separator,
 	}
@@ -81,7 +81,7 @@ func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout,
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.NanosDurationEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
