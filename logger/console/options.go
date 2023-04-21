@@ -9,6 +9,7 @@ type Field int16
 
 const (
 	ServiceField Field = 1 << iota
+	RuntimeField
 	TimestampField
 	LevelField
 	CallerField
@@ -31,7 +32,7 @@ func (WithConsoleOption) Default() ConsoleOption {
 	return func(options *ConsoleOptions) {
 		WithConsoleOption{}.Development(false)
 		WithConsoleOption{}.Level(logger.InfoLevel)(options)
-		WithConsoleOption{}.Fields(ServiceField | TimestampField | LevelField | CallerField)(options)
+		WithConsoleOption{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
 		WithConsoleOption{}.Separator(`|`)(options)
 		WithConsoleOption{}.TimestampLayout(time.RFC3339Nano)(options)
 		WithConsoleOption{}.CallerFullName(false)(options)
