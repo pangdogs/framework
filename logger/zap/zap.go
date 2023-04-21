@@ -31,7 +31,7 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 		StacktraceKey:    "stacktrace",
 		MessageKey:       "msg",
 		LineEnding:       zapcore.DefaultLineEnding,
-		EncodeLevel:      zapcore.LowercaseColorLevelEncoder,
+		EncodeLevel:      zapcore.LowercaseLevelEncoder,
 		EncodeTime:       zapcore.ISO8601TimeEncoder,
 		EncodeDuration:   zapcore.SecondsDurationEncoder,
 		EncodeCaller:     zapcore.ShortCallerEncoder,

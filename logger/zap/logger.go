@@ -52,7 +52,10 @@ func (l *_ZapLogger) InitRuntime(ctx runtime.Context) {
 	for i := range l.sugaredLoggers {
 		options := []zap.Option{zap.AddCallerSkip(i)}
 		if l.options.Fields&ServiceField != 0 {
-			options = append(options, zap.Fields(zap.String("service", service.Get(ctx).String()), zap.String("runtime", ctx.String())))
+			options = append(options, zap.Fields(zap.String("service", service.Get(ctx).String())))
+		}
+		if l.options.Fields&RuntimeField != 0 {
+			options = append(options, zap.Fields(zap.String("runtime", ctx.String())))
 		}
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
