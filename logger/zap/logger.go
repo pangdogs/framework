@@ -38,12 +38,12 @@ func (l *_ZapLogger) InitService(ctx service.Context) {
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
 
-	logger.Infof(ctx, "init service plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ZapLogger{}))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ZapLogger{}))
 }
 
 // ShutService 关闭服务插件
 func (l *_ZapLogger) ShutService(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %s", definePlugin.Name)
+	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 }
 
 // InitRuntime 初始化运行时插件
@@ -60,12 +60,12 @@ func (l *_ZapLogger) InitRuntime(ctx runtime.Context) {
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
 
-	logger.Infof(ctx, "init runtime plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ZapLogger{}))
+	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ZapLogger{}))
 }
 
 // ShutRuntime 关闭运行时插件
 func (l *_ZapLogger) ShutRuntime(ctx runtime.Context) {
-	logger.Infof(ctx, "shut runtime plugin %s", definePlugin.Name)
+	logger.Infof(ctx, "shut runtime plugin %q", definePlugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
