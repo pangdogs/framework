@@ -38,9 +38,7 @@ const (
 )
 
 func (l Level) String() string {
-	l &= 0x0f
-
-	switch l {
+	switch l & 0x0f {
 	case TraceLevel:
 		return "trace"
 	case DebugLevel:
@@ -93,8 +91,7 @@ func (l *Level) Set(str string) error {
 
 // Enabled returns true if the given level is at or above this level.
 func (l Level) Enabled(level Level) bool {
-	l &= 0x0f
-	return level >= l
+	return level&0x0f >= l&0x0f
 }
 
 // PackSkip returns a new Level value with an additional skip offset encoded in the high bits.
@@ -108,6 +105,5 @@ func (l Level) PackSkip(skip int8) Level {
 // If the skip offset is not present in the packed value, a default value of 1 is used.
 // It is useful for decoding the skip offset and recovering the original Level value.
 func (l Level) UnpackSkip() (Level, int8) {
-	skip := int8(l >> 4)
-	return l & 0x0f, skip
+	return l & 0x0f, int8(l >> 4)
 }
