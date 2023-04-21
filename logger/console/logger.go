@@ -62,10 +62,13 @@ func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
 
 	if !l.options.Level.Enabled(level) {
+		l.interrupt(level, fmt.Sprint(v...))
 		return
 	}
 
-	l.logInfo(level, skip+2, fmt.Sprint(v...), "\n")
+	msg := fmt.Sprint(v...)
+	l.logMessage(level, skip+2, msg, "\n")
+	l.interrupt(level, msg)
 }
 
 // Logln writes a log entry, spaces are always added between operands and a newline is appended.
@@ -73,10 +76,13 @@ func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
 	level, skip := level.UnpackSkip()
 
 	if !l.options.Level.Enabled(level) {
+		l.interrupt(level, fmt.Sprintln(v...))
 		return
 	}
 
-	l.logInfo(level, skip+2, fmt.Sprintln(v...), "")
+	msg := fmt.Sprintln(v...)
+	l.logMessage(level, skip+2, msg, "")
+	l.interrupt(level, msg)
 }
 
 // Logf writes a formatted log entry.
@@ -84,13 +90,16 @@ func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{
 	level, skip := level.UnpackSkip()
 
 	if !l.options.Level.Enabled(level) {
+		l.interrupt(level, fmt.Sprintf(format, v...))
 		return
 	}
 
-	l.logInfo(level, skip+2, fmt.Sprintf(format, v...), "\n")
+	msg := fmt.Sprintf(format, v...)
+	l.logMessage(level, skip+2, msg, "\n")
+	l.interrupt(level, msg)
 }
 
-func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln string) {
+func (l *_ConsoleLogger) logMessage(level logger.Level, skip int8, msg, endln string) {
 	var writer io.Writer
 
 	switch level {
@@ -158,20 +167,22 @@ func (l *_ConsoleLogger) logInfo(level logger.Level, skip int8, info, endln stri
 		count++
 	}
 
-	fields[count] = info
+	fields[count] = msg
 	count++
 	fields[count] = endln
 	count++
 
 	fmt.Fprint(writer, fields[:count]...)
+}
 
+func (l *_ConsoleLogger) interrupt(level logger.Level, msg string) {
 	switch level {
 	case logger.DPanicLevel:
 		if l.options.Development {
-			panic(info)
+			panic(msg)
 		}
 	case logger.PanicLevel:
-		panic(info)
+		panic(msg)
 	case logger.FatalLevel:
 		os.Exit(1)
 	}
