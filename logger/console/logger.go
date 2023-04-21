@@ -36,12 +36,12 @@ type _ConsoleLogger struct {
 func (l *_ConsoleLogger) InitService(ctx service.Context) {
 	l.serviceField = ctx.String()
 
-	logger.Infof(ctx, "init service plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
 // ShutService shut service plugin
 func (l *_ConsoleLogger) ShutService(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %s", definePlugin.Name)
+	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 }
 
 // InitRuntime init runtime plugin
@@ -49,12 +49,12 @@ func (l *_ConsoleLogger) InitRuntime(ctx runtime.Context) {
 	l.serviceField = service.Get(ctx).String()
 	l.runtimeField = ctx.String()
 
-	logger.Infof(ctx, "init runtime plugin %s with %s", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
+	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
 // ShutRuntime shut runtime plugin
 func (l *_ConsoleLogger) ShutRuntime(ctx runtime.Context) {
-	logger.Infof(ctx, "shut runtime plugin %s", definePlugin.Name)
+	logger.Infof(ctx, "shut runtime plugin %q", definePlugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
