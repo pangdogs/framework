@@ -1,6 +1,10 @@
 package registry
 
-import "time"
+import (
+	"errors"
+	"fmt"
+	"time"
+)
 
 // Watcher is an interface that returns updates
 // about services within the registry.
@@ -41,6 +45,25 @@ func (t EventType) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+// Set converts a EventType string into a EventType value.
+// returns error if the input string does not match known values.
+func (t *EventType) Set(str string) error {
+	if t == nil {
+		return errors.New("can't set a nil *EventType")
+	}
+
+	switch str {
+	case Create.String():
+		*t = Create
+	case Delete.String():
+		*t = Delete
+	case Update.String():
+		*t = Update
+	}
+
+	return fmt.Errorf("unrecognized EventType: %q", str)
 }
 
 // Event is registry event

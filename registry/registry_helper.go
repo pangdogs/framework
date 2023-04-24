@@ -2,11 +2,12 @@ package registry
 
 import (
 	"kit.golaxy.org/golaxy/service"
+	"time"
 )
 
 // Register 注册服务
-func Register(serviceCtx service.Context, service Service, options ...RegisterOption) error {
-	return Get(serviceCtx).Register(serviceCtx, service, options...)
+func Register(serviceCtx service.Context, service Service, ttl time.Duration) error {
+	return Get(serviceCtx).Register(serviceCtx, service, ttl)
 }
 
 // Deregister 取消注册服务

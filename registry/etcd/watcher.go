@@ -26,7 +26,7 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, timeout time.Duration
 
 	watchPath := r.options.KeyPrefix
 	if serviceName != "" {
-		watchPath = servicePath(r.options.KeyPrefix, serviceName)
+		watchPath = getServicePath(r.options.KeyPrefix, serviceName)
 	}
 
 	return &_EtcdWatcher{
@@ -59,13 +59,13 @@ func (ew *_EtcdWatcher) Next() (*registry.Result, error) {
 				}
 
 				// get service from Kv
-				service = decode(ev.Kv.Value)
+				service = decodeService(ev.Kv.Value)
 
 			case clientv3.EventTypeDelete:
 				action = registry.Delete.String()
 
 				// get service from prevKv
-				service = decode(ev.PrevKv.Value)
+				service = decodeService(ev.PrevKv.Value)
 			}
 
 			if service == nil || action == "" {
