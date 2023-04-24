@@ -11,6 +11,7 @@ import (
 type Watcher interface {
 	// Next is a blocking call
 	Next() (*Result, error)
+	// Stop stop watching
 	Stop()
 }
 
