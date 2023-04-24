@@ -301,14 +301,14 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	// renew the lease if it exists
 	if leaseID > 0 {
 		err := r.invokeWithTimeout(ctx, func(ctx context.Context) error {
-			logger.Debugf(r.ctx, "renewing existing lease %q for %q", leaseID, service.Name)
+			logger.Debugf(r.ctx, "renewing existing lease %d for %q", leaseID, service.Name)
 
 			if _, err := r.client.KeepAliveOnce(ctx, leaseID); err != nil {
 				if err != rpctypes.ErrLeaseNotFound {
 					return err
 				}
 
-				logger.Debugf(r.ctx, "lease %q not found for %q", leaseID, service.Name)
+				logger.Debugf(r.ctx, "lease %d not found for %q", leaseID, service.Name)
 				// lease not found do register
 				leaseNotFound = true
 			}
@@ -357,7 +357,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 		}
 	}
 
-	logger.Debugf(r.ctx, "registering %q id %q with lease %q and leaseID %q and ttl %q", nodeService.Name, node.Id, lgr, lgr.ID, ttl)
+	logger.Debugf(r.ctx, "registering %q id %q with lease %q and leaseID %d and ttl %q", nodeService.Name, node.Id, lgr, lgr.ID, ttl)
 
 	// create an entry for the node
 	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
