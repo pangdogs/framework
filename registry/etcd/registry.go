@@ -63,7 +63,7 @@ func (r *_EtcdRegistry) InitService(ctx service.Context) {
 
 // ShutService 关闭服务插件
 func (r *_EtcdRegistry) ShutService(ctx service.Context) {
-	logger.Infof(r.ctx, "shut service plugin %q", definePlugin.Name)
+	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {
@@ -108,10 +108,13 @@ func (r *_EtcdRegistry) Deregister(ctx context.Context, service registry.Service
 
 // GetService 查询服务
 func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-	defer cancel()
+	var rsp *clientv3.GetResponse
+	var err error
 
-	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), clientv3.WithPrefix(), clientv3.WithSerializable())
+	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+		rsp, err = r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), clientv3.WithPrefix(), clientv3.WithSerializable())
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +156,13 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 
 // ListServices 查询所有服务
 func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-	defer cancel()
+	var rsp *clientv3.GetResponse
+	var err error
 
-	rsp, err := r.client.Get(ctx, r.options.KeyPrefix, clientv3.WithPrefix(), clientv3.WithSerializable())
+	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+		rsp, err = r.client.Get(ctx, r.options.KeyPrefix, clientv3.WithPrefix(), clientv3.WithSerializable())
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +248,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	// missing lease, check if the key exists
 	if !ok {
-		err := r.invokeWithTimeout(func(ctx context.Context) error {
+		err := r.invokeWithTimeout(ctx, func(ctx context.Context) error {
 			// look for the existing key
 			rsp, err := r.client.Get(ctx, nodePath, clientv3.WithSerializable())
 			if err != nil {
@@ -294,7 +300,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	// renew the lease if it exists
 	if leaseID > 0 {
-		err := r.invokeWithTimeout(func(ctx context.Context) error {
+		err := r.invokeWithTimeout(ctx, func(ctx context.Context) error {
 			logger.Debugf(r.ctx, "renewing existing lease %q for %q", leaseID, service.Name)
 
 			if _, err := r.client.KeepAliveOnce(ctx, leaseID); err != nil {
@@ -341,7 +347,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	var lgr *clientv3.LeaseGrantResponse
 	if ttl.Seconds() > 0 {
-		err = r.invokeWithTimeout(func(ctx context.Context) error {
+		err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
 			// get a lease used to expire keys since we have a ttl
 			lgr, err = r.client.Grant(ctx, int64(ttl.Seconds()))
 			return err
@@ -354,7 +360,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	logger.Debugf(r.ctx, "registering %q id %q with lease %q and leaseID %q and ttl %q", nodeService.Name, node.Id, lgr, lgr.ID, ttl)
 
 	// create an entry for the node
-	err = r.invokeWithTimeout(func(ctx context.Context) error {
+	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
 		if lgr != nil {
 			_, err = r.client.Put(ctx, nodePath, encodeService(nodeService), clientv3.WithLease(lgr.ID))
 		} else {
@@ -390,18 +396,22 @@ func (r *_EtcdRegistry) deregisterNode(ctx context.Context, service registry.Ser
 	delete(r.leases, nodePath)
 	r.mutex.Unlock()
 
-	return r.invokeWithTimeout(func(ctx context.Context) error {
+	return r.invokeWithTimeout(ctx, func(ctx context.Context) error {
 		_, err := r.client.Delete(ctx, nodePath)
 		return err
 	})
 }
 
-func (r *_EtcdRegistry) invokeWithTimeout(fun func(ctx context.Context) error) error {
+func (r *_EtcdRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx context.Context) error) error {
 	if fun == nil {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(r.ctx, r.options.Timeout)
+	if ctx == nil {
+		ctx = r.ctx
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
 	defer cancel()
 
 	return fun(ctx)
