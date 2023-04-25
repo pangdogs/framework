@@ -385,7 +385,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 }
 
 func (r *_EtcdRegistry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
-	logger.Debug(r.ctx, "deregistering %q id %q", service.Name, node.Id)
+	logger.Debugf(r.ctx, "deregistering %q id %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
