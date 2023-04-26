@@ -70,11 +70,11 @@ func (t *EventType) Set(str string) error {
 // Event is registry event
 type Event struct {
 	// Id is registry id
-	Id string
+	Id string `json:"id"`
 	// Type defines type of event
-	Type EventType
+	Type EventType `json:"type"`
 	// Timestamp is event timestamp
-	Timestamp time.Time
+	Timestamp time.Time `json:"ts"`
 	// Service is registry service
-	Service *Service
+	Service *Service `json:"service"`
 }

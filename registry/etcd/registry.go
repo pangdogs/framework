@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	hash "github.com/mitchellh/hashstructure"
+	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
@@ -111,9 +111,8 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 	var rsp *clientv3.GetResponse
 	var err error
 
-	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
 		rsp, err = r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), clientv3.WithPrefix(), clientv3.WithSerializable())
-		return err
 	})
 	if err != nil {
 		return nil, err
@@ -159,9 +158,8 @@ func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, e
 	var rsp *clientv3.GetResponse
 	var err error
 
-	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
 		rsp, err = r.client.Get(ctx, r.options.KeyPrefix, clientv3.WithPrefix(), clientv3.WithSerializable())
-		return err
 	})
 	if err != nil {
 		return nil, err
@@ -182,14 +180,14 @@ func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, e
 
 		version := service.Name + "/" + service.Version
 
-		v, ok := versions[version]
+		s, ok := versions[version]
 		if !ok {
 			versions[version] = service
 			continue
 		}
 
 		// append to service:version nodes
-		v.Nodes = append(v.Nodes, service.Nodes...)
+		s.Nodes = append(s.Nodes, service.Nodes...)
 	}
 
 	services := make([]registry.Service, 0, len(versions))
@@ -241,6 +239,12 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
+	// create hash of service; uint64
+	hv, err := hash.Hash(node, hash.FormatV2, nil)
+	if err != nil {
+		return err
+	}
+
 	// check existing lease cache
 	r.mutex.RLock()
 	leaseID, ok := r.leases[nodePath]
@@ -248,51 +252,49 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	// missing lease, check if the key exists
 	if !ok {
-		err := r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+		var rsp *clientv3.GetResponse
+		var err error
+
+		r.invokeWithTimeout(ctx, func(ctx context.Context) {
 			// look for the existing key
-			rsp, err := r.client.Get(ctx, nodePath, clientv3.WithSerializable())
-			if err != nil {
-				return err
-			}
-
-			// get the existing lease
-			for _, kv := range rsp.Kvs {
-				if kv.Lease > 0 {
-					// decode the existing node
-					srv, err := decodeService(kv.Value)
-					if err != nil {
-						logger.Debug(r.ctx, err)
-						continue
-					}
-
-					if len(srv.Nodes) <= 0 {
-						logger.Debug(r.ctx, "empty nodes")
-						continue
-					}
-
-					// create hash of service; uint64
-					hv, err := hash.Hash(srv.Nodes[0], nil)
-					if err != nil {
-						logger.Debug(r.ctx, err)
-						continue
-					}
-
-					leaseID = clientv3.LeaseID(kv.Lease)
-
-					// save the info
-					r.mutex.Lock()
-					r.leases[nodePath] = leaseID
-					r.register[nodePath] = hv
-					r.mutex.Unlock()
-
-					return nil
-				}
-			}
-
-			return nil
+			rsp, err = r.client.Get(ctx, nodePath, clientv3.WithSerializable())
 		})
 		if err != nil {
 			return err
+		}
+
+		// get the existing lease
+		for _, kv := range rsp.Kvs {
+			if kv.Lease > 0 {
+				// decode the existing node
+				srv, err := decodeService(kv.Value)
+				if err != nil {
+					logger.Debug(r.ctx, err)
+					continue
+				}
+
+				if len(srv.Nodes) <= 0 {
+					logger.Debug(r.ctx, "empty nodes")
+					continue
+				}
+
+				// create hash of service; uint64
+				hv, err := hash.Hash(srv.Nodes[0], hash.FormatV2, nil)
+				if err != nil {
+					logger.Debug(r.ctx, err)
+					continue
+				}
+
+				leaseID = clientv3.LeaseID(kv.Lease)
+
+				// save the info
+				r.mutex.Lock()
+				r.leases[nodePath] = leaseID
+				r.register[nodePath] = hv
+				r.mutex.Unlock()
+
+				break
+			}
 		}
 	}
 
@@ -300,30 +302,22 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	// renew the lease if it exists
 	if leaseID > 0 {
-		err := r.invokeWithTimeout(ctx, func(ctx context.Context) error {
-			logger.Debugf(r.ctx, "renewing existing lease %d for %q", leaseID, service.Name)
+		logger.Debugf(r.ctx, "renewing existing lease %d for %q", leaseID, service.Name)
 
-			if _, err := r.client.KeepAliveOnce(ctx, leaseID); err != nil {
-				if err != rpctypes.ErrLeaseNotFound {
-					return err
-				}
+		var err error
 
-				logger.Debugf(r.ctx, "lease %d not found for %q", leaseID, service.Name)
-				// lease not found do register
-				leaseNotFound = true
-			}
-
-			return nil
+		r.invokeWithTimeout(ctx, func(ctx context.Context) {
+			_, err = r.client.KeepAliveOnce(ctx, leaseID)
 		})
 		if err != nil {
-			return err
-		}
-	}
+			if err != rpctypes.ErrLeaseNotFound {
+				return err
+			}
 
-	// create hash of service; uint64
-	hv, err := hash.Hash(node, nil)
-	if err != nil {
-		return err
+			logger.Debugf(r.ctx, "lease %d not found for %q", leaseID, service.Name)
+			// lease not found do register
+			leaseNotFound = true
+		}
 	}
 
 	// get existing hash for the service node
@@ -347,26 +341,26 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 
 	var lgr *clientv3.LeaseGrantResponse
 	if ttl.Seconds() > 0 {
-		err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+		r.invokeWithTimeout(ctx, func(ctx context.Context) {
 			// get a lease used to expire keys since we have a ttl
 			lgr, err = r.client.Grant(ctx, int64(ttl.Seconds()))
-			return err
 		})
 		if err != nil {
 			return err
 		}
 	}
 
-	logger.Debugf(r.ctx, "registering %q id %q with lease %q and leaseID %d and ttl %q", nodeService.Name, node.Id, lgr, lgr.ID, ttl)
+	nodeServiceData := encodeService(nodeService)
+
+	logger.Debugf(r.ctx, "registering %q id %q content %q with lease %q and leaseID %d and ttl %q", nodeService.Name, node.Id, nodeServiceData, lgr, lgr.ID, ttl)
 
 	// create an entry for the node
-	err = r.invokeWithTimeout(ctx, func(ctx context.Context) error {
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
 		if lgr != nil {
-			_, err = r.client.Put(ctx, nodePath, encodeService(nodeService), clientv3.WithLease(lgr.ID))
+			_, err = r.client.Put(ctx, nodePath, nodeServiceData, clientv3.WithLease(lgr.ID))
 		} else {
-			_, err = r.client.Put(ctx, nodePath, encodeService(nodeService))
+			_, err = r.client.Put(ctx, nodePath, nodeServiceData)
 		}
-		return err
 	})
 	if err != nil {
 		return err
@@ -396,15 +390,18 @@ func (r *_EtcdRegistry) deregisterNode(ctx context.Context, service registry.Ser
 	delete(r.leases, nodePath)
 	r.mutex.Unlock()
 
-	return r.invokeWithTimeout(ctx, func(ctx context.Context) error {
-		_, err := r.client.Delete(ctx, nodePath)
-		return err
+	var err error
+
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
+		_, err = r.client.Delete(ctx, nodePath)
 	})
+
+	return err
 }
 
-func (r *_EtcdRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx context.Context) error) error {
+func (r *_EtcdRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx context.Context)) {
 	if fun == nil {
-		return nil
+		return
 	}
 
 	if ctx == nil {
@@ -414,7 +411,7 @@ func (r *_EtcdRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx cont
 	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
 	defer cancel()
 
-	return fun(ctx)
+	fun(ctx)
 }
 
 func encodeService(s *registry.Service) string {
