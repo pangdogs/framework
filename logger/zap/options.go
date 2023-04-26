@@ -29,12 +29,12 @@ func (WithZapOption) Default() ZapOption {
 	}
 }
 
-func (WithZapOption) ZapLogger(v *zap.Logger) ZapOption {
+func (WithZapOption) ZapLogger(logger *zap.Logger) ZapOption {
 	return func(options *ZapOptions) {
-		if v == nil {
+		if logger == nil {
 			panic("options.ZapLogger can't be assigned to nil")
 		}
-		options.ZapLogger = v
+		options.ZapLogger = logger
 	}
 }
 
@@ -44,11 +44,11 @@ func (WithZapOption) Fields(fields Field) ZapOption {
 	}
 }
 
-func (WithZapOption) CallerMaxSkip(v int8) ZapOption {
+func (WithZapOption) CallerMaxSkip(skip int8) ZapOption {
 	return func(options *ZapOptions) {
-		if v < 0 {
+		if skip < 0 {
 			panic("options.CallerMaxSkip can't be set to a value less than 0")
 		}
-		options.CallerMaxSkip = v
+		options.CallerMaxSkip = skip
 	}
 }

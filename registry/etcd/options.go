@@ -49,12 +49,12 @@ func (WithEtcdOption) EtcdConfig(config *clientv3.Config) EtcdOption {
 	}
 }
 
-func (WithEtcdOption) KeyPrefix(v string) EtcdOption {
+func (WithEtcdOption) KeyPrefix(prefix string) EtcdOption {
 	return func(options *EtcdOptions) {
-		if !strings.HasSuffix(v, "/") {
-			v += "/"
+		if !strings.HasSuffix(prefix, "/") {
+			prefix += "/"
 		}
-		options.KeyPrefix = v
+		options.KeyPrefix = prefix
 	}
 }
 
@@ -91,8 +91,8 @@ func (WithEtcdOption) Secure(secure bool) EtcdOption {
 	}
 }
 
-func (WithEtcdOption) TLSConfig(config *tls.Config) EtcdOption {
+func (WithEtcdOption) TLSConfig(conf *tls.Config) EtcdOption {
 	return func(o *EtcdOptions) {
-		o.TLSConfig = config
+		o.TLSConfig = conf
 	}
 }

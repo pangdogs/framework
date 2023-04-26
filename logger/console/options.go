@@ -39,9 +39,9 @@ func (WithConsoleOption) Default() ConsoleOption {
 	}
 }
 
-func (WithConsoleOption) Development(v bool) ConsoleOption {
+func (WithConsoleOption) Development(b bool) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.Development = v
+		options.Development = b
 	}
 }
 
@@ -57,20 +57,20 @@ func (WithConsoleOption) Fields(fields Field) ConsoleOption {
 	}
 }
 
-func (WithConsoleOption) Separator(v string) ConsoleOption {
+func (WithConsoleOption) Separator(sp string) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.Separator = v
+		options.Separator = sp
 	}
 }
 
-func (WithConsoleOption) TimestampLayout(v string) ConsoleOption {
+func (WithConsoleOption) TimestampLayout(layout string) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.TimestampLayout = v
+		options.TimestampLayout = layout
 	}
 }
 
-func (WithConsoleOption) CallerFullName(v bool) ConsoleOption {
+func (WithConsoleOption) CallerFullName(b bool) ConsoleOption {
 	return func(options *ConsoleOptions) {
-		options.CallerFullName = v
+		options.CallerFullName = b
 	}
 }
