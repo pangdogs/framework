@@ -1,25 +1,25 @@
 package registry
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"time"
 )
 
 // Watcher is an interface that returns updates
 // about services within the registry.
 type Watcher interface {
 	// Next is a blocking call
-	Next() (*Result, error)
+	Next() (*Event, error)
 	// Stop stop watching
 	Stop()
 }
 
-// Result is returned by a call to Next on
-// the watcher. Actions can be create, update, delete
-type Result struct {
-	Action  string
-	Service *Service
+// Event is returned by a call to Next on
+// the watcher. Type can be create, update, delete
+type Event struct {
+	Type    EventType `json:"type"`
+	Service *Service  `json:"service"`
 }
 
 // EventType defines registry event type
@@ -34,7 +34,37 @@ const (
 	Update
 )
 
-// String returns human readable event type
+// MarshalText marshals the EventType to text.
+func (t *EventType) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
+}
+
+// UnmarshalText unmarshals text to a EventType.
+func (t *EventType) UnmarshalText(text []byte) error {
+	if t == nil {
+		return errors.New("can't unmarshal a nil *EventType")
+	}
+	if !t.unmarshalText(text) && !t.unmarshalText(bytes.ToLower(text)) {
+		return fmt.Errorf("unrecognized EventType: %q", text)
+	}
+	return nil
+}
+
+func (t *EventType) unmarshalText(text []byte) bool {
+	switch string(text) {
+	case "create", "CREATE":
+		*t = Create
+	case "delete", "DELETE":
+		*t = Delete
+	case "update", "UPDATE":
+		*t = Update
+	default:
+		return false
+	}
+	return true
+}
+
+// String returns human readable EventType.
 func (t EventType) String() string {
 	switch t {
 	case Create:
@@ -44,37 +74,12 @@ func (t EventType) String() string {
 	case Update:
 		return "update"
 	default:
-		return "unknown"
+		return fmt.Sprintf("EventType(%d)", t)
 	}
 }
 
 // Set converts a EventType string into a EventType value.
 // returns error if the input string does not match known values.
 func (t *EventType) Set(str string) error {
-	if t == nil {
-		return errors.New("can't set a nil *EventType")
-	}
-
-	switch str {
-	case Create.String():
-		*t = Create
-	case Delete.String():
-		*t = Delete
-	case Update.String():
-		*t = Update
-	}
-
-	return fmt.Errorf("unrecognized EventType: %q", str)
-}
-
-// Event is registry event
-type Event struct {
-	// Id is registry id
-	Id string `json:"id"`
-	// Type defines type of event
-	Type EventType `json:"type"`
-	// Timestamp is event timestamp
-	Timestamp time.Time `json:"ts"`
-	// Service is registry service
-	Service *Service `json:"service"`
+	return t.UnmarshalText([]byte(str))
 }

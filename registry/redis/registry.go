@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func newRedisRegistry(options ...RedisOption) registry.Registry {
+func NewRedisRegistry(options ...RedisOption) registry.Registry {
 	opts := RedisOptions{}
 	WithRedisOption{}.Default()(&opts)
 
@@ -105,6 +105,10 @@ func (r *_RedisRegistry) Deregister(ctx context.Context, service registry.Servic
 
 // GetService 查询服务
 func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+	if serviceName == "" {
+		return nil, registry.ErrNotFound
+	}
+
 	var nodeKeys []string
 	var err error
 
@@ -129,7 +133,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			logger.Debug(r.ctx, err)
+			logger.Error(r.ctx, err)
 			continue
 		}
 
@@ -181,7 +185,7 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			logger.Debug(r.ctx, err)
+			logger.Error(r.ctx, err)
 			continue
 		}
 
@@ -215,7 +219,7 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 
 // Watch 获取服务监听器
 func (r *_RedisRegistry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
-	return newRedisWatcher(ctx, r, r.options.Timeout, serviceName)
+	return newRedisWatcher(ctx, r, serviceName)
 }
 
 func (r *_RedisRegistry) configure() *redis.Options {
@@ -275,17 +279,9 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 
 	nodeServiceData := encodeService(nodeService)
 
-	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", nodeService.Name, node.Id, nodeServiceData, ttl)
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		_, err = r.client.Set(ctx, nodePath, nodeServiceData, ttl).Result()
-	})
-	if err != nil {
-		return err
-	}
-
-	nodeEvent := &registry.Event{
+	nodeEvent := &_RedisEvent{
 		Id:        node.Id,
+		Path:      nodePath,
 		Timestamp: time.Now(),
 		Service:   nodeService,
 	}
@@ -298,11 +294,29 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 
 	nodeEventData := encodeEvent(nodeEvent)
 
+	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", nodeService.Name, node.Id, nodeServiceData, ttl)
+
+	var cmders []redis.Cmder
+
 	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		_, err = r.client.Publish(ctx, getServiceChannel(r.options.KeyPrefix, nodeService.Name), nodeEventData).Result()
+		err = r.client.Watch(ctx, func(tx *redis.Tx) error {
+			cmders, err = tx.TxPipelined(ctx, func(pipeliner redis.Pipeliner) error {
+				pipeliner.Set(ctx, nodePath, nodeServiceData, ttl)
+				pipeliner.Publish(ctx, getServiceChannel(r.options.KeyPrefix, service.Name), nodeEventData)
+				pipeliner.Publish(ctx, r.options.KeyPrefix, nodeEventData)
+				return nil
+			})
+			return err
+		}, nodePath)
 	})
 	if err != nil {
 		return err
+	}
+
+	for _, cmder := range cmders {
+		if cmder.Err() != nil {
+			return cmder.Err()
+		}
 	}
 
 	r.mutex.Lock()
@@ -339,10 +353,35 @@ func (r *_RedisRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx con
 		ctx = r.ctx
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-	defer cancel()
+	if r.options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, r.options.Timeout)
+		defer cancel()
+	}
 
 	fun(ctx)
+}
+
+type _RedisEvent struct {
+	// Id is registry id
+	Id string `json:"id"`
+	// Path key path
+	Path string `json:"path"`
+	// Type defines type of event
+	Type registry.EventType `json:"type"`
+	// Timestamp is event timestamp
+	Timestamp time.Time `json:"ts"`
+	// Service is registry service
+	Service *registry.Service `json:"service"`
+}
+
+func encodeEvent(e *_RedisEvent) string {
+	b, _ := json.Marshal(e)
+	return string(b)
+}
+
+func decodeEvent(ds []byte) (e *_RedisEvent, err error) {
+	return e, json.Unmarshal(ds, &e)
 }
 
 func encodeService(s *registry.Service) string {
@@ -350,21 +389,8 @@ func encodeService(s *registry.Service) string {
 	return string(b)
 }
 
-func decodeService(ds []byte) (*registry.Service, error) {
-	var s *registry.Service
-	err := json.Unmarshal(ds, &s)
-	return s, err
-}
-
-func encodeEvent(e *registry.Event) string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func decodeEvent(ds []byte) (*registry.Event, error) {
-	var e *registry.Event
-	err := json.Unmarshal(ds, &e)
-	return e, err
+func decodeService(ds []byte) (s *registry.Service, err error) {
+	return s, json.Unmarshal(ds, &s)
 }
 
 func getNodePath(prefix, s, id string) string {

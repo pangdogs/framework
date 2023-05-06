@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func newEtcdRegistry(options ...EtcdOption) registry.Registry {
+func NewEtcdRegistry(options ...EtcdOption) registry.Registry {
 	opts := EtcdOptions{}
 	WithEtcdOption{}.Default()(&opts)
 
@@ -58,6 +58,12 @@ func (r *_EtcdRegistry) InitService(ctx service.Context) {
 		r.client = cli
 	} else {
 		r.client = r.options.EtcdClient
+	}
+
+	for _, ep := range r.client.Endpoints() {
+		if _, err := r.client.Status(ctx, ep); err != nil {
+			logger.Panicf(ctx, "status etcd %q failed, %s", ep, err)
+		}
 	}
 }
 
@@ -108,6 +114,10 @@ func (r *_EtcdRegistry) Deregister(ctx context.Context, service registry.Service
 
 // GetService 查询服务
 func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+	if serviceName == "" {
+		return nil, registry.ErrNotFound
+	}
+
 	var rsp *clientv3.GetResponse
 	var err error
 
@@ -127,7 +137,7 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
 		if err != nil {
-			logger.Debug(r.ctx, err)
+			logger.Error(r.ctx, err)
 			continue
 		}
 
@@ -174,7 +184,7 @@ func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, e
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
 		if err != nil {
-			logger.Debug(r.ctx, err)
+			logger.Error(r.ctx, err)
 			continue
 		}
 
@@ -208,7 +218,7 @@ func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, e
 
 // Watch 获取服务监听器
 func (r *_EtcdRegistry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
-	return newEtcdWatcher(ctx, r, r.options.Timeout, serviceName)
+	return newEtcdWatcher(ctx, r, serviceName)
 }
 
 func (r *_EtcdRegistry) configure() clientv3.Config {
@@ -217,14 +227,13 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 	}
 
 	config := clientv3.Config{
-		Endpoints:   r.options.Addresses,
-		DialTimeout: r.options.Timeout,
-		Username:    r.options.Username,
-		Password:    r.options.Password,
+		Endpoints: r.options.FastAddresses,
+		Username:  r.options.FastUsername,
+		Password:  r.options.FastPassword,
 	}
 
-	if r.options.Secure || r.options.TLSConfig != nil {
-		tlsConfig := r.options.TLSConfig
+	if r.options.FastSecure || r.options.FastTLSConfig != nil {
+		tlsConfig := r.options.FastTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{
 				InsecureSkipVerify: true,
@@ -269,19 +278,19 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 				// decode the existing node
 				srv, err := decodeService(kv.Value)
 				if err != nil {
-					logger.Debug(r.ctx, err)
+					logger.Error(r.ctx, err)
 					continue
 				}
 
 				if len(srv.Nodes) <= 0 {
-					logger.Debug(r.ctx, "empty nodes")
+					logger.Error(r.ctx, "empty nodes")
 					continue
 				}
 
 				// create hash of service; uint64
 				hv, err := hash.Hash(srv.Nodes[0], hash.FormatV2, nil)
 				if err != nil {
-					logger.Debug(r.ctx, err)
+					logger.Error(r.ctx, err)
 					continue
 				}
 
@@ -408,8 +417,11 @@ func (r *_EtcdRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx cont
 		ctx = r.ctx
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, r.options.Timeout)
-	defer cancel()
+	if r.options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, r.options.Timeout)
+		defer cancel()
+	}
 
 	fun(ctx)
 }
@@ -419,10 +431,8 @@ func encodeService(s *registry.Service) string {
 	return string(b)
 }
 
-func decodeService(ds []byte) (*registry.Service, error) {
-	var s *registry.Service
-	err := json.Unmarshal(ds, &s)
-	return s, err
+func decodeService(ds []byte) (s *registry.Service, err error) {
+	return s, json.Unmarshal(ds, &s)
 }
 
 func getNodePath(prefix, s, id string) string {
@@ -432,5 +442,6 @@ func getNodePath(prefix, s, id string) string {
 }
 
 func getServicePath(prefix, s string) string {
-	return path.Join(prefix, strings.ReplaceAll(s, "/", "-")) + "/"
+	service := strings.ReplaceAll(s, "/", "-")
+	return path.Join(prefix, service) + "/"
 }

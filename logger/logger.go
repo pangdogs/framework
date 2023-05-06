@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 )
@@ -15,6 +16,7 @@ type Logger interface {
 	Logf(level Level, format string, v ...interface{})
 }
 
+// A Level is a logging priority. Higher levels are more important.
 type Level int8
 
 const (
@@ -37,8 +39,60 @@ const (
 	FatalLevel
 )
 
+// MarshalText marshals the Level to text. Note that the text representation
+// drops the -Level suffix (see example).
+func (l Level) MarshalText() ([]byte, error) {
+	return []byte(l.String()), nil
+}
+
+// UnmarshalText unmarshals text to a level. Like MarshalText, UnmarshalText
+// expects the text representation of a Level to drop the -Level suffix (see
+// example).
+//
+// In particular, this makes it easy to configure logging levels using YAML,
+// TOML, or JSON files.
+func (l *Level) UnmarshalText(text []byte) error {
+	if l == nil {
+		return errors.New("can't unmarshal a nil *Level")
+	}
+	if !l.unmarshalText(text) && !l.unmarshalText(bytes.ToLower(text)) {
+		return fmt.Errorf("unrecognized level: %q", text)
+	}
+	return nil
+}
+
+func (l *Level) unmarshalText(text []byte) bool {
+	_, skip := l.UnpackSkip()
+
+	switch string(text) {
+	case "debug", "DEBUG":
+		*l = DebugLevel
+	case "info", "INFO", "": // make the zero value useful
+		*l = InfoLevel
+	case "warn", "WARN":
+		*l = WarnLevel
+	case "error", "ERROR":
+		*l = ErrorLevel
+	case "dpanic", "DPANIC":
+		*l = DPanicLevel
+	case "panic", "PANIC":
+		*l = PanicLevel
+	case "fatal", "FATAL":
+		*l = FatalLevel
+	default:
+		return false
+	}
+
+	*l = l.PackSkip(skip)
+
+	return true
+}
+
+// String returns a lower-case ASCII representation of the log level.
 func (l Level) String() string {
-	switch l & 0x0f {
+	l, _ = l.UnpackSkip()
+
+	switch l {
 	case TraceLevel:
 		return "trace"
 	case DebugLevel:
@@ -55,43 +109,46 @@ func (l Level) String() string {
 		return "panic"
 	case FatalLevel:
 		return "fatal"
+	default:
+		return fmt.Sprintf("LEVEL(%d)", l)
 	}
+}
 
-	return "unknown"
+// CapitalString returns an all-caps ASCII representation of the log level.
+func (l Level) CapitalString() string {
+	l, _ = l.UnpackSkip()
+
+	// Printing levels in all-caps is common enough that we should export this
+	// functionality.
+	switch l {
+	case DebugLevel:
+		return "DEBUG"
+	case InfoLevel:
+		return "INFO"
+	case WarnLevel:
+		return "WARN"
+	case ErrorLevel:
+		return "ERROR"
+	case DPanicLevel:
+		return "DPANIC"
+	case PanicLevel:
+		return "PANIC"
+	case FatalLevel:
+		return "FATAL"
+	default:
+		return fmt.Sprintf("LEVEL(%d)", l)
+	}
 }
 
 // Set converts a level string into a logger Level value.
 // returns error if the input string does not match known values.
 func (l *Level) Set(str string) error {
-	if l == nil {
-		return errors.New("can't set a nil *Level")
-	}
-
-	switch str {
-	case TraceLevel.String():
-		*l = TraceLevel
-	case DebugLevel.String():
-		*l = DebugLevel
-	case InfoLevel.String():
-		*l = InfoLevel
-	case WarnLevel.String():
-		*l = WarnLevel
-	case ErrorLevel.String():
-		*l = ErrorLevel
-	case DPanicLevel.String():
-		*l = DPanicLevel
-	case PanicLevel.String():
-		*l = PanicLevel
-	case FatalLevel.String():
-		*l = FatalLevel
-	}
-
-	return fmt.Errorf("unrecognized level: %q", str)
+	return l.UnmarshalText([]byte(str))
 }
 
-// Enabled returns true if the given level is at or above this level.
-func (l Level) Enabled(level Level) bool {
-	return level&0x0f >= l&0x0f
+// Get gets the level for the flag.Getter interface.
+func (l Level) Get() interface{} {
+	return l
 }
 
 // PackSkip returns a new Level value with an additional skip offset encoded in the high bits.
@@ -106,4 +163,12 @@ func (l Level) PackSkip(skip int8) Level {
 // It is useful for decoding the skip offset and recovering the original Level value.
 func (l Level) UnpackSkip() (Level, int8) {
 	return l & 0x0f, int8(l >> 4)
+}
+
+// Enabled returns true if the given level is at or above this level.
+func (l Level) Enabled(level Level) bool {
+	l, _ = l.UnpackSkip()
+	level, _ = level.UnpackSkip()
+
+	return level >= l
 }

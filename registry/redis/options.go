@@ -7,11 +7,12 @@ import (
 )
 
 type RedisOptions struct {
-	RedisClient *redis.Client
-	RedisConfig *redis.Options
-	RedisURL    string
-	KeyPrefix   string
-	Timeout     time.Duration
+	RedisClient   *redis.Client
+	RedisConfig   *redis.Options
+	RedisURL      string
+	KeyPrefix     string
+	Timeout       time.Duration
+	WatchChanSize int
 }
 
 type RedisOption func(options *RedisOptions)
@@ -25,6 +26,7 @@ func (WithRedisOption) Default() RedisOption {
 		WithRedisOption{}.RedisURL("")(options)
 		WithRedisOption{}.KeyPrefix("golaxy:registry:")
 		WithRedisOption{}.Timeout(3 * time.Second)(options)
+		WithRedisOption{}.WatchChanSize(128)(options)
 	}
 }
 
@@ -57,9 +59,15 @@ func (WithRedisOption) KeyPrefix(prefix string) RedisOption {
 
 func (WithRedisOption) Timeout(dur time.Duration) RedisOption {
 	return func(o *RedisOptions) {
-		if dur <= 0 {
-			panic("options.Timeout can't be set to a value less equal 0")
-		}
 		o.Timeout = dur
+	}
+}
+
+func (WithRedisOption) WatchChanSize(size int) RedisOption {
+	return func(o *RedisOptions) {
+		if size < 0 {
+			panic("options.WatchChanSize can't be set to a value less then 0")
+		}
+		o.WatchChanSize = size
 	}
 }
