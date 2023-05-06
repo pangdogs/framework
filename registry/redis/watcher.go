@@ -4,51 +4,66 @@ import (
 	"context"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
-	"time"
 )
 
 type _RedisWatcher struct {
 	ctx       service.Context
-	watch     *redis.PubSub
+	stopChan  chan bool
 	watchChan <-chan *redis.Message
-	timeout   time.Duration
 }
 
-func newRedisWatcher(ctx context.Context, r *_RedisRegistry, timeout time.Duration, serviceName string) (registry.Watcher, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	stop := make(chan bool, 1)
-
-	go func() {
-		<-stop
-		cancel()
-	}()
-
+func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string) (registry.Watcher, error) {
 	watchPath := r.options.KeyPrefix
 	if serviceName != "" {
-		watchPath = getServicePath(r.options.KeyPrefix, serviceName)
+		watchPath = getServiceChannel(r.options.KeyPrefix, serviceName)
 	}
 
-	watch := r.client.PSubscribe(ctx, watchPath)
+	stopChan := make(chan bool, 1)
+	watch := r.client.PSubscribe(ctx)
+	err := watch.PSubscribe(ctx, watchPath)
+	if err != nil {
+		return nil, err
+	}
+	watchChan := watch.Channel(redis.WithChannelSize(r.options.WatchChanSize))
+
+	go func() {
+		<-stopChan
+		watch.Close()
+	}()
 
 	return &_RedisWatcher{
 		ctx:       r.ctx,
-		watch:     watch,
-		watchChan: watch.Channel(),
-		timeout:   timeout,
+		stopChan:  stopChan,
+		watchChan: watchChan,
 	}, nil
 }
 
 // Next is a blocking call
-func (ew *_RedisWatcher) Next() (*registry.Result, error) {
-	for msg := range ew.watchChan {
+func (w *_RedisWatcher) Next() (*registry.Event, error) {
+	for watchRsp := range w.watchChan {
+		redisEvent, err := decodeEvent([]byte(watchRsp.Payload))
+		if err != nil {
+			logger.Error(w.ctx, err)
+			continue
+		}
 
+		return &registry.Event{
+			Type:    redisEvent.Type,
+			Service: redisEvent.Service,
+		}, nil
 	}
 
 	return nil, registry.ErrWatcherStopped
 }
 
 // Stop stop watching
-func (ew *_RedisWatcher) Stop() {
-	ew.watch.Close()
+func (w *_RedisWatcher) Stop() {
+	select {
+	case <-w.stopChan:
+		return
+	default:
+		close(w.stopChan)
+	}
 }

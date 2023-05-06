@@ -6,98 +6,106 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
-	"time"
 )
 
 type _EtcdWatcher struct {
 	ctx       service.Context
 	stopChan  chan bool
 	watchChan clientv3.WatchChan
+	eventChan chan *registry.Event
 	client    *clientv3.Client
-	timeout   time.Duration
 }
 
-func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, timeout time.Duration, serviceName string) (registry.Watcher, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	stop := make(chan bool, 1)
-
-	go func() {
-		<-stop
-		cancel()
-	}()
-
+func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (registry.Watcher, error) {
 	watchPath := r.options.KeyPrefix
 	if serviceName != "" {
 		watchPath = getServicePath(r.options.KeyPrefix, serviceName)
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	stopChan := make(chan bool, 1)
+	watchChan := r.client.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV())
+	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
+
+	go func() {
+		<-stopChan
+		cancel()
+		for range eventChan {
+		}
+	}()
+
+	go func() {
+		defer close(eventChan)
+
+		for watchRsp := range watchChan {
+			if watchRsp.Err() != nil {
+				logger.Error(r.ctx, watchRsp.Err())
+				continue
+			}
+			if watchRsp.Canceled {
+				logger.Debugf(r.ctx, "stop watch %q", watchPath)
+				return
+			}
+
+			for _, etcdEvent := range watchRsp.Events {
+				event := &registry.Event{}
+				var err error
+
+				switch etcdEvent.Type {
+				case clientv3.EventTypePut:
+					if etcdEvent.IsCreate() {
+						event.Type = registry.Create
+					} else if etcdEvent.IsModify() {
+						event.Type = registry.Update
+					}
+
+					// get service from Kv
+					event.Service, err = decodeService(etcdEvent.Kv.Value)
+
+				case clientv3.EventTypeDelete:
+					event.Type = registry.Delete
+
+					// get service from prevKv
+					event.Service, err = decodeService(etcdEvent.PrevKv.Value)
+
+				default:
+					logger.Errorf(r.ctx, "unknown event type %q", etcdEvent.Type)
+					continue
+				}
+
+				if err != nil {
+					logger.Error(r.ctx, err)
+					continue
+				}
+
+				eventChan <- event
+			}
+		}
+	}()
+
 	return &_EtcdWatcher{
 		ctx:       r.ctx,
-		stopChan:  stop,
-		watchChan: r.client.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV()),
+		stopChan:  stopChan,
+		watchChan: watchChan,
+		eventChan: eventChan,
 		client:    r.client,
-		timeout:   timeout,
 	}, nil
 }
 
 // Next is a blocking call
-func (ew *_EtcdWatcher) Next() (*registry.Result, error) {
-	for watchRsp := range ew.watchChan {
-		if watchRsp.Err() != nil {
-			return nil, watchRsp.Err()
-		}
-		if watchRsp.Canceled {
-			return nil, registry.ErrWatcherStopped
-		}
-
-		for _, event := range watchRsp.Events {
-			var service *registry.Service
-			var action string
-			var err error
-
-			switch event.Type {
-			case clientv3.EventTypePut:
-				if event.IsCreate() {
-					action = registry.Create.String()
-				} else if event.IsModify() {
-					action = registry.Update.String()
-				}
-
-				// get service from Kv
-				service, err = decodeService(event.Kv.Value)
-
-			case clientv3.EventTypeDelete:
-				action = registry.Delete.String()
-
-				// get service from prevKv
-				service, err = decodeService(event.PrevKv.Value)
-
-			default:
-				logger.Debugf(ew.ctx, "unknown event type %q", event.Type)
-				continue
-			}
-
-			if err != nil {
-				logger.Debug(ew.ctx, err)
-				continue
-			}
-
-			return &registry.Result{
-				Action:  action,
-				Service: service,
-			}, nil
-		}
+func (w *_EtcdWatcher) Next() (*registry.Event, error) {
+	for event := range w.eventChan {
+		return event, nil
 	}
-
 	return nil, registry.ErrWatcherStopped
 }
 
 // Stop stop watching
-func (ew *_EtcdWatcher) Stop() {
+func (w *_EtcdWatcher) Stop() {
 	select {
-	case <-ew.stopChan:
+	case <-w.stopChan:
 		return
 	default:
-		close(ew.stopChan)
+		close(w.stopChan)
 	}
 }
