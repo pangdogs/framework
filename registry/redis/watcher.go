@@ -76,6 +76,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			default:
 				close(stopChan)
 			}
+			watch.Close()
 		}()
 
 		for {
