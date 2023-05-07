@@ -35,7 +35,14 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 	}()
 
 	go func() {
-		defer close(eventChan)
+		defer func() {
+			close(eventChan)
+			select {
+			case <-stopChan:
+			default:
+				close(stopChan)
+			}
+		}()
 
 		for watchRsp := range watchChan {
 			if watchRsp.Err() != nil {
@@ -104,7 +111,6 @@ func (w *_EtcdWatcher) Next() (*registry.Event, error) {
 func (w *_EtcdWatcher) Stop() {
 	select {
 	case <-w.stopChan:
-		return
 	default:
 		close(w.stopChan)
 	}

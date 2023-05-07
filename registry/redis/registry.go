@@ -56,6 +56,11 @@ func (r *_RedisRegistry) InitService(ctx service.Context) {
 	if err != nil {
 		log.Panicf("ping redis %q failed, %v", r.client, err)
 	}
+
+	_, err = r.client.ConfigSet(ctx, "notify-keyspace-events", "E").Result()
+	if err != nil {
+		log.Panicf("redis %q enable notify-keyspace-events failed, %v", r.client, err)
+	}
 }
 
 // ShutService 关闭服务插件
@@ -236,20 +241,28 @@ func (r *_RedisRegistry) configure() *redis.Options {
 }
 
 func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
-	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
-
-	hv, err := hash.Hash(node, hash.FormatV2, nil)
-	if err != nil {
-		return err
-	}
-
 	if ttl < 0 {
 		ttl = 0
 	}
 
+	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
+
+	nodeService := &registry.Service{
+		Name:      service.Name,
+		Version:   service.Version,
+		Metadata:  service.Metadata,
+		Endpoints: service.Endpoints,
+		Nodes:     []registry.Node{node},
+	}
+
+	hv, err := hash.Hash(nodeService, hash.FormatV2, nil)
+	if err != nil {
+		return err
+	}
+
 	var keepAlive bool
 
-	if ttl > 0 {
+	if ttl.Seconds() > 0 {
 		r.invokeWithTimeout(ctx, func(ctx context.Context) {
 			keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
 		})
@@ -261,62 +274,23 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	}
 
 	r.mutex.RLock()
-	v, ok := r.register[nodePath]
+	rhv, ok := r.register[nodePath]
 	r.mutex.RUnlock()
 
-	if ok && v == hv && keepAlive {
+	if ok && rhv == hv && keepAlive {
 		logger.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
 	}
 
-	nodeService := &registry.Service{
-		Name:      service.Name,
-		Version:   service.Version,
-		Metadata:  service.Metadata,
-		Endpoints: service.Endpoints,
-		Nodes:     []registry.Node{node},
-	}
-
 	nodeServiceData := encodeService(nodeService)
-
-	nodeEvent := &_RedisEvent{
-		Id:        node.Id,
-		Path:      nodePath,
-		Timestamp: time.Now(),
-		Service:   nodeService,
-	}
-
-	if keepAlive {
-		nodeEvent.Type = registry.Update
-	} else {
-		nodeEvent.Type = registry.Create
-	}
-
-	nodeEventData := encodeEvent(nodeEvent)
 
 	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", nodeService.Name, node.Id, nodeServiceData, ttl)
 
-	var cmders []redis.Cmder
-
 	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		err = r.client.Watch(ctx, func(tx *redis.Tx) error {
-			cmders, err = tx.TxPipelined(ctx, func(pipeliner redis.Pipeliner) error {
-				pipeliner.Set(ctx, nodePath, nodeServiceData, ttl)
-				pipeliner.Publish(ctx, getServiceChannel(r.options.KeyPrefix, service.Name), nodeEventData)
-				pipeliner.Publish(ctx, r.options.KeyPrefix, nodeEventData)
-				return nil
-			})
-			return err
-		}, nodePath)
+		_, err = r.client.Set(ctx, nodePath, nodeServiceData, ttl).Result()
 	})
 	if err != nil {
 		return err
-	}
-
-	for _, cmder := range cmders {
-		if cmder.Err() != nil {
-			return cmder.Err()
-		}
 	}
 
 	r.mutex.Lock()
@@ -362,28 +336,6 @@ func (r *_RedisRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx con
 	fun(ctx)
 }
 
-type _RedisEvent struct {
-	// Id is registry id
-	Id string `json:"id"`
-	// Path key path
-	Path string `json:"path"`
-	// Type defines type of event
-	Type registry.EventType `json:"type"`
-	// Timestamp is event timestamp
-	Timestamp time.Time `json:"ts"`
-	// Service is registry service
-	Service *registry.Service `json:"service"`
-}
-
-func encodeEvent(e *_RedisEvent) string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func decodeEvent(ds []byte) (e *_RedisEvent, err error) {
-	return e, json.Unmarshal(ds, &e)
-}
-
 func encodeService(s *registry.Service) string {
 	b, _ := json.Marshal(s)
 	return string(b)
@@ -402,9 +354,4 @@ func getNodePath(prefix, s, id string) string {
 func getServicePath(prefix, s string) string {
 	service := strings.ReplaceAll(s, ":", "-")
 	return fmt.Sprintf("%s%s:*", prefix, service)
-}
-
-func getServiceChannel(prefix, s string) string {
-	service := strings.ReplaceAll(s, ":", "-")
-	return fmt.Sprintf("%s%s", prefix, service)
 }
