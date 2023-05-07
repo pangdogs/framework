@@ -246,10 +246,22 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 }
 
 func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
+	if ttl < 0 {
+		ttl = 0
+	}
+
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
+	nodeService := &registry.Service{
+		Name:      service.Name,
+		Version:   service.Version,
+		Metadata:  service.Metadata,
+		Endpoints: service.Endpoints,
+		Nodes:     []registry.Node{node},
+	}
+
 	// create hash of service; uint64
-	hv, err := hash.Hash(node, hash.FormatV2, nil)
+	hv, err := hash.Hash(nodeService, hash.FormatV2, nil)
 	if err != nil {
 		return err
 	}
@@ -338,14 +350,6 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	if ok && v == hv && !leaseNotFound {
 		logger.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
-	}
-
-	nodeService := &registry.Service{
-		Name:      service.Name,
-		Version:   service.Version,
-		Metadata:  service.Metadata,
-		Endpoints: service.Endpoints,
-		Nodes:     []registry.Node{node},
 	}
 
 	var lgr *clientv3.LeaseGrantResponse
