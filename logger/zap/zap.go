@@ -9,14 +9,26 @@ import (
 
 // NewZapConsoleLogger 创建控制台样式日志记录器
 func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
-	// 日志分割器与写入器
-	rollingWrite := lumberjack.Logger{
-		Filename: fileName,
-		MaxSize:  maxSize,
+	var write zapcore.WriteSyncer
+
+	if fileName != "" {
+		rollingWrite := lumberjack.Logger{
+			Filename: fileName,
+			MaxSize:  maxSize,
+		}
+		write = zapcore.AddSync(&rollingWrite)
 	}
-	write := zapcore.AddSync(&rollingWrite)
+
 	if stdout {
-		write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), write)
+		if write != nil {
+			write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), write)
+		} else {
+			write = zapcore.AddSync(os.Stdout)
+		}
+	}
+
+	if write == nil {
+		panic("require at least one logger writer")
 	}
 
 	// 日志级别设置器
@@ -57,14 +69,26 @@ func NewZapConsoleLogger(level zapcore.Level, separator, fileName string, maxSiz
 
 // NewZapJsonLogger 创建Json样式日志记录器
 func NewZapJsonLogger(level zapcore.Level, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
-	// 日志分割器与写入器
-	rollingWrite := lumberjack.Logger{
-		Filename: fileName,
-		MaxSize:  maxSize,
+	var write zapcore.WriteSyncer
+
+	if fileName != "" {
+		rollingWrite := lumberjack.Logger{
+			Filename: fileName,
+			MaxSize:  maxSize,
+		}
+		write = zapcore.AddSync(&rollingWrite)
 	}
-	write := zapcore.AddSync(&rollingWrite)
+
 	if stdout {
-		write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), write)
+		if write != nil {
+			write = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), write)
+		} else {
+			write = zapcore.AddSync(os.Stdout)
+		}
+	}
+
+	if write == nil {
+		panic("require at least one logger writer")
 	}
 
 	// 日志级别设置器
