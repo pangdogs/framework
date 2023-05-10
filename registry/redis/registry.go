@@ -251,10 +251,19 @@ func (r *_RedisRegistry) configure() *redis.Options {
 		return r.options.RedisConfig
 	}
 
-	conf, err := redis.ParseURL(r.options.RedisURL)
-	if err != nil {
-		logger.Panicf(r.ctx, "parse redis url %q failed, %s", r.options.RedisURL, err)
+	if r.options.RedisURL != "" {
+		conf, err := redis.ParseURL(r.options.RedisURL)
+		if err != nil {
+			logger.Panicf(r.ctx, "parse redis url %q failed, %s", r.options.RedisURL, err)
+		}
+		return conf
 	}
+
+	conf := &redis.Options{}
+	conf.Username = r.options.FastUsername
+	conf.Password = r.options.FastPassword
+	conf.Addr = r.options.FastAddress
+	conf.DB = r.options.FastDBIndex
 
 	return conf
 }

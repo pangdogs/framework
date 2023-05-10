@@ -99,7 +99,6 @@ func (r *_CacheRegistry) InitService(ctx service.Context) {
 				eventNode := event.Service.Nodes[0]
 
 				removeNode := func(versions *[]registry.Service, versionIdx int, service *registry.Service) {
-
 					for i := len(service.Nodes) - 1; i >= 0; i-- {
 						node := &service.Nodes[i]
 
