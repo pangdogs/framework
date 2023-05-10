@@ -85,6 +85,11 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 					continue
 				}
 
+				if len(event.Service.Nodes) <= 0 {
+					logger.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
+					continue
+				}
+
 				eventChan <- event
 			}
 		}

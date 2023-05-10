@@ -46,7 +46,7 @@ type _EtcdRegistry struct {
 
 // InitService 初始化服务插件
 func (r *_EtcdRegistry) InitService(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(_EtcdRegistry{}))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*r))
 
 	r.ctx = ctx
 
@@ -110,6 +110,29 @@ func (r *_EtcdRegistry) Deregister(ctx context.Context, service registry.Service
 	}
 
 	return errors.Join(errorList...)
+}
+
+// GetServiceNode 查询服务节点
+func (r *_EtcdRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+	if serviceName == "" || nodeId == "" {
+		return nil, registry.ErrNotFound
+	}
+
+	var rsp *clientv3.GetResponse
+	var err error
+
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
+		rsp, err = r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), clientv3.WithSerializable())
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rsp.Kvs) <= 0 {
+		return nil, registry.ErrNotFound
+	}
+
+	return decodeService(rsp.Kvs[0].Value)
 }
 
 // GetService 查询服务
@@ -246,25 +269,25 @@ func (r *_EtcdRegistry) configure() clientv3.Config {
 }
 
 func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
+	if service.Name == "" {
+		return errors.New("service name can't empty")
+	}
+
+	if node.Id == "" {
+		return errors.New("service node id can't empty")
+	}
+
 	if ttl < 0 {
 		ttl = 0
 	}
 
-	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
-
-	nodeService := &registry.Service{
-		Name:      service.Name,
-		Version:   service.Version,
-		Metadata:  service.Metadata,
-		Endpoints: service.Endpoints,
-		Nodes:     []registry.Node{node},
-	}
-
 	// create hash of service; uint64
-	hv, err := hash.Hash(nodeService, hash.FormatV2, nil)
+	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
 		return err
 	}
+
+	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
 	// check existing lease cache
 	r.mutex.RLock()
@@ -363,16 +386,18 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 		}
 	}
 
-	nodeServiceData := encodeService(nodeService)
+	serviceNode := service
+	serviceNode.Nodes = []registry.Node{node}
+	serviceNodeData := encodeService(&serviceNode)
 
-	logger.Debugf(r.ctx, "registering %q id %q content %q with lease %q and leaseID %d and ttl %q", nodeService.Name, node.Id, nodeServiceData, lgr, lgr.ID, ttl)
+	logger.Debugf(r.ctx, "registering %q id %q content %q with lease %q and leaseID %d and ttl %q", serviceNode.Name, node.Id, serviceNodeData, lgr, lgr.ID, ttl)
 
 	// create an entry for the node
 	r.invokeWithTimeout(ctx, func(ctx context.Context) {
 		if lgr != nil {
-			_, err = r.client.Put(ctx, nodePath, nodeServiceData, clientv3.WithLease(lgr.ID))
+			_, err = r.client.Put(ctx, nodePath, serviceNodeData, clientv3.WithLease(lgr.ID))
 		} else {
-			_, err = r.client.Put(ctx, nodePath, nodeServiceData)
+			_, err = r.client.Put(ctx, nodePath, serviceNodeData)
 		}
 	})
 	if err != nil {
