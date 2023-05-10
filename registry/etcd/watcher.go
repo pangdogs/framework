@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
@@ -46,8 +47,12 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 
 		for watchRsp := range watchChan {
 			if watchRsp.Err() != nil {
+				if errors.Is(watchRsp.Err(), context.Canceled) {
+					logger.Debugf(r.ctx, "stop watch %q", watchPath)
+					return
+				}
 				logger.Error(r.ctx, watchRsp.Err())
-				continue
+				return
 			}
 			if watchRsp.Canceled {
 				logger.Debugf(r.ctx, "stop watch %q", watchPath)
