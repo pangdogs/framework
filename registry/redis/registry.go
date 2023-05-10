@@ -57,7 +57,7 @@ func (r *_RedisRegistry) InitService(ctx service.Context) {
 		log.Panicf("ping redis %q failed, %v", r.client, err)
 	}
 
-	_, err = r.client.ConfigSet(ctx, "notify-keyspace-events", "E").Result()
+	_, err = r.client.ConfigSet(ctx, "notify-keyspace-events", "KEA").Result()
 	if err != nil {
 		log.Panicf("redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
