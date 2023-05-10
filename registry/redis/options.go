@@ -29,7 +29,7 @@ func (WithRedisOption) Default() RedisOption {
 		WithRedisOption{}.RedisClient(nil)(options)
 		WithRedisOption{}.RedisConfig(nil)(options)
 		WithRedisOption{}.RedisURL("")(options)
-		WithRedisOption{}.KeyPrefix("golaxy:registry:")
+		WithRedisOption{}.KeyPrefix("golaxy:registry:")(options)
 		WithRedisOption{}.Timeout(3 * time.Second)(options)
 		WithRedisOption{}.WatchChanSize(128)(options)
 		WithRedisOption{}.FastAuth("", "")(options)
