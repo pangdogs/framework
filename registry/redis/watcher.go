@@ -153,7 +153,12 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				continue
 			}
 
-			eventChan <- event
+			select {
+			case eventChan <- event:
+			case <-ctx.Done():
+				logger.Debugf(r.ctx, "stop watch [%q,%q,%q]", watchKeyeventSetPath, watchKeyeventDelPath, watchKeyeventExpiredPath)
+				return
+			}
 		}
 	}()
 

@@ -90,7 +90,12 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 					continue
 				}
 
-				eventChan <- event
+				select {
+				case eventChan <- event:
+				case <-ctx.Done():
+					logger.Debugf(r.ctx, "stop watch %q", watchPath)
+					return
+				}
 			}
 		}
 	}()
