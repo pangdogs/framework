@@ -41,7 +41,7 @@ type _CacheRegistry struct {
 
 // InitService 初始化服务插件
 func (r *_CacheRegistry) InitService(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry).Elem())
+	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry))
 
 	if r.options.Registry == nil {
 		logger.Panic(ctx, "cached plugin is nil, must be set before init")
