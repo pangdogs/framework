@@ -32,28 +32,28 @@ type _ConsoleLogger struct {
 	runtimeField string
 }
 
-// InitService init service plugin
-func (l *_ConsoleLogger) InitService(ctx service.Context) {
+// InitSP init service plugin
+func (l *_ConsoleLogger) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*l))
 
 	l.serviceField = ctx.String()
 }
 
-// ShutService shut service plugin
-func (l *_ConsoleLogger) ShutService(ctx service.Context) {
+// ShutSP shut service plugin
+func (l *_ConsoleLogger) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 }
 
-// InitRuntime init runtime plugin
-func (l *_ConsoleLogger) InitRuntime(ctx runtime.Context) {
+// InitRP init runtime plugin
+func (l *_ConsoleLogger) InitRP(ctx runtime.Context) {
 	l.serviceField = service.Get(ctx).String()
 	l.runtimeField = ctx.String()
 
 	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
 }
 
-// ShutRuntime shut runtime plugin
-func (l *_ConsoleLogger) ShutRuntime(ctx runtime.Context) {
+// ShutRP shut runtime plugin
+func (l *_ConsoleLogger) ShutRP(ctx runtime.Context) {
 	logger.Infof(ctx, "shut runtime plugin %q", definePlugin.Name)
 }
 

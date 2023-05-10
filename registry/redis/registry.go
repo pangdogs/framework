@@ -40,8 +40,8 @@ type _RedisRegistry struct {
 	mutex    sync.RWMutex
 }
 
-// InitService 初始化服务插件
-func (r *_RedisRegistry) InitService(ctx service.Context) {
+// InitSP 初始化服务插件
+func (r *_RedisRegistry) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*r))
 
 	r.ctx = ctx
@@ -63,8 +63,8 @@ func (r *_RedisRegistry) InitService(ctx service.Context) {
 	}
 }
 
-// ShutService 关闭服务插件
-func (r *_RedisRegistry) ShutService(ctx service.Context) {
+// ShutSP 关闭服务插件
+func (r *_RedisRegistry) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 
 	if r.options.RedisClient == nil {

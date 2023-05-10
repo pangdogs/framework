@@ -26,8 +26,8 @@ type _ZapLogger struct {
 	sugaredLoggers []*zap.SugaredLogger
 }
 
-// InitService 初始化服务插件
-func (l *_ZapLogger) InitService(ctx service.Context) {
+// InitSP 初始化服务插件
+func (l *_ZapLogger) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*l))
 
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
@@ -41,13 +41,13 @@ func (l *_ZapLogger) InitService(ctx service.Context) {
 	}
 }
 
-// ShutService 关闭服务插件
-func (l *_ZapLogger) ShutService(ctx service.Context) {
+// ShutSP 关闭服务插件
+func (l *_ZapLogger) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 }
 
-// InitRuntime 初始化运行时插件
-func (l *_ZapLogger) InitRuntime(ctx runtime.Context) {
+// InitRP 初始化运行时插件
+func (l *_ZapLogger) InitRP(ctx runtime.Context) {
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 	for i := range l.sugaredLoggers {
 		options := []zap.Option{zap.AddCallerSkip(i)}
@@ -63,8 +63,8 @@ func (l *_ZapLogger) InitRuntime(ctx runtime.Context) {
 	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ZapLogger{}))
 }
 
-// ShutRuntime 关闭运行时插件
-func (l *_ZapLogger) ShutRuntime(ctx runtime.Context) {
+// ShutRP 关闭运行时插件
+func (l *_ZapLogger) ShutRP(ctx runtime.Context) {
 	logger.Infof(ctx, "shut runtime plugin %q", definePlugin.Name)
 }
 
