@@ -121,6 +121,9 @@ func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId
 		nodeVal, err = r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId)).Bytes()
 	})
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, registry.ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -141,6 +144,10 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(nodeKeys) <= 0 {
+		return nil, registry.ErrNotFound
 	}
 
 	var nodeVals []any
@@ -193,6 +200,10 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(nodeKeys) <= 0 {
+		return nil, nil
 	}
 
 	var nodeVals []any
