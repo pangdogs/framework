@@ -1,4 +1,4 @@
-package etcd
+package redis
 
 import (
 	"kit.golaxy.org/golaxy/define"
