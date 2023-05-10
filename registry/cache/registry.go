@@ -33,7 +33,6 @@ type _ServiceNodeKey struct {
 type _CacheRegistry struct {
 	registry.Registry
 	options        CacheOptions
-	cancel         context.CancelFunc
 	serviceMap     map[string]*[]registry.Service
 	serviceNodeMap map[_ServiceNodeKey]*registry.Service
 	mutex          sync.RWMutex
@@ -52,15 +51,12 @@ func (r *_CacheRegistry) InitService(ctx service.Context) {
 		init.InitService(ctx)
 	}
 
-	watchCtx, cancel := context.WithCancel(ctx)
-	r.cancel = cancel
-
-	watcher, err := r.Registry.Watch(watchCtx, "")
+	watcher, err := r.Registry.Watch(ctx, "")
 	if err != nil {
 		logger.Panicf(ctx, "new service watcher failed, %s", err)
 	}
 
-	services, err := r.Registry.ListServices(watchCtx)
+	services, err := r.Registry.ListServices(ctx)
 	if err != nil {
 		logger.Panicf(ctx, "list all services failed, %s", err)
 	}
@@ -188,8 +184,6 @@ func (r *_CacheRegistry) InitService(ctx service.Context) {
 // ShutService 关闭服务插件
 func (r *_CacheRegistry) ShutService(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q, cached %q", definePlugin.Name, reflect.TypeOf(r.options.Registry).Elem())
-
-	r.cancel()
 
 	if shut, ok := r.options.Registry.(golaxy.LifecycleServicePluginShut); ok {
 		shut.ShutService(ctx)
