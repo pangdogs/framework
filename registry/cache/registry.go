@@ -94,7 +94,7 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 					return
 				}
 				logger.Errorf(ctx, "an error occurred during watch service changes, %s", err)
-				continue
+				return
 			}
 
 			func() {
