@@ -288,6 +288,6 @@ gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
-kit.golaxy.org/golaxy v0.1.33 h1:I/LTwJSfeFhsXLTuX9hdTo8Qf/jE4xs5y9IartF7DVM=
-kit.golaxy.org/golaxy v0.1.33/go.mod h1:JtTR/AvF7cVKso2scd4HDE0nj9gmGLVxhXRIFFwImd0=
+kit.golaxy.org/golaxy v0.1.34 h1:dtHH81rrNIZrrqAY23v1oDJ2+T2qYxluhEqEyYlD9pY=
+kit.golaxy.org/golaxy v0.1.34/go.mod h1:JtTR/AvF7cVKso2scd4HDE0nj9gmGLVxhXRIFFwImd0=
 sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
