@@ -44,16 +44,18 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 		return nil, err
 	}
 
-	values, err := r.client.MGet(ctx, keys...).Result()
-	if err != nil {
-		return nil, err
-	}
-
 	keyCache := map[string]string{}
 
-	for i, v := range values {
-		if v != nil {
-			keyCache[keys[i]] = v.(string)
+	if len(keys) > 0 {
+		values, err := r.client.MGet(ctx, keys...).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		for i, v := range values {
+			if v != nil {
+				keyCache[keys[i]] = v.(string)
+			}
 		}
 	}
 
