@@ -1,3 +1,4 @@
+// +k8s:deepcopy-gen=package
 package registry
 
 import (
@@ -14,6 +15,8 @@ type Registry interface {
 	Register(ctx context.Context, service Service, ttl time.Duration) error
 	// Deregister 取消注册服务
 	Deregister(ctx context.Context, service Service) error
+	// GetServiceNode 查询服务节点
+	GetServiceNode(ctx context.Context, serviceName, nodeId string) (*Service, error)
 	// GetService 查询服务
 	GetService(ctx context.Context, serviceName string) ([]Service, error)
 	// ListServices 查询所有服务
@@ -30,6 +33,7 @@ var (
 )
 
 // Service 服务配置
+// +k8s:deepcopy-gen=true
 type Service struct {
 	Name      string            `json:"name"`      // 服务名称
 	Version   string            `json:"version"`   // 服务版本号
@@ -39,6 +43,7 @@ type Service struct {
 }
 
 // Endpoint 服务端点
+// +k8s:deepcopy-gen=true
 type Endpoint struct {
 	Name     string            `json:"name"`     // 端点名称
 	Request  *Value            `json:"request"`  // 端点请求参数
@@ -47,6 +52,7 @@ type Endpoint struct {
 }
 
 // Value 服务参数
+// +k8s:deepcopy-gen=true
 type Value struct {
 	Name   string  `json:"name"`   // 参数名称
 	Type   string  `json:"type"`   // 参数类型
@@ -54,6 +60,7 @@ type Value struct {
 }
 
 // Node 服务节点
+// +k8s:deepcopy-gen=true
 type Node struct {
 	Id       string            `json:"id"`       // 节点ID
 	Address  string            `json:"address"`  // 节点的地址

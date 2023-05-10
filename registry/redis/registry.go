@@ -42,7 +42,7 @@ type _RedisRegistry struct {
 
 // InitService 初始化服务插件
 func (r *_RedisRegistry) InitService(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(_RedisRegistry{}))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*r))
 
 	r.ctx = ctx
 
@@ -106,6 +106,25 @@ func (r *_RedisRegistry) Deregister(ctx context.Context, service registry.Servic
 	}
 
 	return errors.Join(errorList...)
+}
+
+// GetServiceNode 查询服务节点
+func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+	if serviceName == "" || nodeId == "" {
+		return nil, registry.ErrNotFound
+	}
+
+	var nodeVal []byte
+	var err error
+
+	r.invokeWithTimeout(ctx, func(ctx context.Context) {
+		nodeVal, err = r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId)).Bytes()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeService(nodeVal)
 }
 
 // GetService 查询服务
@@ -241,25 +260,24 @@ func (r *_RedisRegistry) configure() *redis.Options {
 }
 
 func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
+	if service.Name == "" {
+		return errors.New("service name can't empty")
+	}
+
+	if node.Id == "" {
+		return errors.New("service node id can't empty")
+	}
+
 	if ttl < 0 {
 		ttl = 0
 	}
 
-	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
-
-	nodeService := &registry.Service{
-		Name:      service.Name,
-		Version:   service.Version,
-		Metadata:  service.Metadata,
-		Endpoints: service.Endpoints,
-		Nodes:     []registry.Node{node},
-	}
-
-	hv, err := hash.Hash(nodeService, hash.FormatV2, nil)
+	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
 		return err
 	}
 
+	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 	var keepAlive bool
 
 	if ttl.Seconds() > 0 {
@@ -282,12 +300,14 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 		return nil
 	}
 
-	nodeServiceData := encodeService(nodeService)
+	serviceNode := service
+	serviceNode.Nodes = []registry.Node{node}
+	serviceNodeData := encodeService(&serviceNode)
 
-	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", nodeService.Name, node.Id, nodeServiceData, ttl)
+	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
 	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		_, err = r.client.Set(ctx, nodePath, nodeServiceData, ttl).Result()
+		_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	})
 	if err != nil {
 		return err
