@@ -98,19 +98,19 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				continue
 			}
 
-			val, err := r.client.Get(ctx, key).Result()
-			if err != nil {
-				if errors.Is(err, context.Canceled) {
-					continue
-				}
-				logger.Errorf(r.ctx, "get node %q data failed, %s", key, err)
-				continue
-			}
-
 			event := &registry.Event{}
 
 			switch msg.Channel {
 			case watchKeyeventSetPath:
+				val, err := r.client.Get(ctx, key).Result()
+				if err != nil {
+					if errors.Is(err, context.Canceled) {
+						continue
+					}
+					logger.Errorf(r.ctx, "get node %q data failed, %s", key, err)
+					continue
+				}
+
 				_, ok := keyCache[key]
 				if ok {
 					event.Type = registry.Update
