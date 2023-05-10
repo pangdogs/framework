@@ -41,12 +41,12 @@ type _CacheRegistry struct {
 
 // InitService 初始化服务插件
 func (r *_CacheRegistry) InitService(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry))
-
 	if r.options.Registry == nil {
 		logger.Panic(ctx, "cached plugin is nil, must be set before init")
 	}
 	r.Registry = r.options.Registry
+
+	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry).Elem())
 
 	if init, ok := r.options.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitService(ctx)
