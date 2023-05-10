@@ -21,8 +21,8 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 	watchKeyeventSetPath := fmt.Sprintf("__keyevent@%d__:set", r.client.Options().DB)
 	watchKeyeventDelPath := fmt.Sprintf("__keyevent@%d__:del", r.client.Options().DB)
 
-	watch := r.client.PSubscribe(ctx)
-	err = watch.PSubscribe(ctx, watchKeyeventSetPath, watchKeyeventDelPath)
+	watch := r.client.Subscribe(ctx)
+	err = watch.Subscribe(ctx, watchKeyeventSetPath, watchKeyeventDelPath)
 	if err != nil {
 		return nil, err
 	}
