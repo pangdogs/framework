@@ -229,7 +229,7 @@ func (r *_CacheRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var servicesCopy []registry.Service
+	servicesCopy := make([]registry.Service, 0, len(r.serviceNodeMap))
 
 	for _, versions := range r.serviceMap {
 		for _, service := range *versions {
