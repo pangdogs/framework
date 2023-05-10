@@ -36,6 +36,7 @@ type _CacheRegistry struct {
 	serviceMap     map[string]*[]registry.Service
 	serviceNodeMap map[_ServiceNodeKey]*registry.Service
 	mutex          sync.RWMutex
+	wg             sync.WaitGroup
 }
 
 // InitSP 初始化服务插件
@@ -80,7 +81,11 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 		}
 	}
 
+	r.wg.Add(1)
+
 	go func() {
+		defer r.wg.Done()
+
 		for {
 			event, err := watcher.Next()
 			if err != nil {
@@ -183,6 +188,8 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 // ShutSP 关闭服务插件
 func (r *_CacheRegistry) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q, cached %q", definePlugin.Name, reflect.TypeOf(r.options.Registry).Elem())
+
+	r.wg.Wait()
 
 	if shut, ok := r.options.Registry.(golaxy.LifecycleServicePluginShut); ok {
 		shut.ShutSP(ctx)
