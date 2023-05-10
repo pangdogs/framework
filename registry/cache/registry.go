@@ -38,8 +38,8 @@ type _CacheRegistry struct {
 	mutex          sync.RWMutex
 }
 
-// InitService 初始化服务插件
-func (r *_CacheRegistry) InitService(ctx service.Context) {
+// InitSP 初始化服务插件
+func (r *_CacheRegistry) InitSP(ctx service.Context) {
 	if r.options.Registry == nil {
 		logger.Panic(ctx, "cached plugin is nil, must be set before init")
 	}
@@ -48,7 +48,7 @@ func (r *_CacheRegistry) InitService(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry).Elem())
 
 	if init, ok := r.options.Registry.(golaxy.LifecycleServicePluginInit); ok {
-		init.InitService(ctx)
+		init.InitSP(ctx)
 	}
 
 	watcher, err := r.Registry.Watch(ctx, "")
@@ -180,12 +180,12 @@ func (r *_CacheRegistry) InitService(ctx service.Context) {
 	}()
 }
 
-// ShutService 关闭服务插件
-func (r *_CacheRegistry) ShutService(ctx service.Context) {
+// ShutSP 关闭服务插件
+func (r *_CacheRegistry) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q, cached %q", definePlugin.Name, reflect.TypeOf(r.options.Registry).Elem())
 
 	if shut, ok := r.options.Registry.(golaxy.LifecycleServicePluginShut); ok {
-		shut.ShutService(ctx)
+		shut.ShutSP(ctx)
 	}
 }
 
