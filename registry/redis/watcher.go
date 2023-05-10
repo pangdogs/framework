@@ -20,9 +20,10 @@ type _RedisWatcher struct {
 func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string) (watcher registry.Watcher, err error) {
 	watchKeyeventSetPath := fmt.Sprintf("__keyevent@%d__:set", r.client.Options().DB)
 	watchKeyeventDelPath := fmt.Sprintf("__keyevent@%d__:del", r.client.Options().DB)
+	watchKeyeventExpiredPath := fmt.Sprintf("__keyevent@%d__:expired", r.client.Options().DB)
 
 	watch := r.client.Subscribe(ctx)
-	err = watch.Subscribe(ctx, watchKeyeventSetPath, watchKeyeventDelPath)
+	err = watch.Subscribe(ctx, watchKeyeventSetPath, watchKeyeventDelPath, watchKeyeventExpiredPath)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +86,10 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			msg, err := watch.ReceiveMessage(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
-					logger.Debugf(r.ctx, "stop watch %q %q", watchKeyeventSetPath, watchKeyeventDelPath)
+					logger.Debugf(r.ctx, "stop watch [%q,%q,%q]", watchKeyeventSetPath, watchKeyeventDelPath, watchKeyeventExpiredPath)
 					return
 				}
-				logger.Errorf(r.ctx, "stop watch %q %q, %s", watchKeyeventSetPath, watchKeyeventDelPath, err)
+				logger.Errorf(r.ctx, "stop watch [%q,%q,%q], %s", watchKeyeventSetPath, watchKeyeventDelPath, watchKeyeventExpiredPath, err)
 				return
 			}
 
@@ -126,7 +127,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 				keyCache[key] = val
 
-			case watchKeyeventDelPath:
+			case watchKeyeventDelPath, watchKeyeventExpiredPath:
 				v, ok := keyCache[key]
 				if !ok {
 					logger.Errorf(r.ctx, "node %q data not cached, %s", key, err)
