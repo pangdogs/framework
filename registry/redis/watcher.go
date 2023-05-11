@@ -66,11 +66,15 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
 
 	go func() {
+		<-ctx.Done()
+		watch.Close()
+	}()
+
+	go func() {
 		defer func() {
 			close(eventChan)
 			for range eventChan {
 			}
-			watch.Close()
 		}()
 
 		for {
