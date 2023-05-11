@@ -77,10 +77,10 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			msg, err := watch.ReceiveMessage(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) {
-					logger.Debugf(r.ctx, "stop watch %v", watchPathList)
+					logger.Debugf(r.ctx, "stop watch %q", watchPathList)
 					return
 				}
-				logger.Errorf(r.ctx, "stop watch %v, %s", watchPathList, err)
+				logger.Errorf(r.ctx, "stop watch %q, %s", watchPathList, err)
 				return
 			}
 
@@ -147,7 +147,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			select {
 			case eventChan <- event:
 			case <-ctx.Done():
-				logger.Debugf(r.ctx, "stop watch %v", watchPathList)
+				logger.Debugf(r.ctx, "stop watch %q", watchPathList)
 				return
 			}
 		}
