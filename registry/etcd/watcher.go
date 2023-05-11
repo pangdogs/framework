@@ -11,7 +11,7 @@ import (
 
 type _EtcdWatcher struct {
 	ctx       service.Context
-	stopChan  chan bool
+	cancel    context.CancelFunc
 	watchChan clientv3.WatchChan
 	eventChan chan *registry.Event
 	client    *clientv3.Client
@@ -24,38 +24,23 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	stopChan := make(chan bool, 1)
 	watchChan := r.client.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV())
 	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
 
 	go func() {
-		<-stopChan
-		cancel()
-		for range eventChan {
-		}
-	}()
-
-	go func() {
 		defer func() {
 			close(eventChan)
-			select {
-			case <-stopChan:
-			default:
-				close(stopChan)
+			for range eventChan {
 			}
 		}()
 
 		for watchRsp := range watchChan {
-			if watchRsp.Err() != nil {
-				if errors.Is(watchRsp.Err(), context.Canceled) {
-					logger.Debugf(r.ctx, "stop watch %q", watchPath)
-					return
-				}
-				logger.Error(r.ctx, watchRsp.Err())
+			if watchRsp.Canceled || errors.Is(watchRsp.Err(), context.Canceled) {
+				logger.Debugf(r.ctx, "stop watch %q", watchPath)
 				return
 			}
-			if watchRsp.Canceled {
-				logger.Debugf(r.ctx, "stop watch %q", watchPath)
+			if watchRsp.Err() != nil {
+				logger.Error(r.ctx, watchRsp.Err())
 				return
 			}
 
@@ -107,7 +92,7 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 
 	return &_EtcdWatcher{
 		ctx:       r.ctx,
-		stopChan:  stopChan,
+		cancel:    cancel,
 		watchChan: watchChan,
 		eventChan: eventChan,
 		client:    r.client,
@@ -124,9 +109,5 @@ func (w *_EtcdWatcher) Next() (*registry.Event, error) {
 
 // Stop stop watching
 func (w *_EtcdWatcher) Stop() {
-	select {
-	case <-w.stopChan:
-	default:
-		close(w.stopChan)
-	}
+	w.cancel()
 }
