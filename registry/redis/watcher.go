@@ -8,6 +8,7 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
+	"net"
 	"strings"
 )
 
@@ -80,11 +81,11 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 		for {
 			msg, err := watch.ReceiveMessage(ctx)
 			if err != nil {
-				if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) {
-					logger.Debugf(r.ctx, "stop watch %q", watchPathList)
+				if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
+					logger.Debugf(r.ctx, "stop watch %q, %s", watchPathList, err)
 					return
 				}
-				logger.Errorf(r.ctx, "stop watch %q, %s", watchPathList, err)
+				logger.Error(r.ctx, "interrupt watch %q, %s", watchPathList, err)
 				return
 			}
 
