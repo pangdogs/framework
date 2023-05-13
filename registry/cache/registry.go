@@ -11,9 +11,9 @@ import (
 	"sync"
 )
 
-func newCacheRegistry(options ...CacheOption) registry.Registry {
-	opts := CacheOptions{}
-	WithCacheOption{}.Default()(&opts)
+func newCacheRegistry(options ...Option) registry.Registry {
+	opts := Options{}
+	WithOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -32,7 +32,7 @@ type _ServiceNodeKey struct {
 
 type _CacheRegistry struct {
 	registry.Registry
-	options        CacheOptions
+	options        Options
 	serviceMap     map[string]*[]registry.Service
 	serviceNodeMap map[_ServiceNodeKey]*registry.Service
 	mutex          sync.RWMutex

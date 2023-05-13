@@ -5,7 +5,7 @@ import (
 	"kit.golaxy.org/plugins/registry"
 )
 
-var definePlugin = define.DefineServicePlugin[registry.Registry, RedisOption](NewRedisRegistry)
+var definePlugin = define.DefineServicePlugin[registry.Registry, Option](newRedisRegistry)
 
 // Install 安装插件
 var Install = definePlugin.Install

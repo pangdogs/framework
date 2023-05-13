@@ -20,9 +20,12 @@ import (
 	"time"
 )
 
-func NewEtcdRegistry(options ...EtcdOption) registry.Registry {
-	opts := EtcdOptions{}
-	WithEtcdOption{}.Default()(&opts)
+// NewRegistry 导出newEtcdRegistry，可以配合cache registry将数据缓存本地，提高查询效率
+var NewRegistry = newEtcdRegistry
+
+func newEtcdRegistry(options ...Option) registry.Registry {
+	opts := Options{}
+	WithOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -36,7 +39,7 @@ func NewEtcdRegistry(options ...EtcdOption) registry.Registry {
 }
 
 type _EtcdRegistry struct {
-	options  EtcdOptions
+	options  Options
 	ctx      service.Context
 	client   *clientv3.Client
 	register map[string]uint64

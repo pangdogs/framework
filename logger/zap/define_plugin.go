@@ -5,7 +5,7 @@ import (
 	"kit.golaxy.org/plugins/logger"
 )
 
-var definePlugin = define.DefinePlugin[logger.Logger, ZapOption](newZapLogger)
+var definePlugin = define.DefinePlugin[logger.Logger, Option](newZapLogger)
 
 // Install 安装插件
 var Install = definePlugin.Install

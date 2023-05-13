@@ -18,9 +18,12 @@ import (
 	"time"
 )
 
-func NewRedisRegistry(options ...RedisOption) registry.Registry {
-	opts := RedisOptions{}
-	WithRedisOption{}.Default()(&opts)
+// NewRegistry 导出newRedisRegistry，可以配合cache registry将数据缓存本地，提高查询效率
+var NewRegistry = newRedisRegistry
+
+func newRedisRegistry(options ...Option) registry.Registry {
+	opts := Options{}
+	WithOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -33,7 +36,7 @@ func NewRedisRegistry(options ...RedisOption) registry.Registry {
 }
 
 type _RedisRegistry struct {
-	options  RedisOptions
+	options  Options
 	ctx      service.Context
 	client   *redis.Client
 	register map[string]uint64

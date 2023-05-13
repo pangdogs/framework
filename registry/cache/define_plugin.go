@@ -5,7 +5,7 @@ import (
 	"kit.golaxy.org/plugins/registry"
 )
 
-var definePlugin = define.DefineServicePlugin[registry.Registry, CacheOption](newCacheRegistry)
+var definePlugin = define.DefineServicePlugin[registry.Registry, Option](newCacheRegistry)
 
 // Install 安装插件
 var Install = definePlugin.Install

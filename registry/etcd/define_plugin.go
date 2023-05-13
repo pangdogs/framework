@@ -5,7 +5,7 @@ import (
 	"kit.golaxy.org/plugins/registry"
 )
 
-var definePlugin = define.DefineServicePlugin[registry.Registry, EtcdOption](NewEtcdRegistry)
+var definePlugin = define.DefineServicePlugin[registry.Registry, Option](newEtcdRegistry)
 
 // Install 安装插件
 var Install = definePlugin.Install

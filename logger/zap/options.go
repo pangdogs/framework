@@ -11,26 +11,26 @@ const (
 	RuntimeField
 )
 
-type ZapOptions struct {
+type Options struct {
 	ZapLogger     *zap.Logger
 	CallerMaxSkip int8
 	Fields        Field
 }
 
-type ZapOption func(options *ZapOptions)
+type Option func(options *Options)
 
-type WithZapOption struct{}
+type WithOption struct{}
 
-func (WithZapOption) Default() ZapOption {
-	return func(options *ZapOptions) {
-		WithZapOption{}.ZapLogger(zap.NewExample())(options)
-		WithZapOption{}.Fields(ServiceField | RuntimeField)(options)
-		WithZapOption{}.CallerMaxSkip(3)(options)
+func (WithOption) Default() Option {
+	return func(options *Options) {
+		WithOption{}.ZapLogger(zap.NewExample())(options)
+		WithOption{}.Fields(ServiceField | RuntimeField)(options)
+		WithOption{}.CallerMaxSkip(3)(options)
 	}
 }
 
-func (WithZapOption) ZapLogger(logger *zap.Logger) ZapOption {
-	return func(options *ZapOptions) {
+func (WithOption) ZapLogger(logger *zap.Logger) Option {
+	return func(options *Options) {
 		if logger == nil {
 			panic("options.ZapLogger can't be assigned to nil")
 		}
@@ -38,14 +38,14 @@ func (WithZapOption) ZapLogger(logger *zap.Logger) ZapOption {
 	}
 }
 
-func (WithZapOption) Fields(fields Field) ZapOption {
-	return func(options *ZapOptions) {
+func (WithOption) Fields(fields Field) Option {
+	return func(options *Options) {
 		options.Fields = fields
 	}
 }
 
-func (WithZapOption) CallerMaxSkip(skip int8) ZapOption {
-	return func(options *ZapOptions) {
+func (WithOption) CallerMaxSkip(skip int8) Option {
+	return func(options *Options) {
 		if skip < 0 {
 			panic("options.CallerMaxSkip can't be set to a value less than 0")
 		}
