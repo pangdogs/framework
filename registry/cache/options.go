@@ -4,22 +4,22 @@ import (
 	"kit.golaxy.org/plugins/registry"
 )
 
-type CacheOptions struct {
+type Options struct {
 	Registry registry.Registry
 }
 
-type CacheOption func(options *CacheOptions)
+type Option func(options *Options)
 
-type WithCacheOption struct{}
+type WithOption struct{}
 
-func (WithCacheOption) Default() CacheOption {
-	return func(options *CacheOptions) {
-		WithCacheOption{}.Cached(nil)(options)
+func (WithOption) Default() Option {
+	return func(options *Options) {
+		WithOption{}.Cached(nil)(options)
 	}
 }
 
-func (WithCacheOption) Cached(r registry.Registry) CacheOption {
-	return func(o *CacheOptions) {
+func (WithOption) Cached(r registry.Registry) Option {
+	return func(o *Options) {
 		o.Registry = r
 	}
 }

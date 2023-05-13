@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type RedisOptions struct {
+type Options struct {
 	RedisClient   *redis.Client
 	RedisConfig   *redis.Options
 	RedisURL      string
@@ -20,44 +20,44 @@ type RedisOptions struct {
 	FastDBIndex   int
 }
 
-type RedisOption func(options *RedisOptions)
+type Option func(options *Options)
 
-type WithRedisOption struct{}
+type WithOption struct{}
 
-func (WithRedisOption) Default() RedisOption {
-	return func(options *RedisOptions) {
-		WithRedisOption{}.RedisClient(nil)(options)
-		WithRedisOption{}.RedisConfig(nil)(options)
-		WithRedisOption{}.RedisURL("")(options)
-		WithRedisOption{}.KeyPrefix("golaxy:registry:")(options)
-		WithRedisOption{}.Timeout(3 * time.Second)(options)
-		WithRedisOption{}.WatchChanSize(128)(options)
-		WithRedisOption{}.FastAuth("", "")(options)
-		WithRedisOption{}.FastAddress("127.0.0.1:6379")(options)
-		WithRedisOption{}.FastDBIndex(0)(options)
+func (WithOption) Default() Option {
+	return func(options *Options) {
+		WithOption{}.RedisClient(nil)(options)
+		WithOption{}.RedisConfig(nil)(options)
+		WithOption{}.RedisURL("")(options)
+		WithOption{}.KeyPrefix("golaxy:registry:")(options)
+		WithOption{}.Timeout(3 * time.Second)(options)
+		WithOption{}.WatchChanSize(128)(options)
+		WithOption{}.FastAuth("", "")(options)
+		WithOption{}.FastAddress("127.0.0.1:6379")(options)
+		WithOption{}.FastDBIndex(0)(options)
 	}
 }
 
-func (WithRedisOption) RedisClient(cli *redis.Client) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) RedisClient(cli *redis.Client) Option {
+	return func(o *Options) {
 		o.RedisClient = cli
 	}
 }
 
-func (WithRedisOption) RedisConfig(conf *redis.Options) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) RedisConfig(conf *redis.Options) Option {
+	return func(o *Options) {
 		o.RedisConfig = conf
 	}
 }
 
-func (WithRedisOption) RedisURL(url string) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) RedisURL(url string) Option {
+	return func(o *Options) {
 		o.RedisURL = url
 	}
 }
 
-func (WithRedisOption) KeyPrefix(prefix string) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) KeyPrefix(prefix string) Option {
+	return func(o *Options) {
 		if !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
@@ -65,14 +65,14 @@ func (WithRedisOption) KeyPrefix(prefix string) RedisOption {
 	}
 }
 
-func (WithRedisOption) Timeout(dur time.Duration) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) Timeout(dur time.Duration) Option {
+	return func(o *Options) {
 		o.Timeout = dur
 	}
 }
 
-func (WithRedisOption) WatchChanSize(size int) RedisOption {
-	return func(o *RedisOptions) {
+func (WithOption) WatchChanSize(size int) Option {
+	return func(o *Options) {
 		if size < 0 {
 			panic("options.WatchChanSize can't be set to a value less then 0")
 		}
@@ -80,15 +80,15 @@ func (WithRedisOption) WatchChanSize(size int) RedisOption {
 	}
 }
 
-func (WithRedisOption) FastAuth(username, password string) RedisOption {
-	return func(options *RedisOptions) {
+func (WithOption) FastAuth(username, password string) Option {
+	return func(options *Options) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithRedisOption) FastAddress(addr string) RedisOption {
-	return func(options *RedisOptions) {
+func (WithOption) FastAddress(addr string) Option {
+	return func(options *Options) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(err)
 		}
@@ -96,8 +96,8 @@ func (WithRedisOption) FastAddress(addr string) RedisOption {
 	}
 }
 
-func (WithRedisOption) FastDBIndex(idx int) RedisOption {
-	return func(options *RedisOptions) {
+func (WithOption) FastDBIndex(idx int) Option {
+	return func(options *Options) {
 		options.FastDBIndex = idx
 	}
 }

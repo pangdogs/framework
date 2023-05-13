@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type EtcdOptions struct {
+type Options struct {
 	EtcdClient    *clientv3.Client
 	EtcdConfig    *clientv3.Config
 	KeyPrefix     string
@@ -21,38 +21,38 @@ type EtcdOptions struct {
 	FastTLSConfig *tls.Config
 }
 
-type EtcdOption func(options *EtcdOptions)
+type Option func(options *Options)
 
-type WithEtcdOption struct{}
+type WithOption struct{}
 
-func (WithEtcdOption) Default() EtcdOption {
-	return func(options *EtcdOptions) {
-		WithEtcdOption{}.EtcdClient(nil)(options)
-		WithEtcdOption{}.EtcdConfig(nil)(options)
-		WithEtcdOption{}.KeyPrefix("/golaxy/registry/")(options)
-		WithEtcdOption{}.Timeout(3 * time.Second)(options)
-		WithEtcdOption{}.WatchChanSize(128)(options)
-		WithEtcdOption{}.FastAuth("", "")(options)
-		WithEtcdOption{}.FastAddresses("127.0.0.1:2379")(options)
-		WithEtcdOption{}.FastSecure(false)(options)
-		WithEtcdOption{}.FastTLSConfig(nil)(options)
+func (WithOption) Default() Option {
+	return func(options *Options) {
+		WithOption{}.EtcdClient(nil)(options)
+		WithOption{}.EtcdConfig(nil)(options)
+		WithOption{}.KeyPrefix("/golaxy/registry/")(options)
+		WithOption{}.Timeout(3 * time.Second)(options)
+		WithOption{}.WatchChanSize(128)(options)
+		WithOption{}.FastAuth("", "")(options)
+		WithOption{}.FastAddresses("127.0.0.1:2379")(options)
+		WithOption{}.FastSecure(false)(options)
+		WithOption{}.FastTLSConfig(nil)(options)
 	}
 }
 
-func (WithEtcdOption) EtcdClient(cli *clientv3.Client) EtcdOption {
-	return func(o *EtcdOptions) {
+func (WithOption) EtcdClient(cli *clientv3.Client) Option {
+	return func(o *Options) {
 		o.EtcdClient = cli
 	}
 }
 
-func (WithEtcdOption) EtcdConfig(config *clientv3.Config) EtcdOption {
-	return func(o *EtcdOptions) {
+func (WithOption) EtcdConfig(config *clientv3.Config) Option {
+	return func(o *Options) {
 		o.EtcdConfig = config
 	}
 }
 
-func (WithEtcdOption) KeyPrefix(prefix string) EtcdOption {
-	return func(options *EtcdOptions) {
+func (WithOption) KeyPrefix(prefix string) Option {
+	return func(options *Options) {
 		if !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
@@ -60,14 +60,14 @@ func (WithEtcdOption) KeyPrefix(prefix string) EtcdOption {
 	}
 }
 
-func (WithEtcdOption) Timeout(dur time.Duration) EtcdOption {
-	return func(options *EtcdOptions) {
+func (WithOption) Timeout(dur time.Duration) Option {
+	return func(options *Options) {
 		options.Timeout = dur
 	}
 }
 
-func (WithEtcdOption) WatchChanSize(size int) EtcdOption {
-	return func(options *EtcdOptions) {
+func (WithOption) WatchChanSize(size int) Option {
+	return func(options *Options) {
 		if size < 0 {
 			panic("options.WatchChanSize can't be set to a value less then 0")
 		}
@@ -75,15 +75,15 @@ func (WithEtcdOption) WatchChanSize(size int) EtcdOption {
 	}
 }
 
-func (WithEtcdOption) FastAuth(username, password string) EtcdOption {
-	return func(options *EtcdOptions) {
+func (WithOption) FastAuth(username, password string) Option {
+	return func(options *Options) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithEtcdOption) FastAddresses(addrs ...string) EtcdOption {
-	return func(options *EtcdOptions) {
+func (WithOption) FastAddresses(addrs ...string) Option {
+	return func(options *Options) {
 		for _, endpoint := range addrs {
 			if _, _, err := net.SplitHostPort(endpoint); err != nil {
 				panic(err)
@@ -93,14 +93,14 @@ func (WithEtcdOption) FastAddresses(addrs ...string) EtcdOption {
 	}
 }
 
-func (WithEtcdOption) FastSecure(secure bool) EtcdOption {
-	return func(o *EtcdOptions) {
+func (WithOption) FastSecure(secure bool) Option {
+	return func(o *Options) {
 		o.FastSecure = secure
 	}
 }
 
-func (WithEtcdOption) FastTLSConfig(conf *tls.Config) EtcdOption {
-	return func(o *EtcdOptions) {
+func (WithOption) FastTLSConfig(conf *tls.Config) Option {
+	return func(o *Options) {
 		o.FastTLSConfig = conf
 	}
 }

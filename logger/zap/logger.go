@@ -8,9 +8,9 @@ import (
 	"reflect"
 )
 
-func newZapLogger(options ...ZapOption) logger.Logger {
-	opts := ZapOptions{}
-	WithZapOption{}.Default()(&opts)
+func newZapLogger(options ...Option) logger.Logger {
+	opts := Options{}
+	WithOption{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -22,7 +22,7 @@ func newZapLogger(options ...ZapOption) logger.Logger {
 }
 
 type _ZapLogger struct {
-	options        ZapOptions
+	options        Options
 	sugaredLoggers []*zap.SugaredLogger
 }
 

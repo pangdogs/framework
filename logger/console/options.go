@@ -15,7 +15,7 @@ const (
 	CallerField
 )
 
-type ConsoleOptions struct {
+type Options struct {
 	Development     bool
 	Level           logger.Level
 	Fields          Field
@@ -24,53 +24,53 @@ type ConsoleOptions struct {
 	CallerFullName  bool
 }
 
-type ConsoleOption func(options *ConsoleOptions)
+type Option func(options *Options)
 
-type WithConsoleOption struct{}
+type WithOption struct{}
 
-func (WithConsoleOption) Default() ConsoleOption {
-	return func(options *ConsoleOptions) {
-		WithConsoleOption{}.Development(false)
-		WithConsoleOption{}.Level(logger.InfoLevel)(options)
-		WithConsoleOption{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
-		WithConsoleOption{}.Separator(`|`)(options)
-		WithConsoleOption{}.TimestampLayout(time.RFC3339Nano)(options)
-		WithConsoleOption{}.CallerFullName(false)(options)
+func (WithOption) Default() Option {
+	return func(options *Options) {
+		WithOption{}.Development(false)
+		WithOption{}.Level(logger.InfoLevel)(options)
+		WithOption{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
+		WithOption{}.Separator(`|`)(options)
+		WithOption{}.TimestampLayout(time.RFC3339Nano)(options)
+		WithOption{}.CallerFullName(false)(options)
 	}
 }
 
-func (WithConsoleOption) Development(b bool) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) Development(b bool) Option {
+	return func(options *Options) {
 		options.Development = b
 	}
 }
 
-func (WithConsoleOption) Level(level logger.Level) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) Level(level logger.Level) Option {
+	return func(options *Options) {
 		options.Level = level
 	}
 }
 
-func (WithConsoleOption) Fields(fields Field) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) Fields(fields Field) Option {
+	return func(options *Options) {
 		options.Fields = fields
 	}
 }
 
-func (WithConsoleOption) Separator(sp string) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) Separator(sp string) Option {
+	return func(options *Options) {
 		options.Separator = sp
 	}
 }
 
-func (WithConsoleOption) TimestampLayout(layout string) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) TimestampLayout(layout string) Option {
+	return func(options *Options) {
 		options.TimestampLayout = layout
 	}
 }
 
-func (WithConsoleOption) CallerFullName(b bool) ConsoleOption {
-	return func(options *ConsoleOptions) {
+func (WithOption) CallerFullName(b bool) Option {
+	return func(options *Options) {
 		options.CallerFullName = b
 	}
 }
