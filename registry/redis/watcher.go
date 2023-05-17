@@ -28,10 +28,11 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 	}
 
 	keyspacePrefix := fmt.Sprintf("__keyspace@%d__:", r.client.Options().DB)
+	keyeventPrefix := fmt.Sprintf("__keyevent@%d__:", r.client.Options().DB)
 
 	watchPathList := []string{
 		keyspacePrefix + keyPath,
-		fmt.Sprintf("__keyevent@%d__:expired", r.client.Options().DB),
+		keyeventPrefix + "expired",
 	}
 
 	watch := r.client.PSubscribe(ctx)
@@ -98,7 +99,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				opt = msg.Payload
 			case watchPathList[1]:
 				key = msg.Payload
-				opt = "expired"
+				opt = strings.TrimPrefix(msg.Channel, keyeventPrefix)
 			default:
 				continue
 			}
@@ -138,7 +139,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			case "del", "expired":
 				v, ok := keyCache[key]
 				if !ok {
-					logger.Errorf(r.ctx, "node %q data not cached, %s", key, err)
+					logger.Errorf(r.ctx, "node %q data not cached", key)
 					continue
 				}
 
@@ -152,7 +153,6 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				}
 
 			default:
-				logger.Debugf(r.ctx, "discard opt %q", opt)
 				continue
 			}
 
