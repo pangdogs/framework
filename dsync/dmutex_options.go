@@ -47,12 +47,12 @@ func (WithOption) Default() Option {
 	}
 
 	return func(options *Options) {
-		WithOption{}.Expiry(3 * time.Second)
-		WithOption{}.Tries(3)
-		WithOption{}.RetryDelayFunc(defaultRetryDelayFunc)
-		WithOption{}.DriftFactor(0.01)
-		WithOption{}.TimeoutFactor(0.05)
-		WithOption{}.GenValueFunc(defaultGenValueFunc)
+		WithOption{}.Expiry(3 * time.Second)(options)
+		WithOption{}.Tries(3)(options)
+		WithOption{}.RetryDelayFunc(defaultRetryDelayFunc)(options)
+		WithOption{}.DriftFactor(0.01)(options)
+		WithOption{}.TimeoutFactor(0.05)(options)
+		WithOption{}.GenValueFunc(defaultGenValueFunc)(options)
 	}
 }
 
