@@ -8,10 +8,10 @@ import (
 )
 
 // A DelayFunc is used to decide the amount of time to wait between retries.
-type DelayFunc func(tries int) time.Duration
+type DelayFunc = func(tries int) time.Duration
 
 // GenValueFunc is used to generate a random value.
-type GenValueFunc func() (string, error)
+type GenValueFunc = func() (string, error)
 
 type Options struct {
 	Expiry        time.Duration
