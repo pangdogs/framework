@@ -5,6 +5,7 @@ import (
 	"errors"
 	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
 	"reflect"
@@ -46,7 +47,7 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 	}
 	r.Registry = r.options.Registry
 
-	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, reflect.TypeOf(*r), reflect.TypeOf(r.options.Registry).Elem())
+	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, util.TypeOfAnyFullName(*r), util.TypeOfFullName(reflect.TypeOf(r.options.Registry).Elem()))
 
 	if init, ok := r.options.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(ctx)
@@ -187,7 +188,7 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_CacheRegistry) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q, cached %q", definePlugin.Name, reflect.TypeOf(r.options.Registry).Elem())
+	logger.Infof(ctx, "shut service plugin %q with %q, cached %q", definePlugin.Name, util.TypeOfAnyFullName(*r), util.TypeOfFullName(reflect.TypeOf(r.options.Registry).Elem()))
 
 	r.wg.Wait()
 

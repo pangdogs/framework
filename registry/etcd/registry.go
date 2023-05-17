@@ -10,10 +10,10 @@ import (
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
 	"path"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -49,7 +49,7 @@ type _EtcdRegistry struct {
 
 // InitSP 初始化服务插件
 func (r *_EtcdRegistry) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*r))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*r))
 
 	r.ctx = ctx
 

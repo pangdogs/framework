@@ -5,6 +5,7 @@ import (
 	"io"
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"os"
 	"reflect"
@@ -34,7 +35,7 @@ type _ConsoleLogger struct {
 
 // InitSP init service plugin
 func (l *_ConsoleLogger) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*l))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
 
 	l.serviceField = ctx.String()
 }
