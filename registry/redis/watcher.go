@@ -20,9 +20,17 @@ type _RedisWatcher struct {
 }
 
 func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string) (watcher registry.Watcher, err error) {
+	var keyPath string
+	if serviceName != "" {
+		keyPath = getServicePath(r.options.KeyPrefix, serviceName)
+	} else {
+		keyPath = r.options.KeyPrefix + "*"
+	}
+
+	keyspacePrefix := fmt.Sprintf("__keyspace@%d__:", r.client.Options().DB)
+
 	watchPathList := []string{
-		fmt.Sprintf("__keyevent@%d__:set", r.client.Options().DB),
-		fmt.Sprintf("__keyevent@%d__:del", r.client.Options().DB),
+		keyspacePrefix + keyPath,
 		fmt.Sprintf("__keyevent@%d__:expired", r.client.Options().DB),
 	}
 
@@ -35,13 +43,6 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			watch.Close()
 		}
 	}()
-
-	var keyPath string
-	if serviceName != "" {
-		keyPath = getServicePath(r.options.KeyPrefix, serviceName)
-	} else {
-		keyPath = r.options.KeyPrefix + "*"
-	}
 
 	keys, err := r.client.Keys(ctx, keyPath).Result()
 	if err != nil {
@@ -89,7 +90,15 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				return
 			}
 
-			key := msg.Payload
+			var key, opt string
+
+			if strings.HasPrefix(msg.Channel, keyspacePrefix) {
+				key = strings.TrimPrefix(msg.Channel, keyspacePrefix)
+				opt = msg.Payload
+			} else {
+				key = msg.Payload
+				opt = "expired"
+			}
 
 			if !strings.HasPrefix(key, keyPath[:len(keyPath)-1]) {
 				continue
@@ -97,8 +106,8 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 			event := &registry.Event{}
 
-			switch msg.Channel {
-			case watchPathList[0]:
+			switch opt {
+			case "set":
 				val, err := r.client.Get(ctx, key).Result()
 				if err != nil {
 					if errors.Is(err, context.Canceled) {
@@ -123,7 +132,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 				keyCache[key] = val
 
-			case watchPathList[1], watchPathList[2]:
+			case "del", "expired":
 				v, ok := keyCache[key]
 				if !ok {
 					logger.Errorf(r.ctx, "node %q data not cached, %s", key, err)
@@ -140,7 +149,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				}
 
 			default:
-				logger.Errorf(r.ctx, "unknown channel %q", msg.Channel)
+				logger.Debugf(r.ctx, "discard opt %q", opt)
 				continue
 			}
 

@@ -117,12 +117,7 @@ func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId
 		return nil, registry.ErrNotFound
 	}
 
-	var nodeVal []byte
-	var err error
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		nodeVal, err = r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId)).Bytes()
-	})
+	nodeVal, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, registry.ErrNotFound
@@ -139,12 +134,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 		return nil, registry.ErrNotFound
 	}
 
-	var nodeKeys []string
-	var err error
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		nodeKeys, err = r.client.Keys(ctx, getServicePath(r.options.KeyPrefix, serviceName)).Result()
-	})
+	nodeKeys, err := r.client.Keys(ctx, getServicePath(r.options.KeyPrefix, serviceName)).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -153,11 +143,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 		return nil, registry.ErrNotFound
 	}
 
-	var nodeVals []any
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		nodeVals, err = r.client.MGet(ctx, nodeKeys...).Result()
-	})
+	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -195,12 +181,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 
 // ListServices 查询所有服务
 func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
-	var nodeKeys []string
-	var err error
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		nodeKeys, err = r.client.Keys(ctx, r.options.KeyPrefix+"*").Result()
-	})
+	nodeKeys, err := r.client.Keys(ctx, r.options.KeyPrefix+"*").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +190,7 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 		return nil, nil
 	}
 
-	var nodeVals []any
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		nodeVals, err = r.client.MGet(ctx, nodeKeys...).Result()
-	})
+	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -304,9 +281,7 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	var keepAlive bool
 
 	if ttl.Seconds() > 0 {
-		r.invokeWithTimeout(ctx, func(ctx context.Context) {
-			keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
-		})
+		keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
 		if err != nil {
 			return err
 		}
@@ -329,9 +304,7 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 
 	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
-	})
+	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
 		return err
 	}
@@ -352,31 +325,8 @@ func (r *_RedisRegistry) deregisterNode(ctx context.Context, service registry.Se
 	delete(r.register, nodePath)
 	r.mutex.Unlock()
 
-	var err error
-
-	r.invokeWithTimeout(ctx, func(ctx context.Context) {
-		_, err = r.client.Del(ctx, nodePath).Result()
-	})
-
+	_, err := r.client.Del(ctx, nodePath).Result()
 	return err
-}
-
-func (r *_RedisRegistry) invokeWithTimeout(ctx context.Context, fun func(ctx context.Context)) {
-	if fun == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = r.ctx
-	}
-
-	if r.options.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, r.options.Timeout)
-		defer cancel()
-	}
-
-	fun(ctx)
 }
 
 func encodeService(s *registry.Service) string {
