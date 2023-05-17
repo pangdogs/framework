@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"reflect"
 )
@@ -28,7 +29,7 @@ type _ZapLogger struct {
 
 // InitSP 初始化服务插件
 func (l *_ZapLogger) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*l))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
 
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 

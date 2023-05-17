@@ -8,10 +8,10 @@ import (
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
 	"log"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -45,7 +45,7 @@ type _RedisRegistry struct {
 
 // InitSP 初始化服务插件
 func (r *_RedisRegistry) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, reflect.TypeOf(*r))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*r))
 
 	r.ctx = ctx
 
