@@ -34,8 +34,8 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 		fmt.Sprintf("__keyevent@%d__:expired", r.client.Options().DB),
 	}
 
-	watch := r.client.Subscribe(ctx)
-	if err := watch.Subscribe(ctx, watchPathList...); err != nil {
+	watch := r.client.PSubscribe(ctx)
+	if err := watch.PSubscribe(ctx, watchPathList...); err != nil {
 		return nil, err
 	}
 	defer func() {
