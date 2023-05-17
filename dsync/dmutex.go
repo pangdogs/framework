@@ -7,7 +7,7 @@ import (
 
 // A DMutex is a distributed mutual exclusion lock.
 type DMutex interface {
-	// Name returns mutex name (i.e. the Redis key).
+	// Name returns mutex name.
 	Name() string
 
 	// Value returns the current random value. The value will be empty until a lock is acquired (or Value option is used).
