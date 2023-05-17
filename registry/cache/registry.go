@@ -188,7 +188,7 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_CacheRegistry) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q with %q, cached %q", definePlugin.Name, util.TypeOfAnyFullName(*r), util.TypeOfFullName(reflect.TypeOf(r.options.Registry).Elem()))
+	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 
 	r.wg.Wait()
 
