@@ -15,7 +15,7 @@ func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.D
 	rsMutex := rs.rs.NewMutex(name,
 		redsync.WithExpiry(options.Expiry),
 		redsync.WithTries(options.Tries),
-		redsync.WithRetryDelayFunc(redsync.DelayFunc(options.DelayFunc)),
+		redsync.WithRetryDelayFunc(options.DelayFunc),
 		redsync.WithDriftFactor(options.DriftFactor),
 		redsync.WithTimeoutFactor(options.TimeoutFactor),
 		redsync.WithGenValueFunc(options.GenValueFunc),

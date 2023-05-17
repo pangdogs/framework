@@ -5,14 +5,12 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
 	"strings"
-	"time"
 )
 
 type Options struct {
 	EtcdClient    *clientv3.Client
 	EtcdConfig    *clientv3.Config
 	KeyPrefix     string
-	Timeout       time.Duration
 	WatchChanSize int
 	FastUsername  string
 	FastPassword  string
@@ -30,7 +28,6 @@ func (WithOption) Default() Option {
 		WithOption{}.EtcdClient(nil)(options)
 		WithOption{}.EtcdConfig(nil)(options)
 		WithOption{}.KeyPrefix("/golaxy/registry/")(options)
-		WithOption{}.Timeout(3 * time.Second)(options)
 		WithOption{}.WatchChanSize(128)(options)
 		WithOption{}.FastAuth("", "")(options)
 		WithOption{}.FastAddresses("127.0.0.1:2379")(options)
@@ -57,12 +54,6 @@ func (WithOption) KeyPrefix(prefix string) Option {
 			prefix += "/"
 		}
 		options.KeyPrefix = prefix
-	}
-}
-
-func (WithOption) Timeout(dur time.Duration) Option {
-	return func(options *Options) {
-		options.Timeout = dur
 	}
 }
 

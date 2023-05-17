@@ -4,7 +4,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"net"
 	"strings"
-	"time"
 )
 
 type Options struct {
@@ -12,7 +11,6 @@ type Options struct {
 	RedisConfig   *redis.Options
 	RedisURL      string
 	KeyPrefix     string
-	Timeout       time.Duration
 	WatchChanSize int
 	FastUsername  string
 	FastPassword  string
@@ -30,7 +28,6 @@ func (WithOption) Default() Option {
 		WithOption{}.RedisConfig(nil)(options)
 		WithOption{}.RedisURL("")(options)
 		WithOption{}.KeyPrefix("golaxy:registry:")(options)
-		WithOption{}.Timeout(3 * time.Second)(options)
 		WithOption{}.WatchChanSize(128)(options)
 		WithOption{}.FastAuth("", "")(options)
 		WithOption{}.FastAddress("127.0.0.1:6379")(options)
@@ -62,12 +59,6 @@ func (WithOption) KeyPrefix(prefix string) Option {
 			prefix += ":"
 		}
 		o.KeyPrefix = prefix
-	}
-}
-
-func (WithOption) Timeout(dur time.Duration) Option {
-	return func(o *Options) {
-		o.Timeout = dur
 	}
 }
 
