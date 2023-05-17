@@ -92,12 +92,15 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 			var key, opt string
 
-			if strings.HasPrefix(msg.Channel, keyspacePrefix) {
+			switch msg.Pattern {
+			case watchPathList[0]:
 				key = strings.TrimPrefix(msg.Channel, keyspacePrefix)
 				opt = msg.Payload
-			} else {
+			case watchPathList[1]:
 				key = msg.Payload
 				opt = "expired"
+			default:
+				continue
 			}
 
 			if !strings.HasPrefix(key, keyPath[:len(keyPath)-1]) {
