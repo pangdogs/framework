@@ -4,16 +4,17 @@ import (
 	"github.com/go-redsync/redsync/v4"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/dsync"
+	"strings"
 )
 
-func newRedisDMutex(s *_RedisDsync, name string, options dsync.Options) dsync.DMutex {
-	if s.options.KeyPrefix != "" {
-		name = s.options.KeyPrefix + name
+func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.DMutex {
+	if rs.options.KeyPrefix != "" {
+		name = rs.options.KeyPrefix + name
 	}
 
-	rsMutex := s.rs.NewMutex(name,
-		redsync.WithTries(options.Tries),
+	rsMutex := rs.rs.NewMutex(name,
 		redsync.WithExpiry(options.Expiry),
+		redsync.WithTries(options.Tries),
 		redsync.WithRetryDelayFunc(redsync.DelayFunc(options.DelayFunc)),
 		redsync.WithDriftFactor(options.DriftFactor),
 		redsync.WithTimeoutFactor(options.TimeoutFactor),
@@ -22,12 +23,19 @@ func newRedisDMutex(s *_RedisDsync, name string, options dsync.Options) dsync.DM
 	)
 
 	return &_RedisDMutex{
+		rs:    rs,
 		Mutex: rsMutex,
 	}
 }
 
 type _RedisDMutex struct {
+	rs *_RedisDsync
 	*redsync.Mutex
+}
+
+// Name returns mutex name.
+func (m *_RedisDMutex) Name() string {
+	return strings.TrimPrefix(m.Mutex.Name(), m.rs.options.KeyPrefix)
 }
 
 // Lock locks m. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
