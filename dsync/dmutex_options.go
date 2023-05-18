@@ -84,9 +84,12 @@ func (WithOption) RetryDelay(delay time.Duration) Option {
 }
 
 // RetryDelayFunc can be used to override default delay behavior.
-func (WithOption) RetryDelayFunc(delayFunc DelayFunc) Option {
+func (WithOption) RetryDelayFunc(fn DelayFunc) Option {
 	return func(options *Options) {
-		options.DelayFunc = delayFunc
+		if fn == nil {
+			panic("option DelayFunc can't be assigned to nil")
+		}
+		options.DelayFunc = fn
 	}
 }
 
@@ -105,9 +108,12 @@ func (WithOption) TimeoutFactor(factor float64) Option {
 }
 
 // GenValueFunc can be used to set the custom value generator.
-func (WithOption) GenValueFunc(genValueFunc GenValueFunc) Option {
+func (WithOption) GenValueFunc(fn GenValueFunc) Option {
 	return func(options *Options) {
-		options.GenValueFunc = genValueFunc
+		if fn == nil {
+			panic("option GenValueFunc can't be assigned to nil")
+		}
+		options.GenValueFunc = fn
 	}
 }
 
