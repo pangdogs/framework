@@ -32,7 +32,7 @@ func (WithOption) Default() Option {
 func (WithOption) ZapLogger(logger *zap.Logger) Option {
 	return func(options *Options) {
 		if logger == nil {
-			panic("options.ZapLogger can't be assigned to nil")
+			panic("option ZapLogger can't be assigned to nil")
 		}
 		options.ZapLogger = logger
 	}
@@ -47,7 +47,7 @@ func (WithOption) Fields(fields Field) Option {
 func (WithOption) CallerMaxSkip(skip int8) Option {
 	return func(options *Options) {
 		if skip < 0 {
-			panic("options.CallerMaxSkip can't be set to a value less than 0")
+			panic("option CallerMaxSkip can't be set to a value less than 0")
 		}
 		options.CallerMaxSkip = skip
 	}

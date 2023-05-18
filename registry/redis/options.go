@@ -65,7 +65,7 @@ func (WithOption) KeyPrefix(prefix string) Option {
 func (WithOption) WatchChanSize(size int) Option {
 	return func(o *Options) {
 		if size < 0 {
-			panic("options.WatchChanSize can't be set to a value less then 0")
+			panic("option WatchChanSize can't be set to a value less then 0")
 		}
 		o.WatchChanSize = size
 	}
