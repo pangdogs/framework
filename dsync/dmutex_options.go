@@ -13,6 +13,7 @@ type DelayFunc = func(tries int) time.Duration
 // GenValueFunc is used to generate a random value.
 type GenValueFunc = func() (string, error)
 
+// Options represents the options for acquiring a distributed mutex.
 type Options struct {
 	Expiry        time.Duration
 	Tries         int
@@ -23,10 +24,13 @@ type Options struct {
 	Value         string
 }
 
+// Option represents a configuration option for acquiring a distributed mutex.
 type Option func(options *Options)
 
+// WithOption is a helper struct to provide default options.
 type WithOption struct{}
 
+// Default sets the default options for acquiring a distributed mutex.
 func (WithOption) Default() Option {
 	const (
 		minRetryDelayMilliSec = 10
