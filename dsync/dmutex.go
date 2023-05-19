@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// ErrNotObtained is an error indicating that the distributed lock was not obtained.
-var ErrNotObtained = errors.New("dsync: not obtained")
+// ErrNotAcquired is an error indicating that the distributed lock was not acquired.
+var ErrNotAcquired = errors.New("dsync: lock is not acquired")
 
 // A DMutex is a distributed mutual exclusion lock. Avoid sharing the same DMutex instance among multiple goroutines. Create a separate DMutex instance for each goroutine.
 type DMutex interface {
