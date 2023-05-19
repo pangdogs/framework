@@ -12,7 +12,7 @@ func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.D
 		name = rs.options.KeyPrefix + name
 	}
 
-	rsMutex := rs.rs.NewMutex(name,
+	rMutex := rs.NewMutex(name,
 		redsync.WithExpiry(options.Expiry),
 		redsync.WithTries(options.Tries),
 		redsync.WithRetryDelayFunc(options.DelayFunc),
@@ -24,7 +24,7 @@ func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.D
 
 	return &_RedisDMutex{
 		rs:    rs,
-		Mutex: rsMutex,
+		Mutex: rMutex,
 	}
 }
 
@@ -44,13 +44,31 @@ func (m *_RedisDMutex) Lock(ctx context.Context) error {
 }
 
 // Unlock unlocks m and returns the status of unlock.
-func (m *_RedisDMutex) Unlock(ctx context.Context) (bool, error) {
-	return m.UnlockContext(ctx)
+func (m *_RedisDMutex) Unlock(ctx context.Context) error {
+	ok, err := m.UnlockContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return dsync.ErrNotObtained
+	}
+
+	return nil
 }
 
 // Extend resets the mutex's expiry and returns the status of expiry extension.
-func (m *_RedisDMutex) Extend(ctx context.Context) (bool, error) {
-	return m.ExtendContext(ctx)
+func (m *_RedisDMutex) Extend(ctx context.Context) error {
+	ok, err := m.ExtendContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return dsync.ErrNotObtained
+	}
+
+	return nil
 }
 
 // Valid returns true if the lock acquired through m is still valid. It may
