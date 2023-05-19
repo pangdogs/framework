@@ -2,7 +2,7 @@ package etcd
 
 import (
 	"context"
-	clientv3 "go.etcd.io/etcd/client/v3"
+	etcd_client "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
@@ -11,9 +11,9 @@ import (
 type _EtcdWatcher struct {
 	ctx       service.Context
 	cancel    context.CancelFunc
-	watchChan clientv3.WatchChan
+	watchChan etcd_client.WatchChan
 	eventChan chan *registry.Event
-	client    *clientv3.Client
+	client    *etcd_client.Client
 }
 
 func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (registry.Watcher, error) {
@@ -23,7 +23,7 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	watchChan := r.client.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV())
+	watchChan := r.client.Watch(ctx, watchPath, etcd_client.WithPrefix(), etcd_client.WithPrevKV())
 	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
 
 	go func() {
@@ -48,7 +48,7 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 				var err error
 
 				switch etcdEvent.Type {
-				case clientv3.EventTypePut:
+				case etcd_client.EventTypePut:
 					if etcdEvent.IsCreate() {
 						event.Type = registry.Create
 					} else if etcdEvent.IsModify() {
@@ -58,7 +58,7 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 					// get service from Kv
 					event.Service, err = decodeService(etcdEvent.Kv.Value)
 
-				case clientv3.EventTypeDelete:
+				case etcd_client.EventTypeDelete:
 					event.Type = registry.Delete
 
 					// get service from prevKv

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
-	clientv3 "go.etcd.io/etcd/client/v3"
+	etcd_client "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
@@ -34,16 +34,16 @@ func newEtcdRegistry(options ...Option) registry.Registry {
 	return &_EtcdRegistry{
 		options:  opts,
 		register: make(map[string]uint64),
-		leases:   make(map[string]clientv3.LeaseID),
+		leases:   make(map[string]etcd_client.LeaseID),
 	}
 }
 
 type _EtcdRegistry struct {
 	options  Options
 	ctx      service.Context
-	client   *clientv3.Client
+	client   *etcd_client.Client
 	register map[string]uint64
-	leases   map[string]clientv3.LeaseID
+	leases   map[string]etcd_client.LeaseID
 	mutex    sync.RWMutex
 }
 
@@ -54,7 +54,7 @@ func (r *_EtcdRegistry) InitSP(ctx service.Context) {
 	r.ctx = ctx
 
 	if r.options.EtcdClient == nil {
-		cli, err := clientv3.New(r.configure())
+		cli, err := etcd_client.New(r.configure())
 		if err != nil {
 			logger.Panic(ctx, err)
 		}
@@ -121,7 +121,7 @@ func (r *_EtcdRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId 
 		return nil, registry.ErrNotFound
 	}
 
-	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), clientv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), etcd_client.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 		return nil, registry.ErrNotFound
 	}
 
-	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), clientv3.WithPrefix(), clientv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), etcd_client.WithPrefix(), etcd_client.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (r *_EtcdRegistry) GetService(ctx context.Context, serviceName string) ([]r
 
 // ListServices 查询所有服务
 func (r *_EtcdRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
-	rsp, err := r.client.Get(ctx, r.options.KeyPrefix, clientv3.WithPrefix(), clientv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, r.options.KeyPrefix, etcd_client.WithPrefix(), etcd_client.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -232,12 +232,12 @@ func (r *_EtcdRegistry) Watch(ctx context.Context, serviceName string) (registry
 	return newEtcdWatcher(ctx, r, serviceName)
 }
 
-func (r *_EtcdRegistry) configure() clientv3.Config {
+func (r *_EtcdRegistry) configure() etcd_client.Config {
 	if r.options.EtcdConfig != nil {
 		return *r.options.EtcdConfig
 	}
 
-	config := clientv3.Config{
+	config := etcd_client.Config{
 		Endpoints: r.options.FastAddresses,
 		Username:  r.options.FastUsername,
 		Password:  r.options.FastPassword,
@@ -285,14 +285,16 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	// missing lease, check if the key exists
 	if !ok {
 		// look for the existing key
-		rsp, err := r.client.Get(ctx, nodePath, clientv3.WithSerializable())
+		rsp, err := r.client.Get(ctx, nodePath, etcd_client.WithSerializable())
 		if err != nil {
 			return err
 		}
 
 		// get the existing lease
 		for _, kv := range rsp.Kvs {
-			if kv.Lease > 0 {
+			kvLeaseID := etcd_client.LeaseID(kv.Lease)
+
+			if kvLeaseID != etcd_client.NoLease {
 				// decode the existing node
 				srv, err := decodeService(kv.Value)
 				if err != nil {
@@ -312,7 +314,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 					continue
 				}
 
-				leaseID = clientv3.LeaseID(kv.Lease)
+				leaseID = kvLeaseID
 
 				// save the info
 				r.mutex.Lock()
@@ -328,12 +330,12 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	var leaseNotFound bool
 
 	// renew the lease if it exists
-	if leaseID > 0 {
+	if leaseID != etcd_client.NoLease {
 		logger.Debugf(r.ctx, "renewing existing lease %d for %q", leaseID, service.Name)
 
 		_, err = r.client.KeepAliveOnce(ctx, leaseID)
 		if err != nil {
-			if err != rpctypes.ErrLeaseNotFound {
+			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
 				return err
 			}
 
@@ -354,7 +356,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 		return nil
 	}
 
-	var lgr *clientv3.LeaseGrantResponse
+	var lgr *etcd_client.LeaseGrantResponse
 	if ttl.Seconds() > 0 {
 		// get a lease used to expire keys since we have a ttl
 		lgr, err = r.client.Grant(ctx, int64(ttl.Seconds()))
@@ -370,7 +372,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, service registry.Servi
 	// create an entry for the node
 	if lgr != nil {
 		logger.Debugf(r.ctx, "registering %q id %q content %q with lease %q and leaseID %d and ttl %q", serviceNode.Name, node.Id, serviceNodeData, lgr, lgr.ID, ttl)
-		_, err = r.client.Put(ctx, nodePath, serviceNodeData, clientv3.WithLease(lgr.ID))
+		_, err = r.client.Put(ctx, nodePath, serviceNodeData, etcd_client.WithLease(lgr.ID))
 	} else {
 		logger.Debugf(r.ctx, "registering %q id %q content %q", serviceNode.Name, node.Id, serviceNodeData)
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData)

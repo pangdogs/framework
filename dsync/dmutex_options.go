@@ -1,8 +1,7 @@
 package dsync
 
 import (
-	crand "crypto/rand"
-	"encoding/base64"
+	"kit.golaxy.org/golaxy/uid"
 	"math/rand"
 	"time"
 )
@@ -32,29 +31,23 @@ type WithOption struct{}
 
 // Default sets the default options for acquiring a distributed mutex.
 func (WithOption) Default() Option {
-	const (
-		minRetryDelayMilliSec = 10
-		maxRetryDelayMilliSec = 50
-	)
-
 	defaultRetryDelayFunc := func(tries int) time.Duration {
+		const (
+			minRetryDelayMilliSec = 10
+			maxRetryDelayMilliSec = 50
+		)
 		return time.Duration(rand.Intn(maxRetryDelayMilliSec-minRetryDelayMilliSec)+minRetryDelayMilliSec) * time.Millisecond
 	}
 
 	defaultGenValueFunc := func() (string, error) {
-		b := make([]byte, 16)
-		_, err := crand.Read(b)
-		if err != nil {
-			return "", err
-		}
-		return base64.StdEncoding.EncodeToString(b), nil
+		return uid.New().String(), nil
 	}
 
 	return func(options *Options) {
-		WithOption{}.Expiry(3 * time.Second)(options)
-		WithOption{}.Tries(3)(options)
+		WithOption{}.Expiry(5 * time.Second)(options)
+		WithOption{}.Tries(5)(options)
 		WithOption{}.RetryDelayFunc(defaultRetryDelayFunc)(options)
-		WithOption{}.DriftFactor(0.01)(options)
+		WithOption{}.DriftFactor(0.015)(options)
 		WithOption{}.TimeoutFactor(0.05)(options)
 		WithOption{}.GenValueFunc(defaultGenValueFunc)(options)
 	}

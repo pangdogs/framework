@@ -28,7 +28,7 @@ type _RedisDsync struct {
 	options Options
 	ctx     service.Context
 	client  *redis.Client
-	rs      *redsync.Redsync
+	*redsync.Redsync
 }
 
 // InitSP 初始化服务插件
@@ -48,7 +48,7 @@ func (s *_RedisDsync) InitSP(ctx service.Context) {
 		log.Panicf("ping redis %q failed, %v", s.client, err)
 	}
 
-	s.rs = redsync.New(goredis.NewPool(s.client))
+	s.Redsync = redsync.New(goredis.NewPool(s.client))
 }
 
 // ShutSP 关闭服务插件

@@ -2,10 +2,14 @@ package dsync
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
-// A DMutex is a distributed mutual exclusion lock.
+// ErrNotObtained is an error indicating that the distributed lock was not obtained.
+var ErrNotObtained = errors.New("dsync: not obtained")
+
+// A DMutex is a distributed mutual exclusion lock. Avoid sharing the same DMutex instance among multiple goroutines. Create a separate DMutex instance for each goroutine.
 type DMutex interface {
 	// Name returns mutex name.
 	Name() string
@@ -20,10 +24,10 @@ type DMutex interface {
 	Lock(ctx context.Context) error
 
 	// Unlock unlocks m and returns the status of unlock.
-	Unlock(ctx context.Context) (bool, error)
+	Unlock(ctx context.Context) error
 
 	// Extend resets the mutex's expiry and returns the status of expiry extension.
-	Extend(ctx context.Context) (bool, error)
+	Extend(ctx context.Context) error
 
 	// Valid returns true if the lock acquired through m is still valid. It may
 	// also return true erroneously if quorum is achieved during the call and at
