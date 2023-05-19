@@ -94,14 +94,14 @@ func (m *_EtcdDMutex) Lock(ctx context.Context) error {
 // Unlock unlocks m and returns the status of unlock.
 func (m *_EtcdDMutex) Unlock(ctx context.Context) error {
 	if m.mutex == nil {
-		return dsync.ErrNotObtained
+		return dsync.ErrNotAcquired
 	}
 
 	err := m.mutex.Unlock(ctx)
 	if err != nil {
 		if errors.Is(err, rpctypes.ErrKeyNotFound) {
 			m.clean()
-			return dsync.ErrNotObtained
+			return dsync.ErrNotAcquired
 		}
 		return err
 	}
@@ -113,13 +113,13 @@ func (m *_EtcdDMutex) Unlock(ctx context.Context) error {
 // Extend resets the mutex's expiry and returns the status of expiry extension.
 func (m *_EtcdDMutex) Extend(ctx context.Context) error {
 	if m.session == nil {
-		return dsync.ErrNotObtained
+		return dsync.ErrNotAcquired
 	}
 
 	_, err := m.es.client.KeepAlive(ctx, m.session.Lease())
 	if err != nil {
 		if errors.Is(err, rpctypes.ErrLeaseNotFound) {
-			return dsync.ErrNotObtained
+			return dsync.ErrNotAcquired
 		}
 		return err
 	}

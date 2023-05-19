@@ -51,7 +51,7 @@ func (m *_RedisDMutex) Unlock(ctx context.Context) error {
 	}
 
 	if !ok {
-		return dsync.ErrNotObtained
+		return dsync.ErrNotAcquired
 	}
 
 	return nil
@@ -65,7 +65,7 @@ func (m *_RedisDMutex) Extend(ctx context.Context) error {
 	}
 
 	if !ok {
-		return dsync.ErrNotObtained
+		return dsync.ErrNotAcquired
 	}
 
 	return nil
