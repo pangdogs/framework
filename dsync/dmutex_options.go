@@ -33,8 +33,8 @@ type WithOption struct{}
 func (WithOption) Default() Option {
 	defaultRetryDelayFunc := func(tries int) time.Duration {
 		const (
-			minRetryDelayMilliSec = 10
-			maxRetryDelayMilliSec = 50
+			minRetryDelayMilliSec = 50
+			maxRetryDelayMilliSec = 250
 		)
 		return time.Duration(rand.Intn(maxRetryDelayMilliSec-minRetryDelayMilliSec)+minRetryDelayMilliSec) * time.Millisecond
 	}
@@ -44,10 +44,10 @@ func (WithOption) Default() Option {
 	}
 
 	return func(options *Options) {
-		WithOption{}.Expiry(5 * time.Second)(options)
-		WithOption{}.Tries(5)(options)
+		WithOption{}.Expiry(8 * time.Second)(options)
+		WithOption{}.Tries(32)(options)
 		WithOption{}.RetryDelayFunc(defaultRetryDelayFunc)(options)
-		WithOption{}.DriftFactor(0.015)(options)
+		WithOption{}.DriftFactor(0.01)(options)
 		WithOption{}.TimeoutFactor(0.05)(options)
 		WithOption{}.GenValueFunc(defaultGenValueFunc)(options)
 	}
