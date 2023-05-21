@@ -53,6 +53,10 @@ func (m *_EtcdDMutex) Until() time.Time {
 
 // Lock locks m. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
 func (m *_EtcdDMutex) Lock(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	expirySec := math.Ceil(m.options.Expiry.Seconds())
 
 	session, err := etcd_concurrency.NewSession(m.es.client, etcd_concurrency.WithTTL(int(expirySec)))
@@ -93,6 +97,10 @@ func (m *_EtcdDMutex) Lock(ctx context.Context) error {
 
 // Unlock unlocks m and returns the status of unlock.
 func (m *_EtcdDMutex) Unlock(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if m.mutex == nil {
 		return dsync.ErrNotAcquired
 	}
@@ -112,6 +120,10 @@ func (m *_EtcdDMutex) Unlock(ctx context.Context) error {
 
 // Extend resets the mutex's expiry and returns the status of expiry extension.
 func (m *_EtcdDMutex) Extend(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if m.session == nil {
 		return dsync.ErrNotAcquired
 	}

@@ -79,6 +79,10 @@ func (r *_RedisRegistry) ShutSP(ctx service.Context) {
 
 // Register 注册服务
 func (r *_RedisRegistry) Register(ctx context.Context, service registry.Service, ttl time.Duration) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if len(service.Nodes) <= 0 {
 		return errors.New("require at least one node")
 	}
@@ -96,6 +100,10 @@ func (r *_RedisRegistry) Register(ctx context.Context, service registry.Service,
 
 // Deregister 取消注册服务
 func (r *_RedisRegistry) Deregister(ctx context.Context, service registry.Service) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if len(service.Nodes) <= 0 {
 		return errors.New("require at least one node")
 	}
@@ -113,6 +121,10 @@ func (r *_RedisRegistry) Deregister(ctx context.Context, service registry.Servic
 
 // GetServiceNode 查询服务节点
 func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if serviceName == "" || nodeId == "" {
 		return nil, registry.ErrNotFound
 	}
@@ -130,6 +142,10 @@ func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId
 
 // GetService 查询服务
 func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if serviceName == "" {
 		return nil, registry.ErrNotFound
 	}
@@ -181,6 +197,10 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 
 // ListServices 查询所有服务
 func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	nodeKeys, err := r.client.Keys(ctx, r.options.KeyPrefix+"*").Result()
 	if err != nil {
 		return nil, err
@@ -234,6 +254,9 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 
 // Watch 获取服务监听器
 func (r *_RedisRegistry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return newRedisWatcher(ctx, r, serviceName)
 }
 
