@@ -4,6 +4,7 @@ import (
 	"github.com/go-redsync/redsync/v4"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/dsync"
+	"kit.golaxy.org/plugins/logger"
 	"strings"
 )
 
@@ -21,6 +22,8 @@ func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.D
 		redsync.WithGenValueFunc(options.GenValueFunc),
 		redsync.WithValue(options.Value),
 	)
+
+	logger.Debugf(rs.ctx, "new dmutex %q", name)
 
 	return &_RedisDMutex{
 		rs:    rs,
@@ -43,7 +46,15 @@ func (m *_RedisDMutex) Lock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return m.LockContext(ctx)
+
+	err := m.LockContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf(m.rs.ctx, "dmutex %q is locked", m.Mutex.Name())
+
+	return nil
 }
 
 // Unlock unlocks m and returns the status of unlock.
@@ -60,6 +71,8 @@ func (m *_RedisDMutex) Unlock(ctx context.Context) error {
 	if !ok {
 		return dsync.ErrNotAcquired
 	}
+
+	logger.Debugf(m.rs.ctx, "dmutex %q is unlocked", m.Mutex.Name())
 
 	return nil
 }
@@ -78,6 +91,8 @@ func (m *_RedisDMutex) Extend(ctx context.Context) error {
 	if !ok {
 		return dsync.ErrNotAcquired
 	}
+
+	logger.Debugf(m.rs.ctx, "dmutex %q is extended", m.Mutex.Name())
 
 	return nil
 }
