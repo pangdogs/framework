@@ -4,6 +4,8 @@ import (
 	"go.uber.org/zap"
 )
 
+type WithOption struct{}
+
 type Field int16
 
 const (
@@ -11,26 +13,24 @@ const (
 	RuntimeField
 )
 
-type Options struct {
+type LoggerOptions struct {
 	ZapLogger     *zap.Logger
 	CallerMaxSkip int8
 	Fields        Field
 }
 
-type Option func(options *Options)
+type LoggerOption func(options *LoggerOptions)
 
-type WithOption struct{}
-
-func (WithOption) Default() Option {
-	return func(options *Options) {
+func (WithOption) Default() LoggerOption {
+	return func(options *LoggerOptions) {
 		WithOption{}.ZapLogger(zap.NewExample())(options)
 		WithOption{}.Fields(ServiceField | RuntimeField)(options)
 		WithOption{}.CallerMaxSkip(3)(options)
 	}
 }
 
-func (WithOption) ZapLogger(logger *zap.Logger) Option {
-	return func(options *Options) {
+func (WithOption) ZapLogger(logger *zap.Logger) LoggerOption {
+	return func(options *LoggerOptions) {
 		if logger == nil {
 			panic("option ZapLogger can't be assigned to nil")
 		}
@@ -38,14 +38,14 @@ func (WithOption) ZapLogger(logger *zap.Logger) Option {
 	}
 }
 
-func (WithOption) Fields(fields Field) Option {
-	return func(options *Options) {
+func (WithOption) Fields(fields Field) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.Fields = fields
 	}
 }
 
-func (WithOption) CallerMaxSkip(skip int8) Option {
-	return func(options *Options) {
+func (WithOption) CallerMaxSkip(skip int8) LoggerOption {
+	return func(options *LoggerOptions) {
 		if skip < 0 {
 			panic("option CallerMaxSkip can't be set to a value less than 0")
 		}

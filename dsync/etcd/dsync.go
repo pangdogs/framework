@@ -9,8 +9,8 @@ import (
 	"kit.golaxy.org/plugins/logger"
 )
 
-func newEtcdDSync(options ...Option) dsync.DSync {
-	opts := Options{}
+func newEtcdDSync(options ...DSyncOption) dsync.DSync {
+	opts := DSyncOptions{}
 	WithOption{}.Default()(&opts)
 
 	for i := range options {
@@ -23,7 +23,7 @@ func newEtcdDSync(options ...Option) dsync.DSync {
 }
 
 type _EtcdDSync struct {
-	options Options
+	options DSyncOptions
 	ctx     service.Context
 	client  *etcd_client.Client
 }
@@ -63,8 +63,8 @@ func (s *_EtcdDSync) ShutSP(ctx service.Context) {
 }
 
 // NewDMutex returns a new distributed mutex with given name.
-func (s *_EtcdDSync) NewDMutex(name string, options ...dsync.Option) dsync.DMutex {
-	opts := dsync.Options{}
+func (s *_EtcdDSync) NewDMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
+	opts := dsync.DMutexOptions{}
 	dsync.WithOption{}.Default()(&opts)
 
 	for i := range options {

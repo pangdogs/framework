@@ -11,8 +11,8 @@ import (
 	"log"
 )
 
-func newRedisDSync(options ...Option) dsync.DSync {
-	opts := Options{}
+func newRedisDSync(options ...DSyncOption) dsync.DSync {
+	opts := DSyncOptions{}
 	WithOption{}.Default()(&opts)
 
 	for i := range options {
@@ -25,7 +25,7 @@ func newRedisDSync(options ...Option) dsync.DSync {
 }
 
 type _RedisDsync struct {
-	options Options
+	options DSyncOptions
 	ctx     service.Context
 	client  *redis.Client
 	*redsync.Redsync
@@ -63,8 +63,8 @@ func (s *_RedisDsync) ShutSP(ctx service.Context) {
 }
 
 // NewDMutex returns a new distributed mutex with given name.
-func (s *_RedisDsync) NewDMutex(name string, options ...dsync.Option) dsync.DMutex {
-	opts := dsync.Options{}
+func (s *_RedisDsync) NewDMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
+	opts := dsync.DMutexOptions{}
 	dsync.WithOption{}.Default()(&opts)
 
 	for i := range options {

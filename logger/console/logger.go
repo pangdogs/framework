@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-func newConsoleLogger(options ...Option) logger.Logger {
-	opts := Options{}
+func newConsoleLogger(options ...LoggerOption) logger.Logger {
+	opts := LoggerOptions{}
 	WithOption{}.Default()(&opts)
 
 	for i := range options {
@@ -28,7 +28,7 @@ func newConsoleLogger(options ...Option) logger.Logger {
 }
 
 type _ConsoleLogger struct {
-	options      Options
+	options      LoggerOptions
 	serviceField string
 	runtimeField string
 }
