@@ -33,6 +33,8 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 			}
 		}()
 
+		logger.Debugf(r.ctx, "start watch %q", watchPath)
+
 		for watchRsp := range watchChan {
 			if watchRsp.Canceled {
 				logger.Debugf(r.ctx, "stop watch %q", watchPath)

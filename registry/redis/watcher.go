@@ -80,6 +80,8 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			}
 		}()
 
+		logger.Debugf(r.ctx, "start watch %q", watchPathList)
+
 		for {
 			msg, err := watch.ReceiveMessage(ctx)
 			if err != nil {

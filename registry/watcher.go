@@ -15,8 +15,7 @@ type Watcher interface {
 	Stop()
 }
 
-// Event is returned by a call to Next on
-// the watcher. Type can be create, update, delete
+// Event is returned by a call to Next on the watcher. Type can be create, update, delete
 // +k8s:deepcopy-gen=true
 type Event struct {
 	Type    EventType `json:"type"`
