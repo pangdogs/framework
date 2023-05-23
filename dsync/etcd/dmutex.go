@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func newEtcdDMutex(es *_EtcdDSync, name string, options dsync.Options) dsync.DMutex {
+func newEtcdDMutex(es *_EtcdDSync, name string, options dsync.DMutexOptions) dsync.DMutex {
 	if es.options.KeyPrefix != "" {
 		name = es.options.KeyPrefix + name
 	}
@@ -30,7 +30,7 @@ func newEtcdDMutex(es *_EtcdDSync, name string, options dsync.Options) dsync.DMu
 type _EtcdDMutex struct {
 	es      *_EtcdDSync
 	name    string
-	options dsync.Options
+	options dsync.DMutexOptions
 	session *etcd_concurrency.Session
 	mutex   *etcd_concurrency.Mutex
 	until   time.Time

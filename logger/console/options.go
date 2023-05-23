@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+type WithOption struct{}
+
 type Field int16
 
 const (
@@ -15,7 +17,7 @@ const (
 	CallerField
 )
 
-type Options struct {
+type LoggerOptions struct {
 	Development     bool
 	Level           logger.Level
 	Fields          Field
@@ -24,12 +26,10 @@ type Options struct {
 	CallerFullName  bool
 }
 
-type Option func(options *Options)
+type LoggerOption func(options *LoggerOptions)
 
-type WithOption struct{}
-
-func (WithOption) Default() Option {
-	return func(options *Options) {
+func (WithOption) Default() LoggerOption {
+	return func(options *LoggerOptions) {
 		WithOption{}.Development(false)
 		WithOption{}.Level(logger.InfoLevel)(options)
 		WithOption{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
@@ -39,38 +39,38 @@ func (WithOption) Default() Option {
 	}
 }
 
-func (WithOption) Development(b bool) Option {
-	return func(options *Options) {
+func (WithOption) Development(b bool) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.Development = b
 	}
 }
 
-func (WithOption) Level(level logger.Level) Option {
-	return func(options *Options) {
+func (WithOption) Level(level logger.Level) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.Level = level
 	}
 }
 
-func (WithOption) Fields(fields Field) Option {
-	return func(options *Options) {
+func (WithOption) Fields(fields Field) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.Fields = fields
 	}
 }
 
-func (WithOption) Separator(sp string) Option {
-	return func(options *Options) {
+func (WithOption) Separator(sp string) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.Separator = sp
 	}
 }
 
-func (WithOption) TimestampLayout(layout string) Option {
-	return func(options *Options) {
+func (WithOption) TimestampLayout(layout string) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.TimestampLayout = layout
 	}
 }
 
-func (WithOption) CallerFullName(b bool) Option {
-	return func(options *Options) {
+func (WithOption) CallerFullName(b bool) LoggerOption {
+	return func(options *LoggerOptions) {
 		options.CallerFullName = b
 	}
 }

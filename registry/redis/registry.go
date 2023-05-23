@@ -21,8 +21,8 @@ import (
 // NewRegistry 导出newRedisRegistry，可以配合cache registry将数据缓存本地，提高查询效率
 var NewRegistry = newRedisRegistry
 
-func newRedisRegistry(options ...Option) registry.Registry {
-	opts := Options{}
+func newRedisRegistry(options ...RegistryOption) registry.Registry {
+	opts := RegistryOptions{}
 	WithOption{}.Default()(&opts)
 
 	for i := range options {
@@ -36,7 +36,7 @@ func newRedisRegistry(options ...Option) registry.Registry {
 }
 
 type _RedisRegistry struct {
-	options  Options
+	options  RegistryOptions
 	ctx      service.Context
 	client   *redis.Client
 	register map[string]uint64

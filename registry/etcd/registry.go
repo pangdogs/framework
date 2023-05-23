@@ -23,8 +23,8 @@ import (
 // NewRegistry 导出newEtcdRegistry，可以配合cache registry将数据缓存本地，提高查询效率
 var NewRegistry = newEtcdRegistry
 
-func newEtcdRegistry(options ...Option) registry.Registry {
-	opts := Options{}
+func newEtcdRegistry(options ...RegistryOption) registry.Registry {
+	opts := RegistryOptions{}
 	WithOption{}.Default()(&opts)
 
 	for i := range options {
@@ -39,7 +39,7 @@ func newEtcdRegistry(options ...Option) registry.Registry {
 }
 
 type _EtcdRegistry struct {
-	options  Options
+	options  RegistryOptions
 	ctx      service.Context
 	client   *etcd_client.Client
 	register map[string]uint64

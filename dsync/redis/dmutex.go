@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func newRedisDMutex(rs *_RedisDsync, name string, options dsync.Options) dsync.DMutex {
+func newRedisDMutex(rs *_RedisDsync, name string, options dsync.DMutexOptions) dsync.DMutex {
 	if rs.options.KeyPrefix != "" {
 		name = rs.options.KeyPrefix + name
 	}

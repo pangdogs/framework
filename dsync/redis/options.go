@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-type Options struct {
+type WithOption struct{}
+
+type DSyncOptions struct {
 	RedisClient  *redis.Client
 	RedisConfig  *redis.Options
 	RedisURL     string
@@ -17,12 +19,10 @@ type Options struct {
 	FastDBIndex  int
 }
 
-type Option func(options *Options)
+type DSyncOption func(options *DSyncOptions)
 
-type WithOption struct{}
-
-func (WithOption) Default() Option {
-	return func(options *Options) {
+func (WithOption) Default() DSyncOption {
+	return func(options *DSyncOptions) {
 		WithOption{}.RedisClient(nil)(options)
 		WithOption{}.RedisConfig(nil)(options)
 		WithOption{}.RedisURL("")(options)
@@ -33,26 +33,26 @@ func (WithOption) Default() Option {
 	}
 }
 
-func (WithOption) RedisClient(cli *redis.Client) Option {
-	return func(o *Options) {
+func (WithOption) RedisClient(cli *redis.Client) DSyncOption {
+	return func(o *DSyncOptions) {
 		o.RedisClient = cli
 	}
 }
 
-func (WithOption) RedisConfig(conf *redis.Options) Option {
-	return func(o *Options) {
+func (WithOption) RedisConfig(conf *redis.Options) DSyncOption {
+	return func(o *DSyncOptions) {
 		o.RedisConfig = conf
 	}
 }
 
-func (WithOption) RedisURL(url string) Option {
-	return func(o *Options) {
+func (WithOption) RedisURL(url string) DSyncOption {
+	return func(o *DSyncOptions) {
 		o.RedisURL = url
 	}
 }
 
-func (WithOption) KeyPrefix(prefix string) Option {
-	return func(o *Options) {
+func (WithOption) KeyPrefix(prefix string) DSyncOption {
+	return func(o *DSyncOptions) {
 		if !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
@@ -60,15 +60,15 @@ func (WithOption) KeyPrefix(prefix string) Option {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) Option {
-	return func(options *Options) {
+func (WithOption) FastAuth(username, password string) DSyncOption {
+	return func(options *DSyncOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddress(addr string) Option {
-	return func(options *Options) {
+func (WithOption) FastAddress(addr string) DSyncOption {
+	return func(options *DSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(err)
 		}
@@ -76,8 +76,8 @@ func (WithOption) FastAddress(addr string) Option {
 	}
 }
 
-func (WithOption) FastDBIndex(idx int) Option {
-	return func(options *Options) {
+func (WithOption) FastDBIndex(idx int) DSyncOption {
+	return func(options *DSyncOptions) {
 		options.FastDBIndex = idx
 	}
 }

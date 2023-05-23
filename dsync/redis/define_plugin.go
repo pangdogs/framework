@@ -5,7 +5,7 @@ import (
 	"kit.golaxy.org/plugins/dsync"
 )
 
-var definePlugin = define.DefineServicePlugin[dsync.DSync, Option](newRedisDSync)
+var definePlugin = define.DefineServicePlugin[dsync.DSync, DSyncOption](newRedisDSync)
 
 // Install 安装插件
 var Install = definePlugin.Install

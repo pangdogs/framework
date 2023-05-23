@@ -7,7 +7,9 @@ import (
 	"strings"
 )
 
-type Options struct {
+type WithOption struct{}
+
+type RegistryOptions struct {
 	EtcdClient    *clientv3.Client
 	EtcdConfig    *clientv3.Config
 	KeyPrefix     string
@@ -19,12 +21,10 @@ type Options struct {
 	FastTLSConfig *tls.Config
 }
 
-type Option func(options *Options)
+type RegistryOption func(options *RegistryOptions)
 
-type WithOption struct{}
-
-func (WithOption) Default() Option {
-	return func(options *Options) {
+func (WithOption) Default() RegistryOption {
+	return func(options *RegistryOptions) {
 		WithOption{}.EtcdClient(nil)(options)
 		WithOption{}.EtcdConfig(nil)(options)
 		WithOption{}.KeyPrefix("/golaxy/registry/")(options)
@@ -36,20 +36,20 @@ func (WithOption) Default() Option {
 	}
 }
 
-func (WithOption) EtcdClient(cli *clientv3.Client) Option {
-	return func(o *Options) {
+func (WithOption) EtcdClient(cli *clientv3.Client) RegistryOption {
+	return func(o *RegistryOptions) {
 		o.EtcdClient = cli
 	}
 }
 
-func (WithOption) EtcdConfig(config *clientv3.Config) Option {
-	return func(o *Options) {
+func (WithOption) EtcdConfig(config *clientv3.Config) RegistryOption {
+	return func(o *RegistryOptions) {
 		o.EtcdConfig = config
 	}
 }
 
-func (WithOption) KeyPrefix(prefix string) Option {
-	return func(options *Options) {
+func (WithOption) KeyPrefix(prefix string) RegistryOption {
+	return func(options *RegistryOptions) {
 		if !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
@@ -57,8 +57,8 @@ func (WithOption) KeyPrefix(prefix string) Option {
 	}
 }
 
-func (WithOption) WatchChanSize(size int) Option {
-	return func(options *Options) {
+func (WithOption) WatchChanSize(size int) RegistryOption {
+	return func(options *RegistryOptions) {
 		if size < 0 {
 			panic("option WatchChanSize can't be set to a value less then 0")
 		}
@@ -66,15 +66,15 @@ func (WithOption) WatchChanSize(size int) Option {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) Option {
-	return func(options *Options) {
+func (WithOption) FastAuth(username, password string) RegistryOption {
+	return func(options *RegistryOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddresses(addrs ...string) Option {
-	return func(options *Options) {
+func (WithOption) FastAddresses(addrs ...string) RegistryOption {
+	return func(options *RegistryOptions) {
 		for _, endpoint := range addrs {
 			if _, _, err := net.SplitHostPort(endpoint); err != nil {
 				panic(err)
@@ -84,14 +84,14 @@ func (WithOption) FastAddresses(addrs ...string) Option {
 	}
 }
 
-func (WithOption) FastSecure(secure bool) Option {
-	return func(o *Options) {
+func (WithOption) FastSecure(secure bool) RegistryOption {
+	return func(o *RegistryOptions) {
 		o.FastSecure = secure
 	}
 }
 
-func (WithOption) FastTLSConfig(conf *tls.Config) Option {
-	return func(o *Options) {
+func (WithOption) FastTLSConfig(conf *tls.Config) RegistryOption {
+	return func(o *RegistryOptions) {
 		o.FastTLSConfig = conf
 	}
 }
