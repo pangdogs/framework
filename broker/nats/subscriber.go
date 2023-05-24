@@ -36,7 +36,10 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 		}
 
 		if eventHandler != nil {
-			eventHandler(e)
+			err := eventHandler(e)
+			if err != nil {
+				logger.Tracef(ns.nb.ctx, "handler msg failed, %s", err)
+			}
 		} else {
 			select {
 			case eventChan <- e:
