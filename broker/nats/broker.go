@@ -67,6 +67,9 @@ func (b *_NatsBroker) ShutSP(ctx service.Context) {
 
 // Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
 func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) error {
+	if b.options.TopicPrefix != "" {
+		topic = b.options.TopicPrefix + topic
+	}
 	return b.client.Publish(topic, data)
 }
 
