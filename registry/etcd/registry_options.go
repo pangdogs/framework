@@ -50,7 +50,7 @@ func (WithOption) EtcdConfig(config *clientv3.Config) RegistryOption {
 
 func (WithOption) KeyPrefix(prefix string) RegistryOption {
 	return func(options *RegistryOptions) {
-		if !strings.HasSuffix(prefix, "/") {
+		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
 		options.KeyPrefix = prefix
@@ -75,8 +75,8 @@ func (WithOption) FastAuth(username, password string) RegistryOption {
 
 func (WithOption) FastAddresses(addrs ...string) RegistryOption {
 	return func(options *RegistryOptions) {
-		for _, endpoint := range addrs {
-			if _, _, err := net.SplitHostPort(endpoint); err != nil {
+		for _, addr := range addrs {
+			if _, _, err := net.SplitHostPort(addr); err != nil {
 				panic(err)
 			}
 		}

@@ -185,7 +185,7 @@ func (w *_RedisWatcher) Next() (*registry.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
-	return nil, registry.ErrWatcherStopped
+	return nil, registry.ErrStoppedWatching
 }
 
 // Stop stop watching

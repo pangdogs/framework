@@ -12,7 +12,7 @@ require (
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.9.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.1.54
+	kit.golaxy.org/golaxy v0.1.57
 )
 
 require (

@@ -55,7 +55,7 @@ func (WithOption) RedisURL(url string) RegistryOption {
 
 func (WithOption) KeyPrefix(prefix string) RegistryOption {
 	return func(o *RegistryOptions) {
-		if !strings.HasSuffix(prefix, ":") {
+		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
 		o.KeyPrefix = prefix
