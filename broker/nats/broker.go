@@ -36,7 +36,9 @@ func (b *_NatsBroker) InitSP(ctx service.Context) {
 	b.ctx = ctx
 
 	if b.options.NatsClient == nil {
-		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","), nats.UserInfo(b.options.FastUsername, b.options.FastPassword))
+		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","),
+			nats.UserInfo(b.options.FastUsername, b.options.FastPassword),
+			nats.Name(ctx.String()))
 		if err != nil {
 			logger.Panicf(ctx, "connect nats %q failed, %s", b.options.FastAddresses, err)
 		}
