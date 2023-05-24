@@ -1,8 +1,8 @@
 package redis
 
 import (
+	"context"
 	"github.com/go-redsync/redsync/v4"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/logger"
 	"strings"

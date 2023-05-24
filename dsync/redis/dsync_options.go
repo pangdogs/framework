@@ -53,7 +53,7 @@ func (WithOption) RedisURL(url string) DSyncOption {
 
 func (WithOption) KeyPrefix(prefix string) DSyncOption {
 	return func(o *DSyncOptions) {
-		if !strings.HasSuffix(prefix, ":") {
+		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
 		o.KeyPrefix = prefix

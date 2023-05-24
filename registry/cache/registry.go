@@ -90,7 +90,7 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 		for {
 			event, err := watcher.Next()
 			if err != nil {
-				if errors.Is(err, registry.ErrWatcherStopped) {
+				if errors.Is(err, registry.ErrStoppedWatching) {
 					logger.Debugf(ctx, "watch service changes stopped")
 					return
 				}
