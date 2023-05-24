@@ -14,7 +14,7 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 	}
 
 	queueName := opts.QueueName
-	if nb.options.QueuePrefix != "" {
+	if queueName != "" && nb.options.QueuePrefix != "" {
 		queueName = nb.options.QueuePrefix + queueName
 	}
 
@@ -49,8 +49,8 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 		}
 	}
 
-	if opts.QueueName != "" {
-		sub, err = nb.client.QueueSubscribe(pattern, opts.QueueName, msgHandler)
+	if queueName != "" {
+		sub, err = nb.client.QueueSubscribe(pattern, queueName, msgHandler)
 	} else {
 		sub, err = nb.client.Subscribe(pattern, msgHandler)
 	}
