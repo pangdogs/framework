@@ -11,11 +11,9 @@ type EventHandler = func(e Event) error
 type SubscriberOptions struct {
 	// AutoAck defaults to true. When a handler returns with a nil error the message is acked.
 	AutoAck bool
-	// QueueName subscribers with the same queue name will create a shared subscription where each
-	// receives a subset of messages.
+	// QueueName subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
 	QueueName string
-	// EventHandler is the function that will be called to handle the received events. If EventHandler is set to nil, messages will
-	// be received synchronously using Subscription.Next().
+	// EventHandler is the function that will be called to handle the received events.
 	EventHandler EventHandler
 	// EventChanSize specifies the size of the event channel used for received synchronously event.
 	EventChanSize int
@@ -49,8 +47,7 @@ func (WithOption) QueueName(name string) SubscriberOption {
 	}
 }
 
-// EventHandler is the function that will be called to handle the received events. If EventHandler is set to nil, messages will
-// be received synchronously using Subscription.Next().
+// EventHandler is the function that will be called to handle the received events.
 func (WithOption) EventHandler(handler EventHandler) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.EventHandler = handler

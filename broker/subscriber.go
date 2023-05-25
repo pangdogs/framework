@@ -2,10 +2,10 @@ package broker
 
 import "errors"
 
-// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the Subscriber.Next method when the subscriber has been unsubscribed.
+// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
 var ErrUnsubscribed = errors.New("broker: unsubscribed")
 
-// Subscriber is a convenience return type for the Subscribe method.
+// Subscriber is a convenience return type for the Broker.Subscribe method.
 type Subscriber interface {
 	// Pattern returns the subscription pattern used to create the subscriber.
 	Pattern() string
@@ -13,8 +13,20 @@ type Subscriber interface {
 	QueueName() string
 	// Unsubscribe unsubscribes the subscriber from the topic.
 	Unsubscribe() error
+}
+
+// SyncSubscriber is a convenience return type for the Broker.SubscribeSync method.
+type SyncSubscriber interface {
+	Subscriber
 	// Next is a blocking call that waits for the next event to be received from the subscriber.
 	Next() (Event, error)
+}
+
+// ChanSubscriber is a convenience return type for the Broker.SubscribeChan method.
+type ChanSubscriber interface {
+	Subscriber
+	// EventChan returns a channel that can be used to receive events from the subscriber.
+	EventChan() <-chan Event
 }
 
 // Event is given to a subscription handler for processing

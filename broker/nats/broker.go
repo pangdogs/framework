@@ -36,8 +36,7 @@ func (b *_NatsBroker) InitSP(ctx service.Context) {
 	b.ctx = ctx
 
 	if b.options.NatsClient == nil {
-		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","),
-			nats.UserInfo(b.options.FastUsername, b.options.FastPassword),
+		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","), nats.UserInfo(b.options.FastUsername, b.options.FastPassword),
 			nats.Name(ctx.String()))
 		if err != nil {
 			logger.Panicf(ctx, "connect nats %q failed, %s", b.options.FastAddresses, err)
@@ -73,8 +72,22 @@ func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) er
 	return b.client.Publish(topic, data)
 }
 
-// Subscribe will express interest in the given topic pattern.
+// Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
 func (b *_NatsBroker) Subscribe(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.Subscriber, error) {
+	return b.subscribe(ctx, _SubscribeMode_Handler, pattern, options...)
+}
+
+// SubscribeSync will express interest in the given topic pattern.
+func (b *_NatsBroker) SubscribeSync(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.SyncSubscriber, error) {
+	return b.subscribe(ctx, _SubscribeMode_Sync, pattern, options...)
+}
+
+// SubscribeChan will express interest in the given topic pattern.
+func (b *_NatsBroker) SubscribeChan(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.ChanSubscriber, error) {
+	return b.subscribe(ctx, _SubscribeMode_Chan, pattern, options...)
+}
+
+func (b *_NatsBroker) subscribe(ctx context.Context, mode _SubscribeMode, pattern string, options ...broker.SubscriberOption) (*_NatsSubscriber, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -86,7 +99,7 @@ func (b *_NatsBroker) Subscribe(ctx context.Context, pattern string, options ...
 		options[i](&opts)
 	}
 
-	return newNatsSubscriber(ctx, b, pattern, opts)
+	return newNatsSubscriber(ctx, b, mode, pattern, opts)
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.
