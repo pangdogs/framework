@@ -8,7 +8,15 @@ import (
 	"strings"
 )
 
-func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opts broker.SubscriberOptions) (broker.Subscriber, error) {
+type _SubscribeMode int32
+
+const (
+	_SubscribeMode_Handler _SubscribeMode = iota
+	_SubscribeMode_Sync
+	_SubscribeMode_Chan
+)
+
+func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode, pattern string, opts broker.SubscriberOptions) (*_NatsSubscriber, error) {
 	if nb.options.TopicPrefix != "" {
 		pattern = nb.options.TopicPrefix + pattern
 	}
@@ -21,9 +29,12 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 	var sub *nats.Subscription
 	var err error
 	var eventChan chan broker.Event
-	eventHandler := opts.EventHandler
+	var eventHandler broker.EventHandler
 
-	if eventHandler == nil {
+	switch mode {
+	case _SubscribeMode_Handler:
+		eventHandler = opts.EventHandler
+	default:
 		eventChan = make(chan broker.Event, opts.EventChanSize)
 	}
 
@@ -35,17 +46,18 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 			ns:  ns,
 		}
 
-		if eventHandler != nil {
-			err := eventHandler(e)
-			if err != nil {
-				logger.Tracef(ns.nb.ctx, "handle msg event failed, %s", err)
+		switch mode {
+		case _SubscribeMode_Handler:
+			if eventHandler != nil {
+				if err := eventHandler(e); err != nil {
+					logger.Tracef(ns.nb.ctx, "handle msg event failed, %s", err)
+				}
 			}
-		} else {
+		default:
 			select {
 			case eventChan <- e:
 			default:
 				logger.Trace(ns.nb.ctx, "msg event chan is full")
-				break
 			}
 		}
 	}
@@ -70,6 +82,9 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, pattern string, opt
 	go func() {
 		<-ctx.Done()
 		ns.Unsubscribe()
+		if eventChan != nil {
+			close(eventChan)
+		}
 	}()
 
 	logger.Debugf(nb.ctx, "subscribe topic %q with queue %q", pattern, queueName)
@@ -114,4 +129,9 @@ func (s *_NatsSubscriber) Next() (broker.Event, error) {
 		return event, nil
 	}
 	return nil, broker.ErrUnsubscribed
+}
+
+// EventChan returns a channel that can be used to receive events from the subscriber.
+func (s *_NatsSubscriber) EventChan() <-chan broker.Event {
+	return s.eventChan
 }

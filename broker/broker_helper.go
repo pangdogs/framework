@@ -10,9 +10,19 @@ func Publish(serviceCtx service.Context, ctx context.Context, topic string, data
 	return Get(serviceCtx).Publish(ctx, topic, data)
 }
 
-// Subscribe will express interest in the given topic pattern.
+// Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
 func Subscribe(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (Subscriber, error) {
 	return Get(serviceCtx).Subscribe(ctx, pattern, options...)
+}
+
+// SubscribeSync will express interest in the given topic pattern.
+func SubscribeSync(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (SyncSubscriber, error) {
+	return Get(serviceCtx).SubscribeSync(ctx, pattern, options...)
+}
+
+// SubscribeChan will express interest in the given topic pattern.
+func SubscribeChan(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (ChanSubscriber, error) {
+	return Get(serviceCtx).SubscribeChan(ctx, pattern, options...)
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.
