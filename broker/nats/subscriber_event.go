@@ -33,7 +33,7 @@ func (e _NatsEvent) Message() []byte {
 
 // Ack acknowledges the successful processing of the event. It indicates that the event can be removed from the subscription queue.
 func (e _NatsEvent) Ack() error {
-	return errors.New("not use JetStream, can't ack")
+	return errors.New("not using JetStream, unable to acknowledge(ack)")
 }
 
 // Error returns any error that occurred while processing the event, if applicable.
