@@ -7,6 +7,9 @@ type WithOption struct{}
 // message and optional Ack method to acknowledge receipt of the message.
 type EventHandler = func(e Event) error
 
+// UnsubscribedCB Unsubscribed callback method.
+type UnsubscribedCB = func(sub Subscriber)
+
 // SubscriberOptions represents the options for subscribe topic.
 type SubscriberOptions struct {
 	// AutoAck defaults to true. When a handler returns with a nil error the message is acked.
@@ -17,6 +20,8 @@ type SubscriberOptions struct {
 	EventHandler EventHandler
 	// EventChanSize specifies the size of the event channel used for received synchronously event.
 	EventChanSize int
+	// UnsubscribedCB Unsubscribed callback method.
+	UnsubscribedCB UnsubscribedCB
 }
 
 // SubscriberOption represents a configuration option for subscribe topic.
@@ -29,6 +34,7 @@ func (WithOption) Default() SubscriberOption {
 		WithOption{}.QueueName("")(options)
 		WithOption{}.EventHandler(nil)(options)
 		WithOption{}.EventChanSize(128)(options)
+		WithOption{}.UnsubscribedCB(nil)(options)
 	}
 }
 
@@ -58,5 +64,12 @@ func (WithOption) EventHandler(handler EventHandler) SubscriberOption {
 func (WithOption) EventChanSize(size int) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.EventChanSize = size
+	}
+}
+
+// UnsubscribedCB Unsubscribed callback method.
+func (WithOption) UnsubscribedCB(fn UnsubscribedCB) SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.UnsubscribedCB = fn
 	}
 }
