@@ -70,7 +70,9 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 	go func() {
 		<-ctx.Done()
-		watch.Close()
+		if err := watch.Close(); err != nil {
+			logger.Errorf(r.ctx, "watcher close %q failed, %s", watchPathList, err)
+		}
 	}()
 
 	go func() {
@@ -89,7 +91,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 					logger.Debugf(r.ctx, "stop watch %q, %s", watchPathList, err)
 					return
 				}
-				logger.Error(r.ctx, "interrupt watch %q, %s", watchPathList, err)
+				logger.Errorf(r.ctx, "interrupt watch %q, %s", watchPathList, err)
 				return
 			}
 

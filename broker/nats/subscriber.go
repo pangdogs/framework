@@ -81,7 +81,11 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 
 	go func() {
 		<-ctx.Done()
-		ns.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			logger.Errorf(nb.ctx, "unsubscribe topic %q with %q failed, %s", sub.Subject, sub.Queue, err)
+		} else {
+			logger.Debugf(nb.ctx, "unsubscribe topic %q with %q", sub.Subject, sub.Queue)
+		}
 		if eventChan != nil {
 			close(eventChan)
 		}
@@ -111,16 +115,8 @@ func (s *_NatsSubscriber) QueueName() string {
 }
 
 // Unsubscribe unsubscribes the subscriber from the topic.
-func (s *_NatsSubscriber) Unsubscribe() error {
-	err := s.sub.Unsubscribe()
-	if err != nil {
-		return err
-	}
-
-	logger.Debugf(s.nb.ctx, "unsubscribe topic %q with %q", s.sub.Subject, s.sub.Queue)
-
+func (s *_NatsSubscriber) Unsubscribe() {
 	s.cancel()
-	return nil
 }
 
 // Next is a blocking call that waits for the next event to be received from the subscriber.
