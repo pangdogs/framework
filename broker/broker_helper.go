@@ -85,7 +85,7 @@ func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic str
 			logger.Trace(serviceCtx, "data chan is full")
 		}
 		return nil
-	}), WithOption{}.UnsubscribedCB(func(sub Subscriber) {
+	}), WithOption{}.UnsubscribedCb(func(sub Subscriber) {
 		close(ch)
 	}))
 	if err != nil {
