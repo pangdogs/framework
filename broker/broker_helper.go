@@ -48,7 +48,7 @@ func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern str
 	go func() {
 		defer func() {
 			if info := recover(); info != nil {
-				logger.Errorf(serviceCtx, "publish data to topic %q failed, %s", info)
+				logger.Tracef(serviceCtx, "publish data to topic %q failed, %s", pattern, info)
 			}
 		}()
 
@@ -59,7 +59,7 @@ func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern str
 					return
 				}
 				if err := broker.Publish(ctx, pattern, data); err != nil {
-					logger.Errorf(serviceCtx, "publish data to topic %q failed, %s", pattern, data)
+					logger.Tracef(serviceCtx, "publish data to topic %q failed, %s", pattern, err)
 				}
 			case <-ctx.Done():
 				return
@@ -82,6 +82,7 @@ func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic str
 		select {
 		case ch <- e.Message():
 		default:
+			logger.Trace(serviceCtx, "data chan is full")
 		}
 		return nil
 	}), WithOption{}.UnsubscribedCB(func(sub Subscriber) {
