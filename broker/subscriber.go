@@ -1,6 +1,9 @@
 package broker
 
-import "errors"
+import (
+	"errors"
+	"golang.org/x/net/context"
+)
 
 // ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
 var ErrUnsubscribed = errors.New("broker: unsubscribed")
@@ -40,7 +43,7 @@ type Event interface {
 	// Message returns the raw message payload of the event.
 	Message() []byte
 	// Ack acknowledges the successful processing of the event. It indicates that the event can be removed from the subscription queue.
-	Ack() error
-	// Error returns any error that occurred while processing the event, if applicable.
-	Error() error
+	Ack(ctx context.Context) error
+	// Nak negatively acknowledges a message. This tells the server to redeliver the message.
+	Nak(ctx context.Context) error
 }

@@ -3,6 +3,7 @@ package nats
 import (
 	"errors"
 	"github.com/nats-io/nats.go"
+	"golang.org/x/net/context"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ type _NatsEvent struct {
 
 // Pattern returns the subscription pattern used to create the event.
 func (e _NatsEvent) Pattern() string {
+	e.msg.Nak()
 	return e.ns.Pattern()
 }
 
@@ -32,11 +34,11 @@ func (e _NatsEvent) Message() []byte {
 }
 
 // Ack acknowledges the successful processing of the event. It indicates that the event can be removed from the subscription queue.
-func (e _NatsEvent) Ack() error {
+func (e _NatsEvent) Ack(ctx context.Context) error {
 	return errors.New("not using JetStream, unable to acknowledge(ack)")
 }
 
-// Error returns any error that occurred while processing the event, if applicable.
-func (e _NatsEvent) Error() error {
-	return nil
+// Nak negatively acknowledges a message. This tells the server to redeliver the message.
+func (e _NatsEvent) Nak(ctx context.Context) error {
+	return errors.New("not using JetStream, unable to negatively acknowledge(nak)")
 }
