@@ -15,7 +15,7 @@ type Subscriber interface {
 	// QueueName subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
 	QueueName() string
 	// Unsubscribe unsubscribes the subscriber from the topic.
-	Unsubscribe() error
+	Unsubscribe()
 }
 
 // SyncSubscriber is a convenience return type for the Broker.SubscribeSync method.
