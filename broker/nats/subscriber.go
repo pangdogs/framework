@@ -89,6 +89,9 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 		if eventChan != nil {
 			close(eventChan)
 		}
+		if opts.UnsubscribedCB != nil {
+			opts.UnsubscribedCB(ns)
+		}
 	}()
 
 	logger.Debugf(nb.ctx, "subscribe topic %q with queue %q", pattern, queueName)
