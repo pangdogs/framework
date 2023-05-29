@@ -41,7 +41,7 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 	ns := &_NatsSubscriber{}
 
 	msgHandler := func(msg *nats.Msg) {
-		e := _NatsEvent{
+		e := &_NatsEvent{
 			msg: msg,
 			ns:  ns,
 		}
