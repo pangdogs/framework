@@ -37,6 +37,7 @@ func MaxPayload(serviceCtx service.Context) int64 {
 	return Get(serviceCtx).MaxPayload()
 }
 
+// NewPublishChan creates a new channel for publishing data to a specific topic.
 func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern string, size int) (chan []byte, error) {
 	broker, ok := TryGet(serviceCtx)
 	if !ok {
@@ -70,6 +71,7 @@ func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern str
 	return ch, nil
 }
 
+// NewSubscribeChan creates a new channel for receiving data from a specific topic.
 func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic string, size int) (<-chan []byte, error) {
 	broker, ok := TryGet(serviceCtx)
 	if !ok {
