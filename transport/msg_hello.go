@@ -102,11 +102,11 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.Version = Version(version)
+	m.Version = version
 	m.SessionId = sessionId
 	m.Random = randomn
 	m.CipherSuite = cipherSuite
-	m.CompressionMethod = CompressionMethod(compressionMethod)
+	m.CompressionMethod = compressionMethod
 	m.Extensions = extensions
 	return bs.BytesRead(), nil
 }
