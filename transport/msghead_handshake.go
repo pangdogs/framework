@@ -1,23 +1,6 @@
 package transport
 
-import (
-	"kit.golaxy.org/plugins/transport/binaryutil"
-)
-
-// MsgId 消息Id
-type MsgId = uint8
-
-const (
-	MsgId_Hello             MsgId = iota // Hello Handshake C<->S 不加密
-	MsgId_SecretKeyExchange              // 秘钥交换 Handshake C<->S 不加密
-	MsgId_ChangeCipherSpec               // 变更密码规范 Handshake C<->S 不加密
-	MsgId_Auth                           // 鉴权 Handshake C->S 加密
-	MsgId_Finished                       // 握手结束 Handshake C<->S 加密
-	MsgId_Rst                            // 重置链路 Ctrl S->C 加密
-	MsgId_Heartbeat                      // 心跳 Ctrl C<->S 加密
-	MsgId_SyncTime                       // 时钟同步 Ctrl S->C 加密
-	MsgId_Payload                        // 数据传输 TRANS C<->S 加密
-)
+import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // Flag 标志位
 type Flag = uint8
@@ -47,14 +30,14 @@ func (f *Flags) Set(b Flag, v bool) {
 	}
 }
 
-// MsgHead 消息头
-type MsgHead struct {
+// MsgHeadHandshake Handshake类消息头
+type MsgHeadHandshake struct {
 	Len   uint64 // 消息长度
 	Flags Flags  // 标志位
 	MsgId MsgId  // 消息Id
 }
 
-func (m *MsgHead) Read(p []byte) (int, error) {
+func (m *MsgHeadHandshake) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUvarint()
 	if err != nil {
@@ -74,7 +57,7 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-func (m *MsgHead) Write(p []byte) (int, error) {
+func (m *MsgHeadHandshake) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUvarint(m.Len); err != nil {
 		return 0, err
@@ -88,6 +71,6 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
-func (m *MsgHead) Size() int {
+func (m *MsgHeadHandshake) Size() int {
 	return binaryutil.SizeofUvarint(m.Len) + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }

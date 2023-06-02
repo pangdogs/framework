@@ -6,7 +6,7 @@ import (
 
 // Hello消息标志位
 const (
-	Flag_HelloDone     Flag = 1 << (iota + Flag_Options) // 握手完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
+	Flag_HelloDone     Flag = 1 << (iota + Flag_Options) // Hello完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
 	Flag_EnableEncrypt                                   // 开启加密（协议优先考虑性能，要求安全性请直接使用TLS加密链路），在服务端返回的Hello消息中携带，表示链路需要加密，需要执行秘钥交换流程
 	Flag_EnableAuth                                      // 开启鉴权（基于token鉴权），在服务端返回的Hello消息中携带，表示链路需要认证，需要执行鉴权流程
 )
