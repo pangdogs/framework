@@ -24,6 +24,14 @@ const (
 	AsymmetricEncryptMethod_ECC                                 // ECC算法
 )
 
+// PaddingMode 非对称加密算法填充方案
+type PaddingMode = uint8
+
+const (
+	PaddingMode_None  PaddingMode = iota // 未设置
+	PaddingMode_Pkcs1                    // pkcs1方案
+)
+
 // SymmetricEncryptMethod 对称加密函数
 type SymmetricEncryptMethod = uint8
 
@@ -46,16 +54,26 @@ const (
 type HashMethod = uint8
 
 const (
-	HashMethod_Mask   HashMethod = iota // 未设置
+	HashMethod_None   HashMethod = iota // 未设置
 	HashMethod_Fnv1a                    // Fnv-1a算法
 	HashMethod_SHA256                   // SHA256算法
+)
+
+// NamedCurve 曲线类型
+type NamedCurve = uint8
+
+const (
+	NamedCurve_None      = iota // 未设置
+	NamedCurve_X25519           // 曲线x25519
+	NamedCurve_Secp256r1        // 曲线Secp256r1
 )
 
 // CompressionMethod 压缩函数
 type CompressionMethod = uint8
 
 const (
-	CompressionMethod_Gzip   CompressionMethod = iota // Gzip压缩算法
+	CompressionMethod_None   CompressionMethod = iota // 未设置
+	CompressionMethod_Gzip                            // Gzip压缩算法
 	CompressionMethod_Brotli                          // Brotli压缩算法
 	CompressionMethod_LZ4                             // LZ4压缩算法
 	CompressionMethod_Snappy                          // Snappy压缩算法
