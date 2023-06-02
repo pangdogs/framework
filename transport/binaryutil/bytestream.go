@@ -7,10 +7,15 @@ import (
 )
 
 var (
-	// Endian 大小端
+	// Endian 大小端，
 	Endian = binary.BigEndian
-	// ErrInvalidSeekPos 调整位置失败
+
+	// ErrInvalidSeekPos 调整的位置无效
 	ErrInvalidSeekPos = errors.New("invalid seek position")
+	// ErrInvalidReader 读取器无效
+	ErrInvalidReader = errors.New("invalid reader")
+	// ErrInvalidWriter 写入器无效
+	ErrInvalidWriter = errors.New("invalid writer")
 )
 
 type noCopy struct{}
@@ -238,6 +243,18 @@ func (s *ByteStream) WriteUvarint(v uint64) error {
 	return nil
 }
 
+func (s *ByteStream) Write(writer io.Writer) error {
+	if writer == nil {
+		return ErrInvalidWriter
+	}
+	n, err := writer.Write(s.wp)
+	if err != nil {
+		return err
+	}
+	s.wp = s.wp[n:]
+	return nil
+}
+
 func (s *ByteStream) SeekReadPos(p int) error {
 	if p < 0 || p >= len(s.sp) {
 		return ErrInvalidSeekPos
@@ -425,4 +442,16 @@ func (s *ByteStream) ReadUvarint() (uint64, error) {
 	}
 	s.rp = s.rp[n:]
 	return v, nil
+}
+
+func (s *ByteStream) Read(reader io.Reader) error {
+	if reader == nil {
+		return ErrInvalidReader
+	}
+	n, err := reader.Read(s.rp)
+	if err != nil {
+		return err
+	}
+	s.rp = s.rp[n:]
+	return nil
 }
