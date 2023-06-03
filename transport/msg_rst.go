@@ -6,12 +6,13 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 type Code = int32
 
 const (
-	Code_SessionIdNotFound Code = iota + 1 // Session找不到
-	Code_EncryptFailed                     // 加密失败
-	Code_AuthFailed                        // 鉴权失败
-	Code_ContinueFailed                    // 恢复Session失败
-	Code_Reject                            // 拒绝连接
-	Code_Customize                         // 自定义错误码起点
+	Code_SessionNotFound Code = iota + 1 // Session找不到
+	Code_EncryptFailed                   // 加密失败
+	Code_AuthFailed                      // 鉴权失败
+	Code_ContinueFailed                  // 恢复Session失败
+	Code_Reject                          // 拒绝连接
+	Code_ServiceShutdown                 // 服务关闭
+	Code_Customize                       // 自定义错误码起点
 )
 
 // MsgRst 重置链路
