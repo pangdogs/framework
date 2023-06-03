@@ -2,17 +2,6 @@ package transport
 
 import "kit.golaxy.org/plugins/transport/binaryutil"
 
-// Flag 标志位
-type Flag = uint8
-
-// 固定标志位
-const (
-	Flag_Encrypt  Flag   = 1 << iota // 是否加密
-	Flag_Compress                    // 是否压缩
-	Flag_MAC                         // 是否有完整性校验码
-	Flag_Options  = iota             // 可选标志位起点
-)
-
 // Flags 所有标志位
 type Flags uint8
 
@@ -30,14 +19,24 @@ func (f *Flags) Set(b Flag, v bool) {
 	}
 }
 
-// MsgHeadHandshake Handshake类消息头
-type MsgHeadHandshake struct {
+// Flag 标志位
+type Flag = uint8
+
+// 固定标志位
+const (
+	Flag_Encrypted  Flag   = 1 << iota // 已加密
+	Flag_Compressed                    // 已压缩
+	Flag_Customize  = iota             // 自定义标志位起点
+)
+
+// MsgHead 消息头
+type MsgHead struct {
 	Len   uint64 // 消息长度
 	Flags Flags  // 标志位
 	MsgId MsgId  // 消息Id
 }
 
-func (m *MsgHeadHandshake) Read(p []byte) (int, error) {
+func (m *MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUvarint()
 	if err != nil {
@@ -57,7 +56,7 @@ func (m *MsgHeadHandshake) Read(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-func (m *MsgHeadHandshake) Write(p []byte) (int, error) {
+func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUvarint(m.Len); err != nil {
 		return 0, err
@@ -71,6 +70,6 @@ func (m *MsgHeadHandshake) Write(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
-func (m *MsgHeadHandshake) Size() int {
+func (m *MsgHead) Size() int {
 	return binaryutil.SizeofUvarint(m.Len) + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
