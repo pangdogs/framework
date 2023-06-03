@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	// Endian 大小端，
+	// Endian 大小端
 	Endian = binary.BigEndian
 
 	// ErrInvalidSeekPos 调整的位置无效
@@ -352,6 +352,22 @@ func (s *ByteStream) ReadBytes() ([]byte, error) {
 	}
 	v := make([]byte, l)
 	copy(v, s.rp[:l])
+	s.rp = s.rp[l:]
+	return v, nil
+}
+
+func (s *ByteStream) ReadBytesRef() ([]byte, error) {
+	l, err := s.ReadUvarint()
+	if err != nil {
+		return nil, err
+	}
+	if l <= 0 {
+		return nil, nil
+	}
+	if len(s.rp) < int(l) {
+		return nil, io.ErrUnexpectedEOF
+	}
+	v := s.rp[:l]
 	s.rp = s.rp[l:]
 	return v, nil
 }
