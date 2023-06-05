@@ -37,3 +37,7 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 func (m *MsgAuth) Size() int {
 	return binaryutil.SizeofBytes(m.Token) + binaryutil.SizeofBytes(m.Extensions)
 }
+
+func (MsgAuth) MsgId() MsgId {
+	return MsgId_Auth
+}

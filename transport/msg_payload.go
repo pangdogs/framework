@@ -37,3 +37,7 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 func (m *MsgPayload) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofBytes(m.Data)
 }
+
+func (MsgPayload) MsgId() MsgId {
+	return MsgId_Payload
+}

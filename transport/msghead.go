@@ -31,14 +31,14 @@ const (
 
 // MsgHead 消息头
 type MsgHead struct {
-	Len   uint64 // 消息长度
+	Len   uint32 // 消息长度
 	Flags Flags  // 标志位
 	MsgId MsgId  // 消息Id
 }
 
 func (m *MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	l, err := bs.ReadUvarint()
+	l, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
@@ -58,7 +58,7 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUvarint(m.Len); err != nil {
+	if err := bs.WriteUint32(m.Len); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint8(m.MsgId); err != nil {
@@ -71,5 +71,5 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 }
 
 func (m *MsgHead) Size() int {
-	return binaryutil.SizeofUvarint(m.Len) + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
