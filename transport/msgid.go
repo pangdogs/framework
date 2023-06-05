@@ -14,3 +14,10 @@ const (
 	MsgId_SyncTime                       // 时钟同步 Ctrl S->C 加密
 	MsgId_Payload                        // 数据传输 Trans C<->S or S<->C 加密
 )
+
+type Msg interface {
+	Read(p []byte) (int, error)
+	Write(p []byte) (int, error)
+	Size() int
+	MsgId() MsgId
+}
