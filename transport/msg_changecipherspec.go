@@ -28,3 +28,7 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 func (m *MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }
+
+func (MsgChangeCipherSpec) MsgId() MsgId {
+	return MsgId_ChangeCipherSpec
+}

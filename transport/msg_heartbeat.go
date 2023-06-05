@@ -14,3 +14,7 @@ func (m *MsgHeartbeat) Write(p []byte) (int, error) {
 func (m *MsgHeartbeat) Size() int {
 	return 0
 }
+
+func (MsgHeartbeat) MsgId() MsgId {
+	return MsgId_Heartbeat
+}

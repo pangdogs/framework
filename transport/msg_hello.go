@@ -138,3 +138,7 @@ func (m *MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofBytes(m.SessionId) + binaryutil.SizeofInt64() +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.Extensions)
 }
+
+func (MsgHello) MsgId() MsgId {
+	return MsgId_Hello
+}

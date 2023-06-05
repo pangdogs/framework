@@ -30,3 +30,7 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 func (m *MsgSyncTime) Size() int {
 	return binaryutil.SizeofInt64()
 }
+
+func (MsgSyncTime) MsgId() MsgId {
+	return MsgId_SyncTime
+}

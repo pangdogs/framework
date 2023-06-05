@@ -103,3 +103,7 @@ func (m *MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) +
 		m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
 }
+
+func (MsgECDHESecretKeyExchange) MsgId() MsgId {
+	return MsgId_SecretKeyExchange
+}

@@ -43,3 +43,7 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 func (m *MsgFinished) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }
+
+func (MsgFinished) MsgId() MsgId {
+	return MsgId_Finished
+}
