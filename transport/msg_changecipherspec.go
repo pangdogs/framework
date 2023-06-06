@@ -9,20 +9,20 @@ type MsgChangeCipherSpec struct {
 
 func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	encryptedHello, err := bs.ReadBytes()
 	if err != nil {
 		return 0, err
 	}
 	m.EncryptedHello = encryptedHello
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgChangeCipherSpec) Size() int {

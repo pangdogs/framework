@@ -23,6 +23,17 @@ type MsgRst struct {
 
 func (m *MsgRst) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteInt32(m.Code); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.Extensions); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgRst) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	code, err := bs.ReadInt32()
 	if err != nil {
 		return 0, err
@@ -34,17 +45,6 @@ func (m *MsgRst) Read(p []byte) (int, error) {
 	m.Code = code
 	m.Extensions = extensions
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgRst) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteInt32(m.Code); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.Extensions); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgRst) Size() int {

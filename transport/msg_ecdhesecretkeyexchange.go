@@ -13,6 +13,20 @@ type SignatureAlgorithm struct {
 
 func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint8(sa.AsymmetricEncryptMethod); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint8(sa.PaddingMode); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint8(sa.HashMethod); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	asymmetricEncryptMethod, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
@@ -31,20 +45,6 @@ func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(sa.AsymmetricEncryptMethod); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint8(sa.PaddingMode); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint8(sa.HashMethod); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
-}
-
 func (sa *SignatureAlgorithm) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
@@ -58,6 +58,23 @@ type MsgECDHESecretKeyExchange struct {
 }
 
 func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint8(m.NamedCurve); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.PublicKey); err != nil {
+		return 0, err
+	}
+	if err := bs.Write(&m.SignatureAlgorithm); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.Signature); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	namedCurve, err := bs.ReadUint8()
 	if err != nil {
@@ -80,23 +97,6 @@ func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	m.SignatureAlgorithm = signatureAlgorithm
 	m.Signature = signature
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(m.NamedCurve); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.PublicKey); err != nil {
-		return 0, err
-	}
-	if err := bs.Write(&m.SignatureAlgorithm); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.Signature); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgECDHESecretKeyExchange) Size() int {

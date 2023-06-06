@@ -10,6 +10,17 @@ type MsgAuth struct {
 
 func (m *MsgAuth) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteBytes(m.Token); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.Extensions); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgAuth) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	token, err := bs.ReadBytes()
 	if err != nil {
 		return 0, err
@@ -21,17 +32,6 @@ func (m *MsgAuth) Read(p []byte) (int, error) {
 	m.Token = token
 	m.Extensions = extensions
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgAuth) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(m.Token); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.Extensions); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgAuth) Size() int {
