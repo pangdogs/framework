@@ -10,6 +10,17 @@ type MsgPayload struct {
 
 func (m *MsgPayload) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint32(m.Seq); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.Data); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgPayload) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	seq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
@@ -21,17 +32,6 @@ func (m *MsgPayload) Read(p []byte) (int, error) {
 	m.Seq = seq
 	m.Data = data
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgPayload) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint32(m.Seq); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgPayload) Size() int {

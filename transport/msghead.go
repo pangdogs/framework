@@ -38,6 +38,20 @@ type MsgHead struct {
 
 func (m *MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint32(m.Len); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint8(m.MsgId); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint8(uint8(m.Flags)); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgHead) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
@@ -54,20 +68,6 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 	m.MsgId = msgid
 	m.Flags = Flags(flags)
 	return bs.BytesRead(), nil
-}
-
-func (m *MsgHead) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint32(m.Len); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint8(m.MsgId); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint8(uint8(m.Flags)); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
 }
 
 func (m *MsgHead) Size() int {

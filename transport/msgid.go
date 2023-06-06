@@ -1,5 +1,7 @@
 package transport
 
+import "io"
+
 // MsgId 消息Id
 type MsgId = uint8
 
@@ -18,8 +20,7 @@ const (
 
 // Msg 消息接口
 type Msg interface {
-	Read(p []byte) (int, error)
-	Write(p []byte) (int, error)
+	io.ReadWriter
 	Size() int
 	MsgId() MsgId
 }
