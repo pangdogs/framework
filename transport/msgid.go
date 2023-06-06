@@ -4,7 +4,8 @@ package transport
 type MsgId = uint8
 
 const (
-	MsgId_Hello             MsgId = iota // Hello Handshake C<->S 不加密
+	MsgId_None              MsgId = iota // 未设置
+	MsgId_Hello                          // Hello Handshake C<->S 不加密
 	MsgId_SecretKeyExchange              // 秘钥交换 Handshake S<->C 不加密
 	MsgId_ChangeCipherSpec               // 变更密码规范 Handshake S<->C 不加密
 	MsgId_Auth                           // 鉴权 Handshake C->S 加密
@@ -15,6 +16,7 @@ const (
 	MsgId_Payload                        // 数据传输 Trans C<->S or S<->C 加密
 )
 
+// Msg 消息接口
 type Msg interface {
 	Read(p []byte) (int, error)
 	Write(p []byte) (int, error)
