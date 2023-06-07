@@ -25,6 +25,7 @@ type Flag = uint8
 // 固定标志位
 const (
 	Flag_Encrypted  Flag   = 1 << iota // 已加密
+	Flag_MAC                           // 有MAC
 	Flag_Compressed                    // 已压缩
 	Flag_Customize  = iota             // 自定义标志位起点
 )

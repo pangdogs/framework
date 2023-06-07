@@ -66,6 +66,10 @@ func SizeofBytes128() int {
 	return 128
 }
 
+func SizeofBytes160() int {
+	return 160
+}
+
 func SizeofBytes256() int {
 	return 256
 }

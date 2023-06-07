@@ -65,7 +65,7 @@ func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.PublicKey); err != nil {
 		return 0, err
 	}
-	if err := bs.Write(&m.SignatureAlgorithm); err != nil {
+	if _, err := bs.ReadFrom(&m.SignatureAlgorithm); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.Signature); err != nil {
@@ -80,15 +80,15 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	publicKey, err := bs.ReadBytes()
+	publicKey, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}
 	signatureAlgorithm := SignatureAlgorithm{}
-	if err := bs.Read(&signatureAlgorithm); err != nil {
+	if _, err := bs.WriteTo(&signatureAlgorithm); err != nil {
 		return 0, err
 	}
-	signature, err := bs.ReadBytes()
+	signature, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}
@@ -105,5 +105,5 @@ func (m *MsgECDHESecretKeyExchange) Size() int {
 }
 
 func (MsgECDHESecretKeyExchange) MsgId() MsgId {
-	return MsgId_SecretKeyExchange
+	return MsgId_ECDHESecretKeyExchange
 }

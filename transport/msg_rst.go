@@ -38,7 +38,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	extensions, err := bs.ReadBytes()
+	extensions, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}
