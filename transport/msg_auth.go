@@ -21,11 +21,11 @@ func (m *MsgAuth) Read(p []byte) (int, error) {
 
 func (m *MsgAuth) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	token, err := bs.ReadBytes()
+	token, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}
-	extensions, err := bs.ReadBytes()
+	extensions, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}

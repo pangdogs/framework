@@ -37,6 +37,24 @@ type ByteStream struct {
 	sp, wp, rp []byte
 }
 
+func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
+	if reader == nil {
+		return 0, ErrInvalidReader
+	}
+	n, err := reader.Read(s.wp)
+	s.wp = s.wp[n:]
+	return int64(n), err
+}
+
+func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {
+	if writer == nil {
+		return 0, ErrInvalidWriter
+	}
+	n, err := writer.Write(s.rp)
+	s.rp = s.rp[n:]
+	return int64(n), err
+}
+
 func (s *ByteStream) SeekWritePos(p int) error {
 	if p < 0 || p >= len(s.sp) {
 		return ErrInvalidSeekPos
@@ -209,6 +227,38 @@ func (s *ByteStream) WriteBytes128(v []byte) error {
 	return nil
 }
 
+func (s *ByteStream) WriteBytes160(v []byte) error {
+	if len(s.wp) < SizeofBytes160() {
+		return io.ErrShortWrite
+	}
+	if len(v) < SizeofBytes160() {
+		copy(s.wp, v)
+		for i := len(v); i < SizeofBytes160(); i++ {
+			s.wp[i] = 0
+		}
+	} else {
+		copy(s.wp, v[:SizeofBytes160()])
+	}
+	s.wp = s.wp[SizeofBytes160():]
+	return nil
+}
+
+func (s *ByteStream) WriteBytes256(v []byte) error {
+	if len(s.wp) < SizeofBytes256() {
+		return io.ErrShortWrite
+	}
+	if len(v) < SizeofBytes256() {
+		copy(s.wp, v)
+		for i := len(v); i < SizeofBytes256(); i++ {
+			s.wp[i] = 0
+		}
+	} else {
+		copy(s.wp, v[:SizeofBytes256()])
+	}
+	s.wp = s.wp[SizeofBytes256():]
+	return nil
+}
+
 func (s *ByteStream) WriteBytes512(v []byte) error {
 	if len(s.wp) < SizeofBytes512() {
 		return io.ErrShortWrite
@@ -239,18 +289,6 @@ func (s *ByteStream) WriteUvarint(v uint64) error {
 		return io.ErrShortWrite
 	}
 	n := binary.PutUvarint(s.wp, v)
-	s.wp = s.wp[n:]
-	return nil
-}
-
-func (s *ByteStream) Write(writer io.Writer) error {
-	if writer == nil {
-		return ErrInvalidWriter
-	}
-	n, err := writer.Write(s.wp)
-	if err != nil {
-		return err
-	}
 	s.wp = s.wp[n:]
 	return nil
 }
@@ -408,6 +446,15 @@ func (s *ByteStream) ReadBytes128() ([128]byte, error) {
 	return v, nil
 }
 
+func (s *ByteStream) ReadBytes160() ([160]byte, error) {
+	var v [160]byte
+	if len(s.rp) < SizeofBytes160() {
+		return v, io.ErrUnexpectedEOF
+	}
+	copy(v[:], s.rp[:SizeofBytes160()])
+	return v, nil
+}
+
 func (s *ByteStream) ReadBytes256() ([256]byte, error) {
 	var v [256]byte
 	if len(s.rp) < SizeofBytes256() {
@@ -458,16 +505,4 @@ func (s *ByteStream) ReadUvarint() (uint64, error) {
 	}
 	s.rp = s.rp[n:]
 	return v, nil
-}
-
-func (s *ByteStream) Read(reader io.Reader) error {
-	if reader == nil {
-		return ErrInvalidReader
-	}
-	n, err := reader.Read(s.rp)
-	if err != nil {
-		return err
-	}
-	s.rp = s.rp[n:]
-	return nil
 }

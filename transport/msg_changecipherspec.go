@@ -17,7 +17,7 @@ func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
 
 func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	encryptedHello, err := bs.ReadBytes()
+	encryptedHello, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}

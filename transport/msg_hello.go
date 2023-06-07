@@ -87,7 +87,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteInt64(m.Random); err != nil {
 		return 0, err
 	}
-	if err := bs.Write(&m.CipherSuite); err != nil {
+	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint8(m.CompressionMethod); err != nil {
@@ -105,7 +105,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	sessionId, err := bs.ReadBytes()
+	sessionId, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}
@@ -114,14 +114,14 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 		return 0, err
 	}
 	cipherSuite := CipherSuite{}
-	if err := bs.Read(&cipherSuite); err != nil {
+	if _, err := bs.WriteTo(&cipherSuite); err != nil {
 		return 0, err
 	}
 	compressionMethod, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
-	extensions, err := bs.ReadBytes()
+	extensions, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
 	}

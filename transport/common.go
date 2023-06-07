@@ -36,9 +36,10 @@ const (
 type SymmetricEncryptMethod = uint8
 
 const (
-	SymmetricEncryptMethod_None     SymmetricEncryptMethod = iota // 未设置
-	SymmetricEncryptMethod_AES256                                 // AES256算法
-	SymmetricEncryptMethod_ChaCha20                               // ChaCha20算法
+	SymmetricEncryptMethod_None              SymmetricEncryptMethod = iota // 未设置
+	SymmetricEncryptMethod_AES256                                          // AES256算法
+	SymmetricEncryptMethod_ChaCha20                                        // ChaCha20算法
+	SymmetricEncryptMethod_ChaCha20_Poly1305                               // ChaCha20-Poly1305算法
 )
 
 // BlockCipherMode 对称加密算法分组模式
@@ -47,16 +48,21 @@ type BlockCipherMode = uint8
 const (
 	BlockCipherMode_None BlockCipherMode = iota // 未设置
 	BlockCipherMode_ECB                         // ECB模式
+	BlockCipherMode_CBC                         // CBC模式
+	BlockCipherMode_CFB                         // CFB模式
 	BlockCipherMode_GCM                         // GCM模式
+	BlockCipherMode_OFB                         // OFB模式
 )
 
 // HashMethod 摘要函数
 type HashMethod = uint8
 
 const (
-	HashMethod_None   HashMethod = iota // 未设置
-	HashMethod_Fnv1a                    // Fnv-1a算法
-	HashMethod_SHA256                   // SHA256算法
+	HashMethod_None     HashMethod = iota // 未设置
+	HashMethod_Fnv1a32                    // Fnv-1a 32bit算法
+	HashMethod_Fnv1a64                    // Fnv-1a 64bit算法
+	HashMethod_Poly1305                   // Poly1305算法
+	HashMethod_SHA256                     // SHA256算法
 )
 
 // NamedCurve 曲线类型
