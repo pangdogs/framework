@@ -74,3 +74,31 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 func (m *MsgHead) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
+
+// MsgLen 消息长度字段，可以用于提高io读取效率
+type MsgLen uint32
+
+func (m *MsgLen) Read(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint32(uint32(*m)); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgLen) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
+	l, err := bs.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	*m = MsgLen(l)
+	return bs.BytesRead(), nil
+}
+
+func (m *MsgLen) Size() int {
+	return MsgLenSize
+}
+
+// MsgLenSize 消息长度字段字节数
+const MsgLenSize = int(4)
