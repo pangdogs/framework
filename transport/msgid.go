@@ -16,6 +16,7 @@ const (
 	MsgId_Heartbeat                           // 心跳 Ctrl C<->S or S<->C 加密
 	MsgId_SyncTime                            // 时钟同步 Ctrl S->C 加密
 	MsgId_Payload                             // 数据传输 Trans C<->S or S<->C 加密
+	MsgId_Customize              = 32         // 自定义消息起点
 )
 
 // Msg 消息接口
