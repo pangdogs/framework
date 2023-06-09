@@ -10,7 +10,7 @@ type MsgCompressed struct {
 
 func (m *MsgCompressed) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(p); err != nil {
+	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteVarint(m.RawLen); err != nil {

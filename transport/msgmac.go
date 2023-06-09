@@ -10,7 +10,7 @@ type MsgMAC32 struct {
 
 func (m *MsgMAC32) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(p); err != nil {
+	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint32(m.MAC); err != nil {
@@ -46,7 +46,7 @@ type MsgMAC64 struct {
 
 func (m *MsgMAC64) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(p); err != nil {
+	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint64(m.MAC); err != nil {
@@ -82,7 +82,7 @@ type MsgMAC struct {
 
 func (m *MsgMAC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteBytes(p); err != nil {
+	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.MAC); err != nil {

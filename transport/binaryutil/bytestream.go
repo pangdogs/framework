@@ -67,6 +67,18 @@ func (s *ByteStream) BytesWritten() int {
 	return len(s.sp) - len(s.wp)
 }
 
+func (s *ByteStream) BuffWritten() []byte {
+	return s.sp[:s.BytesWritten()]
+}
+
+func (s *ByteStream) BytesUnwritten() int {
+	return len(s.wp)
+}
+
+func (s *ByteStream) BuffUnwritten() []byte {
+	return s.sp
+}
+
 func (s *ByteStream) WriteInt8(v int8) error {
 	return s.WriteUint8(uint8(v))
 }
@@ -303,6 +315,18 @@ func (s *ByteStream) SeekReadPos(p int) error {
 
 func (s *ByteStream) BytesRead() int {
 	return len(s.sp) - len(s.rp)
+}
+
+func (s *ByteStream) BuffRead() []byte {
+	return s.sp[:s.BytesRead()]
+}
+
+func (s *ByteStream) BytesUnread() int {
+	return len(s.rp)
+}
+
+func (s *ByteStream) BuffUnread() []byte {
+	return s.rp
 }
 
 func (s *ByteStream) ReadInt8() (int8, error) {
