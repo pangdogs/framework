@@ -3,6 +3,7 @@ module kit.golaxy.org/plugins
 go 1.20
 
 require (
+	github.com/fufuok/bytespool v1.3.2
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nats-io/nats.go v1.25.0
@@ -12,7 +13,7 @@ require (
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.9.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.1.62
+	kit.golaxy.org/golaxy v0.1.63
 )
 
 require (
