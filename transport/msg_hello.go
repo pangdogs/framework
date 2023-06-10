@@ -70,7 +70,7 @@ func (cs *CipherSuite) Size() int {
 type MsgHello struct {
 	Version           Version           // 协议版本
 	SessionId         []byte            // 会话Id，如果客户端上传空值，服务端将会分配新会话，如果非空值，服务端将尝试查找会话，查找失败会重置链路
-	Random            int64             // 随机数，用于秘钥交换
+	Random            []byte            // 随机数，用于秘钥交换
 	CipherSuite       CipherSuite       // 密码学套件，客户端提交的密码学套件建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
 	CompressionMethod CompressionMethod // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
 	Extensions        []byte            // 扩展内容
@@ -84,7 +84,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.SessionId); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteInt64(m.Random); err != nil {
+	if err := bs.WriteBytes(m.Random); err != nil {
 		return 0, err
 	}
 	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
@@ -109,7 +109,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	randomn, err := bs.ReadInt64()
+	randomn, err := bs.ReadBytes()
 	if err != nil {
 		return 0, err
 	}
@@ -135,7 +135,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 }
 
 func (m *MsgHello) Size() int {
-	return binaryutil.SizeofUint16() + binaryutil.SizeofBytes(m.SessionId) + binaryutil.SizeofInt64() +
+	return binaryutil.SizeofUint16() + binaryutil.SizeofBytes(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.Extensions)
 }
 

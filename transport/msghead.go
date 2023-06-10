@@ -7,7 +7,7 @@ type Flags uint8
 
 // Is 判断标志位
 func (f Flags) Is(b Flag) bool {
-	return f&(1<<b) != 0
+	return f&Flags(b) != 0
 }
 
 // Set 设置标志位
@@ -32,7 +32,7 @@ const (
 
 // MsgHead 消息头
 type MsgHead struct {
-	Len   uint32 // 消息长度
+	Len   uint32 // 消息包长度
 	Flags Flags  // 标志位
 	MsgId MsgId  // 消息Id
 }
@@ -75,10 +75,13 @@ func (m *MsgHead) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
 
-// MsgLen 消息长度字段，可以用于提高io读取效率
-type MsgLen uint32
+// MsgHeadSize 消息包头部字节数
+const MsgHeadSize = int(6)
 
-func (m *MsgLen) Read(p []byte) (int, error) {
+// MsgPacketLen 消息长度字段，可以用于提高一些写代码方式的io读取效率
+type MsgPacketLen uint32
+
+func (m *MsgPacketLen) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint32(uint32(*m)); err != nil {
 		return 0, err
@@ -86,19 +89,19 @@ func (m *MsgLen) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
-func (m *MsgLen) Write(p []byte) (int, error) {
+func (m *MsgPacketLen) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	*m = MsgLen(l)
+	*m = MsgPacketLen(l)
 	return bs.BytesRead(), nil
 }
 
-func (m *MsgLen) Size() int {
-	return MsgLenSize
+func (m *MsgPacketLen) Size() int {
+	return binaryutil.SizeofUint32()
 }
 
-// MsgLenSize 消息长度字段字节数
-const MsgLenSize = int(4)
+// MsgPacketLenSize 消息包长度字段字节数
+const MsgPacketLenSize = int(4)
