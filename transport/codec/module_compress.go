@@ -118,7 +118,7 @@ func (m CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 		return nil, err
 	}
 
-	if _, err = r.Read(rawBuf); err == nil || !errors.Is(err, io.EOF) {
+	if _, err = r.Read(rawBuf); !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
