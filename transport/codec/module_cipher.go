@@ -17,7 +17,7 @@ type CipherModule struct {
 }
 
 // XORKeyStream 密码流转换
-func (m CipherModule) XORKeyStream(dst, src []byte) error {
+func (m *CipherModule) XORKeyStream(dst, src []byte) error {
 	if m.StreamCipher == nil {
 		return errors.New("setting StreamCipher is nil")
 	}

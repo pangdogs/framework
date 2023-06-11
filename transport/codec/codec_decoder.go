@@ -111,7 +111,6 @@ func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
 		if err != nil {
 			return err
 		}
-		d.gcList = append(d.gcList, msgBuf)
 	}
 
 	// 读取消息
@@ -172,4 +171,12 @@ func (d *Decoder) GC() {
 		BytesPool.Put(d.gcList[i])
 	}
 	d.gcList = d.gcList[:0]
+
+	if d.MACModule != nil {
+		d.MACModule.GC()
+	}
+
+	if d.CompressModule != nil {
+		d.CompressModule.GC()
+	}
 }

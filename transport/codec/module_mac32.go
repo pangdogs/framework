@@ -11,10 +11,11 @@ import (
 type MAC32Module struct {
 	Hash       hash.Hash32 // hash(32bit)函数
 	PrivateKey []byte      // 秘钥
+	gcList     [][]byte    // GC列表
 }
 
 // PatchMAC 补充MAC
-func (m MAC32Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC32Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
@@ -31,7 +32,9 @@ func (m MAC32Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 
 	buf := BytesPool.Get(msgMAC.Size())
 	defer func() {
-		if err != nil {
+		if err == nil {
+			m.gcList = append(m.gcList, buf)
+		} else {
 			BytesPool.Put(buf)
 		}
 	}()
@@ -45,7 +48,7 @@ func (m MAC32Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 }
 
 // VerifyMAC 验证MAC
-func (m MAC32Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC32Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
@@ -70,6 +73,14 @@ func (m MAC32Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 }
 
 // SizeofMAC MAC大小
-func (m MAC32Module) SizeofMAC(msgLen int) int {
+func (m *MAC32Module) SizeofMAC(msgLen int) int {
 	return binaryutil.SizeofVarint(int64(msgLen)) + binaryutil.SizeofUint32()
+}
+
+// GC GC
+func (m *MAC32Module) GC() {
+	for i := range m.gcList {
+		BytesPool.Put(m.gcList[i])
+	}
+	m.gcList = m.gcList[:0]
 }
