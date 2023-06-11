@@ -15,16 +15,19 @@ type ICompressModule interface {
 	Compress(src []byte) (dst []byte, compressed bool, err error)
 	// Uncompress 解压缩数据
 	Uncompress(src []byte) (dst []byte, err error)
+	// GC GC
+	GC()
 }
 
 // CompressModule 压缩模块
 type CompressModule struct {
 	NewReader func(io.Reader) (io.Reader, error)      // 解压缩函数
 	NewWriter func(io.Writer) (io.WriteCloser, error) // 压缩函数
+	gcList    [][]byte                                // GC列表
 }
 
 // Compress 压缩数据
-func (m CompressModule) Compress(src []byte) (dst []byte, compressed bool, err error) {
+func (m *CompressModule) Compress(src []byte) (dst []byte, compressed bool, err error) {
 	if m.NewWriter == nil {
 		return nil, false, errors.New("setting NewWriter is nil")
 	}
@@ -73,7 +76,9 @@ func (m CompressModule) Compress(src []byte) (dst []byte, compressed bool, err e
 
 	buf := BytesPool.Get(msgCompressed.Size())
 	defer func() {
-		if !compressed {
+		if compressed {
+			m.gcList = append(m.gcList, buf)
+		} else {
 			BytesPool.Put(buf)
 		}
 	}()
@@ -86,7 +91,7 @@ func (m CompressModule) Compress(src []byte) (dst []byte, compressed bool, err e
 }
 
 // Uncompress 解压缩数据
-func (m CompressModule) Uncompress(src []byte) (dst []byte, err error) {
+func (m *CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 	if m.NewReader == nil {
 		return nil, errors.New("setting NewReader is nil")
 	}
@@ -108,7 +113,9 @@ func (m CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 
 	rawBuf := BytesPool.Get(int(msgCompressed.RawLen))
 	defer func() {
-		if err != nil {
+		if err == nil {
+			m.gcList = append(m.gcList, rawBuf)
+		} else {
 			BytesPool.Put(rawBuf)
 		}
 	}()
@@ -123,4 +130,12 @@ func (m CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 	}
 
 	return rawBuf, nil
+}
+
+// GC GC
+func (m *CompressModule) GC() {
+	for i := range m.gcList {
+		BytesPool.Put(m.gcList[i])
+	}
+	m.gcList = m.gcList[:0]
 }

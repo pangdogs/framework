@@ -74,7 +74,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 			return err
 		}
 		if compressed {
-			defer BytesPool.Put(buf)
+			defer e.CompressModule.GC()
 
 			head.Flags.Set(transport.Flag_Compressed, true)
 
@@ -103,7 +103,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 			if err != nil {
 				return err
 			}
-			defer BytesPool.Put(buf)
+			defer e.MACModule.GC()
 
 			copy(mpBuf[head.Size():], buf)
 			end = head.Size() + len(buf)

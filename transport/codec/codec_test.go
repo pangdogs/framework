@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -33,14 +34,14 @@ func TestCodec(t *testing.T) {
 	}
 
 	encoder := Encoder{
-		CipherModule: CipherModule{
+		CipherModule: &CipherModule{
 			StreamCipher: modeEncrypt,
 		},
-		MACModule: MAC64Module{
+		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
-		CompressModule: CompressModule{
+		CompressModule: &CompressModule{
 			NewReader: func(reader io.Reader) (io.Reader, error) {
 				return gzip.NewReader(reader)
 			},
@@ -55,15 +56,15 @@ func TestCodec(t *testing.T) {
 
 	err = encoder.Stuff(0, &transport.MsgHello{
 		Version:   10,
-		SessionId: []byte("abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
-		Random:    []byte("efgdfffffffff222222222333333333334abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"),
+		SessionId: []byte("abcaaaaaaaaaaaaaaaaaaaaa11111111111111111111111111111111111111111111111111111111111111"),
+		Random:    []byte("efgdfffffffff222222222333333333334abcaaaaaaaaaaaaaaaaaaaaa111111111111111111111111"),
 		CipherSuite: transport.CipherSuite{
 			SecretKeyExchangeMethod: transport.SecretKeyExchangeMethod_ECDHE,
 			SymmetricEncryptMethod:  transport.SymmetricEncryptMethod_AES256,
 			BlockCipherMode:         transport.BlockCipherMode_CFB,
 			HashMethod:              transport.HashMethod_Fnv1a32,
 		},
-		Extensions: []byte("abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111efgdfffffffff222222222333333333334abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111abcaaaaaaaaaaaaaaaaaaaaa11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112"),
+		Extensions: []byte("abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111"),
 	})
 	if err != nil {
 		panic(err)
@@ -71,14 +72,14 @@ func TestCodec(t *testing.T) {
 
 	decoder := Decoder{
 		MsgCreator: DefaultMsgCreator(),
-		CipherModule: CipherModule{
+		CipherModule: &CipherModule{
 			StreamCipher: modeDecrypt,
 		},
-		MACModule: MAC64Module{
+		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
-		CompressModule: CompressModule{
+		CompressModule: &CompressModule{
 			NewReader: func(reader io.Reader) (io.Reader, error) {
 				return gzip.NewReader(reader)
 			},
@@ -93,9 +94,9 @@ func TestCodec(t *testing.T) {
 		panic(err)
 	}
 
-	for err = decoder.Fetch(func(mp MsgPacket) {
-		fmt.Printf("%+v", mp)
-	}); err == nil; {
+	for decoder.Fetch(func(mp MsgPacket) {
+		v, _ := json.Marshal(mp)
+		fmt.Printf("%s\n", v)
+	}) == nil {
 	}
-
 }
