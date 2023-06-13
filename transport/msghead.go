@@ -11,13 +11,18 @@ func (f Flags) Is(b Flag) bool {
 }
 
 // Set 设置标志位
-func (f *Flags) Set(b Flag, v bool) {
+func (f *Flags) Set(b Flag, v bool) *Flags {
 	if v {
 		*f |= Flags(b)
 	} else {
 		*f &= ^Flags(b)
 	}
+	return f
 }
+
+const (
+	Flags_None Flags = 0 // 无任何标志位
+)
 
 // Flag 标志位
 type Flag = uint8
