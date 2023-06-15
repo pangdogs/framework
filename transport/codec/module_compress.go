@@ -40,7 +40,7 @@ func (m *CompressModule) Compress(src []byte) (dst []byte, compressed bool, err 
 	defer BytesPool.Put(compressedBuf)
 
 	n, err := func() (n int, err error) {
-		lw := xio.NewBytesLimitWriter(compressedBuf, len(compressedBuf))
+		lw := xio.NewBytesWriter(compressedBuf)
 		w, err := m.NewWriter(lw)
 		if err != nil {
 			return 0, err
