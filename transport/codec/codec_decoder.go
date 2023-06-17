@@ -46,6 +46,10 @@ func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 
 // Fetch 取出单个消息包
 func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
+	if fun == nil {
+		return errors.New("fun is nil")
+	}
+
 	if d.cache.Len() < transport.MsgHeadSize {
 		return ErrEmptyCache
 	}
@@ -119,27 +123,28 @@ func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
 		return err
 	}
 
-	if fun != nil {
-		fun(mp)
-	}
+	fun(mp)
 
 	return nil
 }
 
 // MultiFetch 取出多个消息包
 func (d *Decoder) MultiFetch(fun func(mp MsgPacket) bool) error {
-	var t MsgPacket
-	var err error
-
-	for err = d.Fetch(func(mp MsgPacket) { t = mp }); err == nil; {
-		if fun != nil {
-			if !fun(t) {
-				return nil
-			}
-		}
+	if fun == nil {
+		return errors.New("fun is nil")
 	}
 
-	return err
+	for {
+		var recvMP MsgPacket
+
+		if err := d.Fetch(func(mp MsgPacket) { recvMP = mp }); err != nil {
+			return err
+		}
+
+		if !fun(recvMP) {
+			return nil
+		}
+	}
 }
 
 // Discard 丢弃消息包
