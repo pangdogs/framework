@@ -1,13 +1,9 @@
-package codec
-
-import (
-	"kit.golaxy.org/plugins/transport"
-)
+package transport
 
 // MsgPacket 消息包
 type MsgPacket struct {
-	Head transport.MsgHead // 消息头
-	Msg  transport.Msg     // 消息
+	Head MsgHead // 消息头
+	Msg  Msg     // 消息
 }
 
 func (mp *MsgPacket) Read(p []byte) (int, error) {
@@ -18,7 +14,7 @@ func (mp *MsgPacket) Read(p []byte) (int, error) {
 	if mp.Msg == nil {
 		return hn, nil
 	}
-	mn, err := mp.Msg.Read(p)
+	mn, err := mp.Msg.Read(p[hn:])
 	return mn + hn, err
 }
 
@@ -30,7 +26,7 @@ func (mp *MsgPacket) Write(p []byte) (int, error) {
 	if mp.Msg == nil {
 		return hn, nil
 	}
-	mn, err := mp.Msg.Write(p)
+	mn, err := mp.Msg.Write(p[hn:])
 	return mn + hn, err
 }
 

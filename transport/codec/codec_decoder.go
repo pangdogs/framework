@@ -17,9 +17,9 @@ type IDecoder interface {
 	io.Writer
 	io.ReaderFrom
 	// Fetch 取出单个消息包
-	Fetch(fun func(mp MsgPacket)) error
+	Fetch(fun func(mp transport.MsgPacket)) error
 	// MultiFetch 取出多个消息包
-	MultiFetch(fun func(mp MsgPacket) bool) error
+	MultiFetch(fun func(mp transport.MsgPacket) bool) error
 	// Discard 丢弃消息包
 	Discard(n int) error
 	// GC GC
@@ -45,7 +45,7 @@ func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 }
 
 // Fetch 取出单个消息包
-func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
+func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 	if fun == nil {
 		return errors.New("fun is nil")
 	}
@@ -54,7 +54,7 @@ func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
 		return ErrEmptyCache
 	}
 
-	mp := MsgPacket{}
+	mp := transport.MsgPacket{}
 
 	// 读取消息头
 	_, err := mp.Head.Write(d.cache.Bytes())
@@ -129,15 +129,15 @@ func (d *Decoder) Fetch(fun func(mp MsgPacket)) error {
 }
 
 // MultiFetch 取出多个消息包
-func (d *Decoder) MultiFetch(fun func(mp MsgPacket) bool) error {
+func (d *Decoder) MultiFetch(fun func(mp transport.MsgPacket) bool) error {
 	if fun == nil {
 		return errors.New("fun is nil")
 	}
 
 	for {
-		var recvMP MsgPacket
+		var recvMP transport.MsgPacket
 
-		if err := d.Fetch(func(mp MsgPacket) { recvMP = mp }); err != nil {
+		if err := d.Fetch(func(mp transport.MsgPacket) { recvMP = mp }); err != nil {
 			return err
 		}
 
@@ -154,7 +154,7 @@ func (d *Decoder) Discard(n int) error {
 			return ErrEmptyCache
 		}
 
-		mp := MsgPacket{}
+		mp := transport.MsgPacket{}
 
 		_, err := mp.Head.Read(d.cache.Bytes())
 		if err != nil {

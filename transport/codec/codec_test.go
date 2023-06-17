@@ -94,7 +94,7 @@ func TestCodec(t *testing.T) {
 		panic(err)
 	}
 
-	for decoder.Fetch(func(mp MsgPacket) {
+	for decoder.Fetch(func(mp transport.MsgPacket) {
 		v, _ := json.Marshal(mp)
 		fmt.Printf("%s\n", v)
 	}) == nil {

@@ -34,7 +34,7 @@ func (m *MACModule) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLenSize:])
+	m.Hash.Write(headBuf[transport.MsgHeadLenSize:])
 	m.Hash.Write(msgBuf)
 	m.Hash.Write(m.PrivateKey)
 
@@ -74,7 +74,7 @@ func (m *MACModule) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLenSize:])
+	m.Hash.Write(headBuf[transport.MsgHeadLenSize:])
 	m.Hash.Write(msgMAC.Data)
 	m.Hash.Write(m.PrivateKey)
 

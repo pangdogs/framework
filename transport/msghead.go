@@ -35,6 +35,11 @@ const (
 	Flag_Customize  = iota             // 自定义标志位起点
 )
 
+const (
+	MsgHeadSize    = 6 // 消息包头部字节数
+	MsgHeadLenSize = 4 // 消息包头部长度字段字节数
+)
+
 // MsgHead 消息头
 type MsgHead struct {
 	Len   uint32 // 消息包长度
@@ -79,34 +84,3 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 func (m *MsgHead) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
-
-// MsgHeadSize 消息包头部字节数
-const MsgHeadSize = int(6)
-
-// MsgPacketLen 消息长度字段，可以用于提高一些写代码方式的io读取效率
-type MsgPacketLen uint32
-
-func (m *MsgPacketLen) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint32(uint32(*m)); err != nil {
-		return 0, err
-	}
-	return bs.BytesWritten(), nil
-}
-
-func (m *MsgPacketLen) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	l, err := bs.ReadUint32()
-	if err != nil {
-		return 0, err
-	}
-	*m = MsgPacketLen(l)
-	return bs.BytesRead(), nil
-}
-
-func (m *MsgPacketLen) Size() int {
-	return binaryutil.SizeofUint32()
-}
-
-// MsgPacketLenSize 消息包长度字段字节数
-const MsgPacketLenSize = int(4)
