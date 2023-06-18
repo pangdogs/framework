@@ -15,6 +15,20 @@ type Msg[T transport.Msg] struct {
 	Msg   T               // 消息
 }
 
+func Trans2Msg[T transport.Msg](msg Msg[transport.Msg]) Msg[T] {
+	return Msg[T]{
+		Flags: msg.Flags,
+		Msg:   msg.Msg.(T),
+	}
+}
+
+func Msg2Trans[T transport.Msg](msg Msg[T]) Msg[transport.Msg] {
+	return Msg[transport.Msg]{
+		Flags: msg.Flags,
+		Msg:   msg.Msg,
+	}
+}
+
 // RstError Rst错误提示
 type RstError struct {
 	Code    transport.Code // 错误码
