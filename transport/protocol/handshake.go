@@ -42,10 +42,7 @@ func (h *Handshake) ClientHello(helloMsg Msg[*transport.MsgHello], helloFin Hell
 
 	defer trans.Decoder.GC()
 
-	err := trans.Send(Msg[transport.Msg]{
-		Flags: helloMsg.Flags,
-		Msg:   helloMsg.Msg,
-	})
+	err := trans.Send(Msg2Trans(helloMsg))
 	if err != nil {
 		return err
 	}
@@ -59,16 +56,12 @@ func (h *Handshake) ClientHello(helloMsg Msg[*transport.MsgHello], helloFin Hell
 	case transport.MsgId_Hello:
 		break
 	case transport.MsgId_Rst:
-		msg := recv.Msg.(*transport.MsgRst)
-		return fmt.Errorf("recv rst, %s", msg.Message)
+		return fmt.Errorf("recv rst, %s", Trans2Msg[*transport.MsgRst](recv).Msg.Message)
 	default:
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	err = helloFin(Msg[*transport.MsgHello]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgHello),
-	})
+	err = helloFin(Trans2Msg[*transport.MsgHello](recv))
 	if err != nil {
 		return err
 	}
@@ -108,18 +101,12 @@ func (h *Handshake) ServerHello(helloAccept HelloAccept) (err error) {
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	reply, err := helloAccept(Msg[*transport.MsgHello]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgHello),
-	})
+	reply, err := helloAccept(Trans2Msg[*transport.MsgHello](recv))
 	if err != nil {
 		return err
 	}
 
-	err = trans.Send(Msg[transport.Msg]{
-		Flags: reply.Flags,
-		Msg:   reply.Msg,
-	})
+	err = trans.Send(Msg2Trans(reply))
 	if err != nil {
 		return err
 	}
@@ -155,8 +142,7 @@ func (h *Handshake) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExc
 	case transport.MsgId_ECDHESecretKeyExchange:
 		break
 	case transport.MsgId_Rst:
-		msg := recv.Msg.(*transport.MsgRst)
-		return fmt.Errorf("recv rst, %s", msg.Message)
+		return fmt.Errorf("recv rst, %s", Trans2Msg[*transport.MsgRst](recv).Msg.Message)
 	default:
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
@@ -166,10 +152,7 @@ func (h *Handshake) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExc
 		return err
 	}
 
-	err = trans.Send(Msg[transport.Msg]{
-		Flags: secretKeyExchangeReply.Flags,
-		Msg:   secretKeyExchangeReply.Msg,
-	})
+	err = trans.Send(Msg2Trans(secretKeyExchangeReply))
 	if err != nil {
 		return err
 	}
@@ -183,24 +166,17 @@ func (h *Handshake) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExc
 	case transport.MsgId_ChangeCipherSpec:
 		break
 	case transport.MsgId_Rst:
-		msg := recv.Msg.(*transport.MsgRst)
-		return fmt.Errorf("recv rst, %s", msg.Message)
+		return fmt.Errorf("recv rst, %s", Trans2Msg[*transport.MsgRst](recv).Msg.Message)
 	default:
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	changeCipherSpecReply, err := changeCipherSpecAccept(Msg[*transport.MsgChangeCipherSpec]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgChangeCipherSpec),
-	})
+	changeCipherSpecReply, err := changeCipherSpecAccept(Trans2Msg[*transport.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return err
 	}
 
-	err = trans.Send(Msg[transport.Msg]{
-		Flags: changeCipherSpecReply.Flags,
-		Msg:   changeCipherSpecReply.Msg,
-	})
+	err = trans.Send(Msg2Trans(changeCipherSpecReply))
 	if err != nil {
 		return err
 	}
@@ -232,10 +208,7 @@ func (h *Handshake) ServerECDHESecretKeyExchange(secretKeyExchangeMsg Msg[*trans
 		trans.Decoder.GC()
 	}()
 
-	err = trans.Send(Msg[transport.Msg]{
-		Flags: secretKeyExchangeMsg.Flags,
-		Msg:   secretKeyExchangeMsg.Msg,
-	})
+	err = trans.Send(Msg2Trans(secretKeyExchangeMsg))
 	if err != nil {
 		return err
 	}
@@ -252,18 +225,12 @@ func (h *Handshake) ServerECDHESecretKeyExchange(secretKeyExchangeMsg Msg[*trans
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	changeCipherSpecMsg, err := secretKeyExchangeFin(Msg[*transport.MsgECDHESecretKeyExchange]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgECDHESecretKeyExchange),
-	})
+	changeCipherSpecMsg, err := secretKeyExchangeFin(Trans2Msg[*transport.MsgECDHESecretKeyExchange](recv))
 	if err != nil {
 		return err
 	}
 
-	err = trans.Send(Msg[transport.Msg]{
-		Flags: changeCipherSpecMsg.Flags,
-		Msg:   changeCipherSpecMsg.Msg,
-	})
+	err = trans.Send(Msg2Trans(changeCipherSpecMsg))
 	if err != nil {
 		return err
 	}
@@ -280,10 +247,7 @@ func (h *Handshake) ServerECDHESecretKeyExchange(secretKeyExchangeMsg Msg[*trans
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	err = changeCipherSpecFin(Msg[*transport.MsgChangeCipherSpec]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgChangeCipherSpec),
-	})
+	err = changeCipherSpecFin(Trans2Msg[*transport.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return err
 	}
@@ -300,10 +264,7 @@ func (h *Handshake) ClientAuth(authMsg Msg[*transport.MsgAuth]) error {
 		RetryTimes: h.RetryTimes,
 	}
 
-	err := trans.Send(Msg[transport.Msg]{
-		Flags: authMsg.Flags,
-		Msg:   authMsg.Msg,
-	})
+	err := trans.Send(Msg2Trans(authMsg))
 	if err != nil {
 		return err
 	}
@@ -343,10 +304,7 @@ func (h *Handshake) ServerAuth(authAccept AuthAccept) (err error) {
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	err = authAccept(Msg[*transport.MsgAuth]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgAuth),
-	})
+	err = authAccept(Trans2Msg[*transport.MsgAuth](recv))
 	if err != nil {
 		return err
 	}
@@ -378,16 +336,12 @@ func (h *Handshake) ClientFinished(finishedAccept FinishedAccept) error {
 	case transport.MsgId_Finished:
 		break
 	case transport.MsgId_Rst:
-		msg := recv.Msg.(*transport.MsgRst)
-		return fmt.Errorf("recv rst, %s", msg.Message)
+		return fmt.Errorf("recv rst, %s", Trans2Msg[*transport.MsgRst](recv).Msg.Message)
 	default:
 		return fmt.Errorf("recv unexpected msg %d", recv.Msg.MsgId())
 	}
 
-	err = finishedAccept(Msg[*transport.MsgFinished]{
-		Flags: recv.Flags,
-		Msg:   recv.Msg.(*transport.MsgFinished),
-	})
+	err = finishedAccept(Trans2Msg[*transport.MsgFinished](recv))
 	if err != nil {
 		return err
 	}
@@ -404,10 +358,7 @@ func (h *Handshake) ServerFinished(finishedMsg Msg[*transport.MsgFinished]) erro
 		RetryTimes: h.RetryTimes,
 	}
 
-	err := trans.Send(Msg[transport.Msg]{
-		Flags: finishedMsg.Flags,
-		Msg:   finishedMsg.Msg,
-	})
+	err := trans.Send(Msg2Trans(finishedMsg))
 	if err != nil {
 		return err
 	}
