@@ -79,7 +79,7 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 	}
 
 	if err := t.Encoder.Stuff(e.Flags, e.Msg); err != nil {
-		return fmt.Errorf("stuff event msg failed, %s", err)
+		return fmt.Errorf("stuff event msg failed, %w", err)
 	}
 
 	var retries int
@@ -91,24 +91,7 @@ retry:
 				goto retry
 			}
 		}
-		return fmt.Errorf("send msg-packet failed, %s", err)
-	}
-
-	return nil
-}
-
-// SendToCache 发送消息事件至缓存
-func (t *Transceiver) SendToCache(e Event[transport.Msg]) error {
-	if t.Conn == nil {
-		return errors.New("conn is nil")
-	}
-
-	if t.Encoder == nil {
-		return errors.New("encoder is nil")
-	}
-
-	if err := t.Encoder.Stuff(e.Flags, e.Msg); err != nil {
-		return fmt.Errorf("stuff event msg failed, %s", err)
+		return fmt.Errorf("send msg-packet failed, %w", err)
 	}
 
 	return nil
@@ -155,7 +138,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 
 		if err := t.Decoder.Fetch(func(mp transport.MsgPacket) { recvMP = mp }); err != nil {
 			if !errors.Is(err, codec.ErrEmptyCache) {
-				return Event[transport.Msg]{}, fmt.Errorf("fetch recv msg-packet failed, %s", err)
+				return Event[transport.Msg]{}, fmt.Errorf("fetch recv msg-packet failed, %w", err)
 			}
 		} else {
 			return Event[transport.Msg]{
@@ -173,7 +156,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 					goto retry
 				}
 			}
-			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %s", err)
+			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w", err)
 		}
 	}
 }
@@ -204,7 +187,7 @@ func (t *Transceiver) MultiRecv(fun func(Event[transport.Msg]) bool) error {
 		})
 		if err != nil {
 			if !errors.Is(err, codec.ErrEmptyCache) {
-				return fmt.Errorf("fetch recv msg-packet failed, %s", err)
+				return fmt.Errorf("fetch recv msg-packet failed, %w", err)
 			}
 		}
 		if !b {
@@ -220,7 +203,7 @@ func (t *Transceiver) MultiRecv(fun func(Event[transport.Msg]) bool) error {
 					goto retry
 				}
 			}
-			return fmt.Errorf("recv msg-packet failed, %s", err)
+			return fmt.Errorf("recv msg-packet failed, %w", err)
 		}
 	}
 }
