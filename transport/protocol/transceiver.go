@@ -9,23 +9,25 @@ import (
 	"os"
 )
 
-// Msg 消息
-type Msg[T transport.Msg] struct {
+// Event 消息事件
+type Event[T transport.Msg] struct {
 	Flags transport.Flags // 标志位
 	Msg   T               // 消息
 }
 
-func Trans2Msg[T transport.Msg](msg Msg[transport.Msg]) Msg[T] {
-	return Msg[T]{
-		Flags: msg.Flags,
-		Msg:   msg.Msg.(T),
+// UnpackEvent 解包消息事件
+func UnpackEvent[T transport.Msg](e Event[transport.Msg]) Event[T] {
+	return Event[T]{
+		Flags: e.Flags,
+		Msg:   e.Msg.(T),
 	}
 }
 
-func Msg2Trans[T transport.Msg](msg Msg[T]) Msg[transport.Msg] {
-	return Msg[transport.Msg]{
-		Flags: msg.Flags,
-		Msg:   msg.Msg,
+// PackEvent 打包消息事件
+func PackEvent[T transport.Msg](e Event[T]) Event[transport.Msg] {
+	return Event[transport.Msg]{
+		Flags: e.Flags,
+		Msg:   e.Msg,
 	}
 }
 
@@ -40,7 +42,25 @@ func (e *RstError) Error() string {
 	return fmt.Sprintf("(%d)%s", e.Code, e.Message)
 }
 
-// Transceiver 消息收发器
+// EventToRstErr Rst错误消息事件转换为错误提示
+func EventToRstErr(e Event[*transport.MsgRst]) *RstError {
+	return &RstError{
+		Code:    e.Msg.Code,
+		Message: e.Msg.Message,
+	}
+}
+
+// RstErrToEvent Rst错误提示转换为消息事件
+func RstErrToEvent(err *RstError) Event[*transport.MsgRst] {
+	return Event[*transport.MsgRst]{
+		Msg: &transport.MsgRst{
+			Code:    err.Code,
+			Message: err.Message,
+		},
+	}
+}
+
+// Transceiver 消息事件收发器
 type Transceiver struct {
 	Conn       net.Conn       // 网络连接
 	Encoder    codec.IEncoder // 消息包编码器
@@ -48,8 +68,8 @@ type Transceiver struct {
 	RetryTimes int            // io超时重试次数
 }
 
-// Send 发送消息
-func (t *Transceiver) Send(msg Msg[transport.Msg]) error {
+// Send 发送消息事件
+func (t *Transceiver) Send(e Event[transport.Msg]) error {
 	if t.Conn == nil {
 		return errors.New("conn is nil")
 	}
@@ -58,8 +78,8 @@ func (t *Transceiver) Send(msg Msg[transport.Msg]) error {
 		return errors.New("encoder is nil")
 	}
 
-	if err := t.Encoder.Stuff(msg.Flags, msg.Msg); err != nil {
-		return fmt.Errorf("stuff send msg failed, %s", err)
+	if err := t.Encoder.Stuff(e.Flags, e.Msg); err != nil {
+		return fmt.Errorf("stuff event msg failed, %s", err)
 	}
 
 	var retries int
@@ -77,7 +97,24 @@ retry:
 	return nil
 }
 
-// SendRst 发送Rst
+// SendToCache 发送消息事件至缓存
+func (t *Transceiver) SendToCache(e Event[transport.Msg]) error {
+	if t.Conn == nil {
+		return errors.New("conn is nil")
+	}
+
+	if t.Encoder == nil {
+		return errors.New("encoder is nil")
+	}
+
+	if err := t.Encoder.Stuff(e.Flags, e.Msg); err != nil {
+		return fmt.Errorf("stuff event msg failed, %s", err)
+	}
+
+	return nil
+}
+
+// SendRst 发送Rst消息事件
 func (t *Transceiver) SendRst(err error) {
 	if t.Conn == nil || t.Encoder == nil {
 		return
@@ -103,14 +140,14 @@ func (t *Transceiver) SendRst(err error) {
 	}
 }
 
-// Recv 接收单个消息
-func (t *Transceiver) Recv() (Msg[transport.Msg], error) {
+// Recv 接收单个消息事件
+func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 	if t.Conn == nil {
-		return Msg[transport.Msg]{}, errors.New("conn is nil")
+		return Event[transport.Msg]{}, errors.New("conn is nil")
 	}
 
 	if t.Decoder == nil {
-		return Msg[transport.Msg]{}, errors.New("decoder is nil")
+		return Event[transport.Msg]{}, errors.New("decoder is nil")
 	}
 
 	for {
@@ -118,10 +155,10 @@ func (t *Transceiver) Recv() (Msg[transport.Msg], error) {
 
 		if err := t.Decoder.Fetch(func(mp transport.MsgPacket) { recvMP = mp }); err != nil {
 			if !errors.Is(err, codec.ErrEmptyCache) {
-				return Msg[transport.Msg]{}, fmt.Errorf("fetch recv msg-packet failed, %s", err)
+				return Event[transport.Msg]{}, fmt.Errorf("fetch recv msg-packet failed, %s", err)
 			}
 		} else {
-			return Msg[transport.Msg]{
+			return Event[transport.Msg]{
 				Flags: recvMP.Head.Flags,
 				Msg:   recvMP.Msg,
 			}, nil
@@ -136,13 +173,13 @@ func (t *Transceiver) Recv() (Msg[transport.Msg], error) {
 					goto retry
 				}
 			}
-			return Msg[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %s", err)
+			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %s", err)
 		}
 	}
 }
 
-// MultiRecv 接收多个消息
-func (t *Transceiver) MultiRecv(fun func(Msg[transport.Msg]) bool) error {
+// MultiRecv 接收多个消息事件
+func (t *Transceiver) MultiRecv(fun func(Event[transport.Msg]) bool) error {
 	if fun == nil {
 		return errors.New("fun is nil")
 	}
@@ -159,7 +196,7 @@ func (t *Transceiver) MultiRecv(fun func(Msg[transport.Msg]) bool) error {
 		var b bool
 
 		err := t.Decoder.MultiFetch(func(mp transport.MsgPacket) bool {
-			b = fun(Msg[transport.Msg]{
+			b = fun(Event[transport.Msg]{
 				Flags: mp.Head.Flags,
 				Msg:   mp.Msg,
 			})
@@ -169,10 +206,9 @@ func (t *Transceiver) MultiRecv(fun func(Msg[transport.Msg]) bool) error {
 			if !errors.Is(err, codec.ErrEmptyCache) {
 				return fmt.Errorf("fetch recv msg-packet failed, %s", err)
 			}
-		} else {
-			if !b {
-				return nil
-			}
+		}
+		if !b {
+			return err
 		}
 
 		var retries int
