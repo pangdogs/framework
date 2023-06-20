@@ -6,6 +6,7 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
 	"net"
+	"time"
 )
 
 var (
@@ -17,23 +18,23 @@ type ErrorHandler = func(err error) bool
 
 // Handler 消息句柄
 type Handler interface {
-	Recv(e Event[transport.Msg]) error
+	Recv(Event[transport.Msg]) error
 }
 
 // Dispatcher 消息事件分发器
 type Dispatcher struct {
-	Conn       net.Conn                    // 网络连接
-	Decoder    codec.IDecoder              // 消息包解码器
-	RetryTimes int                         // io超时重试次数
-	Handlers   map[transport.MsgId]Handler // 消息处理句柄
+	Conn     net.Conn                    // 网络连接
+	Decoder  codec.IDecoder              // 消息包解码器
+	Timeout  time.Duration               // io超时时间
+	Handlers map[transport.MsgId]Handler // 消息处理句柄
 }
 
 // Run 运行
 func (d *Dispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 	trans := Transceiver{
-		Conn:       d.Conn,
-		Decoder:    d.Decoder,
-		RetryTimes: d.RetryTimes,
+		Conn:    d.Conn,
+		Decoder: d.Decoder,
+		Timeout: d.Timeout,
 	}
 
 	for {
