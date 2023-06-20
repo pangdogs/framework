@@ -18,7 +18,7 @@ type (
 type Ctrl struct {
 	Conn          net.Conn       // 网络连接
 	Encoder       codec.IEncoder // 消息包编码器
-	RetryTimes    int            // io超时重试次数
+	Timeout       time.Duration  // io超时时间
 	RecvRst       RecvRst        // 接收Rst消息事件
 	RecvSyncTime  RecvSyncTime   // 接收SyncTime消息事件
 	RecvHeartbeat RecvHeartbeat  // 接收Heartbeat消息事件
@@ -27,9 +27,9 @@ type Ctrl struct {
 // SendRst 发送Rst消息事件
 func (c *Ctrl) SendRst(err error) error {
 	trans := Transceiver{
-		Conn:       c.Conn,
-		Encoder:    c.Encoder,
-		RetryTimes: c.RetryTimes,
+		Conn:    c.Conn,
+		Encoder: c.Encoder,
+		Timeout: c.Timeout,
 	}
 	return trans.SendRst(err)
 }
@@ -37,9 +37,9 @@ func (c *Ctrl) SendRst(err error) error {
 // SendSyncTime 发送SyncTime消息事件
 func (c *Ctrl) SendSyncTime() error {
 	trans := Transceiver{
-		Conn:       c.Conn,
-		Encoder:    c.Encoder,
-		RetryTimes: c.RetryTimes,
+		Conn:    c.Conn,
+		Encoder: c.Encoder,
+		Timeout: c.Timeout,
 	}
 	return trans.Send(PackEvent(Event[*transport.MsgSyncTime]{
 		Msg: &transport.MsgSyncTime{UnixMilli: time.Now().UnixMilli()}},
@@ -49,9 +49,9 @@ func (c *Ctrl) SendSyncTime() error {
 // SendHeartbeat 发送Heartbeat消息事件
 func (c *Ctrl) SendHeartbeat() error {
 	trans := Transceiver{
-		Conn:       c.Conn,
-		Encoder:    c.Encoder,
-		RetryTimes: c.RetryTimes,
+		Conn:    c.Conn,
+		Encoder: c.Encoder,
+		Timeout: c.Timeout,
 	}
 	return trans.Send(PackEvent(Event[*transport.MsgHeartbeat]{}))
 }

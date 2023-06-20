@@ -6,7 +6,7 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
 	"net"
-	"os"
+	"time"
 )
 
 // Event 消息事件
@@ -62,10 +62,10 @@ func RstErrToEvent(err *RstError) Event[*transport.MsgRst] {
 
 // Transceiver 消息事件收发器
 type Transceiver struct {
-	Conn       net.Conn       // 网络连接
-	Encoder    codec.IEncoder // 消息包编码器
-	Decoder    codec.IDecoder // 消息包解码器
-	RetryTimes int            // io超时重试次数
+	Conn    net.Conn       // 网络连接
+	Encoder codec.IEncoder // 消息包编码器
+	Decoder codec.IDecoder // 消息包解码器
+	Timeout time.Duration  // io超时时间
 }
 
 // Send 发送消息事件
@@ -82,15 +82,13 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 		return fmt.Errorf("stuff event msg failed, %w", err)
 	}
 
-	var retries int
-retry:
+	if t.Timeout > 0 {
+		t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout))
+	} else {
+		t.Conn.SetWriteDeadline(time.Time{})
+	}
+
 	if _, err := t.Encoder.WriteTo(t.Conn); err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			if retries < t.RetryTimes {
-				retries++
-				goto retry
-			}
-		}
 		return fmt.Errorf("send msg-packet failed, %w", err)
 	}
 
@@ -124,6 +122,12 @@ func (t *Transceiver) SendRst(err error) error {
 		return err
 	}
 
+	if t.Timeout > 0 {
+		t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout))
+	} else {
+		t.Conn.SetWriteDeadline(time.Time{})
+	}
+
 	if _, err := t.Encoder.WriteTo(t.Conn); err != nil {
 		return err
 	}
@@ -155,15 +159,13 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 			}, nil
 		}
 
-		var retries int
-	retry:
+		if t.Timeout > 0 {
+			t.Conn.SetReadDeadline(time.Now().Add(t.Timeout))
+		} else {
+			t.Conn.SetReadDeadline(time.Time{})
+		}
+
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			if errors.Is(err, os.ErrDeadlineExceeded) {
-				if retries < t.RetryTimes {
-					retries++
-					goto retry
-				}
-			}
 			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w", err)
 		}
 	}
@@ -202,15 +204,13 @@ func (t *Transceiver) MultiRecv(fun func(Event[transport.Msg]) bool) error {
 			return err
 		}
 
-		var retries int
-	retry:
+		if t.Timeout > 0 {
+			t.Conn.SetReadDeadline(time.Now().Add(t.Timeout))
+		} else {
+			t.Conn.SetReadDeadline(time.Time{})
+		}
+
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			if errors.Is(err, os.ErrDeadlineExceeded) {
-				if retries < t.RetryTimes {
-					retries++
-					goto retry
-				}
-			}
 			return fmt.Errorf("recv msg-packet failed, %w", err)
 		}
 	}

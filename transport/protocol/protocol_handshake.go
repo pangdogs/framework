@@ -6,6 +6,7 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
 	"net"
+	"time"
 )
 
 type (
@@ -21,10 +22,10 @@ type (
 
 // Handshake 握手协议
 type Handshake struct {
-	Conn       net.Conn       // 网络连接
-	Encoder    codec.IEncoder // 消息包编码器
-	Decoder    codec.IDecoder // 消息包解码器
-	RetryTimes int            // io超时重试次数
+	Conn    net.Conn       // 网络连接
+	Encoder codec.IEncoder // 消息包编码器
+	Decoder codec.IDecoder // 消息包解码器
+	Timeout time.Duration  // io超时时间
 }
 
 // ClientHello 客户端Hello
@@ -34,10 +35,10 @@ func (h *Handshake) ClientHello(hello Event[*transport.MsgHello], helloFin Hello
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer trans.Decoder.GC()
@@ -76,10 +77,10 @@ func (h *Handshake) ServerHello(helloAccept HelloAccept) (err error) {
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer func() {
@@ -125,10 +126,10 @@ func (h *Handshake) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExc
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer trans.Decoder.GC()
@@ -195,10 +196,10 @@ func (h *Handshake) ServerECDHESecretKeyExchange(secretKeyExchange Event[*transp
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer func() {
@@ -258,10 +259,10 @@ func (h *Handshake) ServerECDHESecretKeyExchange(secretKeyExchange Event[*transp
 // ClientAuth 客户端发起鉴权
 func (h *Handshake) ClientAuth(auth Event[*transport.MsgAuth]) error {
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	err := trans.Send(PackEvent(auth))
@@ -279,10 +280,10 @@ func (h *Handshake) ServerAuth(authAccept AuthAccept) (err error) {
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer func() {
@@ -319,10 +320,10 @@ func (h *Handshake) ClientFinished(finishedAccept FinishedAccept) error {
 	}
 
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
 	defer trans.Decoder.GC()
@@ -350,15 +351,21 @@ func (h *Handshake) ClientFinished(finishedAccept FinishedAccept) error {
 }
 
 // ServerFinished 服务端握手结束
-func (h *Handshake) ServerFinished(finished Event[*transport.MsgFinished]) error {
+func (h *Handshake) ServerFinished(finished Event[*transport.MsgFinished]) (err error) {
 	trans := Transceiver{
-		Conn:       h.Conn,
-		Encoder:    h.Encoder,
-		Decoder:    h.Decoder,
-		RetryTimes: h.RetryTimes,
+		Conn:    h.Conn,
+		Encoder: h.Encoder,
+		Decoder: h.Decoder,
+		Timeout: h.Timeout,
 	}
 
-	err := trans.Send(PackEvent(finished))
+	defer func() {
+		if err != nil {
+			trans.SendRst(err)
+		}
+	}()
+
+	err = trans.Send(PackEvent(finished))
 	if err != nil {
 		return err
 	}
