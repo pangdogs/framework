@@ -44,7 +44,9 @@ func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 	var buff [bytes.MinRead]byte
 
 	n, err := r.Read(buff[:])
-	d.cache.Write(buff[:n])
+	if n > 0 {
+		d.cache.Write(buff[:n])
+	}
 
 	return int64(n), err
 }
