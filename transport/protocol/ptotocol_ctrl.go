@@ -60,12 +60,12 @@ func (c *Ctrl) SendHeartbeat() error {
 func (c *Ctrl) Recv(e Event[transport.Msg]) error {
 	switch e.Msg.MsgId() {
 	case transport.MsgId_Rst:
-		if c.RecvHeartbeat != nil {
+		if c.RecvRst != nil {
 			return c.RecvRst(UnpackEvent[*transport.MsgRst](e))
 		}
 		return nil
 	case transport.MsgId_SyncTime:
-		if c.RecvHeartbeat != nil {
+		if c.RecvSyncTime != nil {
 			return c.RecvSyncTime(UnpackEvent[*transport.MsgSyncTime](e))
 		}
 		return nil
