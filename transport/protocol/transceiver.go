@@ -98,9 +98,13 @@ retry:
 }
 
 // SendRst 发送Rst消息事件
-func (t *Transceiver) SendRst(err error) {
-	if t.Conn == nil || t.Encoder == nil {
-		return
+func (t *Transceiver) SendRst(err error) error {
+	if t.Conn == nil {
+		return errors.New("conn is nil")
+	}
+
+	if t.Encoder == nil {
+		return errors.New("encoder is nil")
 	}
 
 	msg := &transport.MsgRst{}
@@ -111,16 +115,20 @@ func (t *Transceiver) SendRst(err error) {
 		msg.Message = rstErr.Message
 	} else {
 		msg.Code = transport.Code_Reject
-		msg.Message = rstErr.Message
+		if err != nil {
+			msg.Message = err.Error()
+		}
 	}
 
 	if err := t.Encoder.Stuff(transport.Flags_None, msg); err != nil {
-		return
+		return err
 	}
 
 	if _, err := t.Encoder.WriteTo(t.Conn); err != nil {
-		return
+		return err
 	}
+
+	return nil
 }
 
 // Recv 接收单个消息事件
