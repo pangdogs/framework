@@ -53,7 +53,12 @@ func (d *Dispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 			continue
 		}
 
-		handler := d.Handlers[e.Msg.MsgId()]
+		var handler Handler
+
+		if d.Handlers != nil {
+			handler = d.Handlers[e.Msg.MsgId()]
+		}
+
 		if handler == nil {
 			if errorHandler != nil {
 				if !errorHandler(ErrHandlerNotRegistered) {
