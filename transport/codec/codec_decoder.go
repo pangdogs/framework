@@ -41,7 +41,12 @@ func (d *Decoder) Write(p []byte) (int, error) {
 }
 
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
-	return d.cache.ReadFrom(r)
+	var buff [bytes.MinRead]byte
+
+	n, err := r.Read(buff[:])
+	d.cache.Write(buff[:n])
+
+	return int64(n), err
 }
 
 // Fetch 取出单个消息包
