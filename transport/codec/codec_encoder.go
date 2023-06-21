@@ -22,7 +22,7 @@ type Encoder struct {
 	CompressModule ICompressModule // 压缩模块
 	Encryption     bool            // 开启加密
 	PatchMAC       bool            // 开启MAC
-	Compressed     int             // 开启压缩阀值，负值表示不开启
+	Compressed     int             // 开启压缩阀值，<=0表示不开启
 	cache          bytes.Buffer    // cache
 }
 
@@ -65,7 +65,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	end := head.Size() + mn
 
 	// 消息长度达到阀值，需要压缩消息
-	if e.Compressed >= 0 && msg.Size() >= e.Compressed {
+	if e.Compressed > 0 && msg.Size() >= e.Compressed {
 		if e.CompressModule == nil {
 			return errors.New("setting CompressModule is nil, msg can't be compress")
 		}
