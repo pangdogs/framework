@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrRecvUnexpectedSeq = errors.New("recv unexpected seq") // 收到的数据序号错误
+	ErrRecvUnexpectedSeq = errors.New("recv unexpected payload seq") // 收到的数据序号错误
 )
 
 type (
