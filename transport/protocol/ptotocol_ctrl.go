@@ -14,8 +14,8 @@ type (
 	RecvHeartbeat = func(Event[*transport.MsgHeartbeat]) error
 )
 
-// Ctrl 控制协议
-type Ctrl struct {
+// CtrlProtocol 控制协议
+type CtrlProtocol struct {
 	Conn          net.Conn       // 网络连接
 	Encoder       codec.IEncoder // 消息包编码器
 	Timeout       time.Duration  // io超时时间
@@ -25,7 +25,7 @@ type Ctrl struct {
 }
 
 // SendRst 发送Rst消息事件
-func (c *Ctrl) SendRst(err error) error {
+func (c *CtrlProtocol) SendRst(err error) error {
 	trans := Transceiver{
 		Conn:    c.Conn,
 		Encoder: c.Encoder,
@@ -35,7 +35,7 @@ func (c *Ctrl) SendRst(err error) error {
 }
 
 // SendSyncTime 发送SyncTime消息事件
-func (c *Ctrl) SendSyncTime() error {
+func (c *CtrlProtocol) SendSyncTime() error {
 	trans := Transceiver{
 		Conn:    c.Conn,
 		Encoder: c.Encoder,
@@ -47,17 +47,19 @@ func (c *Ctrl) SendSyncTime() error {
 }
 
 // SendHeartbeat 发送Heartbeat消息事件
-func (c *Ctrl) SendHeartbeat() error {
+func (c *CtrlProtocol) SendHeartbeat() error {
 	trans := Transceiver{
 		Conn:    c.Conn,
 		Encoder: c.Encoder,
 		Timeout: c.Timeout,
 	}
-	return trans.Send(PackEvent(Event[*transport.MsgHeartbeat]{}))
+	return trans.Send(PackEvent(Event[*transport.MsgHeartbeat]{
+		Flags: transport.Flags(transport.Flag_Ping),
+	}))
 }
 
 // Recv 消息事件处理句柄
-func (c *Ctrl) Recv(e Event[transport.Msg]) error {
+func (c *CtrlProtocol) Recv(e Event[transport.Msg]) error {
 	switch e.Msg.MsgId() {
 	case transport.MsgId_Rst:
 		if c.RecvRst != nil {
@@ -70,11 +72,29 @@ func (c *Ctrl) Recv(e Event[transport.Msg]) error {
 		}
 		return nil
 	case transport.MsgId_Heartbeat:
-		if c.RecvHeartbeat != nil {
-			return c.RecvHeartbeat(UnpackEvent[*transport.MsgHeartbeat](e))
+		heartbeat := UnpackEvent[*transport.MsgHeartbeat](e)
+
+		if heartbeat.Flags.Is(transport.Flag_Ping) {
+			trans := Transceiver{
+				Conn:    c.Conn,
+				Encoder: c.Encoder,
+				Timeout: c.Timeout,
+			}
+
+			err := trans.Send(PackEvent(Event[*transport.MsgHeartbeat]{
+				Flags: transport.Flags(transport.Flag_Pong),
+			}))
+			if err != nil {
+				return err
+			}
 		}
+
+		if c.RecvHeartbeat != nil {
+			return c.RecvHeartbeat(heartbeat)
+		}
+
 		return nil
 	default:
-		return fmt.Errorf("recv unexpected msg %d", e.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, e.Msg.MsgId())
 	}
 }
