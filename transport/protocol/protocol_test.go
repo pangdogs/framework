@@ -48,7 +48,7 @@ func TestProtocol(t *testing.T) {
 					MsgCreator: codec.DefaultMsgCreator(),
 				}
 
-				handshake := &Handshake{
+				handshake := &HandshakeProtocol{
 					Conn:    conn,
 					Encoder: encoder,
 					Decoder: decoder,
@@ -75,7 +75,7 @@ func TestProtocol(t *testing.T) {
 					panic(err)
 				}
 
-				ctrl := &Ctrl{
+				ctrl := &CtrlProtocol{
 					Conn:          conn,
 					Encoder:       encoder,
 					RecvRst:       nil,
@@ -83,7 +83,7 @@ func TestProtocol(t *testing.T) {
 					RecvHeartbeat: nil,
 				}
 
-				trans := &Trans{
+				trans := &TransProtocol{
 					Conn:    conn,
 					Encoder: encoder,
 					RecvPayload: func(e Event[*transport.MsgPayload]) error {
@@ -131,7 +131,7 @@ func TestProtocol(t *testing.T) {
 			MsgCreator: codec.DefaultMsgCreator(),
 		}
 
-		handshake := &Handshake{
+		handshake := &HandshakeProtocol{
 			Conn:    conn,
 			Encoder: encoder,
 			Decoder: decoder,
@@ -157,7 +157,7 @@ func TestProtocol(t *testing.T) {
 			panic(err)
 		}
 
-		trans := &Trans{
+		trans := &TransProtocol{
 			Conn:    conn,
 			Encoder: encoder,
 		}

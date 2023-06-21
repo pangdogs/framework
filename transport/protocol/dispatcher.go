@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrHandlerNotRegistered = errors.New("handler not registered") // 消息处理句柄未注册
+	ErrRecvUnexpectedMsg    = errors.New("recv unexpected msg")    // 收到非预期的消息
 )
 
 // ErrorHandler 错误句柄

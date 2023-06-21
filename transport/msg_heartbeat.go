@@ -1,5 +1,11 @@
 package transport
 
+// Heartbeat消息标志位
+const (
+	Flag_Ping Flag = 1 << (iota + Flag_Customize) // 心跳ping
+	Flag_Pong                                     // 心跳pong
+)
+
 // MsgHeartbeat 心跳，消息体为空，可以不解析
 type MsgHeartbeat struct{}
 
