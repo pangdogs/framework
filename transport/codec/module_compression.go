@@ -5,12 +5,13 @@ import (
 	"errors"
 	"io"
 	"kit.golaxy.org/plugins/transport"
+	"kit.golaxy.org/plugins/transport/method"
 	"kit.golaxy.org/plugins/transport/xio"
 	"math"
 )
 
-// ICompressModule 压缩模块接口
-type ICompressModule interface {
+// ICompressionModule 压缩模块接口
+type ICompressionModule interface {
 	// Compress 压缩数据
 	Compress(src []byte) (dst []byte, compressed bool, err error)
 	// Uncompress 解压缩数据
@@ -19,17 +20,16 @@ type ICompressModule interface {
 	GC()
 }
 
-// CompressModule 压缩模块
-type CompressModule struct {
-	NewReader func(io.Reader) (io.Reader, error)      // 解压缩函数
-	NewWriter func(io.Writer) (io.WriteCloser, error) // 压缩函数
-	gcList    [][]byte                                // GC列表
+// CompressionModule 压缩模块
+type CompressionModule struct {
+	CompressionStream method.CompressionStream // 压缩流
+	gcList            [][]byte                 // GC列表
 }
 
 // Compress 压缩数据
-func (m *CompressModule) Compress(src []byte) (dst []byte, compressed bool, err error) {
-	if m.NewWriter == nil {
-		return nil, false, errors.New("setting NewWriter is nil")
+func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, err error) {
+	if m.CompressionStream == nil {
+		return nil, false, errors.New("setting CompressionStream is nil")
 	}
 
 	if len(src) <= 0 {
@@ -41,7 +41,7 @@ func (m *CompressModule) Compress(src []byte) (dst []byte, compressed bool, err 
 
 	n, err := func() (n int, err error) {
 		bw := xio.NewBytesWriter(compressedBuf)
-		w, err := m.NewWriter(bw)
+		w, err := m.CompressionStream.WrapWriter(bw)
 		if err != nil {
 			return 0, err
 		}
@@ -91,9 +91,9 @@ func (m *CompressModule) Compress(src []byte) (dst []byte, compressed bool, err 
 }
 
 // Uncompress 解压缩数据
-func (m *CompressModule) Uncompress(src []byte) (dst []byte, err error) {
-	if m.NewReader == nil {
-		return nil, errors.New("setting NewReader is nil")
+func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
+	if m.CompressionStream == nil {
+		return nil, errors.New("setting CompressionStream is nil")
 	}
 
 	if len(src) <= 0 {
@@ -120,12 +120,12 @@ func (m *CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 		}
 	}()
 
-	r, err := m.NewReader(bytes.NewReader(msgCompressed.Data))
+	r, err := m.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err = r.Read(rawBuf); !errors.Is(err, io.EOF) {
+	if _, err = r.Read(rawBuf); err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
@@ -133,7 +133,7 @@ func (m *CompressModule) Uncompress(src []byte) (dst []byte, err error) {
 }
 
 // GC GC
-func (m *CompressModule) GC() {
+func (m *CompressionModule) GC() {
 	for i := range m.gcList {
 		BytesPool.Put(m.gcList[i])
 	}
