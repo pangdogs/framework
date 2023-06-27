@@ -38,11 +38,7 @@ func TestProtocol(t *testing.T) {
 					conn.Close()
 				}()
 
-				encoder := &codec.Encoder{
-					Encryption: false,
-					PatchMAC:   false,
-					Compressed: -1,
-				}
+				encoder := &codec.Encoder{}
 
 				decoder := &codec.Decoder{
 					MsgCreator: codec.DefaultMsgCreator(),
