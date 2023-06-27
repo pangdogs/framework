@@ -23,15 +23,15 @@ type Encoder struct {
 	Encryption        bool               // 开启加密
 	PatchMAC          bool               // 开启MAC
 	Compressed        int                // 开启压缩阀值，<=0表示不开启
-	cache             bytes.Buffer       // cache
+	buffer            bytes.Buffer       // buffer
 }
 
 func (e *Encoder) Read(p []byte) (int, error) {
-	return e.cache.Read(p)
+	return e.buffer.Read(p)
 }
 
 func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
-	return e.cache.WriteTo(w)
+	return e.buffer.WriteTo(w)
 }
 
 // Stuff 填充消息
@@ -121,6 +121,6 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	}
 
 	// 写入缓冲
-	_, err = e.cache.Write(mpBuf[:end])
+	_, err = e.buffer.Write(mpBuf[:end])
 	return err
 }
