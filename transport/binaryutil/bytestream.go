@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"kit.golaxy.org/golaxy/util"
 )
 
 var (
@@ -509,6 +510,22 @@ func (s *ByteStream) ReadString() (string, error) {
 		return "", io.ErrUnexpectedEOF
 	}
 	v := string(s.rp[:l])
+	s.rp = s.rp[l:]
+	return v, nil
+}
+
+func (s *ByteStream) ReadStringRef() (string, error) {
+	l, err := s.ReadUvarint()
+	if err != nil {
+		return "", err
+	}
+	if l <= 0 {
+		return "", nil
+	}
+	if len(s.rp) < int(l) {
+		return "", io.ErrUnexpectedEOF
+	}
+	v := util.Bytes2String(s.rp[:l])
 	s.rp = s.rp[l:]
 	return v, nil
 }

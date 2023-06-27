@@ -17,13 +17,13 @@ type IEncoder interface {
 
 // Encoder 消息包编码器
 type Encoder struct {
-	CipherModule   ICipherModule   // 加密模块
-	MACModule      IMACModule      // MAC模块
-	CompressModule ICompressModule // 压缩模块
-	Encryption     bool            // 开启加密
-	PatchMAC       bool            // 开启MAC
-	Compressed     int             // 开启压缩阀值，<=0表示不开启
-	cache          bytes.Buffer    // cache
+	EncryptionModule  IEncryptionModule  // 加密模块
+	MACModule         IMACModule         // MAC模块
+	CompressionModule ICompressionModule // 压缩模块
+	Encryption        bool               // 开启加密
+	PatchMAC          bool               // 开启MAC
+	Compressed        int                // 开启压缩阀值，<=0表示不开启
+	cache             bytes.Buffer       // cache
 }
 
 func (e *Encoder) Read(p []byte) (int, error) {
@@ -66,15 +66,15 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 
 	// 消息长度达到阀值，需要压缩消息
 	if e.Compressed > 0 && msg.Size() >= e.Compressed {
-		if e.CompressModule == nil {
-			return errors.New("setting CompressModule is nil, msg can't be compress")
+		if e.CompressionModule == nil {
+			return errors.New("setting CompressionModule is nil, msg can't be compress")
 		}
-		buf, compressed, err := e.CompressModule.Compress(mpBuf[head.Size():end])
+		buf, compressed, err := e.CompressionModule.Compress(mpBuf[head.Size():end])
 		if err != nil {
 			return err
 		}
 		if compressed {
-			defer e.CompressModule.GC()
+			defer e.CompressionModule.GC()
 
 			head.Flags.Set(transport.Flag_Compressed, true)
 
@@ -85,8 +85,8 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 
 	// 加密消息
 	if e.Encryption {
-		if e.CipherModule == nil {
-			return errors.New("setting CipherModule is nil, msg can't be encrypted")
+		if e.EncryptionModule == nil {
+			return errors.New("setting EncryptionModule is nil, msg can't be encrypted")
 		}
 
 		head.Flags.Set(transport.Flag_Encrypted, true)
@@ -109,7 +109,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 			end = head.Size() + len(buf)
 		}
 
-		if err = e.CipherModule.XORKeyStream(mpBuf[head.Size():end], mpBuf[head.Size():end]); err != nil {
+		if err = e.EncryptionModule.Transform(mpBuf[head.Size():end], mpBuf[head.Size():end]); err != nil {
 			return err
 		}
 	}

@@ -1,15 +1,16 @@
 package codec
 
 import (
-	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
 	"kit.golaxy.org/plugins/transport"
+	"kit.golaxy.org/plugins/transport/method"
 	"testing"
 )
 
@@ -33,65 +34,76 @@ func TestCodec(t *testing.T) {
 		panic(err)
 	}
 
+	encodeCS, err := method.NewCompressionStream(transport.CompressionMethod_Brotli)
+	if err != nil {
+		panic(err)
+	}
+
+	decodeCS, err := method.NewCompressionStream(transport.CompressionMethod_Brotli)
+	if err != nil {
+		panic(err)
+	}
+
 	encoder := Encoder{
-		CipherModule: &CipherModule{
-			StreamCipher: modeEncrypt,
+		EncryptionModule: &EncryptionModule{
+			CipherStream: modeEncrypt,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
-		CompressModule: &CompressModule{
-			NewReader: func(reader io.Reader) (io.Reader, error) {
-				return gzip.NewReader(reader)
-			},
-			NewWriter: func(writer io.Writer) (io.WriteCloser, error) {
-				return gzip.NewWriterLevel(writer, gzip.BestCompression)
-			},
+		CompressionModule: &CompressionModule{
+			CompressionStream: encodeCS,
 		},
 		Encryption: true,
 		PatchMAC:   true,
-		Compressed: 0,
+		Compressed: 1,
 	}
 
-	err = encoder.Stuff(0, &transport.MsgHello{
-		Version:   10,
-		SessionId: []byte("abcaaaaaaaaaaaaaaaaaaaaa11111111111111111111111111111111111111111111111111111111111111"),
-		Random:    []byte("efgdfffffffff222222222333333333334abcaaaaaaaaaaaaaaaaaaaaa111111111111111111111111"),
-		CipherSuite: transport.CipherSuite{
-			SecretKeyExchangeMethod: transport.SecretKeyExchangeMethod_ECDHE,
-			SymmetricEncryptMethod:  transport.SymmetricEncryptMethod_AES256,
-			BlockCipherMode:         transport.BlockCipherMode_CFB,
-			HashMethod:              transport.HashMethod_Fnv1a32,
-		},
-		Extensions: []byte("abcaaaaaaaaaaaaaaaaaaaaa1111111111111111111111111111111111111111111111111111"),
-	})
-	if err != nil {
-		panic(err)
+	for i := 0; i < 5; i++ {
+		sessionId, _ := rand.Prime(rand.Reader, 1024)
+		random, _ := rand.Prime(rand.Reader, 1024)
+		extensions, _ := rand.Prime(rand.Reader, 2048)
+
+		err = encoder.Stuff(0, &transport.MsgHello{
+			Version:   transport.Version(i),
+			SessionId: sessionId.String(),
+			Random:    random.Bytes(),
+			CipherSuite: transport.CipherSuite{
+				SecretKeyExchangeMethod: transport.SecretKeyExchangeMethod_ECDHE,
+				SymmetricEncryptMethod:  transport.SymmetricEncryptMethod_AES256,
+				BlockCipherMode:         transport.BlockCipherMode_CFB,
+				HashMethod:              transport.HashMethod_Fnv1a32,
+			},
+			Extensions: extensions.Bytes(),
+		})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	decoder := Decoder{
 		MsgCreator: DefaultMsgCreator(),
-		CipherModule: &CipherModule{
-			StreamCipher: modeDecrypt,
+		EncryptionModule: &EncryptionModule{
+			CipherStream: modeDecrypt,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
-		CompressModule: &CompressModule{
-			NewReader: func(reader io.Reader) (io.Reader, error) {
-				return gzip.NewReader(reader)
-			},
-			NewWriter: func(writer io.Writer) (io.WriteCloser, error) {
-				return gzip.NewWriterLevel(writer, gzip.BestCompression)
-			},
+		CompressionModule: &CompressionModule{
+			CompressionStream: decodeCS,
 		},
 	}
 
-	_, err = decoder.ReadFrom(&encoder)
-	if err != nil {
-		panic(err)
+	for {
+		_, err = decoder.ReadFrom(&encoder)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			panic(err)
+		}
 	}
 
 	for decoder.Fetch(func(mp transport.MsgPacket) {

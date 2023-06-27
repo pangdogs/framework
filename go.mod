@@ -3,17 +3,20 @@ module kit.golaxy.org/plugins
 go 1.20
 
 require (
+	github.com/andybalholm/brotli v1.0.5
 	github.com/fufuok/bytespool v1.3.2
 	github.com/go-redsync/redsync/v4 v4.8.1
+	github.com/golang/snappy v0.0.4
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nats-io/nats.go v1.25.0
+	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/redis/go-redis/v9 v9.0.3
 	go.etcd.io/etcd/api/v3 v3.5.6
 	go.etcd.io/etcd/client/v3 v3.5.6
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.9.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.1.63
+	kit.golaxy.org/golaxy v0.1.64
 )
 
 require (

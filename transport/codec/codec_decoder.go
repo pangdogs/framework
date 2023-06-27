@@ -28,12 +28,12 @@ type IDecoder interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator     IMsgCreator     // 消息构建器
-	CipherModule   ICipherModule   // 加密模块
-	MACModule      IMACModule      // MAC模块
-	CompressModule ICompressModule // 压缩模块
-	cache          bytes.Buffer    // cache
-	gcList         [][]byte        // GC列表
+	MsgCreator        IMsgCreator        // 消息构建器
+	EncryptionModule  IEncryptionModule  // 加密模块
+	MACModule         IMACModule         // MAC模块
+	CompressionModule ICompressionModule // 压缩模块
+	cache             bytes.Buffer       // cache
+	gcList            [][]byte           // GC列表
 }
 
 func (d *Decoder) Write(p []byte) (int, error) {
@@ -93,10 +93,10 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 	// 检查加密标记
 	if mp.Head.Flags.Is(transport.Flag_Encrypted) {
 		// 解密消息体
-		if d.CipherModule == nil {
-			return errors.New("setting CipherModule is nil, msg can't be decrypted")
+		if d.EncryptionModule == nil {
+			return errors.New("setting EncryptionModule is nil, msg can't be decrypted")
 		}
-		if err = d.CipherModule.XORKeyStream(msgBuf, msgBuf); err != nil {
+		if err = d.EncryptionModule.Transform(msgBuf, msgBuf); err != nil {
 			return err
 		}
 
@@ -115,10 +115,10 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 
 	// 检查压缩标记
 	if mp.Head.Flags.Is(transport.Flag_Compressed) {
-		if d.CompressModule == nil {
-			return errors.New("setting CompressModule is nil, msg can't be uncompress")
+		if d.CompressionModule == nil {
+			return errors.New("setting CompressionModule is nil, msg can't be uncompress")
 		}
-		msgBuf, err = d.CompressModule.Uncompress(msgBuf)
+		msgBuf, err = d.CompressionModule.Uncompress(msgBuf)
 		if err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ func (d *Decoder) GC() {
 		d.MACModule.GC()
 	}
 
-	if d.CompressModule != nil {
-		d.CompressModule.GC()
+	if d.CompressionModule != nil {
+		d.CompressionModule.GC()
 	}
 }

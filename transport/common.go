@@ -61,7 +61,7 @@ const (
 	HashMethod_None     HashMethod = iota // 未设置
 	HashMethod_Fnv1a32                    // Fnv-1a 32bit算法
 	HashMethod_Fnv1a64                    // Fnv-1a 64bit算法
-	HashMethod_Poly1305                   // Poly1305算法
+	HashMethod_Fnv1a128                   // Fnv-1a 128bit算法
 	HashMethod_SHA256                     // SHA256算法
 )
 
