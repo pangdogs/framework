@@ -149,7 +149,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 		var recvMP transport.MsgPacket
 
 		if err := t.Decoder.Fetch(func(mp transport.MsgPacket) { recvMP = mp }); err != nil {
-			if !errors.Is(err, codec.ErrEmptyCache) {
+			if !errors.Is(err, codec.ErrEmptyBuffer) {
 				return Event[transport.Msg]{}, fmt.Errorf("fetch recv msg-packet failed, %w", err)
 			}
 		} else {
@@ -196,7 +196,7 @@ func (t *Transceiver) MultiRecv(fun func(Event[transport.Msg]) bool) error {
 			return b
 		})
 		if err != nil {
-			if !errors.Is(err, codec.ErrEmptyCache) {
+			if !errors.Is(err, codec.ErrEmptyBuffer) {
 				return fmt.Errorf("fetch recv msg-packet failed, %w", err)
 			}
 		}

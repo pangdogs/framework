@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrEmptyCache       = errors.New("i/o empty cache")    // 缓存空
+	ErrEmptyBuffer      = errors.New("i/o empty buffer")   // 缓存空
 	ErrMsgNotRegistered = errors.New("msg not registered") // 消息未注册
 )
 
@@ -32,12 +32,12 @@ type Decoder struct {
 	EncryptionModule  IEncryptionModule  // 加密模块
 	MACModule         IMACModule         // MAC模块
 	CompressionModule ICompressionModule // 压缩模块
-	cache             bytes.Buffer       // cache
+	buffer            bytes.Buffer       // buffer
 	gcList            [][]byte           // GC列表
 }
 
 func (d *Decoder) Write(p []byte) (int, error) {
-	return d.cache.Write(p)
+	return d.buffer.Write(p)
 }
 
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
@@ -45,7 +45,7 @@ func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 
 	n, err := r.Read(buff[:])
 	if n > 0 {
-		d.cache.Write(buff[:n])
+		d.buffer.Write(buff[:n])
 	}
 
 	return int64(n), err
@@ -57,20 +57,20 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 		return errors.New("fun is nil")
 	}
 
-	if d.cache.Len() < transport.MsgHeadSize {
-		return ErrEmptyCache
+	if d.buffer.Len() < transport.MsgHeadSize {
+		return ErrEmptyBuffer
 	}
 
 	mp := transport.MsgPacket{}
 
 	// 读取消息头
-	_, err := mp.Head.Write(d.cache.Bytes())
+	_, err := mp.Head.Write(d.buffer.Bytes())
 	if err != nil {
 		return err
 	}
 
-	if d.cache.Len() < int(mp.Head.Len) {
-		return ErrEmptyCache
+	if d.buffer.Len() < int(mp.Head.Len) {
+		return ErrEmptyBuffer
 	}
 
 	// 创建消息体
@@ -83,7 +83,7 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 	d.gcList = append(d.gcList, buf)
 
 	// 读取消息包
-	_, err = d.cache.Read(buf)
+	_, err = d.buffer.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -157,22 +157,22 @@ func (d *Decoder) MultiFetch(fun func(mp transport.MsgPacket) bool) error {
 // Discard 丢弃消息包
 func (d *Decoder) Discard(n int) error {
 	for i := 0; i < n; i++ {
-		if d.cache.Len() < transport.MsgHeadSize {
-			return ErrEmptyCache
+		if d.buffer.Len() < transport.MsgHeadSize {
+			return ErrEmptyBuffer
 		}
 
 		mp := transport.MsgPacket{}
 
-		_, err := mp.Head.Read(d.cache.Bytes())
+		_, err := mp.Head.Read(d.buffer.Bytes())
 		if err != nil {
 			return err
 		}
 
-		if d.cache.Len() < int(mp.Head.Len) {
-			return ErrEmptyCache
+		if d.buffer.Len() < int(mp.Head.Len) {
+			return ErrEmptyBuffer
 		}
 
-		d.cache.Next(int(mp.Head.Len))
+		d.buffer.Next(int(mp.Head.Len))
 	}
 	return nil
 }
