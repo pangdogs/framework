@@ -14,24 +14,24 @@ const (
 
 // CipherSuite 密码学套件
 type CipherSuite struct {
-	SecretKeyExchangeMethod SecretKeyExchangeMethod // 秘钥交换函数
-	SymmetricEncryptMethod  SymmetricEncryptMethod  // 对称加密函数
-	BlockCipherMode         BlockCipherMode         // 对称加密算法分组模式
-	HashMethod              HashMethod              // 摘要函数
+	SecretKeyExchange   SecretKeyExchange   // 秘钥交换函数
+	SymmetricEncryption SymmetricEncryption // 对称加密算法
+	BlockCipherMode     BlockCipherMode     // 对称加密算法分组模式
+	Hash                Hash                // 摘要函数
 }
 
 func (cs *CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(cs.SecretKeyExchangeMethod); err != nil {
+	if err := bs.WriteUint8(cs.SecretKeyExchange); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.SymmetricEncryptMethod); err != nil {
+	if err := bs.WriteUint8(cs.SymmetricEncryption); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint8(cs.BlockCipherMode); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.HashMethod); err != nil {
+	if err := bs.WriteUint8(cs.Hash); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -39,11 +39,11 @@ func (cs *CipherSuite) Read(p []byte) (int, error) {
 
 func (cs *CipherSuite) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	secretKeyExchangeMethod, err := bs.ReadUint8()
+	secretKeyExchange, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
-	symmetricEncryptMethod, err := bs.ReadUint8()
+	symmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
@@ -51,14 +51,14 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	hashMethod, err := bs.ReadUint8()
+	hash, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
-	cs.SecretKeyExchangeMethod = secretKeyExchangeMethod
-	cs.SymmetricEncryptMethod = symmetricEncryptMethod
+	cs.SecretKeyExchange = secretKeyExchange
+	cs.SymmetricEncryption = symmetricEncryption
 	cs.BlockCipherMode = blockCipherMode
-	cs.HashMethod = hashMethod
+	cs.Hash = hash
 	return bs.BytesRead(), nil
 }
 
@@ -69,12 +69,12 @@ func (cs *CipherSuite) Size() int {
 
 // MsgHello Hello消息
 type MsgHello struct {
-	Version           Version           // 协议版本
-	SessionId         string            // 会话Id，如果客户端上传空值，服务端将会分配新会话，如果非空值，服务端将尝试查找会话，查找失败会重置链路
-	Random            []byte            // 随机数，用于秘钥交换
-	CipherSuite       CipherSuite       // 密码学套件，客户端提交的密码学套件建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
-	CompressionMethod CompressionMethod // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
-	Extensions        []byte            // 扩展内容
+	Version     Version     // 协议版本
+	SessionId   string      // 会话Id，如果客户端上传空值，服务端将会分配新会话，如果非空值，服务端将尝试查找会话，查找失败会重置链路
+	Random      []byte      // 随机数，用于秘钥交换
+	CipherSuite CipherSuite // 密码学套件，客户端提交的密码学套件建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
+	Compression Compression // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
+	Extensions  []byte      // 扩展内容
 }
 
 func (m *MsgHello) Read(p []byte) (int, error) {
@@ -91,7 +91,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(m.CompressionMethod); err != nil {
+	if err := bs.WriteUint8(m.Compression); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.Extensions); err != nil {
@@ -118,7 +118,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if _, err := bs.WriteTo(&cipherSuite); err != nil {
 		return 0, err
 	}
-	compressionMethod, err := bs.ReadUint8()
+	compression, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +130,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	m.SessionId = sessionId
 	m.Random = random
 	m.CipherSuite = cipherSuite
-	m.CompressionMethod = compressionMethod
+	m.Compression = compression
 	m.Extensions = extensions
 	return bs.BytesRead(), nil
 }

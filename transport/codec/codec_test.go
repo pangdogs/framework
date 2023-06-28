@@ -2,7 +2,6 @@ package codec
 
 import (
 	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -16,44 +15,28 @@ import (
 
 func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
-
-	block, err := aes.NewCipher(key.Bytes())
-	if err != nil {
-		panic(err)
-	}
-
 	iv, _ := rand.Prime(rand.Reader, aes.BlockSize*8)
 
-	modeEncrypt := cipher.NewCTR(block, iv.Bytes())
+	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_AES, transport.BlockCipherMode_CTR, key.Bytes(), iv.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
-	modeDecrypt := cipher.NewCTR(block, iv.Bytes())
-	if err != nil {
-		panic(err)
-	}
-
-	encodeCS, err := method.NewCompressionStream(transport.CompressionMethod_Brotli)
-	if err != nil {
-		panic(err)
-	}
-
-	decodeCS, err := method.NewCompressionStream(transport.CompressionMethod_Brotli)
+	compressionStream, err := method.NewCompressionStream(transport.Compression_Brotli)
 	if err != nil {
 		panic(err)
 	}
 
 	encoder := Encoder{
 		EncryptionModule: &EncryptionModule{
-			CipherStream: modeEncrypt,
+			Encrypter: encrypter,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
 		CompressionModule: &CompressionModule{
-			CompressionStream: encodeCS,
+			CompressionStream: compressionStream,
 		},
 		Encryption: true,
 		PatchMAC:   true,
@@ -70,10 +53,10 @@ func TestCodec(t *testing.T) {
 			SessionId: sessionId.String(),
 			Random:    random.Bytes(),
 			CipherSuite: transport.CipherSuite{
-				SecretKeyExchangeMethod: transport.SecretKeyExchangeMethod_ECDHE,
-				SymmetricEncryptMethod:  transport.SymmetricEncryptMethod_AES256,
-				BlockCipherMode:         transport.BlockCipherMode_CFB,
-				HashMethod:              transport.HashMethod_Fnv1a32,
+				SecretKeyExchange:   transport.SecretKeyExchange_ECDHE,
+				SymmetricEncryption: transport.SymmetricEncryption_AES,
+				BlockCipherMode:     transport.BlockCipherMode_CFB,
+				Hash:                transport.Hash_Fnv1a32,
 			},
 			Extensions: extensions.Bytes(),
 		})
@@ -85,14 +68,14 @@ func TestCodec(t *testing.T) {
 	decoder := Decoder{
 		MsgCreator: DefaultMsgCreator(),
 		EncryptionModule: &EncryptionModule{
-			CipherStream: modeDecrypt,
+			Decrypter: decrypter,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
 			PrivateKey: key.Bytes(),
 		},
 		CompressionModule: &CompressionModule{
-			CompressionStream: decodeCS,
+			CompressionStream: compressionStream,
 		},
 	}
 

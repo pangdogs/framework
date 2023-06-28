@@ -12,7 +12,7 @@ const (
 	Code_AuthFailed                      // 鉴权失败
 	Code_ContinueFailed                  // 恢复Session失败
 	Code_Reject                          // 拒绝连接
-	Code_ServiceShutdown                 // 服务关闭
+	Code_Shutdown                        // 服务关闭
 	Code_Customize                       // 自定义错误码起点
 )
 

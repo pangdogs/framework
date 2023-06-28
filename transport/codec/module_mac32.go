@@ -66,7 +66,7 @@ func (m *MAC32Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) 
 	m.Hash.Write(m.PrivateKey)
 
 	if m.Hash.Sum32() != msgMAC.MAC {
-		return nil, errors.New("verify MAC failed")
+		return nil, ErrIncorrectMAC
 	}
 
 	return msgMAC.Data, nil
