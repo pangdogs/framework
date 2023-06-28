@@ -26,12 +26,17 @@ func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipher
 		}
 		return NewBlockCipherMode(bcm, block, iv)
 	case transport.SymmetricEncryption_ChaCha20:
-		c, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		encryptStream, err := chacha20.NewUnauthenticatedCipher(key, iv)
 		if err != nil {
 			return nil, nil, err
 		}
-		s := _XORKeyStream{Stream: c}
-		return s, s, err
+		decryptStream, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		if err != nil {
+			return nil, nil, err
+		}
+		encrypter = _XORKeyStream{Stream: encryptStream}
+		decrypter = _XORKeyStream{Stream: decryptStream}
+		return encrypter, decrypter, nil
 	default:
 		return nil, nil, ErrInvalidMethod
 	}
