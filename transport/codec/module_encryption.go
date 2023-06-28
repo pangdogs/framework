@@ -9,6 +9,8 @@ import (
 type IEncryptionModule interface {
 	// Transforming 变换数据
 	Transforming(dst, src []byte) error
+	// Parallel 可否并行执行
+	Parallel() (bool, error)
 }
 
 // EncryptionModule 加密模块
@@ -29,4 +31,12 @@ func (m *EncryptionModule) Transforming(dst, src []byte) error {
 	m.CipherStream.Transforming(dst, src)
 
 	return nil
+}
+
+// Parallel 可否并行执行
+func (m *EncryptionModule) Parallel() (bool, error) {
+	if m.CipherStream == nil {
+		return false, errors.New("setting CipherStream is nil")
+	}
+	return m.CipherStream.Parallel(), nil
 }

@@ -19,7 +19,9 @@ var (
 
 // CompressionStream 压缩/解压缩流
 type CompressionStream interface {
+	// WrapReader 包装解压缩流
 	WrapReader(r io.Reader) (io.Reader, error)
+	// WrapWriter 包装压缩流
 	WrapWriter(w io.Writer) (io.WriteCloser, error)
 }
 

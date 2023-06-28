@@ -10,7 +10,10 @@ import (
 
 // CipherStream 密码流
 type CipherStream interface {
+	// Transforming 变换数据
 	Transforming(dst, src []byte) error
+	// Parallel 可否并行执行
+	Parallel() bool
 }
 
 // NewCipherStream 创建密码流
@@ -27,7 +30,7 @@ func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipher
 		if err != nil {
 			return nil, nil, err
 		}
-		s := _XORKeyStream{c}
+		s := _XORKeyStream{Stream: c}
 		return s, s, err
 	default:
 		return nil, nil, ErrInvalidMethod
@@ -70,34 +73,28 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 
 	switch bcm {
 	case transport.BlockCipherMode_CTR:
-		encrypter = _XORKeyStream{cipher.NewCTR(block, iv)}
-		decrypter = _XORKeyStream{cipher.NewCTR(block, iv)}
+		encrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv), parallel: true}
+		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv), parallel: true}
 		return
 	case transport.BlockCipherMode_CBC:
-		encrypter = _BlockModeStream{cipher.NewCBCEncrypter(block, iv)}
-		decrypter = _BlockModeStream{cipher.NewCBCDecrypter(block, iv)}
+		encrypter = _BlockModeStream{BlockMode: cipher.NewCBCEncrypter(block, iv)}
+		decrypter = _BlockModeStream{BlockMode: cipher.NewCBCDecrypter(block, iv)}
 		return
 	case transport.BlockCipherMode_CFB:
-		encrypter = _XORKeyStream{cipher.NewCFBEncrypter(block, iv)}
-		decrypter = _XORKeyStream{cipher.NewCFBDecrypter(block, iv)}
+		encrypter = _XORKeyStream{Stream: cipher.NewCFBEncrypter(block, iv)}
+		decrypter = _XORKeyStream{Stream: cipher.NewCFBDecrypter(block, iv)}
 		return
 	case transport.BlockCipherMode_OFB:
-		encrypter = _XORKeyStream{cipher.NewOFB(block, iv)}
-		decrypter = _XORKeyStream{cipher.NewOFB(block, iv)}
+		encrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
+		decrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
 		return
 	case transport.BlockCipherMode_GCM:
 		gcm, err := cipher.NewGCM(block)
 		if err != nil {
 			return nil, nil, err
 		}
-		encrypter = _AEADEncryptStream{
-			AEAD:  gcm,
-			nonce: iv,
-		}
-		decrypter = _AEADDecryptStream{
-			AEAD:  gcm,
-			nonce: iv,
-		}
+		encrypter = _AEADEncryptStream{AEAD: gcm, nonce: iv, parallel: true}
+		decrypter = _AEADDecryptStream{AEAD: gcm, nonce: iv, parallel: true}
 		return encrypter, decrypter, nil
 	default:
 		return nil, nil, ErrInvalidMethod
@@ -106,6 +103,7 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 
 type _XORKeyStream struct {
 	cipher.Stream
+	parallel bool
 }
 
 func (s _XORKeyStream) Transforming(dst, src []byte) error {
@@ -113,8 +111,13 @@ func (s _XORKeyStream) Transforming(dst, src []byte) error {
 	return nil
 }
 
+func (s _XORKeyStream) Parallel() bool {
+	return s.parallel
+}
+
 type _BlockModeStream struct {
 	cipher.BlockMode
+	parallel bool
 }
 
 func (s _BlockModeStream) Transforming(dst, src []byte) error {
@@ -122,9 +125,14 @@ func (s _BlockModeStream) Transforming(dst, src []byte) error {
 	return nil
 }
 
+func (s _BlockModeStream) Parallel() bool {
+	return s.parallel
+}
+
 type _AEADEncryptStream struct {
 	cipher.AEAD
-	nonce []byte
+	nonce    []byte
+	parallel bool
 }
 
 func (s _AEADEncryptStream) Transforming(dst, src []byte) error {
@@ -132,12 +140,21 @@ func (s _AEADEncryptStream) Transforming(dst, src []byte) error {
 	return nil
 }
 
+func (s _AEADEncryptStream) Parallel() bool {
+	return s.parallel
+}
+
 type _AEADDecryptStream struct {
 	cipher.AEAD
-	nonce []byte
+	nonce    []byte
+	parallel bool
 }
 
 func (s _AEADDecryptStream) Transforming(dst, src []byte) error {
 	s.Open(dst, s.nonce, src, nil)
 	return nil
+}
+
+func (s _AEADDecryptStream) Parallel() bool {
+	return s.parallel
 }
