@@ -4,8 +4,8 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // MsgCompressed 压缩消息
 type MsgCompressed struct {
-	Data   []byte
-	RawLen int64
+	Data         []byte
+	OriginalSize int64
 }
 
 func (m *MsgCompressed) Read(p []byte) (int, error) {
@@ -13,7 +13,7 @@ func (m *MsgCompressed) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteVarint(m.RawLen); err != nil {
+	if err := bs.WriteVarint(m.OriginalSize); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -25,15 +25,15 @@ func (m *MsgCompressed) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	rawLen, err := bs.ReadVarint()
+	originalSize, err := bs.ReadVarint()
 	if err != nil {
 		return 0, err
 	}
 	m.Data = data
-	m.RawLen = rawLen
+	m.OriginalSize = originalSize
 	return bs.BytesRead(), nil
 }
 
 func (m *MsgCompressed) Size() int {
-	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofVarint(m.RawLen)
+	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofVarint(m.OriginalSize)
 }

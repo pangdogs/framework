@@ -1,6 +1,7 @@
 package method
 
 import (
+	"compress/flate"
 	"compress/gzip"
 	"github.com/andybalholm/brotli"
 	"github.com/golang/snappy"
@@ -10,25 +11,30 @@ import (
 )
 
 var (
-	GzipCompressionLevel   = gzip.DefaultCompression
-	BrotliCompressionLevel = brotli.DefaultCompression
-	LZ4CompressionLevel    = lz4.Level4
+	GzipCompressionLevel    = gzip.DefaultCompression   // gzip压缩级别
+	DeflateCompressionLevel = flate.DefaultCompression  // deflate压缩级别
+	BrotliCompressionLevel  = brotli.DefaultCompression // brotli压缩级别
+	LZ4CompressionLevel     = lz4.Level4                // lz4压缩级别
 )
 
+// CompressionStream 压缩/解压缩流
 type CompressionStream interface {
 	WrapReader(r io.Reader) (io.Reader, error)
 	WrapWriter(w io.Writer) (io.WriteCloser, error)
 }
 
-func NewCompressionStream(m transport.CompressionMethod) (CompressionStream, error) {
-	switch m {
-	case transport.CompressionMethod_Gzip:
+// NewCompressionStream 创建压缩/解压缩流
+func NewCompressionStream(c transport.Compression) (CompressionStream, error) {
+	switch c {
+	case transport.Compression_Gzip:
 		return &_GzipStream{}, nil
-	case transport.CompressionMethod_Brotli:
+	case transport.Compression_Deflate:
+		return &_DeflateStream{}, nil
+	case transport.Compression_Brotli:
 		return &_BrotliStream{}, nil
-	case transport.CompressionMethod_LZ4:
+	case transport.Compression_LZ4:
 		return &_LZ4Stream{}, nil
-	case transport.CompressionMethod_Snappy:
+	case transport.Compression_Snappy:
 		return &_SnappyStream{}, nil
 	default:
 		return nil, ErrInvalidMethod
@@ -59,6 +65,35 @@ func (s *_GzipStream) WrapReader(r io.Reader) (io.Reader, error) {
 func (s *_GzipStream) WrapWriter(w io.Writer) (io.WriteCloser, error) {
 	if s.writer == nil {
 		cw, err := gzip.NewWriterLevel(w, GzipCompressionLevel)
+		if err != nil {
+			return nil, err
+		}
+		s.writer = cw
+	} else {
+		s.writer.Reset(w)
+	}
+	return s.writer, nil
+}
+
+type _DeflateStream struct {
+	reader   io.Reader
+	resetter flate.Resetter
+	writer   *flate.Writer
+}
+
+func (s *_DeflateStream) WrapReader(r io.Reader) (io.Reader, error) {
+	if s.reader == nil {
+		s.reader = flate.NewReader(r)
+		s.resetter = s.reader.(flate.Resetter)
+	} else {
+		s.resetter.Reset(r, nil)
+	}
+	return s.reader, nil
+}
+
+func (s *_DeflateStream) WrapWriter(w io.Writer) (io.WriteCloser, error) {
+	if s.writer == nil {
+		cw, err := flate.NewWriter(w, DeflateCompressionLevel)
 		if err != nil {
 			return nil, err
 		}

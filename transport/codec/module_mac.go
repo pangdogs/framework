@@ -8,6 +8,10 @@ import (
 	"kit.golaxy.org/plugins/transport/binaryutil"
 )
 
+var (
+	ErrIncorrectMAC = errors.New("incorrect MAC")
+)
+
 // IMACModule MAC模块接口
 type IMACModule interface {
 	// PatchMAC 补充MAC
@@ -79,7 +83,7 @@ func (m *MACModule) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	m.Hash.Write(m.PrivateKey)
 
 	if bytes.Compare(m.Hash.Sum(nil), msgMAC.MAC) != 0 {
-		return nil, errors.New("verify MAC failed")
+		return nil, ErrIncorrectMAC
 	}
 
 	return msgMAC.Data, nil

@@ -6,20 +6,20 @@ import (
 
 // SignatureAlgorithm 签名算法
 type SignatureAlgorithm struct {
-	AsymmetricEncryptMethod AsymmetricEncryptMethod // 非对称加密函数
-	PaddingMode             PaddingMode             // 非对称加密算法填充方案
-	HashMethod              HashMethod              // 摘要函数
+	AsymmetricEncryption AsymmetricEncryption // 非对称加密算法
+	PaddingMode          PaddingMode          // 非对称加密算法填充方案
+	Hash                 Hash                 // 摘要函数
 }
 
 func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(sa.AsymmetricEncryptMethod); err != nil {
+	if err := bs.WriteUint8(sa.AsymmetricEncryption); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint8(sa.PaddingMode); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(sa.HashMethod); err != nil {
+	if err := bs.WriteUint8(sa.Hash); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -27,7 +27,7 @@ func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 
 func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	asymmetricEncryptMethod, err := bs.ReadUint8()
+	asymmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
@@ -35,13 +35,13 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	hashMethod, err := bs.ReadUint8()
+	hash, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
-	sa.AsymmetricEncryptMethod = asymmetricEncryptMethod
+	sa.AsymmetricEncryption = asymmetricEncryption
 	sa.PaddingMode = paddingMode
-	sa.HashMethod = hashMethod
+	sa.Hash = hash
 	return bs.BytesRead(), nil
 }
 

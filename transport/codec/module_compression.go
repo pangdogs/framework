@@ -66,8 +66,8 @@ func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, e
 	}
 
 	msgCompressed := transport.MsgCompressed{
-		Data:   compressedBuf[:n],
-		RawLen: int64(len(src)),
+		Data:         compressedBuf[:n],
+		OriginalSize: int64(len(src)),
 	}
 
 	if msgCompressed.Size() >= len(src) {
@@ -97,7 +97,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
 	}
 
 	if len(src) <= 0 {
-		return nil, errors.New("src bytes too small")
+		return nil, errors.New("src too small")
 	}
 
 	msgCompressed := transport.MsgCompressed{}
@@ -107,11 +107,11 @@ func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
 		return nil, err
 	}
 
-	if msgCompressed.RawLen >= math.MaxInt32 {
-		return nil, errors.New("raw len too large")
+	if msgCompressed.OriginalSize >= math.MaxInt32 {
+		return nil, errors.New("OriginalSize too large")
 	}
 
-	rawBuf := BytesPool.Get(int(msgCompressed.RawLen))
+	rawBuf := BytesPool.Get(int(msgCompressed.OriginalSize))
 	defer func() {
 		if err == nil {
 			m.gcList = append(m.gcList, rawBuf)

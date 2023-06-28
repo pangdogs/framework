@@ -5,8 +5,9 @@ import (
 	"kit.golaxy.org/plugins/transport"
 )
 
-func NewNamedCurve(m transport.NamedCurve) (ecdh.Curve, error) {
-	switch m {
+// NewNamedCurve 创建曲线
+func NewNamedCurve(nc transport.NamedCurve) (ecdh.Curve, error) {
+	switch nc {
 	case transport.NamedCurve_X25519:
 		return ecdh.X25519(), nil
 	case transport.NamedCurve_Secp256r1:

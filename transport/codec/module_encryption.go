@@ -1,32 +1,49 @@
 package codec
 
 import (
-	"crypto/cipher"
 	"errors"
+	"kit.golaxy.org/plugins/transport/method"
 )
 
 // IEncryptionModule 加密模块接口
 type IEncryptionModule interface {
-	// Transform 加解密数据
-	Transform(dst, src []byte) error
+	// Encrypt 加密数据
+	Encrypt(dst, src []byte) error
+	// Decrypt 解密数据
+	Decrypt(dst, src []byte) error
 }
 
 // EncryptionModule 加密模块
 type EncryptionModule struct {
-	CipherStream cipher.Stream // 密码流
+	Encrypter, Decrypter method.CipherStream
 }
 
-// Transform 加解密数据
-func (m *EncryptionModule) Transform(dst, src []byte) error {
-	if m.CipherStream == nil {
-		return errors.New("setting CipherStream is nil")
+// Encrypt 加密数据
+func (m *EncryptionModule) Encrypt(dst, src []byte) error {
+	if m.Encrypter == nil {
+		return errors.New("setting Encrypter is nil")
 	}
 
 	if len(dst) < len(src) {
-		return errors.New("dst bytes smaller than src")
+		return errors.New("dst smaller than src")
 	}
 
-	m.CipherStream.XORKeyStream(dst, src)
+	m.Encrypter.Transforming(dst, src)
+
+	return nil
+}
+
+// Decrypt 解密数据
+func (m *EncryptionModule) Decrypt(dst, src []byte) error {
+	if m.Decrypter == nil {
+		return errors.New("setting Decrypter is nil")
+	}
+
+	if len(dst) < len(src) {
+		return errors.New("dst smaller than src")
+	}
+
+	m.Decrypter.Transforming(dst, src)
 
 	return nil
 }
