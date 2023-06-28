@@ -47,7 +47,6 @@ type BlockCipherMode = uint8
 const (
 	BlockCipherMode_None BlockCipherMode = iota // 未设置
 	BlockCipherMode_CTR                         // CTR模式
-	BlockCipherMode_CBC                         // CBC模式
 	BlockCipherMode_CFB                         // CFB模式
 	BlockCipherMode_OFB                         // OFB模式
 	BlockCipherMode_GCM                         // GCM模式
