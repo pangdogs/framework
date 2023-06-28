@@ -109,7 +109,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 			end = head.Size() + len(buf)
 		}
 
-		if err = e.EncryptionModule.Encrypt(mpBuf[head.Size():end], mpBuf[head.Size():end]); err != nil {
+		if err = e.EncryptionModule.Transforming(mpBuf[head.Size():end], mpBuf[head.Size():end]); err != nil {
 			return err
 		}
 	}

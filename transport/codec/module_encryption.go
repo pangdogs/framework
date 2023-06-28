@@ -7,43 +7,26 @@ import (
 
 // IEncryptionModule 加密模块接口
 type IEncryptionModule interface {
-	// Encrypt 加密数据
-	Encrypt(dst, src []byte) error
-	// Decrypt 解密数据
-	Decrypt(dst, src []byte) error
+	// Transforming 变换数据
+	Transforming(dst, src []byte) error
 }
 
 // EncryptionModule 加密模块
 type EncryptionModule struct {
-	Encrypter, Decrypter method.CipherStream
+	CipherStream method.CipherStream
 }
 
-// Encrypt 加密数据
-func (m *EncryptionModule) Encrypt(dst, src []byte) error {
-	if m.Encrypter == nil {
-		return errors.New("setting Encrypter is nil")
+// Transforming 变换数据
+func (m *EncryptionModule) Transforming(dst, src []byte) error {
+	if m.CipherStream == nil {
+		return errors.New("setting CipherStream is nil")
 	}
 
 	if len(dst) < len(src) {
 		return errors.New("dst smaller than src")
 	}
 
-	m.Encrypter.Transforming(dst, src)
-
-	return nil
-}
-
-// Decrypt 解密数据
-func (m *EncryptionModule) Decrypt(dst, src []byte) error {
-	if m.Decrypter == nil {
-		return errors.New("setting Decrypter is nil")
-	}
-
-	if len(dst) < len(src) {
-		return errors.New("dst smaller than src")
-	}
-
-	m.Decrypter.Transforming(dst, src)
+	m.CipherStream.Transforming(dst, src)
 
 	return nil
 }

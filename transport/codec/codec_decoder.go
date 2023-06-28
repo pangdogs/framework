@@ -96,7 +96,7 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 		if d.EncryptionModule == nil {
 			return errors.New("setting EncryptionModule is nil, msg can't be decrypted")
 		}
-		if err = d.EncryptionModule.Decrypt(msgBuf, msgBuf); err != nil {
+		if err = d.EncryptionModule.Transforming(msgBuf, msgBuf); err != nil {
 			return err
 		}
 

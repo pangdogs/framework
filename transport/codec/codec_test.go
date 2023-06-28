@@ -29,7 +29,7 @@ func TestCodec(t *testing.T) {
 
 	encoder := Encoder{
 		EncryptionModule: &EncryptionModule{
-			Encrypter: encrypter,
+			CipherStream: encrypter,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
@@ -68,7 +68,7 @@ func TestCodec(t *testing.T) {
 	decoder := Decoder{
 		MsgCreator: DefaultMsgCreator(),
 		EncryptionModule: &EncryptionModule{
-			Decrypter: decrypter,
+			CipherStream: decrypter,
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
