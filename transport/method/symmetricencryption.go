@@ -73,8 +73,8 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 
 	switch bcm {
 	case transport.BlockCipherMode_CTR:
-		encrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv), parallel: true}
-		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv), parallel: true}
+		encrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
+		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
 		return
 	case transport.BlockCipherMode_CBC:
 		encrypter = _BlockModeStream{BlockMode: cipher.NewCBCEncrypter(block, iv)}
