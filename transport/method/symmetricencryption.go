@@ -81,10 +81,6 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 		encrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
 		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
 		return
-	case transport.BlockCipherMode_CBC:
-		encrypter = _BlockModeStream{BlockMode: cipher.NewCBCEncrypter(block, iv)}
-		decrypter = _BlockModeStream{BlockMode: cipher.NewCBCDecrypter(block, iv)}
-		return
 	case transport.BlockCipherMode_CFB:
 		encrypter = _XORKeyStream{Stream: cipher.NewCFBEncrypter(block, iv)}
 		decrypter = _XORKeyStream{Stream: cipher.NewCFBDecrypter(block, iv)}
@@ -94,7 +90,7 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 		decrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
 		return
 	case transport.BlockCipherMode_GCM:
-		gcm, err := cipher.NewGCM(block)
+		gcm, err := cipher.NewGCMWithNonceSize(block, len(iv))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -117,20 +113,6 @@ func (s _XORKeyStream) Transforming(dst, src []byte) error {
 }
 
 func (s _XORKeyStream) Parallel() bool {
-	return s.parallel
-}
-
-type _BlockModeStream struct {
-	cipher.BlockMode
-	parallel bool
-}
-
-func (s _BlockModeStream) Transforming(dst, src []byte) error {
-	s.CryptBlocks(dst, src)
-	return nil
-}
-
-func (s _BlockModeStream) Parallel() bool {
 	return s.parallel
 }
 

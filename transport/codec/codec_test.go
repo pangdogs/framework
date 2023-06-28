@@ -1,11 +1,11 @@
 package codec
 
 import (
+	"crypto/aes"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/chacha20"
 	"hash/fnv"
 	"io"
 	"kit.golaxy.org/plugins/transport"
@@ -15,9 +15,9 @@ import (
 
 func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
-	iv, _ := rand.Prime(rand.Reader, chacha20.NonceSizeX*8)
+	iv, _ := rand.Prime(rand.Reader, aes.BlockSize)
 
-	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_ChaCha20, transport.BlockCipherMode_None, key.Bytes(), iv.Bytes())
+	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_AES, transport.BlockCipherMode_GCM, key.Bytes(), iv.Bytes())
 	if err != nil {
 		panic(err)
 	}
