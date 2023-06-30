@@ -16,7 +16,7 @@ func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
 	//iv, _ := rand.Prime(rand.Reader, chacha20.NonceSize*8)
 
-	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_ChaCha20_Poly1305, transport.BlockCipherMode_None, key.Bytes(), nil)
+	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_AES, transport.BlockCipherMode_GCM, key.Bytes(), nil)
 	if err != nil {
 		panic(err)
 	}
