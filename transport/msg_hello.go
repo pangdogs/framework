@@ -16,7 +16,8 @@ const (
 type CipherSuite struct {
 	SecretKeyExchange   SecretKeyExchange   // 秘钥交换函数
 	SymmetricEncryption SymmetricEncryption // 对称加密算法
-	BlockCipherMode     BlockCipherMode     // 对称加密算法分组模式
+	BlockCipherMode     BlockCipherMode     // 分组密码工作模式
+	PaddingMode         PaddingMode         // 填充方案
 	Hash                Hash                // 摘要函数
 }
 
@@ -29,6 +30,9 @@ func (cs *CipherSuite) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	if err := bs.WriteUint8(cs.BlockCipherMode); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint8(cs.PaddingMode); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteUint8(cs.Hash); err != nil {
@@ -51,6 +55,10 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	paddingMode, err := bs.ReadUint8()
+	if err != nil {
+		return 0, err
+	}
 	hash, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
@@ -58,6 +66,7 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	cs.SecretKeyExchange = secretKeyExchange
 	cs.SymmetricEncryption = symmetricEncryption
 	cs.BlockCipherMode = blockCipherMode
+	cs.PaddingMode = paddingMode
 	cs.Hash = hash
 	return bs.BytesRead(), nil
 }

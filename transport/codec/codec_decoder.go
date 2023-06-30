@@ -96,7 +96,8 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 		if d.EncryptionModule == nil {
 			return errors.New("setting EncryptionModule is nil, msg can't be decrypted")
 		}
-		if err = d.EncryptionModule.Transforming(msgBuf, msgBuf); err != nil {
+		msgBuf, err = d.EncryptionModule.Transforming(msgBuf, msgBuf)
+		if err != nil {
 			return err
 		}
 
@@ -183,6 +184,10 @@ func (d *Decoder) GC() {
 		BytesPool.Put(d.gcList[i])
 	}
 	d.gcList = d.gcList[:0]
+
+	if d.EncryptionModule != nil {
+		d.EncryptionModule.GC()
+	}
 
 	if d.MACModule != nil {
 		d.MACModule.GC()

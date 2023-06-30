@@ -24,29 +24,33 @@ const (
 	AsymmetricEncryption_ECC                              // ECC算法
 )
 
-// PaddingMode 非对称加密算法填充方案
-type PaddingMode = uint8
-
-const (
-	PaddingMode_None  PaddingMode = iota // 未设置
-	PaddingMode_Pkcs1                    // pkcs1方案
-)
-
 // SymmetricEncryption 对称加密算法
 type SymmetricEncryption = uint8
 
 const (
-	SymmetricEncryption_None     SymmetricEncryption = iota // 未设置
-	SymmetricEncryption_AES                                 // AES算法
-	SymmetricEncryption_ChaCha20                            // ChaCha20算法
+	SymmetricEncryption_None               SymmetricEncryption = iota // 未设置
+	SymmetricEncryption_AES                                           // AES算法
+	SymmetricEncryption_ChaCha20                                      // ChaCha20算法
+	SymmetricEncryption_ChaCha20_Poly1305                             // ChaCha20-Poly1305算法
+	SymmetricEncryption_XChaCha20_Poly1305                            // XChaCha20-Poly1305算法
 )
 
-// BlockCipherMode 对称加密算法分组模式
+// PaddingMode 数据填充方案
+type PaddingMode = uint8
+
+const (
+	PaddingMode_None  PaddingMode = iota // 未设置
+	PaddingMode_Pkcs7                    // pkcs7方案
+	PaddingMode_X923                     // x927方案
+)
+
+// BlockCipherMode 分组密码工作模式
 type BlockCipherMode = uint8
 
 const (
 	BlockCipherMode_None BlockCipherMode = iota // 未设置
 	BlockCipherMode_CTR                         // CTR模式
+	BlockCipherMode_CBC                         // CBC模式
 	BlockCipherMode_CFB                         // CFB模式
 	BlockCipherMode_OFB                         // OFB模式
 	BlockCipherMode_GCM                         // GCM模式
