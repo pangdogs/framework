@@ -7,7 +7,7 @@ import (
 // SignatureAlgorithm 签名算法
 type SignatureAlgorithm struct {
 	AsymmetricEncryption AsymmetricEncryption // 非对称加密算法
-	PaddingMode          PaddingMode          // 非对称加密算法填充方案
+	PaddingMode          PaddingMode          // 填充方案
 	Hash                 Hash                 // 摘要函数
 }
 

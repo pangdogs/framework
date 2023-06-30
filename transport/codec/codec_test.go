@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"crypto/aes"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -15,21 +14,32 @@ import (
 
 func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
-	iv, _ := rand.Prime(rand.Reader, aes.BlockSize)
+	//iv, _ := rand.Prime(rand.Reader, chacha20.NonceSize*8)
 
-	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_AES, transport.BlockCipherMode_GCM, key.Bytes(), iv.Bytes())
+	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_ChaCha20_Poly1305, transport.BlockCipherMode_None, key.Bytes(), nil)
 	if err != nil {
 		panic(err)
 	}
+
+	nonce, _ := rand.Prime(rand.Reader, encrypter.NonceSize()*8)
 
 	compressionStream, err := method.NewCompressionStream(transport.Compression_Brotli)
 	if err != nil {
 		panic(err)
 	}
 
+	//padding, err := method.NewPadding(transport.PaddingMode_X923)
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	encoder := Encoder{
 		EncryptionModule: &EncryptionModule{
 			CipherStream: encrypter,
+			//Padding:      padding,
+			FetchNonce: func() ([]byte, error) {
+				return nonce.Bytes(), nil
+			},
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),
@@ -69,6 +79,10 @@ func TestCodec(t *testing.T) {
 		MsgCreator: DefaultMsgCreator(),
 		EncryptionModule: &EncryptionModule{
 			CipherStream: decrypter,
+			//Padding:      padding,
+			FetchNonce: func() ([]byte, error) {
+				return nonce.Bytes(), nil
+			},
 		},
 		MACModule: &MAC64Module{
 			Hash:       fnv.New64a(),

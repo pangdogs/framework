@@ -44,17 +44,29 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	head.Flags = (flags << transport.Flag_Customize) >> transport.Flag_Customize
 	head.MsgId = msg.MsgId()
 
-	var mpBuf []byte
+	appendSize := 0
 
-	if e.PatchMAC {
-		if e.MACModule == nil {
-			return errors.New("setting MACModule is nil, msg can't be patch MAC")
+	if e.Encryption {
+		if e.EncryptionModule == nil {
+			return errors.New("setting EncryptionModule is nil, msg can't be encrypted")
 		}
-		mpBuf = BytesPool.Get(head.Size() + msg.Size() + e.MACModule.SizeofMAC(msg.Size()))
-	} else {
-		mpBuf = BytesPool.Get(head.Size() + msg.Size())
+		ds, err := e.EncryptionModule.DeltaSize()
+		if err != nil {
+			return err
+		}
+		if ds > 0 {
+			appendSize += ds
+		}
+
+		if e.PatchMAC {
+			if e.MACModule == nil {
+				return errors.New("setting MACModule is nil, msg can't be patch MAC")
+			}
+			appendSize += e.MACModule.SizeofMAC(msg.Size())
+		}
 	}
 
+	mpBuf := BytesPool.Get(head.Size() + msg.Size() + appendSize)
 	defer BytesPool.Put(mpBuf)
 
 	// 写入消息
@@ -85,10 +97,6 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 
 	// 加密消息
 	if e.Encryption {
-		if e.EncryptionModule == nil {
-			return errors.New("setting EncryptionModule is nil, msg can't be encrypted")
-		}
-
 		head.Flags.Set(transport.Flag_Encrypted, true)
 
 		// 补充MAC
@@ -109,9 +117,14 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 			end = head.Size() + len(buf)
 		}
 
-		if err = e.EncryptionModule.Transforming(mpBuf[head.Size():end], mpBuf[head.Size():end]); err != nil {
+		buf, err := e.EncryptionModule.Transforming(mpBuf[head.Size():end], mpBuf[head.Size():end])
+		if err != nil {
 			return err
 		}
+		defer e.EncryptionModule.GC()
+
+		copy(mpBuf[head.Size():], buf)
+		end = head.Size() + len(buf)
 	}
 
 	// 写入消息头
