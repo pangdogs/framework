@@ -13,8 +13,8 @@ type (
 type IEncryptionModule interface {
 	// Transforming 变换数据
 	Transforming(dst, src []byte) ([]byte, error)
-	// DeltaSize 变换后数据增减大小（预估值）
-	DeltaSize() (int, error)
+	// SizeOfAddition 附加数据大小
+	SizeOfAddition(msgLen int) (int, error)
 	// GC GC
 	GC()
 }
@@ -96,12 +96,16 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 	return ret, nil
 }
 
-// DeltaSize 变换后数据增减大小（预估值）
-func (m *EncryptionModule) DeltaSize() (int, error) {
+// SizeOfAddition 附加数据大小
+func (m *EncryptionModule) SizeOfAddition(msgLen int) (int, error) {
 	if m.CipherStream == nil {
 		return 0, errors.New("setting CipherStream is nil")
 	}
-	return m.CipherStream.OutputSize(0), nil
+	size := m.CipherStream.OutputSize(msgLen) - msgLen
+	if size < 0 {
+		return 0, nil
+	}
+	return size, nil
 }
 
 // GC GC

@@ -44,29 +44,28 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	head.Flags = (flags << transport.Flag_Customize) >> transport.Flag_Customize
 	head.MsgId = msg.MsgId()
 
-	appendSize := 0
+	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可
+	msgAddition := 0
 
 	if e.Encryption {
 		if e.EncryptionModule == nil {
 			return errors.New("setting EncryptionModule is nil, msg can't be encrypted")
 		}
-		ds, err := e.EncryptionModule.DeltaSize()
+		encAddition, err := e.EncryptionModule.SizeOfAddition(msg.Size())
 		if err != nil {
 			return err
 		}
-		if ds > 0 {
-			appendSize += ds
-		}
+		msgAddition += encAddition
 
 		if e.PatchMAC {
 			if e.MACModule == nil {
 				return errors.New("setting MACModule is nil, msg can't be patch MAC")
 			}
-			appendSize += e.MACModule.SizeofMAC(msg.Size())
+			msgAddition += e.MACModule.SizeofMAC(msg.Size() + encAddition)
 		}
 	}
 
-	mpBuf := BytesPool.Get(head.Size() + msg.Size() + appendSize)
+	mpBuf := BytesPool.Get(head.Size() + msg.Size() + msgAddition)
 	defer BytesPool.Put(mpBuf)
 
 	// 写入消息
