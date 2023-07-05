@@ -13,6 +13,18 @@ type IEncoder interface {
 	io.WriterTo
 	// Stuff 填充消息
 	Stuff(flags transport.Flags, msg transport.Msg) error
+	// GetEncryptionModule 获取加密模块
+	GetEncryptionModule() IEncryptionModule
+	// GetMACModule 获取MAC模块
+	GetMACModule() IMACModule
+	// GetCompressionModule 获取压缩模块
+	GetCompressionModule() ICompressionModule
+	// GetEncryption 获取开启加密
+	GetEncryption() bool
+	// GetPatchMAC 获取开启MAC
+	GetPatchMAC() bool
+	// GetCompressedSize 获取启用压缩阀值（字节），<=0表示不开启
+	GetCompressedSize() int
 }
 
 // Encoder 消息包编码器
@@ -22,7 +34,7 @@ type Encoder struct {
 	CompressionModule ICompressionModule // 压缩模块
 	Encryption        bool               // 开启加密
 	PatchMAC          bool               // 开启MAC
-	Compressed        int                // 开启压缩阀值，<=0表示不开启
+	CompressedSize    int                // 启用压缩阀值（字节），<=0表示不开启
 	buffer            bytes.Buffer       // buffer
 }
 
@@ -76,7 +88,7 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	end := head.Size() + mn
 
 	// 消息长度达到阀值，需要压缩消息
-	if e.Compressed > 0 && msg.Size() >= e.Compressed {
+	if e.CompressedSize > 0 && msg.Size() >= e.CompressedSize {
 		if e.CompressionModule == nil {
 			return errors.New("setting CompressionModule is nil, msg can't be compress")
 		}
@@ -135,4 +147,34 @@ func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
 	// 写入缓冲
 	_, err = e.buffer.Write(mpBuf[:end])
 	return err
+}
+
+// GetEncryptionModule 获取加密模块
+func (e *Encoder) GetEncryptionModule() IEncryptionModule {
+	return e.EncryptionModule
+}
+
+// GetMACModule 获取MAC模块
+func (e *Encoder) GetMACModule() IMACModule {
+	return e.MACModule
+}
+
+// GetCompressionModule 获取压缩模块
+func (e *Encoder) GetCompressionModule() ICompressionModule {
+	return e.CompressionModule
+}
+
+// GetEncryption 获取开启加密
+func (e *Encoder) GetEncryption() bool {
+	return e.Encryption
+}
+
+// GetPatchMAC 获取开启MAC
+func (e *Encoder) GetPatchMAC() bool {
+	return e.PatchMAC
+}
+
+// GetCompressedSize 获取启用压缩阀值（字节），<=0表示不开启
+func (e *Encoder) GetCompressedSize() int {
+	return e.CompressedSize
 }

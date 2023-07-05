@@ -118,7 +118,7 @@ func (t *Transceiver) SendRst(err error) error {
 		}
 	}
 
-	if err := t.Encoder.Stuff(transport.Flags_None, msg); err != nil {
+	if err := t.Encoder.Stuff(transport.Flags_None(), msg); err != nil {
 		return err
 	}
 

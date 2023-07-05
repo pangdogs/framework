@@ -118,9 +118,9 @@ func TestProtocol(t *testing.T) {
 		defer conn.Close()
 
 		encoder := &codec.Encoder{
-			Encryption: false,
-			PatchMAC:   false,
-			Compressed: -1,
+			Encryption:     false,
+			PatchMAC:       false,
+			CompressedSize: -1,
 		}
 
 		decoder := &codec.Decoder{

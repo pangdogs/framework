@@ -18,24 +18,24 @@ type CipherSuite struct {
 	SymmetricEncryption SymmetricEncryption // 对称加密算法
 	BlockCipherMode     BlockCipherMode     // 分组密码工作模式
 	PaddingMode         PaddingMode         // 填充方案
-	Hash                Hash                // 摘要函数
+	MACHash             Hash                // MAC摘要函数
 }
 
 func (cs *CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(cs.SecretKeyExchange); err != nil {
+	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.SymmetricEncryption); err != nil {
+	if err := bs.WriteUint8(uint8(cs.SymmetricEncryption)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.BlockCipherMode); err != nil {
+	if err := bs.WriteUint8(uint8(cs.BlockCipherMode)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.PaddingMode); err != nil {
+	if err := bs.WriteUint8(uint8(cs.PaddingMode)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(cs.Hash); err != nil {
+	if err := bs.WriteUint8(uint8(cs.MACHash)); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -59,15 +59,15 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	hash, err := bs.ReadUint8()
+	macHash, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
-	cs.SecretKeyExchange = secretKeyExchange
-	cs.SymmetricEncryption = symmetricEncryption
-	cs.BlockCipherMode = blockCipherMode
-	cs.PaddingMode = paddingMode
-	cs.Hash = hash
+	cs.SecretKeyExchange = SecretKeyExchange(secretKeyExchange)
+	cs.SymmetricEncryption = SymmetricEncryption(symmetricEncryption)
+	cs.BlockCipherMode = BlockCipherMode(blockCipherMode)
+	cs.PaddingMode = PaddingMode(paddingMode)
+	cs.MACHash = Hash(macHash)
 	return bs.BytesRead(), nil
 }
 
@@ -88,7 +88,7 @@ type MsgHello struct {
 
 func (m *MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint16(m.Version); err != nil {
+	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteString(m.SessionId); err != nil {
@@ -100,7 +100,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(m.Compression); err != nil {
+	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.Extensions); err != nil {
@@ -135,11 +135,11 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.Version = version
+	m.Version = Version(version)
 	m.SessionId = sessionId
 	m.Random = random
 	m.CipherSuite = cipherSuite
-	m.Compression = compression
+	m.Compression = Compression(compression)
 	m.Extensions = extensions
 	return bs.BytesRead(), nil
 }

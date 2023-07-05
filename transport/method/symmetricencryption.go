@@ -40,7 +40,7 @@ func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipher
 		}
 		return NewBlockCipherMode(bcm, block, iv)
 
-	case transport.SymmetricEncryption_ChaCha20:
+	case transport.SymmetricEncryption_ChaCha20, transport.SymmetricEncryption_XChaCha20:
 		encryptStream, err := chacha20.NewUnauthenticatedCipher(key, iv)
 		if err != nil {
 			return nil, nil, err

@@ -22,6 +22,14 @@ type IDecoder interface {
 	MultiFetch(fun func(mp transport.MsgPacket) bool) error
 	// Discard 丢弃消息包
 	Discard(n int) error
+	// GetMsgCreator 获取消息构建器
+	GetMsgCreator() IMsgCreator
+	// GetEncryptionModule 获取加密模块
+	GetEncryptionModule() IEncryptionModule
+	// GetMACModule 获取MAC模块
+	GetMACModule() IMACModule
+	// GetCompressionModule 获取压缩模块
+	GetCompressionModule() ICompressionModule
 	// GC GC
 	GC()
 }
@@ -176,6 +184,26 @@ func (d *Decoder) Discard(n int) error {
 		d.buffer.Next(int(mp.Head.Len))
 	}
 	return nil
+}
+
+// GetMsgCreator 获取消息构建器
+func (d *Decoder) GetMsgCreator() IMsgCreator {
+	return d.MsgCreator
+}
+
+// GetEncryptionModule 获取加密模块
+func (d *Decoder) GetEncryptionModule() IEncryptionModule {
+	return d.EncryptionModule
+}
+
+// GetMACModule 获取MAC模块
+func (d *Decoder) GetMACModule() IMACModule {
+	return d.MACModule
+}
+
+// GetCompressionModule 获取压缩模块
+func (d *Decoder) GetCompressionModule() ICompressionModule {
+	return d.CompressionModule
 }
 
 // GC GC

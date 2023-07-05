@@ -48,9 +48,9 @@ func TestCodec(t *testing.T) {
 		CompressionModule: &CompressionModule{
 			CompressionStream: compressionStream,
 		},
-		Encryption: true,
-		PatchMAC:   true,
-		Compressed: 1,
+		Encryption:     true,
+		PatchMAC:       true,
+		CompressedSize: 1,
 	}
 
 	for i := 0; i < 5; i++ {
@@ -66,7 +66,7 @@ func TestCodec(t *testing.T) {
 				SecretKeyExchange:   transport.SecretKeyExchange_ECDHE,
 				SymmetricEncryption: transport.SymmetricEncryption_AES,
 				BlockCipherMode:     transport.BlockCipherMode_CFB,
-				Hash:                transport.Hash_Fnv1a32,
+				MACHash:             transport.Hash_Fnv1a32,
 			},
 			Extensions: extensions.Bytes(),
 		})
