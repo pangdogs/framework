@@ -4,6 +4,11 @@ import (
 	"kit.golaxy.org/plugins/transport/binaryutil"
 )
 
+// ECDHESecretKeyExchange消息标志位
+const (
+	Flag_Signature Flag = 1 << (iota + Flag_Customize) // 有签名数据
+)
+
 // SignatureAlgorithm 签名算法
 type SignatureAlgorithm struct {
 	AsymmetricEncryption AsymmetricEncryption // 非对称加密算法
@@ -13,13 +18,13 @@ type SignatureAlgorithm struct {
 
 func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(sa.AsymmetricEncryption); err != nil {
+	if err := bs.WriteUint8(uint8(sa.AsymmetricEncryption)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(sa.PaddingMode); err != nil {
+	if err := bs.WriteUint8(uint8(sa.PaddingMode)); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint8(sa.Hash); err != nil {
+	if err := bs.WriteUint8(uint8(sa.Hash)); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -39,9 +44,9 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	sa.AsymmetricEncryption = asymmetricEncryption
-	sa.PaddingMode = paddingMode
-	sa.Hash = hash
+	sa.AsymmetricEncryption = AsymmetricEncryption(asymmetricEncryption)
+	sa.PaddingMode = PaddingMode(paddingMode)
+	sa.Hash = Hash(hash)
 	return bs.BytesRead(), nil
 }
 
@@ -53,16 +58,24 @@ func (sa *SignatureAlgorithm) Size() int {
 type MsgECDHESecretKeyExchange struct {
 	NamedCurve         NamedCurve         // 曲线类型
 	PublicKey          []byte             // 公钥
+	IV                 []byte             // iv
+	Nonce              []byte             // nonce
 	SignatureAlgorithm SignatureAlgorithm // 签名算法
 	Signature          []byte             // 签名
 }
 
 func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint8(m.NamedCurve); err != nil {
+	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.PublicKey); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.IV); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.Nonce); err != nil {
 		return 0, err
 	}
 	if _, err := bs.ReadFrom(&m.SignatureAlgorithm); err != nil {
@@ -84,6 +97,14 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	iv, err := bs.ReadBytesRef()
+	if err != nil {
+		return 0, err
+	}
+	nonce, err := bs.ReadBytesRef()
+	if err != nil {
+		return 0, err
+	}
 	signatureAlgorithm := SignatureAlgorithm{}
 	if _, err := bs.WriteTo(&signatureAlgorithm); err != nil {
 		return 0, err
@@ -92,8 +113,10 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.NamedCurve = namedCurve
+	m.NamedCurve = NamedCurve(namedCurve)
 	m.PublicKey = publicKey
+	m.IV = iv
+	m.Nonce = nonce
 	m.SignatureAlgorithm = signatureAlgorithm
 	m.Signature = signature
 	return bs.BytesRead(), nil
