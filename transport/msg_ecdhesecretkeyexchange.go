@@ -6,7 +6,7 @@ import (
 
 // ECDHESecretKeyExchange消息标志位
 const (
-	Flag_Signature Flag = 1 << (iota + Flag_Customize) // 有签名数据
+	Flag_Signature Flag = 1 << (iota + Flag_Customize) // 有签名数据，在双方的ECDHE秘钥交换消息中携带，表示可以验证对方签名
 )
 
 // SignatureAlgorithm 签名算法
