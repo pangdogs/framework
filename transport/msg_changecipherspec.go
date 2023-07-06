@@ -4,7 +4,7 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // ChangeCipherSpec消息标志位
 const (
-	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize) // 交换秘钥后，在服务端变更密码规范消息中携带，表示需要验证加密是否成功
+	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize) // 交换秘钥后，在双方变更密码规范消息中携带，表示需要验证加密是否成功
 )
 
 // MsgChangeCipherSpec 变更密码规范
