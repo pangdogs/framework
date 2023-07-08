@@ -6,10 +6,10 @@ import (
 
 // Hello消息标志位
 const (
-	Flag_HelloDone     Flag = 1 << (iota + Flag_Customize) // Hello完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
-	Flag_EnableEncrypt                                     // 开启加密（协议优先考虑性能，要求安全性请直接使用TLS加密链路），在服务端返回的Hello消息中携带，表示链路需要加密，需要执行秘钥交换流程
-	Flag_EnableAuth                                        // 开启鉴权（基于token鉴权），在服务端返回的Hello消息中携带，表示链路需要认证，需要执行鉴权流程
-	Flag_Continue                                          // 使用断线重连简化流程
+	Flag_HelloDone  Flag = 1 << (iota + Flag_Customize) // Hello完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
+	Flag_Encryption                                     // 开启加密（协议优先考虑性能，要求安全性请直接使用TLS加密链路），在服务端返回的Hello消息中携带，表示链路需要加密，需要执行秘钥交换流程
+	Flag_Auth                                           // 开启鉴权（基于token鉴权），在服务端返回的Hello消息中携带，表示链路需要认证，需要执行鉴权流程
+	Flag_Continue                                       // 使用断线重连简化流程
 )
 
 // CipherSuite 密码学套件
@@ -83,7 +83,6 @@ type MsgHello struct {
 	Random      []byte      // 随机数，用于秘钥交换
 	CipherSuite CipherSuite // 密码学套件，客户端提交的密码学套件建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
 	Compression Compression // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
-	Extensions  []byte      // 扩展内容
 }
 
 func (m *MsgHello) Read(p []byte) (int, error) {
@@ -101,9 +100,6 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteBytes(m.Extensions); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -131,22 +127,17 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	extensions, err := bs.ReadBytesRef()
-	if err != nil {
-		return 0, err
-	}
 	m.Version = Version(version)
 	m.SessionId = sessionId
 	m.Random = random
 	m.CipherSuite = cipherSuite
 	m.Compression = Compression(compression)
-	m.Extensions = extensions
 	return bs.BytesRead(), nil
 }
 
 func (m *MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
-		m.CipherSuite.Size() + binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.Extensions)
+		m.CipherSuite.Size() + binaryutil.SizeofUint8()
 }
 
 func (MsgHello) MsgId() MsgId {
