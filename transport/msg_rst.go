@@ -3,7 +3,7 @@ package transport
 import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // Code 错误码
-type Code = int32
+type Code int32
 
 const (
 	Code_VersionError    Code = iota + 1 // 版本错误
@@ -24,7 +24,7 @@ type MsgRst struct {
 
 func (m *MsgRst) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteInt32(m.Code); err != nil {
+	if err := bs.WriteInt32(int32(m.Code)); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteString(m.Message); err != nil {
@@ -43,7 +43,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.Code = code
+	m.Code = Code(code)
 	m.Message = extensions
 	return bs.BytesRead(), nil
 }

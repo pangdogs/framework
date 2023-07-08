@@ -4,8 +4,9 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // Finished消息标志位
 const (
-	Flag_EncryptOK Flag = 1 << (iota + Flag_Customize) // 加密成功，在服务端发起的Finished消息携带
-	Flag_AuthOK                                        // 鉴权成功，在服务端发起的Finished消息携带
+	Flag_EncryptOK  Flag = 1 << (iota + Flag_Customize) // 加密成功，在服务端发起的Finished消息携带
+	Flag_AuthOK                                         // 鉴权成功，在服务端发起的Finished消息携带
+	Flag_ContinueOK                                     // 断线重连成功，在服务端发起的Finished消息携带
 )
 
 // MsgFinished 握手结束，表示认可对端，可以开始传输数据

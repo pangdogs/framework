@@ -56,8 +56,7 @@ func TestCodec(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
 		random, _ := rand.Prime(rand.Reader, 1024)
-		extensions, _ := rand.Prime(rand.Reader, 2048)
-
+		
 		err = encoder.Stuff(0, &transport.MsgHello{
 			Version:   transport.Version(i),
 			SessionId: sessionId.String(),
@@ -68,7 +67,6 @@ func TestCodec(t *testing.T) {
 				BlockCipherMode:     transport.BlockCipherMode_CFB,
 				MACHash:             transport.Hash_Fnv1a32,
 			},
-			Extensions: extensions.Bytes(),
 		})
 		if err != nil {
 			panic(err)
