@@ -72,7 +72,7 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 }
 
 func (cs *CipherSuite) Size() int {
-	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
+	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
 		binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
 

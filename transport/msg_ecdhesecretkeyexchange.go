@@ -123,8 +123,8 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 }
 
 func (m *MsgECDHESecretKeyExchange) Size() int {
-	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) +
-		m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
+	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
+		binaryutil.SizeofBytes(m.Nonce) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
 }
 
 func (MsgECDHESecretKeyExchange) MsgId() MsgId {
