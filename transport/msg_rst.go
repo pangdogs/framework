@@ -49,7 +49,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 }
 
 func (m *MsgRst) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofString(m.Message)
+	return binaryutil.SizeofInt32() + binaryutil.SizeofString(m.Message)
 }
 
 func (MsgRst) MsgId() MsgId {

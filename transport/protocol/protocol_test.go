@@ -38,16 +38,16 @@ func TestProtocol(t *testing.T) {
 					conn.Close()
 				}()
 
-				encoder := &codec.Encoder{}
-
-				decoder := &codec.Decoder{
-					MsgCreator: codec.DefaultMsgCreator(),
+				transceiver := &Transceiver{
+					Conn:    conn,
+					Encoder: &codec.Encoder{},
+					Decoder: &codec.Decoder{
+						MsgCreator: codec.DefaultMsgCreator(),
+					},
 				}
 
 				handshake := &HandshakeProtocol{
-					Conn:    conn,
-					Encoder: encoder,
-					Decoder: decoder,
+					Transceiver: transceiver,
 				}
 
 				err = handshake.ServerHello(func(e Event[*transport.MsgHello]) (Event[*transport.MsgHello], error) {
@@ -72,16 +72,14 @@ func TestProtocol(t *testing.T) {
 				}
 
 				ctrl := &CtrlProtocol{
-					Conn:          conn,
-					Encoder:       encoder,
+					Transceiver:   transceiver,
 					RecvRst:       nil,
 					RecvSyncTime:  nil,
 					RecvHeartbeat: nil,
 				}
 
 				trans := &TransProtocol{
-					Conn:    conn,
-					Encoder: encoder,
+					Transceiver: transceiver,
 					RecvPayload: func(e Event[*transport.MsgPayload]) error {
 						fmt.Println(e.Msg.Seq, string(e.Msg.Data))
 						return nil
@@ -89,8 +87,7 @@ func TestProtocol(t *testing.T) {
 				}
 
 				dispather := Dispatcher{
-					Conn:    conn,
-					Decoder: decoder,
+					Transceiver: transceiver,
 					Handlers: map[transport.MsgId]Handler{
 						transport.MsgId_Rst:       ctrl,
 						transport.MsgId_Heartbeat: ctrl,
@@ -127,10 +124,14 @@ func TestProtocol(t *testing.T) {
 			MsgCreator: codec.DefaultMsgCreator(),
 		}
 
-		handshake := &HandshakeProtocol{
+		transceiver := &Transceiver{
 			Conn:    conn,
 			Encoder: encoder,
 			Decoder: decoder,
+		}
+
+		handshake := &HandshakeProtocol{
+			Transceiver: transceiver,
 		}
 
 		err = handshake.ClientHello(Event[*transport.MsgHello]{Msg: &transport.MsgHello{}}, func(e Event[*transport.MsgHello]) error {
@@ -154,8 +155,7 @@ func TestProtocol(t *testing.T) {
 		}
 
 		trans := &TransProtocol{
-			Conn:    conn,
-			Encoder: encoder,
+			Transceiver: transceiver,
 		}
 
 		for {

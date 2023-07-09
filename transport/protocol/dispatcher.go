@@ -4,9 +4,6 @@ import (
 	"errors"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/transport"
-	"kit.golaxy.org/plugins/transport/codec"
-	"net"
-	"time"
 )
 
 var (
@@ -24,18 +21,17 @@ type Handler interface {
 
 // Dispatcher 消息事件分发器
 type Dispatcher struct {
-	Conn     net.Conn                    // 网络连接
-	Decoder  codec.IDecoder              // 消息包解码器
-	Timeout  time.Duration               // io超时时间
-	Handlers map[transport.MsgId]Handler // 消息处理句柄
+	Transceiver *Transceiver                // 消息事件收发器
+	Handlers    map[transport.MsgId]Handler // 消息处理句柄
 }
 
 // Run 运行
 func (d *Dispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
-	trans := Transceiver{
-		Conn:    d.Conn,
-		Decoder: d.Decoder,
-		Timeout: d.Timeout,
+	if d.Transceiver == nil {
+		if errorHandler != nil {
+			errorHandler(errors.New("setting Transceiver is nil"))
+		}
+		return
 	}
 
 	for {
@@ -45,12 +41,10 @@ func (d *Dispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 		default:
 		}
 
-		e, err := trans.Recv()
+		e, err := d.Transceiver.Recv()
 		if err != nil {
-			if errorHandler != nil {
-				if !errorHandler(err) {
-					return
-				}
+			if errorHandler != nil && !errorHandler(err) {
+				return
 			}
 			continue
 		}
@@ -62,20 +56,16 @@ func (d *Dispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 		}
 
 		if handler == nil {
-			if errorHandler != nil {
-				if !errorHandler(ErrHandlerNotRegistered) {
-					return
-				}
+			if errorHandler != nil && !errorHandler(ErrHandlerNotRegistered) {
+				return
 			}
 			continue
 		}
 
 		err = handler.Recv(e)
 		if err != nil {
-			if errorHandler != nil {
-				if !errorHandler(err) {
-					return
-				}
+			if errorHandler != nil && !errorHandler(err) {
+				return
 			}
 			continue
 		}

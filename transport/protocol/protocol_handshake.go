@@ -4,9 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/transport"
-	"kit.golaxy.org/plugins/transport/codec"
-	"net"
-	"time"
 )
 
 type (
@@ -22,10 +19,7 @@ type (
 
 // HandshakeProtocol 握手协议
 type HandshakeProtocol struct {
-	Conn    net.Conn       // 网络连接
-	Encoder codec.IEncoder // 消息包编码器
-	Decoder codec.IDecoder // 消息包解码器
-	Timeout time.Duration  // io超时时间
+	Transceiver *Transceiver // 消息事件收发器
 }
 
 // ClientHello 客户端Hello
@@ -34,12 +28,10 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 		return errors.New("helloFin is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer trans.Decoder.GC()
 
@@ -76,12 +68,10 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		return errors.New("helloAccept is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer func() {
 		if err != nil {
@@ -125,12 +115,10 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return errors.New("changeCipherSpecAccept is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer trans.Decoder.GC()
 
@@ -195,12 +183,10 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return errors.New("changeCipherSpecFin is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer func() {
 		if err != nil {
@@ -258,12 +244,10 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 
 // ClientAuth 客户端发起鉴权
 func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) error {
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	err := trans.Send(PackEvent(auth))
 	if err != nil {
@@ -279,12 +263,10 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 		return errors.New("authAccept is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer func() {
 		if err != nil {
@@ -319,12 +301,10 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error 
 		return errors.New("finishedAccept is nil")
 	}
 
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer trans.Decoder.GC()
 
@@ -352,12 +332,10 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error 
 
 // ServerFinished 服务端握手结束
 func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished]) (err error) {
-	trans := Transceiver{
-		Conn:    h.Conn,
-		Encoder: h.Encoder,
-		Decoder: h.Decoder,
-		Timeout: h.Timeout,
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
+	trans := h.Transceiver
 
 	defer func() {
 		if err != nil {

@@ -4,9 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/transport"
-	"kit.golaxy.org/plugins/transport/codec"
-	"net"
-	"time"
 )
 
 var (
@@ -19,25 +16,47 @@ type (
 
 // TransProtocol 传输协议
 type TransProtocol struct {
-	Conn             net.Conn       // 网络连接
-	Encoder          codec.IEncoder // 消息包编码器
-	Timeout          time.Duration  // io超时时间
-	SendSeq, RecvSeq uint32         // 请求响应序号
-	RecvPayload      RecvPayload    // 接收Payload消息事件
+	Transceiver      *Transceiver // 消息事件收发器
+	SendSeq, RecvSeq uint32       // 请求响应序号
+	RecvPayload      RecvPayload  // 接收Payload消息事件
 }
 
 // SendPayload 发送Payload消息事件
 func (t *TransProtocol) SendPayload(e Event[*transport.MsgPayload]) error {
-	trans := Transceiver{
-		Conn:    t.Conn,
-		Encoder: t.Encoder,
-		Timeout: t.Timeout,
+	if t.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
 	}
 
 	t.SendSeq++
 	e.Msg.Seq = t.SendSeq
 
-	return trans.Send(PackEvent(e))
+	return t.Transceiver.Send(PackEvent(e))
+}
+
+// Bind 绑定事件分发器
+func (t *TransProtocol) Bind(dispatcher *Dispatcher) error {
+	if dispatcher == nil {
+		return errors.New("dispatcher is nil")
+	}
+	if dispatcher.Handlers == nil {
+		dispatcher.Handlers = map[transport.MsgId]Handler{}
+	}
+	dispatcher.Handlers[transport.MsgId_Payload] = t
+	return nil
+}
+
+// Unbind 解绑定事件分发器
+func (t *TransProtocol) Unbind(dispatcher *Dispatcher) error {
+	if dispatcher == nil {
+		return errors.New("dispatcher is nil")
+	}
+	if dispatcher.Handlers == nil {
+		return nil
+	}
+	if dispatcher.Handlers[transport.MsgId_Payload] == t {
+		delete(dispatcher.Handlers, transport.MsgId_Payload)
+	}
+	return nil
 }
 
 // Recv 消息事件处理句柄
