@@ -35,7 +35,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 
 	defer trans.Decoder.GC()
 
-	err := trans.Send(PackEvent(hello))
+	err := trans.Send(PackEvent(hello), false)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		return err
 	}
 
-	err = trans.Send(PackEvent(reply))
+	err = trans.Send(PackEvent(reply), false)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	err = trans.Send(PackEvent(secretKeyExchangeReply))
+	err = trans.Send(PackEvent(secretKeyExchangeReply), false)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	err = trans.Send(PackEvent(changeCipherSpecReply))
+	err = trans.Send(PackEvent(changeCipherSpecReply), false)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		trans.Decoder.GC()
 	}()
 
-	err = trans.Send(PackEvent(secretKeyExchange))
+	err = trans.Send(PackEvent(secretKeyExchange), false)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return err
 	}
 
-	err = trans.Send(PackEvent(changeCipherSpecMsg))
+	err = trans.Send(PackEvent(changeCipherSpecMsg), false)
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) error {
 	}
 	trans := h.Transceiver
 
-	err := trans.Send(PackEvent(auth))
+	err := trans.Send(PackEvent(auth), false)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished
 		}
 	}()
 
-	err = trans.Send(PackEvent(finished))
+	err = trans.Send(PackEvent(finished), false)
 	if err != nil {
 		return err
 	}

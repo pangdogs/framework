@@ -42,19 +42,16 @@ const (
 	Flag_Encrypted  Flag   = 1 << iota // 已加密
 	Flag_MAC                           // 有MAC
 	Flag_Compressed                    // 已压缩
+	Flag_Sequenced                     // 有时序
 	Flag_Customize  = iota             // 自定义标志位起点
-)
-
-const (
-	MsgHeadSize    = 6 // 消息包头部字节数
-	MsgHeadLenSize = 4 // 消息包头部长度字段字节数
 )
 
 // MsgHead 消息头
 type MsgHead struct {
 	Len   uint32 // 消息包长度
-	Flags Flags  // 标志位
 	MsgId MsgId  // 消息Id
+	Flags Flags  // 标志位
+	Seq   uint32 // 消息序号（可选）
 }
 
 func (m *MsgHead) Read(p []byte) (int, error) {
@@ -67,6 +64,11 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 	}
 	if err := bs.WriteUint8(uint8(m.Flags)); err != nil {
 		return 0, err
+	}
+	if m.Flags.Is(Flag_Sequenced) {
+		if err := bs.WriteUint32(m.Seq); err != nil {
+			return 0, err
+		}
 	}
 	return bs.BytesWritten(), nil
 }
@@ -85,12 +87,51 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	var seq uint32
+	if Flags(flags).Is(Flag_Sequenced) {
+		seq, err = bs.ReadUint32()
+		if err != nil {
+			return 0, err
+		}
+	}
 	m.Len = l
 	m.MsgId = msgid
 	m.Flags = Flags(flags)
+	m.Seq = seq
 	return bs.BytesRead(), nil
 }
 
 func (m *MsgHead) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
+	size := binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
+	if m.Flags.Is(Flag_Sequenced) {
+		size += binaryutil.SizeofUint32()
+	}
+	return size
+}
+
+// MsgPacketLen 消息包长度
+type MsgPacketLen struct {
+	Len uint32 // 消息包长度
+}
+
+func (m *MsgPacketLen) Read(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
+	if err := bs.WriteUint32(m.Len); err != nil {
+		return 0, err
+	}
+	return bs.BytesWritten(), nil
+}
+
+func (m *MsgPacketLen) Write(p []byte) (int, error) {
+	bs := binaryutil.NewByteStream(p)
+	l, err := bs.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	m.Len = l
+	return bs.BytesRead(), nil
+}
+
+func (MsgPacketLen) Size() int {
+	return binaryutil.SizeofUint32()
 }

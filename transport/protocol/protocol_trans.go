@@ -6,19 +6,14 @@ import (
 	"kit.golaxy.org/plugins/transport"
 )
 
-var (
-	ErrRecvUnexpectedSeq = errors.New("recv unexpected payload seq") // 收到的数据序号错误
-)
-
 type (
 	RecvPayload = func(Event[*transport.MsgPayload]) error
 )
 
 // TransProtocol 传输协议
 type TransProtocol struct {
-	Transceiver      *Transceiver // 消息事件收发器
-	SendSeq, RecvSeq uint32       // 请求响应序号
-	RecvPayload      RecvPayload  // 接收Payload消息事件
+	Transceiver *Transceiver // 消息事件收发器
+	RecvPayload RecvPayload  // 接收Payload消息事件
 }
 
 // SendPayload 发送Payload消息事件
@@ -26,11 +21,7 @@ func (t *TransProtocol) SendPayload(e Event[*transport.MsgPayload]) error {
 	if t.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-
-	t.SendSeq++
-	e.Msg.Seq = t.SendSeq
-
-	return t.Transceiver.Send(PackEvent(e))
+	return t.Transceiver.Send(PackEvent(e), true)
 }
 
 // Bind 绑定事件分发器
@@ -38,10 +29,13 @@ func (t *TransProtocol) Bind(dispatcher *Dispatcher) error {
 	if dispatcher == nil {
 		return errors.New("dispatcher is nil")
 	}
+
 	if dispatcher.Handlers == nil {
 		dispatcher.Handlers = map[transport.MsgId]Handler{}
 	}
+
 	dispatcher.Handlers[transport.MsgId_Payload] = t
+
 	return nil
 }
 
@@ -50,12 +44,15 @@ func (t *TransProtocol) Unbind(dispatcher *Dispatcher) error {
 	if dispatcher == nil {
 		return errors.New("dispatcher is nil")
 	}
+
 	if dispatcher.Handlers == nil {
 		return nil
 	}
+
 	if dispatcher.Handlers[transport.MsgId_Payload] == t {
 		delete(dispatcher.Handlers, transport.MsgId_Payload)
 	}
+
 	return nil
 }
 
@@ -64,11 +61,6 @@ func (t *TransProtocol) Recv(e Event[transport.Msg]) error {
 	switch e.Msg.MsgId() {
 	case transport.MsgId_Payload:
 		payload := UnpackEvent[*transport.MsgPayload](e)
-		if payload.Msg.Seq != t.RecvSeq+1 {
-			return ErrRecvUnexpectedSeq
-		}
-
-		t.RecvSeq++
 
 		if t.RecvPayload != nil {
 			return t.RecvPayload(payload)

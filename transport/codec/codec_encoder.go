@@ -12,7 +12,7 @@ type IEncoder interface {
 	io.Reader
 	io.WriterTo
 	// Stuff 填充消息
-	Stuff(flags transport.Flags, msg transport.Msg) error
+	Stuff(flags transport.Flags, seq uint32, msg transport.Msg) error
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
 	// GetMACModule 获取MAC模块
@@ -47,13 +47,18 @@ func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
 }
 
 // Stuff 填充消息
-func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
+func (e *Encoder) Stuff(flags transport.Flags, seq uint32, msg transport.Msg) error {
 	if msg == nil {
 		return errors.New("msg is nil")
 	}
 
 	head := transport.MsgHead{}
-	head.Flags = (flags << transport.Flag_Customize) >> transport.Flag_Customize
+	head.Flags = flags.Setd(transport.Flag_Encrypted, false).
+		Setd(transport.Flag_MAC, false).
+		Setd(transport.Flag_Compressed, false)
+	if head.Flags.Is(transport.Flag_Sequenced) {
+		head.Seq = seq
+	}
 	head.MsgId = msg.MsgId()
 
 	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可

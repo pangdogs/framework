@@ -44,6 +44,8 @@ func TestProtocol(t *testing.T) {
 					Decoder: &codec.Decoder{
 						MsgCreator: codec.DefaultMsgCreator(),
 					},
+					SendSeq: rand.Uint32(),
+					RecvSeq: rand.Uint32(),
 				}
 
 				handshake := &HandshakeProtocol{
@@ -51,20 +53,17 @@ func TestProtocol(t *testing.T) {
 				}
 
 				err = handshake.ServerHello(func(e Event[*transport.MsgHello]) (Event[*transport.MsgHello], error) {
-					fmt.Println("recv client hello")
+					fmt.Println("server: recv hello")
 					return Event[*transport.MsgHello]{Flags: transport.Flags(transport.Flag_HelloDone), Msg: &transport.MsgHello{}}, nil
 				})
 				if err != nil {
 					panic(err)
 				}
 
-				sendSeq := rand.Uint32()
-				recvSeq := rand.Uint32()
-
 				err = handshake.ServerFinished(Event[*transport.MsgFinished]{
 					Msg: &transport.MsgFinished{
-						SendSeq: sendSeq,
-						RecvSeq: recvSeq,
+						SendSeq: transceiver.SendSeq - 1,
+						RecvSeq: transceiver.RecvSeq + 1,
 					},
 				})
 				if err != nil {
@@ -81,7 +80,7 @@ func TestProtocol(t *testing.T) {
 				trans := &TransProtocol{
 					Transceiver: transceiver,
 					RecvPayload: func(e Event[*transport.MsgPayload]) error {
-						fmt.Println(e.Msg.Seq, string(e.Msg.Data))
+						fmt.Println("server: recv", e.Seq, string(e.Msg.Data))
 						return nil
 					},
 				}
@@ -96,8 +95,23 @@ func TestProtocol(t *testing.T) {
 					},
 				}
 
+				go func() {
+					for {
+						err := trans.SendPayload(Event[*transport.MsgPayload]{
+							Msg: &transport.MsgPayload{
+								Data: []byte(fmt.Sprintf("hello world, %d", rand.Uint64())),
+							},
+						})
+						if err != nil {
+							panic(err)
+						}
+
+						time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
+					}
+				}()
+
 				dispather.Run(context.Background(), func(err error) bool {
-					fmt.Println(err)
+					fmt.Println("server:", err)
 					return true
 				})
 			}()
@@ -135,44 +149,67 @@ func TestProtocol(t *testing.T) {
 		}
 
 		err = handshake.ClientHello(Event[*transport.MsgHello]{Msg: &transport.MsgHello{}}, func(e Event[*transport.MsgHello]) error {
-			fmt.Println("recv server hello")
+			fmt.Println("client: recv hello")
 			return nil
 		})
 		if err != nil {
 			panic(err)
 		}
 
-		var sendSeq, recvSeq uint32
-
 		err = handshake.ClientFinished(func(e Event[*transport.MsgFinished]) error {
-			sendSeq = e.Msg.SendSeq
-			recvSeq = e.Msg.RecvSeq
-			fmt.Println("recv server finished", sendSeq, recvSeq)
+			transceiver.RecvSeq = e.Msg.SendSeq
+			transceiver.SendSeq = e.Msg.RecvSeq
+			fmt.Println("client: recv finished", e.Msg.SendSeq, e.Msg.RecvSeq)
 			return nil
 		})
 		if err != nil {
 			panic(err)
+		}
+
+		ctrl := &CtrlProtocol{
+			Transceiver:   transceiver,
+			RecvRst:       nil,
+			RecvSyncTime:  nil,
+			RecvHeartbeat: nil,
 		}
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
+			RecvPayload: func(e Event[*transport.MsgPayload]) error {
+				fmt.Println("client: recv", e.Seq, string(e.Msg.Data))
+				return nil
+			},
 		}
 
-		for {
-			sendSeq++
+		dispather := Dispatcher{
+			Transceiver: transceiver,
+			Handlers: map[transport.MsgId]Handler{
+				transport.MsgId_Rst:       ctrl,
+				transport.MsgId_Heartbeat: ctrl,
+				transport.MsgId_SyncTime:  ctrl,
+				transport.MsgId_Payload:   trans,
+			},
+		}
 
-			err := trans.SendPayload(Event[*transport.MsgPayload]{
-				Msg: &transport.MsgPayload{
-					Seq:  sendSeq,
-					Data: []byte("hello world"),
-				},
-			})
-			if err != nil {
-				panic(err)
+		go func() {
+			for {
+				err := trans.SendPayload(Event[*transport.MsgPayload]{
+					Msg: &transport.MsgPayload{
+						Data: []byte(fmt.Sprintf("hello world, %d", rand.Uint64())),
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
 			}
+		}()
 
-			time.Sleep(5 * time.Second)
-		}
+		dispather.Run(context.Background(), func(err error) bool {
+			fmt.Println("client:", err)
+			return true
+		})
 	}()
 
 	wg.Wait()
