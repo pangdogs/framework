@@ -56,8 +56,8 @@ func TestCodec(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
 		random, _ := rand.Prime(rand.Reader, 1024)
-		
-		err = encoder.Stuff(0, &transport.MsgHello{
+
+		err = encoder.Stuff(0, 0, &transport.MsgHello{
 			Version:   transport.Version(i),
 			SessionId: sessionId.String(),
 			Random:    random.Bytes(),

@@ -65,29 +65,19 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 		return errors.New("fun is nil")
 	}
 
-	if d.buffer.Len() < transport.MsgHeadSize {
+	mpl := transport.MsgPacketLen{}
+
+	// 读取消息包长度
+	_, err := mpl.Write(d.buffer.Bytes())
+	if err != nil {
 		return ErrEmptyBuffer
 	}
 
-	mp := transport.MsgPacket{}
-
-	// 读取消息头
-	_, err := mp.Head.Write(d.buffer.Bytes())
-	if err != nil {
-		return err
-	}
-
-	if d.buffer.Len() < int(mp.Head.Len) {
+	if d.buffer.Len() < int(mpl.Len) {
 		return ErrEmptyBuffer
 	}
 
-	// 创建消息体
-	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
-	if err != nil {
-		return errors.Join(ErrMsgNotRegistered, err)
-	}
-
-	buf := BytesPool.Get(int(mp.Head.Len))
+	buf := BytesPool.Get(int(mpl.Len))
 	d.gcList = append(d.gcList, buf)
 
 	// 读取消息包
@@ -96,7 +86,21 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 		return err
 	}
 
-	msgBuf := buf[transport.MsgHeadSize:]
+	mp := transport.MsgPacket{}
+
+	// 读取消息头
+	_, err = mp.Head.Write(buf)
+	if err != nil {
+		return err
+	}
+
+	// 创建消息体
+	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
+	if err != nil {
+		return errors.Join(ErrMsgNotRegistered, err)
+	}
+
+	msgBuf := buf[mp.Head.Size():]
 
 	// 检查加密标记
 	if mp.Head.Flags.Is(transport.Flag_Encrypted) {
@@ -115,7 +119,7 @@ func (d *Decoder) Fetch(fun func(mp transport.MsgPacket)) error {
 				return errors.New("setting MACModule is nil, msg can't be verify MAC")
 			}
 			// 检测MAC
-			msgBuf, err = d.MACModule.VerifyMAC(buf[:transport.MsgHeadSize], msgBuf)
+			msgBuf, err = d.MACModule.VerifyMAC(buf[:mp.Head.Size()], msgBuf)
 			if err != nil {
 				return err
 			}
@@ -166,22 +170,19 @@ func (d *Decoder) MultiFetch(fun func(mp transport.MsgPacket) bool) error {
 // Discard 丢弃消息包
 func (d *Decoder) Discard(n int) error {
 	for i := 0; i < n; i++ {
-		if d.buffer.Len() < transport.MsgHeadSize {
-			return ErrEmptyBuffer
-		}
+		mpl := transport.MsgPacketLen{}
 
-		mp := transport.MsgPacket{}
-
-		_, err := mp.Head.Read(d.buffer.Bytes())
+		// 读取消息包长度
+		_, err := mpl.Write(d.buffer.Bytes())
 		if err != nil {
-			return err
-		}
-
-		if d.buffer.Len() < int(mp.Head.Len) {
 			return ErrEmptyBuffer
 		}
 
-		d.buffer.Next(int(mp.Head.Len))
+		if d.buffer.Len() < int(mpl.Len) {
+			return ErrEmptyBuffer
+		}
+
+		d.buffer.Next(int(mpl.Len))
 	}
 	return nil
 }
