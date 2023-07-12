@@ -10,7 +10,7 @@ const (
 	Code_SessionNotFound                  // Session找不到
 	Code_EncryptFailed                    // 加密失败
 	Code_AuthFailed                       // 鉴权失败
-	Code_ContinueFailed                   // 恢复Session失败
+	Code_ContinueFailed                   // 重连失败
 	Code_Reject                           // 拒绝连接
 	Code_Shutdown                         // 服务关闭
 	Code_LoginFromAnother                 // 其他地点登录

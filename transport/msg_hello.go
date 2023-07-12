@@ -9,7 +9,7 @@ const (
 	Flag_HelloDone  Flag = 1 << (iota + Flag_Customize) // Hello完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
 	Flag_Encryption                                     // 开启加密（协议优先考虑性能，要求安全性请直接使用TLS加密链路），在服务端返回的Hello消息中携带，表示链路需要加密，需要执行秘钥交换流程
 	Flag_Auth                                           // 开启鉴权（基于token鉴权），在服务端返回的Hello消息中携带，表示链路需要认证，需要执行鉴权流程
-	Flag_Continue                                       // 使用断线重连简化流程
+	Flag_Continue                                       // 断线重连
 )
 
 // CipherSuite 密码学套件
