@@ -14,6 +14,7 @@ type (
 	ChangeCipherSpecAccept    = func(Event[*transport.MsgChangeCipherSpec]) (Event[*transport.MsgChangeCipherSpec], error)
 	ChangeCipherSpecFin       = func(Event[*transport.MsgChangeCipherSpec]) error
 	AuthAccept                = func(Event[*transport.MsgAuth]) error
+	ContinueAccept            = func(Event[*transport.MsgContinue]) error
 	FinishedAccept            = func(Event[*transport.MsgFinished]) error
 )
 
@@ -288,6 +289,59 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 	}
 
 	err = authAccept(UnpackEvent[*transport.MsgAuth](recv))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ClientContinue 客户端发起重连
+func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) error {
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
+	}
+	trans := h.Transceiver
+
+	err := trans.Send(PackEvent(cont), false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ServerContinue 服务端处理重连
+func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err error) {
+	if continueAccept == nil {
+		return errors.New("continueAccept is nil")
+	}
+
+	if h.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
+	}
+	trans := h.Transceiver
+
+	defer func() {
+		if err != nil {
+			trans.SendRst(err)
+		}
+		trans.Decoder.GC()
+	}()
+
+	recv, err := trans.Recv()
+	if err != nil {
+		return err
+	}
+
+	switch recv.Msg.MsgId() {
+	case transport.MsgId_Continue:
+		break
+	default:
+		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+	}
+
+	err = continueAccept(UnpackEvent[*transport.MsgContinue](recv))
 	if err != nil {
 		return err
 	}

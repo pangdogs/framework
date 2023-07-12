@@ -62,8 +62,8 @@ func TestProtocol(t *testing.T) {
 
 				err = handshake.ServerFinished(Event[*transport.MsgFinished]{
 					Msg: &transport.MsgFinished{
-						SendSeq: transceiver.SendSeq - 1,
-						RecvSeq: transceiver.RecvSeq + 1,
+						SendSeq: transceiver.RecvSeq + 1,
+						RecvSeq: transceiver.SendSeq - 1,
 					},
 				})
 				if err != nil {
@@ -157,8 +157,8 @@ func TestProtocol(t *testing.T) {
 		}
 
 		err = handshake.ClientFinished(func(e Event[*transport.MsgFinished]) error {
-			transceiver.RecvSeq = e.Msg.SendSeq
-			transceiver.SendSeq = e.Msg.RecvSeq
+			transceiver.SendSeq = e.Msg.SendSeq
+			transceiver.RecvSeq = e.Msg.RecvSeq
 			fmt.Println("client: recv finished", e.Msg.SendSeq, e.Msg.RecvSeq)
 			return nil
 		})

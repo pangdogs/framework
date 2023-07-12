@@ -11,6 +11,7 @@ const (
 	MsgId_ECDHESecretKeyExchange              // ECDHE秘钥交换 Handshake S<->C 不加密
 	MsgId_ChangeCipherSpec                    // 变更密码规范 Handshake S<->C 不加密
 	MsgId_Auth                                // 鉴权 Handshake C->S 加密
+	MsgId_Continue                            // 重连 Handshake C->S 加密
 	MsgId_Finished                            // 握手结束 Handshake S<->C 加密
 	MsgId_Rst                                 // 重置链路 Ctrl S->C 加密
 	MsgId_Heartbeat                           // 心跳 Ctrl C<->S or S<->C 加密
