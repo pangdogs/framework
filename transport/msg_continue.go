@@ -4,8 +4,8 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // MsgContinue 重连
 type MsgContinue struct {
-	Seq     uint32 //
-	RecvSeq uint32 //
+	Seq uint32 // 消息序号
+	Ack uint32 // 应答序号
 }
 
 func (m *MsgContinue) Read(p []byte) (int, error) {
@@ -13,7 +13,7 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.Seq); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint32(m.RecvSeq); err != nil {
+	if err := bs.WriteUint32(m.Ack); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -21,16 +21,16 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 
 func (m *MsgContinue) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	sendSeq, err := bs.ReadUint32()
+	seq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	recvSeq, err := bs.ReadUint32()
+	ack, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	m.Seq = sendSeq
-	m.RecvSeq = recvSeq
+	m.Seq = seq
+	m.Ack = ack
 	return bs.BytesRead(), nil
 }
 
