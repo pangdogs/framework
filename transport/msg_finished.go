@@ -11,16 +11,16 @@ const (
 
 // MsgFinished 握手结束，表示认可对端，可以开始传输数据
 type MsgFinished struct {
-	SendSeq uint32 // 发送消息序号
-	RecvSeq uint32 // 接收消息序号
+	Seq uint32 // 消息序号
+	Ack uint32 // 应答序号
 }
 
 func (m *MsgFinished) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint32(m.SendSeq); err != nil {
+	if err := bs.WriteUint32(m.Seq); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint32(m.RecvSeq); err != nil {
+	if err := bs.WriteUint32(m.Ack); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -28,16 +28,16 @@ func (m *MsgFinished) Read(p []byte) (int, error) {
 
 func (m *MsgFinished) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	sendSeq, err := bs.ReadUint32()
+	seq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	recvSeq, err := bs.ReadUint32()
+	ack, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	m.SendSeq = sendSeq
-	m.RecvSeq = recvSeq
+	m.Seq = seq
+	m.Ack = ack
 	return bs.BytesRead(), nil
 }
 
