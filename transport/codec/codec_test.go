@@ -57,7 +57,7 @@ func TestCodec(t *testing.T) {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
 		random, _ := rand.Prime(rand.Reader, 1024)
 
-		err = encoder.Stuff(0, 0, &transport.MsgHello{
+		err = encoder.Stuff(transport.Flags_None(), &transport.MsgHello{
 			Version:   transport.Version(i),
 			SessionId: sessionId.String(),
 			Random:    random.Bytes(),
@@ -101,9 +101,15 @@ func TestCodec(t *testing.T) {
 		}
 	}
 
-	for decoder.Fetch(func(mp transport.MsgPacket) {
+	for {
+		mp, err := decoder.Fetch()
+		if err != nil {
+			if errors.Is(err, ErrEmptyBuffer) {
+				return
+			}
+			panic(err)
+		}
 		v, _ := json.Marshal(mp)
 		fmt.Printf("%s\n", v)
-	}) == nil {
 	}
 }

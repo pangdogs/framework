@@ -15,9 +15,9 @@ var (
 // IMACModule MAC模块接口
 type IMACModule interface {
 	// PatchMAC 补充MAC
-	PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error)
+	PatchMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error)
 	// VerifyMAC 验证MAC
-	VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error)
+	VerifyMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error)
 	// SizeofMAC MAC大小
 	SizeofMAC(msgLen int) int
 	// GC GC
@@ -32,13 +32,14 @@ type MACModule struct {
 }
 
 // PatchMAC 补充MAC
-func (m *MACModule) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MACModule) PatchMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLen{}.Size():])
+	bs := [2]byte{msgId, byte(flags)}
+	m.Hash.Write(bs[:])
 	m.Hash.Write(msgBuf)
 	m.Hash.Write(m.PrivateKey)
 
@@ -65,7 +66,7 @@ func (m *MACModule) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 }
 
 // VerifyMAC 验证MAC
-func (m *MACModule) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MACModule) VerifyMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
@@ -78,7 +79,8 @@ func (m *MACModule) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLen{}.Size():])
+	bs := [2]byte{msgId, byte(flags)}
+	m.Hash.Write(bs[:])
 	m.Hash.Write(msgMAC.Data)
 	m.Hash.Write(m.PrivateKey)
 
