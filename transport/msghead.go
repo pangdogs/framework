@@ -51,7 +51,8 @@ type MsgHead struct {
 	Len   uint32 // 消息包长度
 	MsgId MsgId  // 消息Id
 	Flags Flags  // 标志位
-	Seq   uint32 // 消息序号（可选）
+	Seq   uint32 // 消息序号（可选，有时序时有效）
+	Ack   uint32 // 应答序号（可选，有时序时有效）
 }
 
 func (m *MsgHead) Read(p []byte) (int, error) {
@@ -69,6 +70,9 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 		if err := bs.WriteUint32(m.Seq); err != nil {
 			return 0, err
 		}
+		if err := bs.WriteUint32(m.Ack); err != nil {
+			return 0, err
+		}
 	}
 	return bs.BytesWritten(), nil
 }
@@ -79,7 +83,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	msgid, err := bs.ReadUint8()
+	msgId, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
 	}
@@ -87,24 +91,29 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	var seq uint32
+	var seq, ack uint32
 	if Flags(flags).Is(Flag_Sequenced) {
 		seq, err = bs.ReadUint32()
 		if err != nil {
 			return 0, err
 		}
+		ack, err = bs.ReadUint32()
+		if err != nil {
+			return 0, err
+		}
 	}
 	m.Len = l
-	m.MsgId = msgid
+	m.MsgId = msgId
 	m.Flags = Flags(flags)
 	m.Seq = seq
+	m.Ack = ack
 	return bs.BytesRead(), nil
 }
 
 func (m *MsgHead) Size() int {
 	size := binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 	if m.Flags.Is(Flag_Sequenced) {
-		size += binaryutil.SizeofUint32()
+		size += binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 	}
 	return size
 }

@@ -15,13 +15,14 @@ type MAC64Module struct {
 }
 
 // PatchMAC 补充MAC
-func (m *MAC64Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC64Module) PatchMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLen{}.Size():])
+	bs := [2]byte{msgId, byte(flags)}
+	m.Hash.Write(bs[:])
 	m.Hash.Write(msgBuf)
 	m.Hash.Write(m.PrivateKey)
 
@@ -48,7 +49,7 @@ func (m *MAC64Module) PatchMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
 }
 
 // VerifyMAC 验证MAC
-func (m *MAC64Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC64Module) VerifyMAC(msgId transport.MsgId, flags transport.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, errors.New("setting Hash is nil")
 	}
@@ -61,7 +62,8 @@ func (m *MAC64Module) VerifyMAC(headBuf, msgBuf []byte) (dst []byte, err error) 
 	}
 
 	m.Hash.Reset()
-	m.Hash.Write(headBuf[transport.MsgPacketLen{}.Size():])
+	bs := [2]byte{msgId, byte(flags)}
+	m.Hash.Write(bs[:])
 	m.Hash.Write(msgMAC.Data)
 	m.Hash.Write(m.PrivateKey)
 

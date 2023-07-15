@@ -36,7 +36,7 @@ func (c *CtrlProtocol) SendSyncTime() error {
 	}
 	return c.Transceiver.Send(PackEvent(Event[*transport.MsgSyncTime]{
 		Msg: &transport.MsgSyncTime{UnixMilli: time.Now().UnixMilli()}},
-	), false)
+	))
 }
 
 // SendHeartbeat 发送Heartbeat消息事件
@@ -46,7 +46,7 @@ func (c *CtrlProtocol) SendHeartbeat() error {
 	}
 	return c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
 		Flags: transport.Flags(transport.Flag_Ping),
-	}), false)
+	}))
 }
 
 // Bind 绑定事件分发器
@@ -111,7 +111,7 @@ func (c *CtrlProtocol) Recv(e Event[transport.Msg]) error {
 			}
 			err := c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
 				Flags: transport.Flags(transport.Flag_Pong),
-			}), false)
+			}))
 			if err != nil {
 				return err
 			}

@@ -21,6 +21,7 @@ func TestProtocol(t *testing.T) {
 
 	var wg sync.WaitGroup
 
+	// 服务端
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -44,8 +45,11 @@ func TestProtocol(t *testing.T) {
 					Decoder: &codec.Decoder{
 						MsgCreator: codec.DefaultMsgCreator(),
 					},
-					SendSeq: rand.Uint32(),
-					RecvSeq: rand.Uint32(),
+					SequencedBuff: SequencedBuff{
+						SendSeq: rand.Uint32(),
+						RecvSeq: rand.Uint32(),
+						Cap:     1024,
+					},
 				}
 
 				handshake := &HandshakeProtocol{
@@ -53,7 +57,7 @@ func TestProtocol(t *testing.T) {
 				}
 
 				err = handshake.ServerHello(func(e Event[*transport.MsgHello]) (Event[*transport.MsgHello], error) {
-					fmt.Println("server: recv hello")
+					fmt.Println(time.Now().Format(time.RFC3339), "server => recv hello")
 					return Event[*transport.MsgHello]{Flags: transport.Flags(transport.Flag_HelloDone), Msg: &transport.MsgHello{}}, nil
 				})
 				if err != nil {
@@ -62,8 +66,8 @@ func TestProtocol(t *testing.T) {
 
 				err = handshake.ServerFinished(Event[*transport.MsgFinished]{
 					Msg: &transport.MsgFinished{
-						SendSeq: transceiver.RecvSeq + 1,
-						RecvSeq: transceiver.SendSeq - 1,
+						Seq: transceiver.SequencedBuff.SendSeq,
+						Ack: transceiver.SequencedBuff.RecvSeq,
 					},
 				})
 				if err != nil {
@@ -71,16 +75,13 @@ func TestProtocol(t *testing.T) {
 				}
 
 				ctrl := &CtrlProtocol{
-					Transceiver:   transceiver,
-					RecvRst:       nil,
-					RecvSyncTime:  nil,
-					RecvHeartbeat: nil,
+					Transceiver: transceiver,
 				}
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
 					RecvPayload: func(e Event[*transport.MsgPayload]) error {
-						fmt.Println("server: recv", e.Seq, string(e.Msg.Data))
+						fmt.Printf("%s server => recv seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
 					},
 				}
@@ -97,27 +98,33 @@ func TestProtocol(t *testing.T) {
 
 				go func() {
 					for {
+						ds := fmt.Sprintf("hello world, %d", rand.Uint64())
+
 						err := trans.SendPayload(Event[*transport.MsgPayload]{
+							Flags: transport.Flags(transport.Flag_Sequenced),
 							Msg: &transport.MsgPayload{
-								Data: []byte(fmt.Sprintf("hello world, %d", rand.Uint64())),
+								Data: []byte(ds),
 							},
 						})
 						if err != nil {
 							panic(err)
 						}
 
+						fmt.Println(time.Now().Format(time.RFC3339), "server => send", ds)
+
 						time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
 					}
 				}()
 
 				dispather.Run(context.Background(), func(err error) bool {
-					fmt.Println("server:", err)
+					fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
 					return true
 				})
 			}()
 		}
 	}()
 
+	// 客户端
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -128,20 +135,15 @@ func TestProtocol(t *testing.T) {
 		}
 		defer conn.Close()
 
-		encoder := &codec.Encoder{
-			Encryption:     false,
-			PatchMAC:       false,
-			CompressedSize: -1,
-		}
-
-		decoder := &codec.Decoder{
-			MsgCreator: codec.DefaultMsgCreator(),
-		}
-
 		transceiver := &Transceiver{
 			Conn:    conn,
-			Encoder: encoder,
-			Decoder: decoder,
+			Encoder: &codec.Encoder{},
+			Decoder: &codec.Decoder{
+				MsgCreator: codec.DefaultMsgCreator(),
+			},
+			SequencedBuff: SequencedBuff{
+				Cap: 1024,
+			},
 		}
 
 		handshake := &HandshakeProtocol{
@@ -149,7 +151,7 @@ func TestProtocol(t *testing.T) {
 		}
 
 		err = handshake.ClientHello(Event[*transport.MsgHello]{Msg: &transport.MsgHello{}}, func(e Event[*transport.MsgHello]) error {
-			fmt.Println("client: recv hello")
+			fmt.Println(time.Now().Format(time.RFC3339), "client => recv hello")
 			return nil
 		})
 		if err != nil {
@@ -157,9 +159,9 @@ func TestProtocol(t *testing.T) {
 		}
 
 		err = handshake.ClientFinished(func(e Event[*transport.MsgFinished]) error {
-			transceiver.SendSeq = e.Msg.SendSeq
-			transceiver.RecvSeq = e.Msg.RecvSeq
-			fmt.Println("client: recv finished", e.Msg.SendSeq, e.Msg.RecvSeq)
+			transceiver.SequencedBuff.SendSeq = e.Msg.Ack
+			transceiver.SequencedBuff.RecvSeq = e.Msg.Seq
+			fmt.Println(time.Now().Format(time.RFC3339), "client => recv finished", e.Msg.Seq, e.Msg.Ack)
 			return nil
 		})
 		if err != nil {
@@ -167,16 +169,13 @@ func TestProtocol(t *testing.T) {
 		}
 
 		ctrl := &CtrlProtocol{
-			Transceiver:   transceiver,
-			RecvRst:       nil,
-			RecvSyncTime:  nil,
-			RecvHeartbeat: nil,
+			Transceiver: transceiver,
 		}
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
 			RecvPayload: func(e Event[*transport.MsgPayload]) error {
-				fmt.Println("client: recv", e.Seq, string(e.Msg.Data))
+				fmt.Printf("%s client => recv seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
 			},
 		}
@@ -193,7 +192,10 @@ func TestProtocol(t *testing.T) {
 
 		go func() {
 			for {
+				ds := fmt.Sprintf("hello world, %d", rand.Uint64())
+
 				err := trans.SendPayload(Event[*transport.MsgPayload]{
+					Flags: transport.Flags(transport.Flag_Sequenced),
 					Msg: &transport.MsgPayload{
 						Data: []byte(fmt.Sprintf("hello world, %d", rand.Uint64())),
 					},
@@ -202,12 +204,14 @@ func TestProtocol(t *testing.T) {
 					panic(err)
 				}
 
+				fmt.Println(time.Now().Format(time.RFC3339), "client => send", ds)
+
 				time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
 			}
 		}()
 
 		dispather.Run(context.Background(), func(err error) bool {
-			fmt.Println("client:", err)
+			fmt.Println(time.Now().Format(time.RFC3339), "client => err ", err)
 			return true
 		})
 	}()

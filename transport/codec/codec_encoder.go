@@ -11,8 +11,12 @@ import (
 type IEncoder interface {
 	io.Reader
 	io.WriterTo
+	// Reset 重置缓存
+	Reset()
 	// Stuff 填充消息
-	Stuff(flags transport.Flags, seq uint32, msg transport.Msg) error
+	Stuff(flags transport.Flags, msg transport.Msg) error
+	// StuffTo 填充消息
+	StuffTo(writer io.Writer, flags transport.Flags, msg transport.Msg) error
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
 	// GetMACModule 获取MAC模块
@@ -38,28 +42,42 @@ type Encoder struct {
 	buffer            bytes.Buffer       // buffer
 }
 
+// Read implements io.Reader
 func (e *Encoder) Read(p []byte) (int, error) {
 	return e.buffer.Read(p)
 }
 
+// WriteTo implements io.WriterTo
 func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
 	return e.buffer.WriteTo(w)
 }
 
+// Reset 重置缓存
+func (e *Encoder) Reset() {
+	e.buffer.Reset()
+}
+
 // Stuff 填充消息
-func (e *Encoder) Stuff(flags transport.Flags, seq uint32, msg transport.Msg) error {
+func (e *Encoder) Stuff(flags transport.Flags, msg transport.Msg) error {
+	return e.StuffTo(&e.buffer, flags, msg)
+}
+
+// StuffTo 填充消息
+func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport.Msg) error {
+	if writer == nil {
+		return errors.New("writer is nil")
+	}
+
 	if msg == nil {
 		return errors.New("msg is nil")
 	}
 
 	head := transport.MsgHead{}
+	head.MsgId = msg.MsgId()
+
 	head.Flags = flags.Setd(transport.Flag_Encrypted, false).
 		Setd(transport.Flag_MAC, false).
 		Setd(transport.Flag_Compressed, false)
-	if head.Flags.Is(transport.Flag_Sequenced) {
-		head.Seq = seq
-	}
-	head.MsgId = msg.MsgId()
 
 	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可
 	msgAddition := 0
@@ -123,7 +141,7 @@ func (e *Encoder) Stuff(flags transport.Flags, seq uint32, msg transport.Msg) er
 				return err
 			}
 
-			buf, err := e.MACModule.PatchMAC(mpBuf[:head.Size()], mpBuf[head.Size():end])
+			buf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf[head.Size():end])
 			if err != nil {
 				return err
 			}
@@ -149,8 +167,7 @@ func (e *Encoder) Stuff(flags transport.Flags, seq uint32, msg transport.Msg) er
 		return err
 	}
 
-	// 写入缓冲
-	_, err = e.buffer.Write(mpBuf[:end])
+	_, err = writer.Write(mpBuf[:end])
 	return err
 }
 

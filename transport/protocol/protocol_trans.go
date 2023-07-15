@@ -21,7 +21,7 @@ func (t *TransProtocol) SendPayload(e Event[*transport.MsgPayload]) error {
 	if t.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return t.Transceiver.Send(PackEvent(e), true)
+	return t.Transceiver.Send(PackEvent(e))
 }
 
 // Bind 绑定事件分发器
