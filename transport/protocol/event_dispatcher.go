@@ -44,10 +44,10 @@ func (d *EventDispatcher) Remove(handler EventHandler) error {
 	for i := range d.EventHandlers {
 		if d.EventHandlers[i] == handler {
 			d.EventHandlers = append(d.EventHandlers[:i], d.EventHandlers[i+1:]...)
-			break
+			return nil
 		}
 	}
-	return nil
+	return errors.New("handler not found")
 }
 
 // Run 运行
