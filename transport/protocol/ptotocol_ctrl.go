@@ -38,8 +38,8 @@ func (c *CtrlProtocol) SendSyncTime() error {
 	))
 }
 
-// SendHeartbeat 发送Heartbeat消息事件
-func (c *CtrlProtocol) SendHeartbeat() error {
+// SendPing 发送ping
+func (c *CtrlProtocol) SendPing() error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
