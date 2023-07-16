@@ -11,6 +11,7 @@ require (
 	github.com/nats-io/nats.go v1.25.0
 	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/redis/go-redis/v9 v9.0.3
+	github.com/segmentio/ksuid v1.0.4
 	go.etcd.io/etcd/api/v3 v3.5.6
 	go.etcd.io/etcd/client/v3 v3.5.6
 	go.uber.org/zap v1.24.0
@@ -33,7 +34,6 @@ require (
 	github.com/nats-io/nats-server/v2 v2.9.17 // indirect
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.6 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

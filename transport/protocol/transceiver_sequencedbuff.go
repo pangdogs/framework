@@ -5,7 +5,6 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
 	"sync"
-	"sync/atomic"
 )
 
 // _SequencedFrame 时序帧
@@ -20,11 +19,11 @@ type _SequencedFrame struct {
 type SequencedBuff struct {
 	SendSeq uint32            // 发送消息序号
 	RecvSeq uint32            // 接收消息序号
-	Cap     int               // 缓存区容量，缓存区满时将会触发清除操作，此时断连有可能不能恢复
+	Cap     int               // 缓存区容量，缓存区满时将会触发清理操作，此时断线重连有可能会失败
 	cached  int               // 已缓存大小
 	sent    int               // 已发送位置
 	frames  []_SequencedFrame // 帧队列
-	mutex   sync.Mutex        // 帧操作锁
+	mutex   sync.Mutex        // 锁
 }
 
 // Write implements io.Writer
@@ -32,6 +31,7 @@ func (s *SequencedBuff) Write(p []byte) (n int, err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	// 缓存区满时，清理缓存
 	if s.cached+len(p) > s.Cap {
 		s.reduce(len(p))
 	}
@@ -45,6 +45,7 @@ func (s *SequencedBuff) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
+	// 有时序消息填充序号
 	if head.Flags.Is(transport.Flag_Sequenced) {
 		head.Seq = s.getSeq()
 		head.Ack = s.getAck()
@@ -58,9 +59,11 @@ func (s *SequencedBuff) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
+	// 写入帧队列
 	s.frames = append(s.frames, _SequencedFrame{Seq: head.Seq, WaitAck: head.Flags.Is(transport.Flag_Sequenced), Data: data})
 	s.cached += len(data)
 
+	// 有时序消息自增序号
 	if head.Flags.Is(transport.Flag_Sequenced) {
 		s.SendSeq++
 	}
@@ -75,6 +78,7 @@ func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
 
 	var wn int64
 
+	// 读取帧队列，向输出流写入消息
 	for i := s.sent; i < len(s.frames); i++ {
 		msg := &s.frames[i]
 
@@ -89,9 +93,11 @@ func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
 			}
 		}
 
+		// 写入完全成功时，更新已发送位置
 		s.sent++
 	}
 
+	// 删除帧队列中已发送的无时序消息
 	for i := s.sent - 1; i >= 0; i-- {
 		msg := &s.frames[i]
 
@@ -121,16 +127,18 @@ func (s *SequencedBuff) Validation(mp transport.MsgPacket) error {
 		return nil
 	}
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// 检测消息包序号
 	d := mp.Head.Seq - s.RecvSeq
 	if d > 0 {
 		return ErrUnexpectedSeq
 	} else if d < 0 {
 		return ErrDiscardSeq
 	}
-	atomic.AddUint32(&s.RecvSeq, 1)
 
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.RecvSeq++
 
 	s.ack(mp.Head.Ack)
 
@@ -142,7 +150,7 @@ func (s *SequencedBuff) getSeq() uint32 {
 }
 
 func (s *SequencedBuff) getAck() uint32 {
-	return atomic.LoadUint32(&s.RecvSeq)
+	return s.RecvSeq
 }
 
 func (s *SequencedBuff) ack(seq uint32) {
