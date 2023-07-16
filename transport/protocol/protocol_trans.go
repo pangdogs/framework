@@ -15,8 +15,8 @@ type TransProtocol struct {
 	HandlePayload HandlePayload // Payload消息事件句柄
 }
 
-// SendData 发送数据
-func (t *TransProtocol) SendData(data []byte, sequenced bool) error {
+// SendPayload 发送数据
+func (t *TransProtocol) SendPayload(data []byte, sequenced bool) error {
 	if t.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}

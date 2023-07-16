@@ -99,7 +99,7 @@ func TestProtocol(t *testing.T) {
 					for {
 						ds := fmt.Sprintf("hello world, %d", rand.Uint64())
 
-						err := trans.SendData([]byte(ds), true)
+						err := trans.SendPayload([]byte(ds), true)
 						if err != nil {
 							panic(err)
 						}
@@ -184,7 +184,7 @@ func TestProtocol(t *testing.T) {
 			for {
 				ds := fmt.Sprintf("hello world, %d", rand.Uint64())
 
-				err := trans.SendData([]byte(fmt.Sprintf("hello world, %d", rand.Uint64())), true)
+				err := trans.SendPayload([]byte(fmt.Sprintf("hello world, %d", rand.Uint64())), true)
 				if err != nil {
 					panic(err)
 				}
