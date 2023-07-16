@@ -52,7 +52,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 	case transport.MsgId_Rst:
 		return EventToRstErr(UnpackEvent[*transport.MsgRst](recv))
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	err = helloFin(UnpackEvent[*transport.MsgHello](recv))
@@ -90,7 +90,7 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 	case transport.MsgId_Hello:
 		break
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	reply, err := helloAccept(UnpackEvent[*transport.MsgHello](recv))
@@ -134,7 +134,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case transport.MsgId_Rst:
 		return EventToRstErr(UnpackEvent[*transport.MsgRst](recv))
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	secretKeyExchangeReply, err := secretKeyExchangeAccept(recv)
@@ -158,7 +158,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case transport.MsgId_Rst:
 		return EventToRstErr(UnpackEvent[*transport.MsgRst](recv))
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	changeCipherSpecReply, err := changeCipherSpecAccept(UnpackEvent[*transport.MsgChangeCipherSpec](recv))
@@ -210,7 +210,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	case transport.MsgId_ECDHESecretKeyExchange:
 		break
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	changeCipherSpecMsg, err := secretKeyExchangeFin(UnpackEvent[*transport.MsgECDHESecretKeyExchange](recv))
@@ -232,7 +232,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	case transport.MsgId_ChangeCipherSpec:
 		break
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	err = changeCipherSpecFin(UnpackEvent[*transport.MsgChangeCipherSpec](recv))
@@ -285,7 +285,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 	case transport.MsgId_Auth:
 		break
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	err = authAccept(UnpackEvent[*transport.MsgAuth](recv))
@@ -338,7 +338,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 	case transport.MsgId_Continue:
 		break
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	err = continueAccept(UnpackEvent[*transport.MsgContinue](recv))
@@ -373,7 +373,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error 
 	case transport.MsgId_Rst:
 		return EventToRstErr(UnpackEvent[*transport.MsgRst](recv))
 	default:
-		return fmt.Errorf("%w: %d", ErrRecvUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %d", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
 	err = finishedAccept(UnpackEvent[*transport.MsgFinished](recv))

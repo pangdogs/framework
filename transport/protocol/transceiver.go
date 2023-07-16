@@ -15,7 +15,7 @@ var (
 	ErrDiscardSeq    = errors.New("discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
 )
 
-// Transceiver 消息事件收发器
+// Transceiver 消息事件收发器，线程安全
 type Transceiver struct {
 	Conn                 net.Conn       // 网络连接
 	Encoder              codec.IEncoder // 消息包编码器

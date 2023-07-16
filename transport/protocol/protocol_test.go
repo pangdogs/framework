@@ -80,32 +80,26 @@ func TestProtocol(t *testing.T) {
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
-					RecvPayload: func(e Event[*transport.MsgPayload]) error {
+					HandlePayload: func(e Event[*transport.MsgPayload]) error {
 						fmt.Printf("%s server => recv seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
 					},
 				}
 
-				dispather := Dispatcher{
+				dispather := EventDispatcher{
 					Transceiver: transceiver,
-					Handlers: map[transport.MsgId]Handler{
-						transport.MsgId_Rst:       ctrl,
-						transport.MsgId_Heartbeat: ctrl,
-						transport.MsgId_SyncTime:  ctrl,
-						transport.MsgId_Payload:   trans,
+					ErrorHandler: func(err error) {
+						fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
 					},
 				}
+				dispather.Bind(ctrl)
+				dispather.Bind(trans)
 
 				go func() {
 					for {
 						ds := fmt.Sprintf("hello world, %d", rand.Uint64())
 
-						err := trans.SendPayload(Event[*transport.MsgPayload]{
-							Flags: transport.Flags(transport.Flag_Sequenced),
-							Msg: &transport.MsgPayload{
-								Data: []byte(ds),
-							},
-						})
+						err := trans.SendData([]byte(ds), true)
 						if err != nil {
 							panic(err)
 						}
@@ -116,10 +110,7 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				dispather.Run(context.Background(), func(err error) bool {
-					fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
-					return true
-				})
+				dispather.Run(context.Background())
 			}()
 		}
 	}()
@@ -174,32 +165,26 @@ func TestProtocol(t *testing.T) {
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
-			RecvPayload: func(e Event[*transport.MsgPayload]) error {
+			HandlePayload: func(e Event[*transport.MsgPayload]) error {
 				fmt.Printf("%s client => recv seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
 			},
 		}
 
-		dispather := Dispatcher{
+		dispather := EventDispatcher{
 			Transceiver: transceiver,
-			Handlers: map[transport.MsgId]Handler{
-				transport.MsgId_Rst:       ctrl,
-				transport.MsgId_Heartbeat: ctrl,
-				transport.MsgId_SyncTime:  ctrl,
-				transport.MsgId_Payload:   trans,
+			ErrorHandler: func(err error) {
+				fmt.Println(time.Now().Format(time.RFC3339), "client => err", err)
 			},
 		}
+		dispather.Bind(ctrl)
+		dispather.Bind(trans)
 
 		go func() {
 			for {
 				ds := fmt.Sprintf("hello world, %d", rand.Uint64())
 
-				err := trans.SendPayload(Event[*transport.MsgPayload]{
-					Flags: transport.Flags(transport.Flag_Sequenced),
-					Msg: &transport.MsgPayload{
-						Data: []byte(fmt.Sprintf("hello world, %d", rand.Uint64())),
-					},
-				})
+				err := trans.SendData([]byte(fmt.Sprintf("hello world, %d", rand.Uint64())), true)
 				if err != nil {
 					panic(err)
 				}
@@ -210,10 +195,7 @@ func TestProtocol(t *testing.T) {
 			}
 		}()
 
-		dispather.Run(context.Background(), func(err error) bool {
-			fmt.Println(time.Now().Format(time.RFC3339), "client => err ", err)
-			return true
-		})
+		dispather.Run(context.Background())
 	}()
 
 	wg.Wait()

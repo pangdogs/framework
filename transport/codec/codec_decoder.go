@@ -3,6 +3,7 @@ package codec
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"kit.golaxy.org/plugins/transport"
 )
@@ -105,7 +106,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
 	// 创建消息体
 	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
 	if err != nil {
-		return transport.MsgPacket{}, errors.Join(ErrMsgNotRegistered, err)
+		return transport.MsgPacket{}, fmt.Errorf("%w, %w", ErrMsgNotRegistered, err)
 	}
 
 	msgBuf := buf[mp.Head.Size():]
