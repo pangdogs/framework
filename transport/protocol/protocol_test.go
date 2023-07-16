@@ -76,6 +76,14 @@ func TestProtocol(t *testing.T) {
 
 				ctrl := &CtrlProtocol{
 					Transceiver: transceiver,
+					HandleHeartbeat: func(e Event[*transport.MsgHeartbeat]) error {
+						text := "ping"
+						if e.Flags.Is(transport.Flag_Pong) {
+							text = "pong"
+						}
+						fmt.Printf("%s server => recv seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, text)
+						return nil
+					},
 				}
 
 				trans := &TransProtocol{
@@ -161,6 +169,14 @@ func TestProtocol(t *testing.T) {
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,
+			HandleHeartbeat: func(e Event[*transport.MsgHeartbeat]) error {
+				text := "ping"
+				if e.Flags.Is(transport.Flag_Pong) {
+					text = "pong"
+				}
+				fmt.Printf("%s client => recv seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339), e.Seq, e.Ack, text)
+				return nil
+			},
 		}
 
 		trans := &TransProtocol{
@@ -192,6 +208,21 @@ func TestProtocol(t *testing.T) {
 				fmt.Println(time.Now().Format(time.RFC3339), "client => send", ds)
 
 				time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
+			}
+		}()
+
+		go func() {
+			for {
+				for {
+					err := ctrl.SendHeartbeat()
+					if err != nil {
+						panic(err)
+					}
+
+					fmt.Println(time.Now().Format(time.RFC3339), "client => ping")
+
+					time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
+				}
 			}
 		}()
 

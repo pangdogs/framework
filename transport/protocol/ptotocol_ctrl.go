@@ -45,6 +45,7 @@ func (c *CtrlProtocol) SendHeartbeat() error {
 	}
 	return c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
 		Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Ping),
+		Msg:   &transport.MsgHeartbeat{},
 	}))
 }
 
@@ -69,7 +70,8 @@ func (c *CtrlProtocol) HandleEvent(e Event[transport.Msg]) error {
 				return errors.New("setting Transceiver is nil")
 			}
 			err := c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
-				Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Ping),
+				Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Pong),
+				Msg:   &transport.MsgHeartbeat{},
 			}))
 			if err != nil {
 				return err
