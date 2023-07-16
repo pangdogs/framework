@@ -27,8 +27,8 @@ type EventDispatcher struct {
 	ErrorHandler  ErrorHandler   // 错误处理句柄
 }
 
-// Bind 绑定句柄
-func (d *EventDispatcher) Bind(handler EventHandler) error {
+// Add 添加句柄
+func (d *EventDispatcher) Add(handler EventHandler) error {
 	if handler == nil {
 		return errors.New("handler is nil")
 	}
@@ -36,8 +36,8 @@ func (d *EventDispatcher) Bind(handler EventHandler) error {
 	return nil
 }
 
-// Unbind 解绑定句柄
-func (d *EventDispatcher) Unbind(handler EventHandler) error {
+// Remove 删除句柄
+func (d *EventDispatcher) Remove(handler EventHandler) error {
 	if handler == nil {
 		return errors.New("handler is nil")
 	}

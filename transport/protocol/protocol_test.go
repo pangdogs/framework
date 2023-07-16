@@ -100,8 +100,8 @@ func TestProtocol(t *testing.T) {
 						fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
 					},
 				}
-				dispather.Bind(ctrl)
-				dispather.Bind(trans)
+				dispather.Add(ctrl)
+				dispather.Add(trans)
 
 				go func() {
 					for {
@@ -193,8 +193,8 @@ func TestProtocol(t *testing.T) {
 				fmt.Println(time.Now().Format(time.RFC3339), "client => err", err)
 			},
 		}
-		dispather.Bind(ctrl)
-		dispather.Bind(trans)
+		dispather.Add(ctrl)
+		dispather.Add(trans)
 
 		go func() {
 			for {
