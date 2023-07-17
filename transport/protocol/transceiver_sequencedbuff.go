@@ -4,7 +4,7 @@ import (
 	"io"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
-	"sync"
+	"sync/atomic"
 )
 
 // _SequencedFrame 时序帧
@@ -19,17 +19,17 @@ type _SequencedFrame struct {
 type SequencedBuff struct {
 	SendSeq uint32            // 发送消息序号
 	RecvSeq uint32            // 接收消息序号
+	AckSeq  uint32            // 当前ack序号
 	Cap     int               // 缓存区容量，缓存区满时将会触发清理操作，此时断线重连有可能会失败
 	cached  int               // 已缓存大小
 	sent    int               // 已发送位置
 	frames  []_SequencedFrame // 帧队列
-	mutex   sync.Mutex        // 锁
 }
 
 // Write implements io.Writer
 func (s *SequencedBuff) Write(p []byte) (n int, err error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// ack消息序号
+	s.ack(s.getRemoteAck())
 
 	// 缓存区满时，清理缓存
 	if s.cached+len(p) > s.Cap {
@@ -73,9 +73,6 @@ func (s *SequencedBuff) Write(p []byte) (n int, err error) {
 
 // WriteTo implements io.WriteTo
 func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	var wn int64
 
 	// 读取帧队列，向输出流写入消息
@@ -127,9 +124,6 @@ func (s *SequencedBuff) Validation(mp transport.MsgPacket) error {
 		return nil
 	}
 
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	// 检测消息包序号
 	d := mp.Head.Seq - s.RecvSeq
 	if d > 0 {
@@ -138,9 +132,11 @@ func (s *SequencedBuff) Validation(mp transport.MsgPacket) error {
 		return ErrDiscardSeq
 	}
 
-	s.RecvSeq++
+	// 自增接收消息序号
+	atomic.AddUint32(&s.RecvSeq, 1)
 
-	s.ack(mp.Head.Ack)
+	// 记录ack序号
+	atomic.StoreUint32(&s.AckSeq, mp.Head.Ack)
 
 	return nil
 }
@@ -150,7 +146,11 @@ func (s *SequencedBuff) getSeq() uint32 {
 }
 
 func (s *SequencedBuff) getAck() uint32 {
-	return s.RecvSeq
+	return atomic.LoadUint32(&s.RecvSeq)
+}
+
+func (s *SequencedBuff) getRemoteAck() uint32 {
+	return atomic.LoadUint32(&s.AckSeq)
 }
 
 func (s *SequencedBuff) ack(seq uint32) {
