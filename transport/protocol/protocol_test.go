@@ -94,14 +94,14 @@ func TestProtocol(t *testing.T) {
 					},
 				}
 
-				dispather := EventDispatcher{
+				dispatcher := EventDispatcher{
 					Transceiver: transceiver,
 					ErrorHandler: func(err error) {
 						fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
 					},
 				}
-				dispather.Add(ctrl)
-				dispather.Add(trans)
+				dispatcher.Add(ctrl)
+				dispatcher.Add(trans)
 
 				go func() {
 					for {
@@ -118,7 +118,7 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				dispather.Run(context.Background())
+				dispatcher.Run(context.Background())
 			}()
 		}
 	}()
@@ -187,14 +187,14 @@ func TestProtocol(t *testing.T) {
 			},
 		}
 
-		dispather := EventDispatcher{
+		dispatcher := EventDispatcher{
 			Transceiver: transceiver,
 			ErrorHandler: func(err error) {
 				fmt.Println(time.Now().Format(time.RFC3339), "client => err", err)
 			},
 		}
-		dispather.Add(ctrl)
-		dispather.Add(trans)
+		dispatcher.Add(ctrl)
+		dispatcher.Add(trans)
 
 		go func() {
 			for {
@@ -226,7 +226,7 @@ func TestProtocol(t *testing.T) {
 			}
 		}()
 
-		dispather.Run(context.Background())
+		dispatcher.Run(context.Background())
 	}()
 
 	wg.Wait()
