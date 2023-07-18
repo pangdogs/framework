@@ -13,7 +13,6 @@ const (
 type MsgFinished struct {
 	SendSeq uint32 // 服务端请求序号
 	RecvSeq uint32 // 服务端响应序号
-	AckSeq  uint32 // 服务端当前ack序号
 }
 
 func (m *MsgFinished) Read(p []byte) (int, error) {
@@ -22,9 +21,6 @@ func (m *MsgFinished) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	if err := bs.WriteUint32(m.RecvSeq); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint32(m.AckSeq); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -40,13 +36,8 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	ackSeq, err := bs.ReadUint32()
-	if err != nil {
-		return 0, err
-	}
 	m.SendSeq = sendSeq
 	m.RecvSeq = recvSeq
-	m.AckSeq = ackSeq
 	return bs.BytesRead(), nil
 }
 

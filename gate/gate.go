@@ -18,9 +18,6 @@ type SessionManager interface {
 	RangeSessions(fun func(session Session) bool)
 	// CountSessions 统计所有会话数量
 	CountSessions() int
-
-	//HandleNewSession()
-	//HandleDestroySession()
 }
 
 // GroupManager 会话组管理器
@@ -29,7 +26,4 @@ type GroupManager interface {
 	RangeGroups(fun func(group Group) bool)
 	// CountGroups 统计所有会话组数量
 	CountGroups() int
-
-	//HandleNewSession()
-	//HandleDestroySession()
 }
