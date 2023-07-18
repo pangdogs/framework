@@ -70,6 +70,33 @@ func (t *Transceiver) SendRst(err error) error {
 	return t.Send(PackEvent(RstErrToEvent(rstErr)))
 }
 
+// Resend 重新发送未完整发送的消息事件
+func (t *Transceiver) Resend() error {
+	if t.Conn == nil {
+		return errors.New("conn is nil")
+	}
+
+	if t.Encoder == nil {
+		return errors.New("encoder is nil")
+	}
+
+	t.sendMutex.Lock()
+	defer t.sendMutex.Unlock()
+
+	if t.Timeout > 0 {
+		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
+			return fmt.Errorf("set conn send timeout failed, %w", err)
+		}
+	}
+
+	// 数据写入链路
+	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
+		return fmt.Errorf("send msg-packet failed, %w", err)
+	}
+
+	return nil
+}
+
 // Recv 接收消息事件
 func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 	if t.Conn == nil {
@@ -109,5 +136,12 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
 			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w", err)
 		}
+	}
+}
+
+// GC GC
+func (t *Transceiver) GC() {
+	if t.Decoder != nil {
+		t.Decoder.GC()
 	}
 }

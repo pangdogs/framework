@@ -56,6 +56,8 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		return
 	}
 
+	defer d.Transceiver.GC()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -91,5 +93,7 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 				d.ErrorHandler(fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId()))
 			}
 		}
+
+		d.Transceiver.GC()
 	}
 }

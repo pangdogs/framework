@@ -19,6 +19,7 @@ func init() {
 	msgCreator.Register(&transport.MsgECDHESecretKeyExchange{})
 	msgCreator.Register(&transport.MsgChangeCipherSpec{})
 	msgCreator.Register(&transport.MsgAuth{})
+	msgCreator.Register(&transport.MsgContinue{})
 	msgCreator.Register(&transport.MsgFinished{})
 	msgCreator.Register(&transport.MsgRst{})
 	msgCreator.Register(&transport.MsgHeartbeat{})

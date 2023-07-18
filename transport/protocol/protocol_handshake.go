@@ -21,6 +21,7 @@ type (
 // HandshakeProtocol 握手协议
 type HandshakeProtocol struct {
 	Transceiver *Transceiver // 消息事件收发器
+	RetryTimes  int          // 网络io超时时的重试次数
 }
 
 // ClientHello 客户端Hello
@@ -34,14 +35,16 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 	}
 	trans := h.Transceiver
 
-	defer trans.Decoder.GC()
+	defer trans.GC()
 
-	err := trans.Send(PackEvent(hello))
+	hello.Flags.Set(transport.Flag_Sequenced, false)
+
+	err := h.retrySend(trans.Send(PackEvent(hello)))
 	if err != nil {
 		return err
 	}
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -78,10 +81,10 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.Decoder.GC()
+		trans.GC()
 	}()
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -98,7 +101,9 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		return err
 	}
 
-	err = trans.Send(PackEvent(reply))
+	reply.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(reply)))
 	if err != nil {
 		return err
 	}
@@ -121,9 +126,9 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	}
 	trans := h.Transceiver
 
-	defer trans.Decoder.GC()
+	defer trans.GC()
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -142,12 +147,14 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	err = trans.Send(PackEvent(secretKeyExchangeReply))
+	secretKeyExchangeReply.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(secretKeyExchangeReply)))
 	if err != nil {
 		return err
 	}
 
-	recv, err = trans.Recv()
+	recv, err = h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -166,7 +173,9 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	err = trans.Send(PackEvent(changeCipherSpecReply))
+	changeCipherSpecReply.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecReply)))
 	if err != nil {
 		return err
 	}
@@ -193,15 +202,17 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.Decoder.GC()
+		trans.GC()
 	}()
 
-	err = trans.Send(PackEvent(secretKeyExchange))
+	secretKeyExchange.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(secretKeyExchange)))
 	if err != nil {
 		return err
 	}
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -218,12 +229,14 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return err
 	}
 
-	err = trans.Send(PackEvent(changeCipherSpecMsg))
+	changeCipherSpecMsg.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecMsg)))
 	if err != nil {
 		return err
 	}
 
-	recv, err = trans.Recv()
+	recv, err = h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -250,7 +263,9 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) error {
 	}
 	trans := h.Transceiver
 
-	err := trans.Send(PackEvent(auth))
+	auth.Flags.Set(transport.Flag_Sequenced, false)
+
+	err := h.retrySend(trans.Send(PackEvent(auth)))
 	if err != nil {
 		return err
 	}
@@ -273,10 +288,10 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.Decoder.GC()
+		trans.GC()
 	}()
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -303,7 +318,9 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) e
 	}
 	trans := h.Transceiver
 
-	err := trans.Send(PackEvent(cont))
+	cont.Flags.Set(transport.Flag_Sequenced, false)
+
+	err := h.retrySend(trans.Send(PackEvent(cont)))
 	if err != nil {
 		return err
 	}
@@ -326,10 +343,10 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.Decoder.GC()
+		trans.GC()
 	}()
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -360,9 +377,9 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error 
 	}
 	trans := h.Transceiver
 
-	defer trans.Decoder.GC()
+	defer trans.GC()
 
-	recv, err := trans.Recv()
+	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
 		return err
 	}
@@ -397,10 +414,26 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished
 		}
 	}()
 
-	err = trans.Send(PackEvent(finished))
+	finished.Flags.Set(transport.Flag_Sequenced, false)
+
+	err = h.retrySend(trans.Send(PackEvent(finished)))
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (h *HandshakeProtocol) retrySend(err error) error {
+	return Retry{
+		Transceiver: h.Transceiver,
+		Times:       h.RetryTimes,
+	}.Send(err)
+}
+
+func (h *HandshakeProtocol) retryRecv(e Event[transport.Msg], err error) (Event[transport.Msg], error) {
+	return Retry{
+		Transceiver: h.Transceiver,
+		Times:       h.RetryTimes,
+	}.Recv(e, err)
 }

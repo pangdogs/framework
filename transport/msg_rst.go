@@ -40,12 +40,12 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	extensions, err := bs.ReadString()
+	msg, err := bs.ReadStringRef()
 	if err != nil {
 		return 0, err
 	}
 	m.Code = Code(code)
-	m.Message = extensions
+	m.Message = msg
 	return bs.BytesRead(), nil
 }
 
