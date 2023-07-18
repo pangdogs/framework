@@ -26,10 +26,12 @@ func newTcpGate(options ...GateOption) gate.Gate {
 }
 
 type _TcpGate struct {
-	options    GateOptions
-	ctx        service.Context
-	listeners  []net.Listener
-	sessionMap sync.Map
+	options      GateOptions
+	ctx          service.Context
+	wg           sync.WaitGroup
+	listeners    []net.Listener
+	sessionMap   sync.Map
+	sessionCount int64
 }
 
 // InitSP 初始化服务插件
@@ -70,9 +72,10 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 					continue
 				}
 
-				logger.Debugf(ctx, "listener %q accept a new connection, client address %s", listener.Addr(), conn.RemoteAddr())
+				logger.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
 
-				go g.newSession(conn)
+				g.wg.Add(1)
+				go g.handleSession(conn)
 			}
 		}(listener)
 	}
@@ -82,6 +85,8 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 func (g *_TcpGate) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 
+	g.wg.Wait()
+
 	for _, listener := range g.listeners {
 		listener.Close()
 	}
@@ -89,15 +94,15 @@ func (g *_TcpGate) ShutSP(ctx service.Context) {
 
 // Broadcast 广播数据
 func (g *_TcpGate) Broadcast(data []byte) error {
-
+	return nil
 }
 
 // Multicast 组播数据
 func (g *_TcpGate) Multicast(groupId string, data []byte) error {
-
+	return nil
 }
 
 // Unicast 单播数据
 func (g *_TcpGate) Unicast(sessionId string, data []byte) error {
-
+	return nil
 }

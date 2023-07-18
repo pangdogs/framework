@@ -26,6 +26,7 @@ type SequencedBuff struct {
 	frames  []_SequencedFrame // 帧队列
 }
 
+// Reset 重置缓存
 func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32) {
 	s.SendSeq = sendSeq
 	s.RecvSeq = recvSeq
@@ -33,6 +34,33 @@ func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32) {
 	s.cached = 0
 	s.sent = 0
 	s.frames = s.frames[:]
+}
+
+// Synchronization 同步对端时序
+func (s *SequencedBuff) Synchronization(remoteRecvSeq uint32) bool {
+	// 序号已对齐
+	if s.SendSeq == remoteRecvSeq {
+		return true
+	}
+
+	// 调整序号
+	for i := s.sent - 1; i >= 0; i-- {
+		frame := &s.frames[i]
+
+		if frame.WaitAck && frame.Seq == remoteRecvSeq {
+			s.sent = i
+
+			for j := s.sent; j < len(s.frames); j++ {
+				s.frames[j].Offset = 0
+			}
+
+			s.SendSeq = frame.Seq
+			s.AckSeq = s.SendSeq - 1
+
+			return true
+		}
+	}
+	return false
 }
 
 // Write implements io.Writer
@@ -86,12 +114,12 @@ func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
 
 	// 读取帧队列，向输出流写入消息
 	for i := s.sent; i < len(s.frames); i++ {
-		msg := &s.frames[i]
+		frame := &s.frames[i]
 
-		if msg.Offset < len(msg.Data) {
-			n, err := w.Write(msg.Data[msg.Offset:])
+		if frame.Offset < len(frame.Data) {
+			n, err := w.Write(frame.Data[frame.Offset:])
 			if n > 0 {
-				msg.Offset += n
+				frame.Offset += n
 				wn += int64(n)
 			}
 			if err != nil {
@@ -105,12 +133,12 @@ func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
 
 	// 删除帧队列中已发送的无时序消息
 	for i := s.sent - 1; i >= 0; i-- {
-		msg := &s.frames[i]
+		frame := &s.frames[i]
 
-		if !msg.WaitAck && msg.Offset >= len(msg.Data) {
+		if !frame.WaitAck && frame.Offset >= len(frame.Data) {
 			s.frames = append(s.frames[:i], s.frames[i+1:]...)
 
-			s.cached -= len(msg.Data)
+			s.cached -= len(frame.Data)
 			if s.cached < 0 {
 				s.cached = 0
 			}
@@ -120,7 +148,7 @@ func (s *SequencedBuff) WriteTo(w io.Writer) (int64, error) {
 				s.sent = 0
 			}
 
-			codec.BytesPool.Put(msg.Data)
+			codec.BytesPool.Put(frame.Data)
 		}
 	}
 
@@ -134,7 +162,7 @@ func (s *SequencedBuff) Validation(mp transport.MsgPacket) error {
 	}
 
 	// 检测消息包序号
-	d := mp.Head.Seq - s.RecvSeq
+	d := int32(mp.Head.Seq - s.RecvSeq)
 	if d > 0 {
 		return ErrUnexpectedSeq
 	} else if d < 0 {
@@ -166,11 +194,11 @@ func (s *SequencedBuff) ack(seq uint32) {
 	cached := s.cached
 
 	for i := range s.frames {
-		msg := &s.frames[i]
+		frame := &s.frames[i]
 
-		cached -= len(msg.Data)
+		cached -= len(frame.Data)
 
-		if msg.Seq == seq {
+		if frame.Seq == seq {
 			for j := 0; j <= i; j++ {
 				codec.BytesPool.Put(s.frames[j].Data)
 			}
@@ -196,11 +224,11 @@ func (s *SequencedBuff) reduce(size int) {
 	cached := s.cached
 
 	for i := 0; i < s.sent; i++ {
-		msg := &s.frames[i]
+		frame := &s.frames[i]
 
-		cached -= len(msg.Data)
+		cached -= len(frame.Data)
 
-		size -= len(msg.Data)
+		size -= len(frame.Data)
 		if size <= 0 {
 			for j := 0; j <= i; j++ {
 				codec.BytesPool.Put(s.frames[j].Data)

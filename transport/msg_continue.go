@@ -6,7 +6,6 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 type MsgContinue struct {
 	SendSeq uint32 // 客户端请求消息序号
 	RecvSeq uint32 // 客户端响应消息序号
-	AckSeq  uint32 // 客户端当前ack序号
 }
 
 func (m *MsgContinue) Read(p []byte) (int, error) {
@@ -15,9 +14,6 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	if err := bs.WriteUint32(m.RecvSeq); err != nil {
-		return 0, err
-	}
-	if err := bs.WriteUint32(m.AckSeq); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -33,13 +29,8 @@ func (m *MsgContinue) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	ackSeq, err := bs.ReadUint32()
-	if err != nil {
-		return 0, err
-	}
 	m.SendSeq = sendSeq
 	m.RecvSeq = recvSeq
-	m.AckSeq = ackSeq
 	return bs.BytesRead(), nil
 }
 
