@@ -26,6 +26,15 @@ type SequencedBuff struct {
 	frames  []_SequencedFrame // 帧队列
 }
 
+func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32) {
+	s.SendSeq = sendSeq
+	s.RecvSeq = recvSeq
+	s.AckSeq = sendSeq - 1
+	s.cached = 0
+	s.sent = 0
+	s.frames = s.frames[:]
+}
+
 // Write implements io.Writer
 func (s *SequencedBuff) Write(p []byte) (n int, err error) {
 	// ack消息序号

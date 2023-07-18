@@ -111,7 +111,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	sessionId, err := bs.ReadString()
+	sessionId, err := bs.ReadStringRef()
 	if err != nil {
 		return 0, err
 	}

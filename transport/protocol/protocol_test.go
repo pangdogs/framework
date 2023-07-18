@@ -46,11 +46,10 @@ func TestProtocol(t *testing.T) {
 						MsgCreator: codec.DefaultMsgCreator(),
 					},
 					SequencedBuff: SequencedBuff{
-						SendSeq: rand.Uint32(),
-						RecvSeq: rand.Uint32(),
-						Cap:     1024,
+						Cap: 1024,
 					},
 				}
+				transceiver.SequencedBuff.Reset(rand.Uint32(), rand.Uint32())
 
 				handshake := &HandshakeProtocol{
 					Transceiver: transceiver,
@@ -66,8 +65,8 @@ func TestProtocol(t *testing.T) {
 
 				err = handshake.ServerFinished(Event[*transport.MsgFinished]{
 					Msg: &transport.MsgFinished{
-						Seq: transceiver.SequencedBuff.SendSeq,
-						Ack: transceiver.SequencedBuff.RecvSeq,
+						SendSeq: transceiver.SequencedBuff.SendSeq,
+						RecvSeq: transceiver.SequencedBuff.RecvSeq,
 					},
 				})
 				if err != nil {
@@ -157,15 +156,19 @@ func TestProtocol(t *testing.T) {
 			panic(err)
 		}
 
+		var sendSeq, recvSeq uint32
+
 		err = handshake.ClientFinished(func(e Event[*transport.MsgFinished]) error {
-			transceiver.SequencedBuff.SendSeq = e.Msg.Ack
-			transceiver.SequencedBuff.RecvSeq = e.Msg.Seq
-			fmt.Println(time.Now().Format(time.RFC3339), "client => recv finished", e.Msg.Seq, e.Msg.Ack)
+			sendSeq = e.Msg.RecvSeq
+			recvSeq = e.Msg.SendSeq
+			fmt.Println(time.Now().Format(time.RFC3339), "client => recv finished", e.Msg.SendSeq, e.Msg.RecvSeq)
 			return nil
 		})
 		if err != nil {
 			panic(err)
 		}
+
+		transceiver.SequencedBuff.Reset(sendSeq, recvSeq)
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,

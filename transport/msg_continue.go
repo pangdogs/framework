@@ -4,16 +4,20 @@ import "kit.golaxy.org/plugins/transport/binaryutil"
 
 // MsgContinue 重连
 type MsgContinue struct {
-	Seq uint32 // 消息序号
-	Ack uint32 // 应答序号
+	SendSeq uint32 // 客户端请求消息序号
+	RecvSeq uint32 // 客户端响应消息序号
+	AckSeq  uint32 // 客户端当前ack序号
 }
 
 func (m *MsgContinue) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteUint32(m.Seq); err != nil {
+	if err := bs.WriteUint32(m.SendSeq); err != nil {
 		return 0, err
 	}
-	if err := bs.WriteUint32(m.Ack); err != nil {
+	if err := bs.WriteUint32(m.RecvSeq); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteUint32(m.AckSeq); err != nil {
 		return 0, err
 	}
 	return bs.BytesWritten(), nil
@@ -21,21 +25,26 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 
 func (m *MsgContinue) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
-	seq, err := bs.ReadUint32()
+	sendSeq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	ack, err := bs.ReadUint32()
+	recvSeq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
 	}
-	m.Seq = seq
-	m.Ack = ack
+	ackSeq, err := bs.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	m.SendSeq = sendSeq
+	m.RecvSeq = recvSeq
+	m.AckSeq = ackSeq
 	return bs.BytesRead(), nil
 }
 
 func (m *MsgContinue) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }
 
 func (MsgContinue) MsgId() MsgId {
