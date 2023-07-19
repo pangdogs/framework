@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+var (
+	ErrIOTimeout = os.ErrDeadlineExceeded // 网络io超时
+)
+
 // Retry 网络io超时时重试
 type Retry struct {
 	Transceiver *Transceiver

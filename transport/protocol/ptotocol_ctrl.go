@@ -15,6 +15,7 @@ type (
 // CtrlProtocol 控制协议
 type CtrlProtocol struct {
 	Transceiver     *Transceiver    // 消息事件收发器
+	RetryTimes      int             // 网络io超时时的重试次数
 	HandleRst       HandleRst       // Rst消息事件句柄
 	HandleSyncTime  HandleSyncTime  // SyncTime消息事件句柄
 	HandleHeartbeat HandleHeartbeat // Heartbeat消息事件句柄
@@ -25,6 +26,7 @@ func (c *CtrlProtocol) SendRst(err error) error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
+	// rst消息不重试
 	return c.Transceiver.SendRst(err)
 }
 
@@ -33,9 +35,9 @@ func (c *CtrlProtocol) SendSyncTime() error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return c.Transceiver.Send(PackEvent(Event[*transport.MsgSyncTime]{
+	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*transport.MsgSyncTime]{
 		Msg: &transport.MsgSyncTime{UnixMilli: time.Now().UnixMilli()}},
-	))
+	)))
 }
 
 // SendPing 发送ping
@@ -43,10 +45,17 @@ func (c *CtrlProtocol) SendPing() error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
+	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
 		Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Ping),
 		Msg:   &transport.MsgHeartbeat{},
-	}))
+	})))
+}
+
+func (c *CtrlProtocol) retrySend(err error) error {
+	return Retry{
+		Transceiver: c.Transceiver,
+		Times:       c.RetryTimes,
+	}.Send(err)
 }
 
 // HandleEvent 消息事件处理句柄
@@ -69,10 +78,10 @@ func (c *CtrlProtocol) HandleEvent(e Event[transport.Msg]) error {
 			if c.Transceiver == nil {
 				return errors.New("setting Transceiver is nil")
 			}
-			err := c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
+			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
 				Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Pong),
 				Msg:   &transport.MsgHeartbeat{},
-			}))
+			})))
 			if err != nil {
 				return err
 			}
