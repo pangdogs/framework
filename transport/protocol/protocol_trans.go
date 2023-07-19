@@ -12,6 +12,7 @@ type (
 // TransProtocol 传输协议
 type TransProtocol struct {
 	Transceiver   *Transceiver  // 消息事件收发器
+	RetryTimes    int           // 网络io超时时的重试次数
 	HandlePayload HandlePayload // Payload消息事件句柄
 }
 
@@ -20,10 +21,17 @@ func (t *TransProtocol) SendData(data []byte, sequenced bool) error {
 	if t.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return t.Transceiver.Send(PackEvent(Event[*transport.MsgPayload]{
+	return t.retrySend(t.Transceiver.Send(PackEvent(Event[*transport.MsgPayload]{
 		Flags: transport.Flags_None().Setd(transport.Flag_Sequenced, sequenced),
 		Msg:   &transport.MsgPayload{Data: data},
-	}))
+	})))
+}
+
+func (t *TransProtocol) retrySend(err error) error {
+	return Retry{
+		Transceiver: t.Transceiver,
+		Times:       t.RetryTimes,
+	}.Send(err)
 }
 
 // HandleEvent 消息事件处理句柄

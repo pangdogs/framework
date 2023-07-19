@@ -18,11 +18,12 @@ type EventHandler interface {
 }
 
 // ErrorHandler 错误处理句柄
-type ErrorHandler = func(err error)
+type ErrorHandler = func(ctx context.Context, err error)
 
 // EventDispatcher 消息事件分发器
 type EventDispatcher struct {
 	Transceiver   *Transceiver   // 消息事件收发器
+	RetryTimes    int            // 网络io超时时的重试次数
 	EventHandlers []EventHandler // 消息处理句柄
 	ErrorHandler  ErrorHandler   // 错误处理句柄
 }
@@ -50,6 +51,13 @@ func (d *EventDispatcher) Remove(handler EventHandler) error {
 	return errors.New("handler not found")
 }
 
+func (d *EventDispatcher) retryRecv(e Event[transport.Msg], err error) (Event[transport.Msg], error) {
+	return Retry{
+		Transceiver: d.Transceiver,
+		Times:       d.RetryTimes,
+	}.Recv(e, err)
+}
+
 // Run 运行
 func (d *EventDispatcher) Run(ctx context.Context) {
 	if d.Transceiver == nil {
@@ -65,10 +73,10 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		default:
 		}
 
-		e, err := d.Transceiver.Recv()
+		e, err := d.retryRecv(d.Transceiver.Recv())
 		if err != nil {
 			if d.ErrorHandler != nil {
-				d.ErrorHandler(err)
+				d.ErrorHandler(ctx, err)
 			}
 			continue
 		}
@@ -81,7 +89,7 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 					continue
 				}
 				if d.ErrorHandler != nil {
-					d.ErrorHandler(err)
+					d.ErrorHandler(ctx, err)
 				}
 			}
 			handled = true
@@ -90,7 +98,7 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 
 		if !handled {
 			if d.ErrorHandler != nil {
-				d.ErrorHandler(fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId()))
+				d.ErrorHandler(ctx, fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId()))
 			}
 		}
 
