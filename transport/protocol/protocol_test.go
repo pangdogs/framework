@@ -95,7 +95,7 @@ func TestProtocol(t *testing.T) {
 
 				dispatcher := EventDispatcher{
 					Transceiver: transceiver,
-					ErrorHandler: func(err error) {
+					ErrorHandler: func(ctx context.Context, err error) {
 						fmt.Println(time.Now().Format(time.RFC3339), "server => err", err)
 					},
 				}
@@ -192,7 +192,7 @@ func TestProtocol(t *testing.T) {
 
 		dispatcher := EventDispatcher{
 			Transceiver: transceiver,
-			ErrorHandler: func(err error) {
+			ErrorHandler: func(ctx context.Context, err error) {
 				fmt.Println(time.Now().Format(time.RFC3339), "client => err", err)
 			},
 		}
