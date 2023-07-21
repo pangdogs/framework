@@ -15,7 +15,7 @@ type _SequencedFrame struct {
 	Data    []byte // 帧数据
 }
 
-// SequencedBuff 时序缓存
+// SequencedBuff 时序缓存，主要用于断线重连时，同步对端时序，补发消息
 type SequencedBuff struct {
 	SendSeq uint32            // 发送消息序号
 	RecvSeq uint32            // 接收消息序号

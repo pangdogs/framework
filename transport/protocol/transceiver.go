@@ -21,7 +21,7 @@ type Transceiver struct {
 	Encoder              codec.IEncoder // 消息包编码器
 	Decoder              codec.IDecoder // 消息包解码器
 	Timeout              time.Duration  // 网络io超时时间
-	SequencedBuff        SequencedBuff  // 时序缓冲
+	SequencedBuff        SequencedBuff  // 时序缓存
 	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
 }
 

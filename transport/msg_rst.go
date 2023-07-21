@@ -7,7 +7,7 @@ type Code int32
 
 const (
 	Code_VersionError     Code = iota + 1 // 版本错误
-	Code_SessionNotFound                  // Session找不到
+	Code_SessionNotFound                  // Session未找到
 	Code_EncryptFailed                    // 加密失败
 	Code_AuthFailed                       // 鉴权失败
 	Code_ContinueFailed                   // 重连失败
