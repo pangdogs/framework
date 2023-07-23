@@ -55,6 +55,7 @@ func (sa *SignatureAlgorithm) Size() int {
 }
 
 // MsgECDHESecretKeyExchange ECDHE秘钥交换消息，利用(g^a mod p)^b mod p == (g^b mod p)^a mod p等式，交换秘钥
+// （注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
 type MsgECDHESecretKeyExchange struct {
 	NamedCurve         NamedCurve         // 曲线类型
 	PublicKey          []byte             // 公钥
