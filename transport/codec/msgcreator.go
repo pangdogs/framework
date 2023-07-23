@@ -6,10 +6,15 @@ import (
 	"reflect"
 )
 
-// IMsgCreator 消息构建器接口
+// IMsgCreator 消息对象构建器接口
 type IMsgCreator interface {
 	// Spawn 构建消息
 	Spawn(msgId transport.MsgId) (transport.Msg, error)
+}
+
+// DefaultMsgCreator 默认消息对象构建器
+func DefaultMsgCreator() IMsgCreator {
+	return &msgCreator
 }
 
 var msgCreator = MsgCreator{}
@@ -27,12 +32,7 @@ func init() {
 	msgCreator.Register(&transport.MsgPayload{})
 }
 
-// DefaultMsgCreator 默认消息构建器
-func DefaultMsgCreator() IMsgCreator {
-	return &msgCreator
-}
-
-// MsgCreator 消息构建器
+// MsgCreator 消息对象构建器
 type MsgCreator struct {
 	msgTypeMap map[transport.MsgId]reflect.Type
 }

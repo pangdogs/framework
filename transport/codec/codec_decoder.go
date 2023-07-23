@@ -23,7 +23,7 @@ type IDecoder interface {
 	Fetch() (transport.MsgPacket, error)
 	// FetchFrom 取出消息包
 	FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error)
-	// GetMsgCreator 获取消息构建器
+	// GetMsgCreator 获取消息对象构建器
 	GetMsgCreator() IMsgCreator
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
@@ -37,7 +37,7 @@ type IDecoder interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator        IMsgCreator        // 消息构建器
+	MsgCreator        IMsgCreator        // 消息对象构建器
 	EncryptionModule  IEncryptionModule  // 加密模块
 	MACModule         IMACModule         // MAC模块
 	CompressionModule ICompressionModule // 压缩模块
@@ -155,7 +155,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
 	return mp, nil
 }
 
-// GetMsgCreator 获取消息构建器
+// GetMsgCreator 获取消息对象构建器
 func (d *Decoder) GetMsgCreator() IMsgCreator {
 	return d.MsgCreator
 }
