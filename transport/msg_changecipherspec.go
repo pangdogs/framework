@@ -7,7 +7,7 @@ const (
 	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize) // 交换秘钥后，在双方变更密码规范消息中携带，表示需要验证加密是否成功
 )
 
-// MsgChangeCipherSpec 变更密码规范
+// MsgChangeCipherSpec 变更密码规范（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
 type MsgChangeCipherSpec struct {
 	EncryptedHello []byte // 加密Hello消息，用于双方验证加密是否成功
 }

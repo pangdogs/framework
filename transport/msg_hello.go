@@ -76,7 +76,7 @@ func (cs *CipherSuite) Size() int {
 		binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
 
-// MsgHello Hello消息
+// MsgHello Hello消息（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
 type MsgHello struct {
 	Version     Version     // 协议版本
 	SessionId   string      // 会话Id，如果客户端上传空值，服务端将会分配新会话，如果非空值，服务端将尝试查找会话，查找失败会重置链路

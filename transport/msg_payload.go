@@ -2,7 +2,7 @@ package transport
 
 import "kit.golaxy.org/plugins/transport/binaryutil"
 
-// MsgPayload 数据传输
+// MsgPayload 数据传输（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
 type MsgPayload struct {
 	Data []byte // 数据
 }
