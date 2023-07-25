@@ -45,11 +45,8 @@ func TestProtocol(t *testing.T) {
 					Decoder: &codec.Decoder{
 						MsgCreator: codec.DefaultMsgCreator(),
 					},
-					SequencedBuff: SequencedBuff{
-						Cap: 1024,
-					},
 				}
-				transceiver.SequencedBuff.Reset(rand.Uint32(), rand.Uint32())
+				transceiver.SequencedBuff.Reset(rand.Uint32(), rand.Uint32(), 1024)
 
 				handshake := &HandshakeProtocol{
 					Transceiver: transceiver,
@@ -198,7 +195,7 @@ func TestProtocol(t *testing.T) {
 			panic(err)
 		}
 
-		transceiver.SequencedBuff.Reset(sendSeq, recvSeq)
+		transceiver.SequencedBuff.Reset(sendSeq, recvSeq, 1024)
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,

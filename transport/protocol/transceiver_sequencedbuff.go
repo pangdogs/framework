@@ -27,7 +27,7 @@ type SequencedBuff struct {
 }
 
 // Reset 重置缓存
-func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32) {
+func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32, cap int) {
 	s.SendSeq = sendSeq
 	s.RecvSeq = recvSeq
 	s.AckSeq = sendSeq - 1
