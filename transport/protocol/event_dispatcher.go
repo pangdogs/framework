@@ -34,7 +34,15 @@ func (d *EventDispatcher) Add(handler EventHandler) error {
 	if handler == nil {
 		return errors.New("handler is nil")
 	}
+
+	for i := range d.EventHandlers {
+		if d.EventHandlers[i] == handler {
+			return nil
+		}
+	}
+
 	d.EventHandlers = append(d.EventHandlers, handler)
+
 	return nil
 }
 
@@ -43,12 +51,14 @@ func (d *EventDispatcher) Remove(handler EventHandler) error {
 	if handler == nil {
 		return errors.New("handler is nil")
 	}
+
 	for i := range d.EventHandlers {
 		if d.EventHandlers[i] == handler {
 			d.EventHandlers = append(d.EventHandlers[:i], d.EventHandlers[i+1:]...)
 			return nil
 		}
 	}
+
 	return errors.New("handler not found")
 }
 
