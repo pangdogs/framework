@@ -3,8 +3,10 @@ package tcp
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
@@ -24,9 +26,8 @@ func (g *_TcpGate) handleSession(conn net.Conn) {
 			err = panicErr
 		}
 		if err != nil {
-			logger.Errorf(g.ctx, "create session failed, listener %q client %q, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
+			logger.Errorf(g.ctx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
 			conn.Close()
-			g.wg.Done()
 		}
 	}()
 
@@ -36,23 +37,20 @@ func (g *_TcpGate) handleSession(conn net.Conn) {
 		return
 	}
 
-	_ = session
-
-	logger.Debugf(g.ctx, "create session success, listener %q client %q", conn.LocalAddr(), conn.RemoteAddr())
+	logger.Infof(g.ctx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
 func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 	// 握手协议
 	handshake := &protocol.HandshakeProtocol{
 		Transceiver: &protocol.Transceiver{
-			Conn:          conn,
-			Encoder:       &codec.Encoder{},
-			Decoder:       &codec.Decoder{MsgCreator: g.options.MsgCreator},
-			Timeout:       g.options.Timeout,
-			SequencedBuff: protocol.SequencedBuff{Cap: g.options.SequencedBuffCap},
+			Conn:    conn,
+			Encoder: &codec.Encoder{},
+			Decoder: &codec.Decoder{MsgCreator: g.options.CodecMsgCreator},
+			Timeout: g.options.IOTimeout,
 		},
 	}
-	handshake.Transceiver.SequencedBuff.Reset(math_rand.Uint32(), math_rand.Uint32())
+	handshake.Transceiver.SequencedBuff.Reset(math_rand.Uint32(), math_rand.Uint32(), g.options.IOSequencedBuffCap)
 
 	var cs transport.CipherSuite
 	var cm transport.Compression
@@ -96,9 +94,12 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				}
 			}
 			session = v.(*_TcpSession)
+
 			continueFlow = true
 		} else {
 			session = newTcpSession(g)
+			session.SetState(gate.SessionState_Handshake)
+
 			continueFlow = false
 		}
 
@@ -107,7 +108,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			cs = cliHello.Msg.CipherSuite
 			cm = cliHello.Msg.Compression
 		} else {
-			cs = g.options.CipherSuite
+			cs = g.options.EncCipherSuite
 			cm = g.options.Compression
 		}
 
@@ -149,7 +150,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			},
 		}
 
-		authFlow = g.options.Auth != nil
+		authFlow = g.options.ClientAuthHandler != nil
 
 		// 标记是否开启加密
 		servHello.Flags.Set(transport.Flag_Encryption, encryptionFlow)
@@ -206,7 +207,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				}
 			}
 
-			err := g.options.Auth(e.Msg.Token, e.Msg.Extensions)
+			err := g.options.ClientAuthHandler(conn, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
 				return &protocol.RstError{
 					Code:    transport.Code_AuthFailed,
@@ -225,7 +226,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 
 	//// 使用token加分布式锁
 	//if token != "" {
-	//	mutex := dsync.NewDMutex(g.ctx, fmt.Sprintf("session-token-%s", token), dsync.WithOption{}.Expiry(handshake.Transceiver.Timeout))
+	//	mutex := dsync.NewDMutex(g.ctx, fmt.Sprintf("session-token-%s", token), dsync.WithOption{}.Expiry(handshake.Transceiver.IOTimeout))
 	//	if err := mutex.Lock(context.Background()); err != nil {
 	//		return nil, err
 	//	}
@@ -251,7 +252,6 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			return nil, err
 		}
 	} else {
-		// 消息序号
 		sendSeq = handshake.Transceiver.SequencedBuff.SendSeq
 		recvSeq = handshake.Transceiver.SequencedBuff.RecvSeq
 
@@ -274,10 +274,29 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 		return nil, err
 	}
 
-	// 存储会话
-	actual, loaded := g.sessionMap.LoadOrStore(session.GetId(), session)
-	if loaded && actual != session {
+	if continueFlow {
+		// 检测会话是否已失效
+		swapped := g.sessionMap.CompareAndSwap(session.GetId(), session, session)
+		if !swapped {
+			err = &protocol.RstError{
+				Code:    transport.Code_ContinueFailed,
+				Message: fmt.Sprintf("session %q has expired", session.GetId()),
+			}
 
+			ctrl := protocol.CtrlProtocol{
+				Transceiver: handshake.Transceiver,
+				RetryTimes:  handshake.RetryTimes,
+			}
+			ctrl.SendRst(err)
+
+			return nil, err
+		}
+	} else {
+		// 存储会话
+		g.sessionMap.Store(session.GetId(), session)
+
+		// 运行会话
+		go session.Run()
 	}
 
 	return session, nil
@@ -309,7 +328,7 @@ func (g *_TcpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs t
 		break
 	case transport.SecretKeyExchange_ECDHE:
 		// 创建曲线
-		curve, err := method.NewNamedCurve(g.options.ECDHENamedCurve)
+		curve, err := method.NewNamedCurve(g.options.EncECDHENamedCurve)
 		if err != nil {
 			return err
 		}
@@ -381,17 +400,17 @@ func (g *_TcpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs t
 			protocol.Event[*transport.MsgECDHESecretKeyExchange]{
 				Flags: transport.Flags_None().Setd(transport.Flag_Signature, len(signature) > 0),
 				Msg: &transport.MsgECDHESecretKeyExchange{
-					NamedCurve:         g.options.ECDHENamedCurve,
+					NamedCurve:         g.options.EncECDHENamedCurve,
 					PublicKey:          servPubBytes,
 					IV:                 ivBytes,
 					Nonce:              nonceBytes,
-					SignatureAlgorithm: g.options.SignatureAlgorithm,
+					SignatureAlgorithm: g.options.EncSignatureAlgorithm,
 					Signature:          signature,
 				},
 			},
 			func(cliECDHESecretKeyExchange protocol.Event[*transport.MsgECDHESecretKeyExchange]) (protocol.Event[*transport.MsgChangeCipherSpec], error) {
 				// 检查客户端曲线类型
-				if cliECDHESecretKeyExchange.Msg.NamedCurve != g.options.ECDHENamedCurve {
+				if cliECDHESecretKeyExchange.Msg.NamedCurve != g.options.EncECDHENamedCurve {
 					return protocol.Event[*transport.MsgChangeCipherSpec]{}, &protocol.RstError{
 						Code:    transport.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve' %d is incorrect", cliECDHESecretKeyExchange.Msg.NamedCurve),
@@ -428,7 +447,7 @@ func (g *_TcpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs t
 				decEncryptionModule.CipherStream = decrypter
 
 				// 验证客户端签名
-				if g.options.VerifyClientSignature {
+				if g.options.EncVerifyClientSignature {
 					if !cliECDHESecretKeyExchange.Flags.Is(transport.Flag_Signature) {
 						return protocol.Event[*transport.MsgChangeCipherSpec]{}, &protocol.RstError{
 							Code:    transport.Code_EncryptFailed,
@@ -575,11 +594,11 @@ func (g *_TcpGate) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
 	bits := nonce.BitLen()
 
 	return func() ([]byte, error) {
-		if g.options.NonceStep == nil || g.options.NonceStep.Sign() == 0 {
+		if g.options.EncNonceStep == nil || g.options.EncNonceStep.Sign() == 0 {
 			return encryptionNonceNonceBuff, nil
 		}
 
-		encryptionNonce.Add(encryptionNonce, g.options.NonceStep)
+		encryptionNonce.Add(encryptionNonce, g.options.EncNonceStep)
 		if encryptionNonce.BitLen() > bits {
 			encryptionNonce.SetInt64(0)
 		}
@@ -659,20 +678,20 @@ func (g *_TcpGate) makeCompressionModule(compression transport.Compression) (cod
 }
 
 func (g *_TcpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) ([]byte, error) {
-	if g.options.SignatureAlgorithm.AsymmetricEncryption == transport.AsymmetricEncryption_None {
+	if g.options.EncSignatureAlgorithm.AsymmetricEncryption == transport.AsymmetricEncryption_None {
 		return nil, nil
 	}
 
 	// 必须设置私钥才能签名
-	if g.options.SignaturePrivateKey == nil {
-		return nil, errors.New("option SignaturePrivateKey is nil, unable to perform the signing operation")
+	if g.options.EncSignaturePrivateKey == nil {
+		return nil, errors.New("option EncSignaturePrivateKey is nil, unable to perform the signing operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		g.options.SignatureAlgorithm.AsymmetricEncryption,
-		g.options.SignatureAlgorithm.PaddingMode,
-		g.options.SignatureAlgorithm.Hash)
+		g.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		g.options.EncSignatureAlgorithm.PaddingMode,
+		g.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +706,7 @@ func (g *_TcpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliR
 	signBuf.Write(servPubBytes)
 
 	// 生成签名
-	signature, err := signer.Sign(g.options.SignaturePrivateKey, signBuf.Bytes())
+	signature, err := signer.Sign(g.options.EncSignaturePrivateKey, signBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -697,15 +716,15 @@ func (g *_TcpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliR
 
 func (g *_TcpGate) verify(signature []byte, cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
-	if g.options.VerifySignaturePublicKey == nil {
-		return errors.New("option VerifySignaturePublicKey is nil, unable to perform the verify signature operation")
+	if g.options.EncVerifySignaturePublicKey == nil {
+		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		g.options.SignatureAlgorithm.AsymmetricEncryption,
-		g.options.SignatureAlgorithm.PaddingMode,
-		g.options.SignatureAlgorithm.Hash)
+		g.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		g.options.EncSignatureAlgorithm.PaddingMode,
+		g.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return err
 	}
@@ -719,5 +738,5 @@ func (g *_TcpGate) verify(signature []byte, cs transport.CipherSuite, cm transpo
 	signBuf.WriteString(sessionId)
 	signBuf.Write(cliPubBytes)
 
-	return signer.Verify(g.options.VerifySignaturePublicKey, signBuf.Bytes(), signature)
+	return signer.Verify(g.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
 }

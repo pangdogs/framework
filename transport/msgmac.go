@@ -8,6 +8,7 @@ type MsgMAC32 struct {
 	MAC  uint32
 }
 
+// Read implements io.Reader
 func (m *MsgMAC32) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -19,6 +20,7 @@ func (m *MsgMAC32) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgMAC32) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	data, err := bs.ReadBytesRef()
@@ -34,6 +36,7 @@ func (m *MsgMAC32) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (m *MsgMAC32) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofUint32()
 }
@@ -44,6 +47,7 @@ type MsgMAC64 struct {
 	MAC  uint64
 }
 
+// Read implements io.Reader
 func (m *MsgMAC64) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -55,6 +59,7 @@ func (m *MsgMAC64) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgMAC64) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	data, err := bs.ReadBytesRef()
@@ -70,6 +75,7 @@ func (m *MsgMAC64) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (m *MsgMAC64) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofUint64()
 }
@@ -80,6 +86,7 @@ type MsgMAC struct {
 	MAC  []byte
 }
 
+// Read implements io.Reader
 func (m *MsgMAC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -91,6 +98,7 @@ func (m *MsgMAC) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgMAC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	data, err := bs.ReadBytesRef()
@@ -106,6 +114,7 @@ func (m *MsgMAC) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (m *MsgMAC) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofBytes(m.MAC)
 }

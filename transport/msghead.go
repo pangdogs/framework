@@ -55,6 +55,7 @@ type MsgHead struct {
 	Ack   uint32 // 应答序号（可选，有时序时有效）
 }
 
+// Read implements io.Reader
 func (m *MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
@@ -77,6 +78,7 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUint32()
@@ -110,6 +112,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (m *MsgHead) Size() int {
 	size := binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 	if m.Flags.Is(Flag_Sequenced) {

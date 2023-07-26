@@ -1,8 +1,11 @@
 package transport
 
-import "kit.golaxy.org/plugins/transport/binaryutil"
+import (
+	"bytes"
+	"kit.golaxy.org/plugins/transport/binaryutil"
+)
 
-// ChangeCipherSpec消息标志位
+// MsgChangeCipherSpec消息标志位
 const (
 	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize) // 交换秘钥后，在双方变更密码规范消息中携带，表示需要验证加密是否成功
 )
@@ -12,6 +15,7 @@ type MsgChangeCipherSpec struct {
 	EncryptedHello []byte // 加密Hello消息，用于双方验证加密是否成功
 }
 
+// Read implements io.Reader
 func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
@@ -20,6 +24,7 @@ func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	encryptedHello, err := bs.ReadBytesRef()
@@ -30,10 +35,19 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 消息大小
 func (m *MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }
 
+// MsgId 消息Id
 func (MsgChangeCipherSpec) MsgId() MsgId {
 	return MsgId_ChangeCipherSpec
+}
+
+// Clone 克隆消息对象
+func (m *MsgChangeCipherSpec) Clone() Msg {
+	return &MsgChangeCipherSpec{
+		EncryptedHello: bytes.Clone(m.EncryptedHello),
+	}
 }

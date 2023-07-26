@@ -28,7 +28,6 @@ func newTcpGate(options ...GateOption) gate.Gate {
 type _TcpGate struct {
 	options      GateOptions
 	ctx          service.Context
-	wg           sync.WaitGroup
 	listeners    []net.Listener
 	sessionMap   sync.Map
 	sessionCount int64
@@ -57,6 +56,8 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 		}
 
 		g.listeners = append(g.listeners, listener)
+
+		logger.Infof(g.ctx, "listener %q started")
 	}
 
 	for _, listener := range g.listeners {
@@ -74,7 +75,6 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 
 				logger.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
 
-				g.wg.Add(1)
 				go g.handleSession(conn)
 			}
 		}(listener)
@@ -84,8 +84,6 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 // ShutSP 关闭服务插件
 func (g *_TcpGate) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
-
-	g.wg.Wait()
 
 	for _, listener := range g.listeners {
 		listener.Close()
