@@ -7,18 +7,18 @@ import (
 )
 
 type (
-	HandleRst       = func(Event[*transport.MsgRst]) error
-	HandleSyncTime  = func(Event[*transport.MsgSyncTime]) error
-	HandleHeartbeat = func(Event[*transport.MsgHeartbeat]) error
+	RstHandler       = func(Event[*transport.MsgRst]) error       // Rst消息事件处理器
+	SyncTimeHandler  = func(Event[*transport.MsgSyncTime]) error  // SyncTime消息事件处理器
+	HeartbeatHandler = func(Event[*transport.MsgHeartbeat]) error // Heartbeat消息事件处理器
 )
 
 // CtrlProtocol 控制协议
 type CtrlProtocol struct {
-	Transceiver     *Transceiver    // 消息事件收发器
-	RetryTimes      int             // 网络io超时时的重试次数
-	HandleRst       HandleRst       // Rst消息事件句柄
-	HandleSyncTime  HandleSyncTime  // SyncTime消息事件句柄
-	HandleHeartbeat HandleHeartbeat // Heartbeat消息事件句柄
+	Transceiver      *Transceiver     // 消息事件收发器
+	RetryTimes       int              // 网络io超时时的重试次数
+	RstHandler       RstHandler       // Rst消息事件处理器
+	SyncTimeHandler  SyncTimeHandler  // SyncTime消息事件处理器
+	HeartbeatHandler HeartbeatHandler // Heartbeat消息事件处理器
 }
 
 // SendRst 发送Rst消息事件
@@ -58,17 +58,17 @@ func (c *CtrlProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理句柄
-func (c *CtrlProtocol) HandleEvent(e Event[transport.Msg]) error {
+// EventHandler 消息事件处理器
+func (c *CtrlProtocol) EventHandler(e Event[transport.Msg]) error {
 	switch e.Msg.MsgId() {
 	case transport.MsgId_Rst:
-		if c.HandleRst != nil {
-			return c.HandleRst(UnpackEvent[*transport.MsgRst](e))
+		if c.RstHandler != nil {
+			return c.RstHandler(UnpackEvent[*transport.MsgRst](e))
 		}
 		return nil
 	case transport.MsgId_SyncTime:
-		if c.HandleSyncTime != nil {
-			return c.HandleSyncTime(UnpackEvent[*transport.MsgSyncTime](e))
+		if c.SyncTimeHandler != nil {
+			return c.SyncTimeHandler(UnpackEvent[*transport.MsgSyncTime](e))
 		}
 		return nil
 	case transport.MsgId_Heartbeat:
@@ -87,8 +87,8 @@ func (c *CtrlProtocol) HandleEvent(e Event[transport.Msg]) error {
 			}
 		}
 
-		if c.HandleHeartbeat != nil {
-			return c.HandleHeartbeat(heartbeat)
+		if c.HeartbeatHandler != nil {
+			return c.HeartbeatHandler(heartbeat)
 		}
 
 		return nil

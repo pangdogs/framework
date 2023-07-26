@@ -72,7 +72,7 @@ func TestProtocol(t *testing.T) {
 
 				ctrl := &CtrlProtocol{
 					Transceiver: transceiver,
-					HandleHeartbeat: func(e Event[*transport.MsgHeartbeat]) error {
+					HeartbeatHandler: func(e Event[*transport.MsgHeartbeat]) error {
 						text := "ping"
 						if e.Flags.Is(transport.Flag_Pong) {
 							text = "pong"
@@ -84,20 +84,19 @@ func TestProtocol(t *testing.T) {
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
-					HandlePayload: func(e Event[*transport.MsgPayload]) error {
+					PayloadHandler: func(e Event[*transport.MsgPayload]) error {
 						fmt.Printf("%s server <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
 					},
 				}
 
 				dispatcher := EventDispatcher{
-					Transceiver: transceiver,
+					Transceiver:   transceiver,
+					EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
 					ErrorHandler: func(ctx context.Context, err error) {
 						fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err", err)
 					},
 				}
-				dispatcher.Add(ctrl)
-				dispatcher.Add(trans)
 
 				go func() {
 					for {
@@ -199,7 +198,7 @@ func TestProtocol(t *testing.T) {
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,
-			HandleHeartbeat: func(e Event[*transport.MsgHeartbeat]) error {
+			HeartbeatHandler: func(e Event[*transport.MsgHeartbeat]) error {
 				text := "ping"
 				if e.Flags.Is(transport.Flag_Pong) {
 					text = "pong"
@@ -207,7 +206,7 @@ func TestProtocol(t *testing.T) {
 				fmt.Printf("%s client <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 				return nil
 			},
-			HandleSyncTime: func(e Event[*transport.MsgSyncTime]) error {
+			SyncTimeHandler: func(e Event[*transport.MsgSyncTime]) error {
 				fmt.Printf("%s client <= sync time %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.UnixMilli)
 				return nil
 			},
@@ -215,20 +214,19 @@ func TestProtocol(t *testing.T) {
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
-			HandlePayload: func(e Event[*transport.MsgPayload]) error {
+			PayloadHandler: func(e Event[*transport.MsgPayload]) error {
 				fmt.Printf("%s client <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
 			},
 		}
 
 		dispatcher := EventDispatcher{
-			Transceiver: transceiver,
+			Transceiver:   transceiver,
+			EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
 			ErrorHandler: func(ctx context.Context, err error) {
 				fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err", err)
 			},
 		}
-		dispatcher.Add(ctrl)
-		dispatcher.Add(trans)
 
 		go func() {
 			for {

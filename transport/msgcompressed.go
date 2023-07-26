@@ -8,6 +8,7 @@ type MsgCompressed struct {
 	OriginalSize int64
 }
 
+// Read implements io.Reader
 func (m *MsgCompressed) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -19,6 +20,7 @@ func (m *MsgCompressed) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgCompressed) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	data, err := bs.ReadBytesRef()
@@ -34,6 +36,7 @@ func (m *MsgCompressed) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (m *MsgCompressed) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofVarint(m.OriginalSize)
 }

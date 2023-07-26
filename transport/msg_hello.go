@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"bytes"
 	"kit.golaxy.org/plugins/transport/binaryutil"
+	"strings"
 )
 
 // Hello消息标志位
@@ -21,6 +23,7 @@ type CipherSuite struct {
 	MACHash             Hash                // MAC摘要函数
 }
 
+// Read implements io.Reader
 func (cs *CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
@@ -41,6 +44,7 @@ func (cs *CipherSuite) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (cs *CipherSuite) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	secretKeyExchange, err := bs.ReadUint8()
@@ -71,6 +75,7 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (cs *CipherSuite) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
 		binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
@@ -85,6 +90,7 @@ type MsgHello struct {
 	Compression Compression // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
 }
 
+// Read implements io.Reader
 func (m *MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
@@ -105,6 +111,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgHello) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	version, err := bs.ReadUint16()
@@ -135,11 +142,24 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 消息大小
 func (m *MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8()
 }
 
+// MsgId 消息Id
 func (MsgHello) MsgId() MsgId {
 	return MsgId_Hello
+}
+
+// Clone 克隆消息对象
+func (m *MsgHello) Clone() Msg {
+	return &MsgHello{
+		Version:     m.Version,
+		SessionId:   strings.Clone(m.SessionId),
+		Random:      bytes.Clone(m.Random),
+		CipherSuite: m.CipherSuite,
+		Compression: m.Compression,
+	}
 }

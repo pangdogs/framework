@@ -8,6 +8,7 @@ type MsgPacket struct {
 	Msg  Msg     // 消息
 }
 
+// Read implements io.Reader
 func (mp *MsgPacket) Read(p []byte) (int, error) {
 	hn, err := mp.Head.Read(p)
 	if err != nil {
@@ -20,6 +21,7 @@ func (mp *MsgPacket) Read(p []byte) (int, error) {
 	return mn + hn, err
 }
 
+// Write implements io.Writer
 func (mp *MsgPacket) Write(p []byte) (int, error) {
 	hn, err := mp.Head.Write(p)
 	if err != nil {
@@ -32,6 +34,7 @@ func (mp *MsgPacket) Write(p []byte) (int, error) {
 	return mn + hn, err
 }
 
+// Size 大小
 func (mp *MsgPacket) Size() int {
 	if mp.Msg == nil {
 		return mp.Head.Size()
@@ -44,6 +47,7 @@ type MsgPacketLen struct {
 	Len uint32 // 消息包长度
 }
 
+// Read implements io.Reader
 func (m *MsgPacketLen) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
@@ -52,6 +56,7 @@ func (m *MsgPacketLen) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgPacketLen) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	l, err := bs.ReadUint32()
@@ -62,6 +67,7 @@ func (m *MsgPacketLen) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (MsgPacketLen) Size() int {
 	return binaryutil.SizeofUint32()
 }

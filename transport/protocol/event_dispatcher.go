@@ -12,14 +12,12 @@ var (
 	ErrUnexpectedMsg        = errors.New("unexpected msg")         // 收到非预期的消息
 )
 
-// EventHandler 消息事件处理器
-type EventHandler interface {
-	// HandleEvent 消息事件处理句柄
-	HandleEvent(Event[transport.Msg]) error
-}
-
-// ErrorHandler 错误处理器
-type ErrorHandler = func(ctx context.Context, err error)
+type (
+	// EventHandler 消息事件处理器
+	EventHandler = func(Event[transport.Msg]) error
+	// ErrorHandler 错误处理器
+	ErrorHandler = func(ctx context.Context, err error)
+)
 
 // EventDispatcher 消息事件分发器
 type EventDispatcher struct {
@@ -27,39 +25,6 @@ type EventDispatcher struct {
 	RetryTimes    int            // 网络io超时时的重试次数
 	EventHandlers []EventHandler // 消息事件处理器
 	ErrorHandler  ErrorHandler   // 错误处理器
-}
-
-// Add 添加消息事件处理器
-func (d *EventDispatcher) Add(handler EventHandler) error {
-	if handler == nil {
-		return errors.New("handler is nil")
-	}
-
-	for i := range d.EventHandlers {
-		if d.EventHandlers[i] == handler {
-			return nil
-		}
-	}
-
-	d.EventHandlers = append(d.EventHandlers, handler)
-
-	return nil
-}
-
-// Remove 删除消息事件处理器
-func (d *EventDispatcher) Remove(handler EventHandler) error {
-	if handler == nil {
-		return errors.New("handler is nil")
-	}
-
-	for i := range d.EventHandlers {
-		if d.EventHandlers[i] == handler {
-			d.EventHandlers = append(d.EventHandlers[:i], d.EventHandlers[i+1:]...)
-			return nil
-		}
-	}
-
-	return errors.New("handler not found")
 }
 
 // Run 运行
@@ -88,7 +53,7 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		handled := false
 
 		for i := range d.EventHandlers {
-			if err = d.EventHandlers[i].HandleEvent(e); err != nil {
+			if err = d.EventHandlers[i](e); err != nil {
 				if errors.Is(err, ErrUnexpectedMsg) {
 					continue
 				}

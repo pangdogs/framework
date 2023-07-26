@@ -1,6 +1,9 @@
 package transport
 
-import "kit.golaxy.org/plugins/transport/binaryutil"
+import (
+	"kit.golaxy.org/plugins/transport/binaryutil"
+	"strings"
+)
 
 // Code 错误码
 type Code int32
@@ -23,6 +26,7 @@ type MsgRst struct {
 	Message string // 错误信息
 }
 
+// Read implements io.Reader
 func (m *MsgRst) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteInt32(int32(m.Code)); err != nil {
@@ -34,6 +38,7 @@ func (m *MsgRst) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgRst) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	code, err := bs.ReadInt32()
@@ -49,10 +54,20 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 消息大小
 func (m *MsgRst) Size() int {
 	return binaryutil.SizeofInt32() + binaryutil.SizeofString(m.Message)
 }
 
+// MsgId 消息Id
 func (MsgRst) MsgId() MsgId {
 	return MsgId_Rst
+}
+
+// Clone 克隆消息对象
+func (m *MsgRst) Clone() Msg {
+	return &MsgRst{
+		Code:    m.Code,
+		Message: strings.Clone(m.Message),
+	}
 }

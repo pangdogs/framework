@@ -13,6 +13,15 @@ type Event[T transport.Msg] struct {
 	Msg   T               // 消息
 }
 
+// Clone 克隆消息事件
+func (e Event[T]) Clone() Event[T] {
+	if e.Msg == nil {
+		return e
+	}
+	e.Msg = e.Msg.Clone().(T)
+	return e
+}
+
 // UnpackEvent 解包消息事件
 func UnpackEvent[T transport.Msg](e Event[transport.Msg]) Event[T] {
 	return Event[T]{

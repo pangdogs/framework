@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bytes"
 	"kit.golaxy.org/plugins/transport/binaryutil"
 )
 
@@ -16,6 +17,7 @@ type SignatureAlgorithm struct {
 	Hash                 Hash                 // 摘要函数
 }
 
+// Read implements io.Reader
 func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint8(uint8(sa.AsymmetricEncryption)); err != nil {
@@ -30,6 +32,7 @@ func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	asymmetricEncryption, err := bs.ReadUint8()
@@ -50,6 +53,7 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 大小
 func (sa *SignatureAlgorithm) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
@@ -65,6 +69,7 @@ type MsgECDHESecretKeyExchange struct {
 	Signature          []byte             // 签名
 }
 
+// Read implements io.Reader
 func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
@@ -88,6 +93,7 @@ func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	namedCurve, err := bs.ReadUint8()
@@ -123,11 +129,25 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 消息大小
 func (m *MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
 		binaryutil.SizeofBytes(m.Nonce) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
 }
 
+// MsgId 消息Id
 func (MsgECDHESecretKeyExchange) MsgId() MsgId {
 	return MsgId_ECDHESecretKeyExchange
+}
+
+// Clone 克隆消息对象
+func (m *MsgECDHESecretKeyExchange) Clone() Msg {
+	return &MsgECDHESecretKeyExchange{
+		NamedCurve:         m.NamedCurve,
+		PublicKey:          bytes.Clone(m.PublicKey),
+		IV:                 bytes.Clone(m.IV),
+		Nonce:              bytes.Clone(m.Nonce),
+		SignatureAlgorithm: m.SignatureAlgorithm,
+		Signature:          bytes.Clone(m.Signature),
+	}
 }

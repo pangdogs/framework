@@ -1,6 +1,8 @@
 package transport
 
-import "kit.golaxy.org/plugins/transport/binaryutil"
+import (
+	"kit.golaxy.org/plugins/transport/binaryutil"
+)
 
 // MsgContinue 重连
 type MsgContinue struct {
@@ -8,6 +10,7 @@ type MsgContinue struct {
 	RecvSeq uint32 // 客户端响应消息序号
 }
 
+// Read implements io.Reader
 func (m *MsgContinue) Read(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
@@ -19,6 +22,7 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), nil
 }
 
+// Write implements io.Writer
 func (m *MsgContinue) Write(p []byte) (int, error) {
 	bs := binaryutil.NewByteStream(p)
 	sendSeq, err := bs.ReadUint32()
@@ -34,10 +38,17 @@ func (m *MsgContinue) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
+// Size 消息大小
 func (m *MsgContinue) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }
 
+// MsgId 消息Id
 func (MsgContinue) MsgId() MsgId {
 	return MsgId_Continue
+}
+
+// Clone 克隆消息对象
+func (m MsgContinue) Clone() Msg {
+	return &m
 }

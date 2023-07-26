@@ -23,6 +23,10 @@ const (
 // Msg 消息接口
 type Msg interface {
 	io.ReadWriter
+	// Size 消息大小
 	Size() int
+	// MsgId 消息Id
 	MsgId() MsgId
+	// Clone 克隆消息对象
+	Clone() Msg
 }

@@ -6,14 +6,14 @@ import (
 )
 
 type (
-	HandlePayload = func(Event[*transport.MsgPayload]) error
+	PayloadHandler = func(Event[*transport.MsgPayload]) error // Payload消息事件处理器
 )
 
 // TransProtocol 传输协议
 type TransProtocol struct {
-	Transceiver   *Transceiver  // 消息事件收发器
-	RetryTimes    int           // 网络io超时时的重试次数
-	HandlePayload HandlePayload // Payload消息事件句柄
+	Transceiver    *Transceiver   // 消息事件收发器
+	RetryTimes     int            // 网络io超时时的重试次数
+	PayloadHandler PayloadHandler // Payload消息事件处理器
 }
 
 // SendData 发送数据
@@ -34,14 +34,14 @@ func (t *TransProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理句柄
-func (t *TransProtocol) HandleEvent(e Event[transport.Msg]) error {
+// EventHandler 消息事件处理器
+func (t *TransProtocol) EventHandler(e Event[transport.Msg]) error {
 	switch e.Msg.MsgId() {
 	case transport.MsgId_Payload:
 		payload := UnpackEvent[*transport.MsgPayload](e)
 
-		if t.HandlePayload != nil {
-			return t.HandlePayload(payload)
+		if t.PayloadHandler != nil {
+			return t.PayloadHandler(payload)
 		}
 
 		return nil
