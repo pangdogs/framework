@@ -13,10 +13,8 @@ var (
 )
 
 type (
-	// EventHandler 消息事件处理器
-	EventHandler = func(Event[transport.Msg]) error
-	// ErrorHandler 错误处理器
-	ErrorHandler = func(ctx context.Context, err error)
+	EventHandler = func(Event[transport.Msg]) error     // 消息事件处理器
+	ErrorHandler = func(ctx context.Context, err error) // 错误处理器
 )
 
 // EventDispatcher 消息事件分发器

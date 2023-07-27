@@ -3,19 +3,20 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/transport"
 )
 
 type (
-	HelloAccept               = func(Event[*transport.MsgHello]) (Event[*transport.MsgHello], error)
-	HelloFin                  = func(Event[*transport.MsgHello]) error
-	SecretKeyExchangeAccept   = func(Event[transport.Msg]) (Event[transport.Msg], error)
-	ECDHESecretKeyExchangeFin = func(Event[*transport.MsgECDHESecretKeyExchange]) (Event[*transport.MsgChangeCipherSpec], error)
-	ChangeCipherSpecAccept    = func(Event[*transport.MsgChangeCipherSpec]) (Event[*transport.MsgChangeCipherSpec], error)
-	ChangeCipherSpecFin       = func(Event[*transport.MsgChangeCipherSpec]) error
-	AuthAccept                = func(Event[*transport.MsgAuth]) error
-	ContinueAccept            = func(Event[*transport.MsgContinue]) error
-	FinishedAccept            = func(Event[*transport.MsgFinished]) error
+	HelloAccept               = func(Event[*transport.MsgHello]) (Event[*transport.MsgHello], error)                             // 服务端确认客户端Hello请求
+	HelloFin                  = func(Event[*transport.MsgHello]) error                                                           // 客户端获取服务端Hello响应
+	SecretKeyExchangeAccept   = func(Event[transport.Msg]) (Event[transport.Msg], error)                                         // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
+	ECDHESecretKeyExchangeFin = func(Event[*transport.MsgECDHESecretKeyExchange]) (Event[*transport.MsgChangeCipherSpec], error) // 服务端获取客户端ECDHESecretKeyExchange响应
+	ChangeCipherSpecAccept    = func(Event[*transport.MsgChangeCipherSpec]) (Event[*transport.MsgChangeCipherSpec], error)       // 客户端确认服务端ChangeCipherSpec请求
+	ChangeCipherSpecFin       = func(Event[*transport.MsgChangeCipherSpec]) error                                                // 服务端获取客户端ChangeCipherSpec响应
+	AuthAccept                = func(Event[*transport.MsgAuth]) error                                                            // 服务端确认客户端Auth请求
+	ContinueAccept            = func(Event[*transport.MsgContinue]) error                                                        // 服务端确认客户端Continue请求
+	FinishedAccept            = func(Event[*transport.MsgFinished]) error                                                        // 客户端确认服务端Finished请求
 )
 
 // HandshakeProtocol 握手协议
@@ -25,7 +26,7 @@ type HandshakeProtocol struct {
 }
 
 // ClientHello 客户端Hello
-func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloFin HelloFin) error {
+func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloFin HelloFin) (err error) {
 	if helloFin == nil {
 		return errors.New("helloFin is nil")
 	}
@@ -35,11 +36,16 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 	}
 	trans := h.Transceiver
 
-	defer trans.GC()
+	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
+		trans.GC()
+	}()
 
 	hello.Flags.Set(transport.Flag_Sequenced, false)
 
-	err := h.retrySend(trans.Send(PackEvent(hello)))
+	err = h.retrySend(trans.Send(PackEvent(hello)))
 	if err != nil {
 		return err
 	}
@@ -78,6 +84,9 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
 		if err != nil {
 			trans.SendRst(err)
 		}
@@ -112,7 +121,7 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 }
 
 // ClientSecretKeyExchange 客户端交换秘钥
-func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExchangeAccept, changeCipherSpecAccept ChangeCipherSpecAccept) error {
+func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExchangeAccept, changeCipherSpecAccept ChangeCipherSpecAccept) (err error) {
 	if secretKeyExchangeAccept == nil {
 		return errors.New("secretKeyExchangeAccept is nil")
 	}
@@ -126,7 +135,12 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	}
 	trans := h.Transceiver
 
-	defer trans.GC()
+	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
+		trans.GC()
+	}()
 
 	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
@@ -199,6 +213,9 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	trans := h.Transceiver
 
 	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
 		if err != nil {
 			trans.SendRst(err)
 		}
@@ -257,15 +274,21 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 }
 
 // ClientAuth 客户端发起鉴权
-func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) error {
+func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 	trans := h.Transceiver
 
+	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
+	}()
+
 	auth.Flags.Set(transport.Flag_Sequenced, false)
 
-	err := h.retrySend(trans.Send(PackEvent(auth)))
+	err = h.retrySend(trans.Send(PackEvent(auth)))
 	if err != nil {
 		return err
 	}
@@ -285,6 +308,9 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
 		if err != nil {
 			trans.SendRst(err)
 		}
@@ -312,15 +338,21 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 }
 
 // ClientContinue 客户端发起重连
-func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) error {
+func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 	trans := h.Transceiver
 
+	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
+	}()
+
 	cont.Flags.Set(transport.Flag_Sequenced, false)
 
-	err := h.retrySend(trans.Send(PackEvent(cont)))
+	err = h.retrySend(trans.Send(PackEvent(cont)))
 	if err != nil {
 		return err
 	}
@@ -340,6 +372,9 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 	trans := h.Transceiver
 
 	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
 		if err != nil {
 			trans.SendRst(err)
 		}
@@ -367,7 +402,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 }
 
 // ClientFinished 客户端握手结束
-func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error {
+func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err error) {
 	if finishedAccept == nil {
 		return errors.New("finishedAccept is nil")
 	}
@@ -377,7 +412,12 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) error 
 	}
 	trans := h.Transceiver
 
-	defer trans.GC()
+	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
+		trans.GC()
+	}()
 
 	recv, err := h.retryRecv(trans.Recv())
 	if err != nil {
@@ -409,6 +449,9 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished
 	trans := h.Transceiver
 
 	defer func() {
+		if panicErr := util.Panic2Err(); panicErr != nil {
+			err = panicErr
+		}
 		if err != nil {
 			trans.SendRst(err)
 		}

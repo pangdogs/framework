@@ -23,17 +23,20 @@ func (e Event[T]) Clone() Event[T] {
 }
 
 // UnpackEvent 解包消息事件
-func UnpackEvent[T transport.Msg](e Event[transport.Msg]) Event[T] {
+func UnpackEvent[T transport.Msg](pe Event[transport.Msg]) Event[T] {
 	return Event[T]{
-		Flags: e.Flags,
-		Seq:   e.Seq,
-		Ack:   e.Ack,
-		Msg:   e.Msg.(T),
+		Flags: pe.Flags,
+		Seq:   pe.Seq,
+		Ack:   pe.Ack,
+		Msg:   pe.Msg.(T),
 	}
 }
 
 // PackEvent 打包消息事件
 func PackEvent[T transport.Msg](e Event[T]) Event[transport.Msg] {
+	if e.Msg == nil {
+		panic("event msg is nil")
+	}
 	return Event[transport.Msg]{
 		Flags: e.Flags,
 		Seq:   e.Seq,
