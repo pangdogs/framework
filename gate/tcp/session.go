@@ -22,7 +22,7 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 
 	// 初始化消息事件分发器
 	session.dispatcher.Transceiver = &session.transceiver
-	session.dispatcher.EventHandlers = []protocol.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler}
+	session.dispatcher.EventHandlers = []protocol.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
 
 	for i := range session.gate.options.SessionRecvEventHandlers {
 		handler := session.gate.options.SessionRecvEventHandlers[i]
@@ -32,7 +32,6 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 		session.dispatcher.EventHandlers = append(session.dispatcher.EventHandlers, func(event protocol.Event[transport.Msg]) error { return handler(session, event) })
 	}
 
-	session.dispatcher.EventHandlers = append(session.dispatcher.EventHandlers, session.EventHandler)
 	session.dispatcher.ErrorHandler = session.ErrorHandler
 
 	// 初始化传输协议

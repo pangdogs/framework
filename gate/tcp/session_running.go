@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gate"
+	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
@@ -53,13 +54,23 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 	if old == state {
 		return
 	}
+	s.state = state
+
+	var session gate.Session
+
+	switch s.state {
+	case gate.SessionState_Handshake:
+		session = &_TcpSessionHandshake{_TcpSession: s}
+	default:
+		session = s
+	}
 
 	if s.gate.options.SessionStateChangedHandler != nil {
-		s.gate.options.SessionStateChangedHandler(s, old, state)
+		internal.CallVoid(func() { s.gate.options.SessionStateChangedHandler(session, old, state) })
 	}
 
 	if s.stateChangedHandler != nil {
-		s.stateChangedHandler(old, state)
+		internal.CallVoid(func() { s.stateChangedHandler(old, state) })
 	}
 }
 
@@ -92,7 +103,9 @@ func (s *_TcpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 	}
 
 	if s.gate.options.SessionRecvHandler != nil {
-		err := s.gate.options.SessionRecvHandler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced))
+		err := internal.Call(func() error {
+			return s.gate.options.SessionRecvHandler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced))
+		})
 		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}

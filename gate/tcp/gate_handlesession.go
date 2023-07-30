@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gate"
+	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
@@ -207,7 +208,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				}
 			}
 
-			err := g.options.ClientAuthHandler(conn, e.Msg.Token, e.Msg.Extensions)
+			err := internal.Call(func() error { return g.options.ClientAuthHandler(conn, e.Msg.Token, e.Msg.Extensions) })
 			if err != nil {
 				return &protocol.RstError{
 					Code:    transport.Code_AuthFailed,
