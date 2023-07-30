@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/net/context"
+	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/transport"
 )
 
@@ -40,10 +41,12 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		default:
 		}
 
+		d.Transceiver.GC()
+
 		e, err := d.retryRecv(d.Transceiver.Recv())
 		if err != nil {
 			if d.ErrorHandler != nil {
-				d.ErrorHandler(ctx, err)
+				internal.CallVoid(func() { d.ErrorHandler(ctx, err) })
 			}
 			continue
 		}
@@ -51,12 +54,12 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		handled := false
 
 		for i := range d.EventHandlers {
-			if err = d.EventHandlers[i](e); err != nil {
+			if err = internal.Call(func() error { return d.EventHandlers[i](e) }); err != nil {
 				if errors.Is(err, ErrUnexpectedMsg) {
 					continue
 				}
 				if d.ErrorHandler != nil {
-					d.ErrorHandler(ctx, err)
+					internal.CallVoid(func() { d.ErrorHandler(ctx, err) })
 				}
 			}
 			handled = true
@@ -65,11 +68,9 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 
 		if !handled {
 			if d.ErrorHandler != nil {
-				d.ErrorHandler(ctx, fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId()))
+				internal.CallVoid(func() { d.ErrorHandler(ctx, fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId())) })
 			}
 		}
-
-		d.Transceiver.GC()
 	}
 }
 

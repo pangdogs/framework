@@ -4,6 +4,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/broker"
+	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/logger"
 	"strings"
 )
@@ -49,7 +50,7 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 		switch mode {
 		case _SubscribeMode_Handler:
 			if eventHandler != nil {
-				if err := eventHandler(e); err != nil {
+				if err := internal.Call(func() error { return eventHandler(e) }); err != nil {
 					logger.Tracef(ns.nb.ctx, "handle msg event failed, %s", err)
 				}
 			}
