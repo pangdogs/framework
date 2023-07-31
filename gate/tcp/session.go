@@ -32,15 +32,12 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 		session.dispatcher.EventHandlers = append(session.dispatcher.EventHandlers, func(event protocol.Event[transport.Msg]) error { return handler(session, event) })
 	}
 
-	session.dispatcher.ErrorHandler = session.ErrorHandler
-
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver
 	session.trans.PayloadHandler = session.PayloadHandler
 
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver
-	session.ctrl.HeartbeatHandler = session.HeartbeatHandler
 
 	return session
 }
@@ -50,8 +47,8 @@ type _TcpSession struct {
 	gate                *_TcpGate
 	cancel              context.CancelFunc
 	id                  string
-	state               gate.SessionState
 	token               string
+	state               gate.SessionState
 	transceiver         protocol.Transceiver
 	dispatcher          protocol.EventDispatcher
 	trans               protocol.TransProtocol
@@ -72,14 +69,14 @@ func (s *_TcpSession) GetId() string {
 	return s.id
 }
 
-// GetState 获取会话状态
-func (s *_TcpSession) GetState() gate.SessionState {
-	return s.state
-}
-
 // GetToken 获取token
 func (s *_TcpSession) GetToken() string {
 	return s.token
+}
+
+// GetState 获取会话状态
+func (s *_TcpSession) GetState() gate.SessionState {
+	return s.state
 }
 
 // GetGroups 获取所属的会话组Id
