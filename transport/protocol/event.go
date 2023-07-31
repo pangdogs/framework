@@ -15,9 +15,6 @@ type Event[T transport.Msg] struct {
 
 // Clone 克隆消息事件
 func (e Event[T]) Clone() Event[T] {
-	if e.Msg == nil {
-		return e
-	}
 	e.Msg = e.Msg.Clone().(T)
 	return e
 }
@@ -34,9 +31,6 @@ func UnpackEvent[T transport.Msg](pe Event[transport.Msg]) Event[T] {
 
 // PackEvent 打包消息事件
 func PackEvent[T transport.Msg](e Event[T]) Event[transport.Msg] {
-	if e.Msg == nil {
-		panic("event msg is nil")
-	}
 	return Event[transport.Msg]{
 		Flags: e.Flags,
 		Seq:   e.Seq,

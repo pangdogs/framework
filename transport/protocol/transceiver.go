@@ -3,9 +3,11 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"io"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
 	"net"
+	"os"
 	"sync"
 	"time"
 )
@@ -13,6 +15,11 @@ import (
 var (
 	ErrUnexpectedSeq = errors.New("unexpected sequence") // 收到非预期的消息序号，表示序号不连续
 	ErrDiscardSeq    = errors.New("discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
+	ErrNetIO         = errors.New("net i/o")             // 网络io类错误
+	ErrTimeout       = os.ErrDeadlineExceeded            // 网络io超时
+	ErrClosed        = os.ErrClosed                      // 网络链路已关闭
+	ErrUnexpectedEOF = io.ErrUnexpectedEOF               // 非预期的io结束
+	ErrEOF           = io.EOF                            // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全
@@ -51,7 +58,7 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 
 	// 数据写入链路
 	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, %w", err)
+		return fmt.Errorf("send msg-packet failed, %w: %w", ErrNetIO, err)
 	}
 
 	return nil
@@ -91,7 +98,7 @@ func (t *Transceiver) Resend() error {
 
 	// 数据写入链路
 	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, %w", err)
+		return fmt.Errorf("send msg-packet failed, %w: %w", ErrNetIO, err)
 	}
 
 	return nil
@@ -134,7 +141,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w", err)
+			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w: %w", ErrNetIO, err)
 		}
 	}
 }

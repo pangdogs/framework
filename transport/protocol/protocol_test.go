@@ -93,9 +93,6 @@ func TestProtocol(t *testing.T) {
 				dispatcher := EventDispatcher{
 					Transceiver:   transceiver,
 					EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
-					ErrorHandler: func(ctx context.Context, err error) {
-						fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err", err)
-					},
 				}
 
 				go func() {
@@ -143,7 +140,9 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				dispatcher.Run(context.Background())
+				dispatcher.Run(context.Background(), func(err error) {
+					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err", err)
+				})
 			}()
 		}
 	}()
@@ -223,9 +222,6 @@ func TestProtocol(t *testing.T) {
 		dispatcher := EventDispatcher{
 			Transceiver:   transceiver,
 			EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
-			ErrorHandler: func(ctx context.Context, err error) {
-				fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err", err)
-			},
 		}
 
 		go func() {
@@ -258,7 +254,9 @@ func TestProtocol(t *testing.T) {
 			}
 		}()
 
-		dispatcher.Run(context.Background())
+		dispatcher.Run(context.Background(), func(err error) {
+			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err", err)
+		})
 	}()
 
 	wg.Wait()

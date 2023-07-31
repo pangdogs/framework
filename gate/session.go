@@ -38,10 +38,10 @@ type Session interface {
 	fmt.Stringer
 	// GetId 获取会话Id
 	GetId() string
-	// GetState 获取会话状态
-	GetState() SessionState
 	// GetToken 获取token
 	GetToken() string
+	// GetState 获取会话状态
+	GetState() SessionState
 	// GetGroups 获取所属的会话组Id
 	GetGroups() []string
 	// GetListenAddr 获取监听地址
