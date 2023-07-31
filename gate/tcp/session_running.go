@@ -39,6 +39,7 @@ func (s *_TcpSession) Run() {
 		if panicErr := util.Panic2Err(); panicErr != nil {
 			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), panicErr)
 		}
+		
 		// 调整会话状态为已过期
 		s.SetState(gate.SessionState_Death)
 
