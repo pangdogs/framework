@@ -17,6 +17,7 @@ import (
 	math_rand "math/rand"
 	"net"
 	"strings"
+	"sync/atomic"
 )
 
 func (g *_TcpGate) handleSession(conn net.Conn) {
@@ -295,6 +296,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 	} else {
 		// 存储会话
 		g.sessionMap.Store(session.GetId(), session)
+		atomic.AddInt64(&g.sessionCount, 1)
 
 		// 运行会话
 		go session.Run()
