@@ -14,8 +14,8 @@ var (
 )
 
 type (
-	EventHandler = func(Event[transport.Msg]) error     // 消息事件处理器
-	ErrorHandler = func(ctx context.Context, err error) // 错误处理器
+	EventHandler = func(Event[transport.Msg]) error // 消息事件处理器
+	ErrorHandler = func(err error)                  // 错误处理器
 )
 
 // EventDispatcher 消息事件分发器
@@ -23,11 +23,36 @@ type EventDispatcher struct {
 	Transceiver   *Transceiver   // 消息事件收发器
 	RetryTimes    int            // 网络io超时时的重试次数
 	EventHandlers []EventHandler // 消息事件处理器
-	ErrorHandler  ErrorHandler   // 错误处理器
+}
+
+// Dispatching 分发事件
+func (d *EventDispatcher) Dispatching() error {
+	if d.Transceiver == nil {
+		return errors.New("setting Transceiver is nil")
+	}
+
+	d.Transceiver.GC()
+
+	e, err := d.retryRecv(d.Transceiver.Recv())
+	if err != nil {
+		return err
+	}
+
+	for i := range d.EventHandlers {
+		if err = internal.Call(func() error { return d.EventHandlers[i](e) }); err != nil {
+			if errors.Is(err, ErrUnexpectedMsg) {
+				continue
+			}
+			return err
+		}
+		return nil
+	}
+
+	return fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId())
 }
 
 // Run 运行
-func (d *EventDispatcher) Run(ctx context.Context) {
+func (d *EventDispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 	if d.Transceiver == nil {
 		return
 	}
@@ -41,34 +66,9 @@ func (d *EventDispatcher) Run(ctx context.Context) {
 		default:
 		}
 
-		d.Transceiver.GC()
-
-		e, err := d.retryRecv(d.Transceiver.Recv())
-		if err != nil {
-			if d.ErrorHandler != nil {
-				internal.CallVoid(func() { d.ErrorHandler(ctx, err) })
-			}
-			continue
-		}
-
-		handled := false
-
-		for i := range d.EventHandlers {
-			if err = internal.Call(func() error { return d.EventHandlers[i](e) }); err != nil {
-				if errors.Is(err, ErrUnexpectedMsg) {
-					continue
-				}
-				if d.ErrorHandler != nil {
-					internal.CallVoid(func() { d.ErrorHandler(ctx, err) })
-				}
-			}
-			handled = true
-			break
-		}
-
-		if !handled {
-			if d.ErrorHandler != nil {
-				internal.CallVoid(func() { d.ErrorHandler(ctx, fmt.Errorf("%w: %d", ErrHandlerNotRegistered, e.Msg.MsgId())) })
+		if err := d.Dispatching(); err != nil {
+			if errorHandler != nil {
+				internal.CallVoid(func() { errorHandler(err) })
 			}
 		}
 	}
