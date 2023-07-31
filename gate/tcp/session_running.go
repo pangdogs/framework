@@ -10,6 +10,7 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
+	"sync/atomic"
 )
 
 // Init 初始化
@@ -40,6 +41,10 @@ func (s *_TcpSession) Run() {
 		}
 		// 调整会话状态为已过期
 		s.SetState(gate.SessionState_Death)
+
+		// 删除会话
+		s.gate.sessionMap.Delete(s.GetId())
+		atomic.AddInt64(&s.gate.sessionCount, -1)
 	}()
 
 	pinged := false
