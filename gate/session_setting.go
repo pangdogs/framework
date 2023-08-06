@@ -11,8 +11,8 @@ type (
 	RecvEventHandler    = func(session Session, event protocol.Event[transport.Msg]) error // 会话接收的自定义事件的处理器
 )
 
-// SessionHandshake 会话握手设置接口
-type SessionHandshake interface {
+// SessionSetting 会话设置接口（在会话状态为握手中时可用）
+type SessionSetting interface {
 	// InitStateChangedHandlers 设置接收会话状态变化的处理器
 	InitStateChangedHandlers(handlers []StateChangedHandler) error
 	// InitRecvDataHandlers 设置接收数据的处理器
