@@ -118,11 +118,14 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 	if old == state {
 		return
 	}
+
+	s.Lock()
 	s.state = state
+	s.Unlock()
 
 	var session gate.Session
 
-	switch s.state {
+	switch state {
 	case gate.SessionState_Handshake:
 		session = &_TcpSessionSetting{_TcpSession: s}
 	default:
