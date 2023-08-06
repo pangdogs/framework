@@ -107,7 +107,7 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 
 	switch s.state {
 	case gate.SessionState_Handshake:
-		session = &_TcpSessionHandshake{_TcpSession: s}
+		session = &_TcpSessionSetting{_TcpSession: s}
 	default:
 		session = s
 	}
