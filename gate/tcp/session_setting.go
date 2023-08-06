@@ -23,7 +23,7 @@ func (s *_TcpSessionSetting) InitRecvDataHandlers(handlers []gate.RecvDataHandle
 
 // InitRecvEventHandlers 设置接收自定义事件的处理器
 func (s *_TcpSessionSetting) InitRecvEventHandlers(handlers []gate.RecvEventHandler) error {
-	s.recvEventhandlers = handlers
+	s.recvEventHandlers = handlers
 	return nil
 }
 

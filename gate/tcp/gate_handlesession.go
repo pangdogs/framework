@@ -99,7 +99,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 
 			continueFlow = true
 		} else {
-			session = newTcpSession(g)
+			session = newTcpSession(g, conn)
 			session.SetState(gate.SessionState_Handshake)
 
 			continueFlow = false
@@ -245,6 +245,10 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
+		// 暂停会话的收发消息io，等握手结束后恢复
+		session.PauseIO()
+		defer session.ContinueIO()
+
 		err = handshake.ServerContinue(func(e protocol.Event[*transport.MsgContinue]) error {
 			// 刷新会话
 			sendSeq, recvSeq, err = session.Renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
@@ -264,7 +268,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 		recvSeq = handshake.Transceiver.SequencedBuff.RecvSeq
 
 		// 初始化会话
-		session.Init(*handshake.Transceiver, token)
+		session.Init(handshake.Transceiver, token)
 	}
 
 	// 通知客户端握手结束

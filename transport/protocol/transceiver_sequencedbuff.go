@@ -31,6 +31,7 @@ func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32, cap int) {
 	s.SendSeq = sendSeq
 	s.RecvSeq = recvSeq
 	s.AckSeq = sendSeq - 1
+	s.Cap = cap
 	s.cached = 0
 	s.sent = 0
 	s.frames = s.frames[:]

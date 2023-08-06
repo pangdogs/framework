@@ -14,23 +14,40 @@ import (
 )
 
 // Init 初始化
-func (s *_TcpSession) Init(transceiver protocol.Transceiver, token string) {
-	s.transceiver = transceiver
+func (s *_TcpSession) Init(transceiver *protocol.Transceiver, token string) {
+	s.Lock()
+	defer s.Unlock()
+
+	s.transceiver.Conn = transceiver.Conn
+	s.transceiver.Encoder = transceiver.Encoder
+	s.transceiver.Decoder = transceiver.Decoder
+	s.transceiver.Timeout = transceiver.Timeout
+	s.transceiver.SequencedBuff.Reset(transceiver.SequencedBuff.SendSeq, transceiver.SequencedBuff.RecvSeq, transceiver.SequencedBuff.Cap)
+
 	s.token = token
 }
 
 // Renew 更新
 func (s *_TcpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
-	// 切换连接
-	s.transceiver.Conn.Close()
-	s.transceiver.Conn = conn
+	s.Lock()
+	defer s.Unlock()
 
-	// 同步对端时序
-	if !s.transceiver.SequencedBuff.Synchronization(remoteRecvSeq) {
-		return 0, 0, errors.New("io sequenced buff synchronization failed")
+	sendSeq, recvSeq, err = s.transceiver.Renew(conn, remoteRecvSeq)
+	if err != nil {
+		return 0, 0, err
 	}
 
 	return s.transceiver.SequencedBuff.SendSeq, s.transceiver.SequencedBuff.RecvSeq, nil
+}
+
+// PauseIO 暂停收发消息
+func (s *_TcpSession) PauseIO() {
+	s.transceiver.Pause()
+}
+
+// ContinueIO 继续收发消息
+func (s *_TcpSession) ContinueIO() {
+	s.transceiver.Continue()
 }
 
 // Run 运行（会话的主线程）
@@ -150,8 +167,8 @@ func (s *_TcpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 		}
 	}
 
-	for i := range s.recvEventhandlers {
-		handler := s.recvEventhandlers[i]
+	for i := range s.recvEventHandlers {
+		handler := s.recvEventHandlers[i]
 		if handler == nil {
 			continue
 		}
