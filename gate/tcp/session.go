@@ -11,6 +11,7 @@ import (
 	"net"
 )
 
+// newTcpSession 创建会话
 func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 	session := &_TcpSession{
 		gate:  tcpGate,
@@ -24,14 +25,6 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 	session.dispatcher.Transceiver = &session.transceiver
 	session.dispatcher.EventHandlers = []protocol.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
 
-	for i := range session.gate.options.SessionRecvEventHandlers {
-		handler := session.gate.options.SessionRecvEventHandlers[i]
-		if handler == nil {
-			continue
-		}
-		session.dispatcher.EventHandlers = append(session.dispatcher.EventHandlers, func(event protocol.Event[transport.Msg]) error { return handler(session, event) })
-	}
-
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver
 	session.trans.PayloadHandler = session.PayloadHandler
@@ -44,19 +37,20 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 
 type _TcpSession struct {
 	context.Context
-	gate                *_TcpGate
-	cancel              context.CancelFunc
-	id                  string
-	token               string
-	state               gate.SessionState
-	transceiver         protocol.Transceiver
-	dispatcher          protocol.EventDispatcher
-	trans               protocol.TransProtocol
-	ctrl                protocol.CtrlProtocol
-	stateChangedHandler gate.StateChangedHandler
-	recvHandler         gate.RecvHandler
-	recvChan            chan gate.Recv
-	recvEventChan       chan gate.RecvEvent
+	cancel               context.CancelFunc
+	gate                 *_TcpGate
+	id                   string
+	token                string
+	state                gate.SessionState
+	transceiver          protocol.Transceiver
+	dispatcher           protocol.EventDispatcher
+	trans                protocol.TransProtocol
+	ctrl                 protocol.CtrlProtocol
+	stateChangedHandlers []gate.StateChangedHandler
+	recvDataHandlers     []gate.RecvDataHandler
+	recvEventhandlers    []gate.RecvEventHandler
+	recvDataChan         chan gate.RecvData
+	recvEventChan        chan gate.RecvEvent
 }
 
 // String implements fmt.Stringer
@@ -94,20 +88,9 @@ func (s *_TcpSession) GetClientAddr() net.Addr {
 	return s.transceiver.Conn.RemoteAddr()
 }
 
-// Send 发送数据
-func (s *_TcpSession) Send(data []byte, sequenced bool) error {
+// SendData 发送数据
+func (s *_TcpSession) SendData(data []byte, sequenced bool) error {
 	return s.trans.SendData(data, sequenced)
-}
-
-// RecvChan 接收数据的chan
-func (s *_TcpSession) RecvChan() <-chan gate.Recv {
-	if s.recvChan == nil {
-		ch := make(chan gate.Recv, 1)
-		ch <- gate.Recv{Error: errors.New("RecvChan is not used")}
-		close(ch)
-		return ch
-	}
-	return s.recvChan
 }
 
 // SendEvent 发送自定义事件
@@ -116,6 +99,17 @@ func (s *_TcpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
 	}.Send(s.transceiver.Send(event))
+}
+
+// RecvDataChan 接收数据的chan
+func (s *_TcpSession) RecvDataChan() <-chan gate.RecvData {
+	if s.recvDataChan == nil {
+		ch := make(chan gate.RecvData, 1)
+		ch <- gate.RecvData{Error: errors.New("RecvChan is not used")}
+		close(ch)
+		return ch
+	}
+	return s.recvDataChan
 }
 
 // RecvEventChan 接收自定义事件的chan

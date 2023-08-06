@@ -152,7 +152,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			},
 		}
 
-		authFlow = g.options.ClientAuthHandler != nil
+		authFlow = len(g.options.ClientAuthHandlers) > 0
 
 		// 标记是否开启加密
 		servHello.Flags.Set(transport.Flag_Encryption, encryptionFlow)
@@ -209,11 +209,17 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				}
 			}
 
-			err := internal.Call(func() error { return g.options.ClientAuthHandler(conn, e.Msg.Token, e.Msg.Extensions) })
-			if err != nil {
-				return &protocol.RstError{
-					Code:    transport.Code_AuthFailed,
-					Message: err.Error(),
+			for i := range g.options.ClientAuthHandlers {
+				handler := g.options.ClientAuthHandlers[i]
+				if handler == nil {
+					continue
+				}
+				err := internal.Call(func() error { return handler(conn, e.Msg.Token, e.Msg.Extensions) })
+				if err != nil {
+					return &protocol.RstError{
+						Code:    transport.Code_AuthFailed,
+						Message: err.Error(),
+					}
 				}
 			}
 

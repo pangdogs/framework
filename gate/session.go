@@ -19,8 +19,8 @@ const (
 	SessionState_Death                         // 已过期
 )
 
-// Recv 接收的数据
-type Recv struct {
+// RecvData 接收的数据
+type RecvData struct {
 	Data      []byte // 数据
 	Sequenced bool   // 是否有时序
 	Error     error  // 错误信息
@@ -48,12 +48,12 @@ type Session interface {
 	GetListenAddr() net.Addr
 	// GetClientAddr 获取客户端地址
 	GetClientAddr() net.Addr
-	// Send 发送数据
-	Send(data []byte, sequenced bool) error
-	// RecvChan 接收数据的chan
-	RecvChan() <-chan Recv
+	// SendData 发送数据
+	SendData(data []byte, sequenced bool) error
 	// SendEvent 发送自定义事件
 	SendEvent(event protocol.Event[transport.Msg]) error
+	// RecvDataChan 接收数据的chan
+	RecvDataChan() <-chan RecvData
 	// RecvEventChan 接收自定义事件的chan
 	RecvEventChan() <-chan RecvEvent
 	// Close 关闭连接

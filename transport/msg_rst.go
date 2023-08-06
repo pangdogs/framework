@@ -9,15 +9,15 @@ import (
 type Code int32
 
 const (
-	Code_VersionError     Code = iota + 1 // 版本错误
-	Code_SessionNotFound                  // Session未找到
-	Code_EncryptFailed                    // 加密失败
-	Code_AuthFailed                       // 鉴权失败
-	Code_ContinueFailed                   // 重连失败
-	Code_Reject                           // 拒绝连接
-	Code_Shutdown                         // 服务关闭
-	Code_LoginFromAnother                 // 其他地点登录
-	Code_Customize                        // 自定义错误码起点
+	Code_VersionError    Code = iota + 1 // 版本错误
+	Code_SessionNotFound                 // Session未找到
+	Code_EncryptFailed                   // 加密失败
+	Code_AuthFailed                      // 鉴权失败
+	Code_ContinueFailed                  // 重连失败
+	Code_Reject                          // 拒绝连接
+	Code_Shutdown                        // 服务关闭
+	Code_SessionDeath                    // 会话过期
+	Code_Customize                       // 自定义错误码起点
 )
 
 // MsgRst 重置链路（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
