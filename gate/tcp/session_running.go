@@ -39,9 +39,12 @@ func (s *_TcpSession) Run() {
 		if panicErr := util.Panic2Err(); panicErr != nil {
 			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), panicErr)
 		}
-		
+
 		// 调整会话状态为已过期
 		s.SetState(gate.SessionState_Death)
+
+		// 关闭链接
+		s.transceiver.Conn.Close()
 
 		// 删除会话
 		s.gate.sessionMap.Delete(s.GetId())
@@ -109,35 +112,63 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 		session = s
 	}
 
-	if s.gate.options.SessionStateChangedHandler != nil {
-		internal.CallVoid(func() { s.gate.options.SessionStateChangedHandler(session, old, state) })
+	for i := range s.gate.options.SessionStateChangedHandlers {
+		handler := s.gate.options.SessionStateChangedHandlers[i]
+		if handler == nil {
+			continue
+		}
+		internal.CallVoid(func() { handler(session, old, state) })
 	}
 
-	if s.stateChangedHandler != nil {
-		internal.CallVoid(func() { s.stateChangedHandler(old, state) })
+	for i := range s.stateChangedHandlers {
+		handler := s.stateChangedHandlers[i]
+		if handler == nil {
+			continue
+		}
+		internal.CallVoid(func() { handler(session, old, state) })
 	}
 }
 
 // EventHandler 接收自定义事件的处理器
 func (s *_TcpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 	if s.recvEventChan != nil {
-		recvEvent := gate.RecvEvent{}
-		recvEvent.Event = event.Clone()
-
 		select {
-		case s.recvEventChan <- recvEvent:
+		case s.recvEventChan <- gate.RecvEvent{Event: event.Clone()}:
 		default:
 			logger.Errorf(s.gate.ctx, "session %q RecvEventChan is full", s.GetId())
 		}
 	}
+
+	for i := range s.gate.options.SessionRecvEventHandlers {
+		handler := s.gate.options.SessionRecvEventHandlers[i]
+		if handler == nil {
+			continue
+		}
+		err := internal.Call(func() error { return handler(s, event) })
+		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+			return err
+		}
+	}
+
+	for i := range s.recvEventhandlers {
+		handler := s.recvEventhandlers[i]
+		if handler == nil {
+			continue
+		}
+		err := internal.Call(func() error { return handler(s, event) })
+		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+			return err
+		}
+	}
+
 	return protocol.ErrUnexpectedMsg
 }
 
 // PayloadHandler Payload消息事件处理器
 func (s *_TcpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]) error {
-	if s.recvChan != nil {
+	if s.recvDataChan != nil {
 		select {
-		case s.recvChan <- gate.Recv{
+		case s.recvDataChan <- gate.RecvData{
 			Data:      bytes.Clone(event.Msg.Data),
 			Sequenced: event.Flags.Is(transport.Flag_Sequenced),
 		}:
@@ -146,18 +177,27 @@ func (s *_TcpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 		}
 	}
 
-	if s.gate.options.SessionRecvHandler != nil {
-		err := internal.Call(func() error {
-			return s.gate.options.SessionRecvHandler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced))
-		})
+	for i := range s.gate.options.SessionRecvDataHandlers {
+		handler := s.gate.options.SessionRecvDataHandlers[i]
+		if handler == nil {
+			continue
+		}
+		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
 		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
 
-	if s.recvHandler == nil {
-		return protocol.ErrUnexpectedMsg
+	for i := range s.recvDataHandlers {
+		handler := s.recvDataHandlers[i]
+		if handler == nil {
+			continue
+		}
+		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
+		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+			return err
+		}
 	}
 
-	return s.recvHandler(event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced))
+	return protocol.ErrUnexpectedMsg
 }

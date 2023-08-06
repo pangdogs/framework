@@ -6,17 +6,16 @@ import (
 	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
-	"kit.golaxy.org/plugins/transport/protocol"
 	"math/big"
 	"net"
 	"time"
 )
 
 type (
-	ClientAuthHandler          = func(conn net.Conn, token string, extensions []byte) error            // 客户端鉴权鉴权处理器
-	SessionStateChangedHandler = func(session gate.Session, old, new gate.SessionState)                // 会话状态变化的处理器
-	SessionRecvHandler         = func(session gate.Session, data []byte, sequenced bool) error         // 会话接收的数据的处理器
-	SessionRecvEventHandler    = func(session gate.Session, event protocol.Event[transport.Msg]) error // 会话接收的自定义事件的处理器
+	ClientAuthHandler          = func(conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
+	SessionStateChangedHandler = gate.StateChangedHandler                                   // 会话状态变化的处理器
+	SessionRecvDataHandler     = gate.RecvDataHandler                                       // 会话接收的数据的处理器
+	SessionRecvEventHandler    = gate.RecvEventHandler                                      // 会话接收的自定义事件的处理器
 )
 
 type WithOption struct{}
@@ -43,9 +42,9 @@ type GateOptions struct {
 	EncVerifySignaturePublicKey crypto.PublicKey             // 加密通信中，验证客户端签名用的公钥
 	Compression                 transport.Compression        // 通信中的压缩函数
 	CompressedSize              int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	ClientAuthHandler           ClientAuthHandler            // 客户端鉴权鉴权处理器
-	SessionStateChangedHandler  SessionStateChangedHandler   // 会话状态变化的处理器（优先级高于会话的处理器）
-	SessionRecvHandler          SessionRecvHandler           // 会话接收的数据的处理器（优先级高于会话的处理器）
+	ClientAuthHandlers          []ClientAuthHandler          // 客户端鉴权鉴权处理器列表
+	SessionStateChangedHandlers []SessionStateChangedHandler // 会话状态变化的处理器列表（优先级高于会话的处理器）
+	SessionRecvDataHandlers     []SessionRecvDataHandler     // 会话接收的数据的处理器列表（优先级高于会话的处理器）
 	SessionRecvEventHandlers    []SessionRecvEventHandler    // 会话接收的自定义事件的处理器列表（优先级高于会话的处理器）
 }
 
@@ -84,9 +83,9 @@ func (WithOption) Default() GateOption {
 		WithOption{}.EncVerifySignaturePublicKey(nil)
 		WithOption{}.Compression(transport.Compression_Brotli)(options)
 		WithOption{}.CompressedSize(1024 * 32)(options)
-		WithOption{}.ClientAuthHandler(nil)(options)
-		WithOption{}.SessionStateChangedHandler(nil)(options)
-		WithOption{}.SessionRecvHandler(nil)(options)
+		WithOption{}.ClientAuthHandlers(nil)(options)
+		WithOption{}.SessionStateChangedHandlers(nil)(options)
+		WithOption{}.SessionRecvDataHandlers(nil)(options)
 		WithOption{}.SessionRecvEventHandlers(nil)(options)
 	}
 }
@@ -225,21 +224,21 @@ func (WithOption) CompressedSize(size int) GateOption {
 	}
 }
 
-func (WithOption) ClientAuthHandler(handler ClientAuthHandler) GateOption {
+func (WithOption) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
 	return func(options *GateOptions) {
-		options.ClientAuthHandler = handler
+		options.ClientAuthHandlers = handlers
 	}
 }
 
-func (WithOption) SessionStateChangedHandler(handler SessionStateChangedHandler) GateOption {
+func (WithOption) SessionStateChangedHandlers(handlers []SessionStateChangedHandler) GateOption {
 	return func(options *GateOptions) {
-		options.SessionStateChangedHandler = handler
+		options.SessionStateChangedHandlers = handlers
 	}
 }
 
-func (WithOption) SessionRecvHandler(handler SessionRecvHandler) GateOption {
+func (WithOption) SessionRecvDataHandlers(handlers []SessionRecvDataHandler) GateOption {
 	return func(options *GateOptions) {
-		options.SessionRecvHandler = handler
+		options.SessionRecvDataHandlers = handlers
 	}
 }
 
