@@ -34,6 +34,9 @@ type Transceiver struct {
 
 // Send 发送消息事件
 func (t *Transceiver) Send(e Event[transport.Msg]) error {
+	t.sendMutex.Lock()
+	defer t.sendMutex.Unlock()
+
 	if t.Conn == nil {
 		return errors.New("conn is nil")
 	}
@@ -41,9 +44,6 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 	if t.Encoder == nil {
 		return errors.New("encoder is nil")
 	}
-
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
 
 	// 编码消息
 	if err := t.Encoder.StuffTo(&t.SequencedBuff, e.Flags, e.Msg); err != nil {
@@ -79,6 +79,9 @@ func (t *Transceiver) SendRst(err error) error {
 
 // Resend 重新发送未完整发送的消息事件
 func (t *Transceiver) Resend() error {
+	t.sendMutex.Lock()
+	defer t.sendMutex.Unlock()
+
 	if t.Conn == nil {
 		return errors.New("conn is nil")
 	}
@@ -86,9 +89,6 @@ func (t *Transceiver) Resend() error {
 	if t.Encoder == nil {
 		return errors.New("encoder is nil")
 	}
-
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
 
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
@@ -106,6 +106,9 @@ func (t *Transceiver) Resend() error {
 
 // Recv 接收消息事件
 func (t *Transceiver) Recv() (Event[transport.Msg], error) {
+	t.recvMutex.Lock()
+	defer t.recvMutex.Unlock()
+
 	if t.Conn == nil {
 		return Event[transport.Msg]{}, errors.New("conn is nil")
 	}
@@ -113,9 +116,6 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 	if t.Decoder == nil {
 		return Event[transport.Msg]{}, errors.New("decoder is nil")
 	}
-
-	t.recvMutex.Lock()
-	defer t.recvMutex.Unlock()
 
 	for {
 		// 解码消息
@@ -144,6 +144,34 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w: %w", ErrNetIO, err)
 		}
 	}
+}
+
+// Renew 更新链路
+func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
+	// 同步对端时序
+	if !t.SequencedBuff.Synchronization(remoteRecvSeq) {
+		return 0, 0, errors.New("transceiver sequenced buff synchronization failed")
+	}
+
+	// 切换连接
+	if t.Conn != nil {
+		t.Conn.Close()
+	}
+	t.Conn = conn
+
+	return t.SequencedBuff.SendSeq, t.SequencedBuff.RecvSeq, nil
+}
+
+// Pause 暂停收发消息
+func (t *Transceiver) Pause() {
+	t.sendMutex.Lock()
+	t.recvMutex.Lock()
+}
+
+// Continue 继续收发消息
+func (t *Transceiver) Continue() {
+	t.recvMutex.Unlock()
+	t.sendMutex.Unlock()
 }
 
 // GC GC

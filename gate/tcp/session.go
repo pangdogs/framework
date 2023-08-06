@@ -9,10 +9,11 @@ import (
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
+	"sync"
 )
 
 // newTcpSession 创建会话
-func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
+func newTcpSession(tcpGate *_TcpGate, conn net.Conn) *_TcpSession {
 	session := &_TcpSession{
 		gate:  tcpGate,
 		id:    ksuid.New().String(),
@@ -20,6 +21,7 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 	}
 
 	session.Context, session.cancel = context.WithCancel(tcpGate.ctx)
+	session.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
 	session.dispatcher.Transceiver = &session.transceiver
@@ -37,6 +39,7 @@ func newTcpSession(tcpGate *_TcpGate) *_TcpSession {
 
 type _TcpSession struct {
 	context.Context
+	sync.Mutex
 	cancel               context.CancelFunc
 	gate                 *_TcpGate
 	id                   string
@@ -48,7 +51,7 @@ type _TcpSession struct {
 	ctrl                 protocol.CtrlProtocol
 	stateChangedHandlers []gate.StateChangedHandler
 	recvDataHandlers     []gate.RecvDataHandler
-	recvEventhandlers    []gate.RecvEventHandler
+	recvEventHandlers    []gate.RecvEventHandler
 	recvDataChan         chan gate.RecvData
 	recvEventChan        chan gate.RecvEvent
 }
@@ -70,6 +73,8 @@ func (s *_TcpSession) GetToken() string {
 
 // GetState 获取会话状态
 func (s *_TcpSession) GetState() gate.SessionState {
+	s.Lock()
+	defer s.Unlock()
 	return s.state
 }
 
@@ -80,11 +85,25 @@ func (s *_TcpSession) GetGroups() []string {
 
 // GetListenAddr 获取监听地址
 func (s *_TcpSession) GetListenAddr() net.Addr {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.transceiver.Conn == nil {
+		return nil
+	}
+
 	return s.transceiver.Conn.LocalAddr()
 }
 
 // GetClientAddr 获取客户端地址
 func (s *_TcpSession) GetClientAddr() net.Addr {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.transceiver.Conn == nil {
+		return nil
+	}
+
 	return s.transceiver.Conn.RemoteAddr()
 }
 
@@ -105,7 +124,7 @@ func (s *_TcpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 func (s *_TcpSession) RecvDataChan() <-chan gate.RecvData {
 	if s.recvDataChan == nil {
 		ch := make(chan gate.RecvData, 1)
-		ch <- gate.RecvData{Error: errors.New("RecvChan is not used")}
+		ch <- gate.RecvData{Error: errors.New("RecvDataChan is not used")}
 		close(ch)
 		return ch
 	}
