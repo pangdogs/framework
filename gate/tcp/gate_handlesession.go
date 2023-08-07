@@ -95,13 +95,17 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 					Message: fmt.Sprintf("session %q not exist", cliHello.Msg.SessionId),
 				}
 			}
-			session = v.(*_TcpSession)
 
+			session = v.(*_TcpSession)
 			continueFlow = true
 		} else {
-			session = newTcpSession(g, conn)
-			session.SetState(gate.SessionState_Handshake)
+			v, err := newTcpSession(g, conn)
+			if err != nil {
+				return protocol.Event[*transport.MsgHello]{}, err
+			}
+			v.SetState(gate.SessionState_Handshake)
 
+			session = v
 			continueFlow = false
 		}
 
@@ -241,14 +245,14 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 	//	defer mutex.Unlock(context.Background())
 	//}
 
+	// 暂停会话的收发消息io，等握手结束后恢复
+	session.PauseIO()
+	defer session.ContinueIO()
+
 	var sendSeq, recvSeq uint32
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		// 暂停会话的收发消息io，等握手结束后恢复
-		session.PauseIO()
-		defer session.ContinueIO()
-
 		err = handshake.ServerContinue(func(e protocol.Event[*transport.MsgContinue]) error {
 			// 刷新会话
 			sendSeq, recvSeq, err = session.Renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)

@@ -40,7 +40,7 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 	g.ctx = ctx
 
 	if len(g.options.Endpoints) <= 0 {
-		panic("no endpoints to listen")
+		logger.Panic(ctx, "no endpoints need to listen")
 	}
 
 	listenConf := g.getListenConfig()
