@@ -18,20 +18,23 @@ func (s *_TcpSession) Init(transceiver *protocol.Transceiver, token string) {
 	s.Lock()
 	defer s.Unlock()
 
+	// 初始化消息收发器
 	s.transceiver.Conn = transceiver.Conn
 	s.transceiver.Encoder = transceiver.Encoder
 	s.transceiver.Decoder = transceiver.Decoder
 	s.transceiver.Timeout = transceiver.Timeout
 	s.transceiver.SequencedBuff.Reset(transceiver.SequencedBuff.SendSeq, transceiver.SequencedBuff.RecvSeq, transceiver.SequencedBuff.Cap)
 
+	// 初始化token
 	s.token = token
 }
 
-// Renew 更新
+// Renew 刷新
 func (s *_TcpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	s.Lock()
 	defer s.Unlock()
 
+	// 刷新链路
 	sendSeq, recvSeq, err = s.transceiver.Renew(conn, remoteRecvSeq)
 	if err != nil {
 		return 0, 0, err
@@ -84,12 +87,12 @@ func (s *_TcpSession) Run() {
 		if err := s.dispatcher.Dispatching(); err != nil {
 			// 网络io超时，触发心跳检测，向对方发送ping
 			if errors.Is(err, protocol.ErrTimeout) {
-				if pinged {
-					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-					s.SetState(gate.SessionState_Inactive)
-				} else {
+				if !pinged {
 					s.ctrl.SendPing()
 					pinged = true
+				} else {
+					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
+					s.SetState(gate.SessionState_Inactive)
 				}
 				continue
 			}

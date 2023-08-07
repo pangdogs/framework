@@ -13,7 +13,11 @@ import (
 )
 
 // newTcpSession 创建会话
-func newTcpSession(tcpGate *_TcpGate, conn net.Conn) *_TcpSession {
+func newTcpSession(tcpGate *_TcpGate, conn net.Conn) (*_TcpSession, error) {
+	if conn == nil {
+		return nil, errors.New("conn is nil")
+	}
+
 	session := &_TcpSession{
 		gate:  tcpGate,
 		id:    ksuid.New().String(),
@@ -34,7 +38,7 @@ func newTcpSession(tcpGate *_TcpGate, conn net.Conn) *_TcpSession {
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver
 
-	return session
+	return session, nil
 }
 
 type _TcpSession struct {
@@ -87,11 +91,6 @@ func (s *_TcpSession) GetGroups() []string {
 func (s *_TcpSession) GetListenAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
-
-	if s.transceiver.Conn == nil {
-		return nil
-	}
-
 	return s.transceiver.Conn.LocalAddr()
 }
 
@@ -99,11 +98,6 @@ func (s *_TcpSession) GetListenAddr() net.Addr {
 func (s *_TcpSession) GetClientAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
-
-	if s.transceiver.Conn == nil {
-		return nil
-	}
-
 	return s.transceiver.Conn.RemoteAddr()
 }
 

@@ -146,18 +146,22 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 	}
 }
 
-// Renew 更新链路
+// Renew 刷新链路
 func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
+	if conn == nil {
+		return 0, 0, errors.New("conn is nil")
+	}
+
 	// 同步对端时序
 	if !t.SequencedBuff.Synchronization(remoteRecvSeq) {
 		return 0, 0, errors.New("transceiver sequenced buff synchronization failed")
 	}
 
 	// 切换连接
-	if t.Conn != nil {
+	if t.Conn != nil && t.Conn != conn {
 		t.Conn.Close()
+		t.Conn = conn
 	}
-	t.Conn = conn
 
 	return t.SequencedBuff.SendSeq, t.SequencedBuff.RecvSeq, nil
 }
