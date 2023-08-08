@@ -1,3 +1,4 @@
+//go:generate stringer -type SessionState
 package gate
 
 import (
@@ -15,8 +16,9 @@ type SessionState int32
 const (
 	SessionState_Birth     SessionState = iota // 出生
 	SessionState_Handshake                     // 与客户端握手中
-	SessionState_Active                        // 活跃，客户端已连接
-	SessionState_Inactive                      // 不活跃，客户端已断连，等待重连恢复中
+	SessionState_Confirmed                     // 已确认客户端连接
+	SessionState_Active                        // 客户端活跃
+	SessionState_Inactive                      // 客户端不活跃，等待重连恢复中
 	SessionState_Death                         // 已过期
 )
 
