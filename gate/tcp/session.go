@@ -136,7 +136,7 @@ func (s *_TcpSession) RecvEventChan() <-chan gate.RecvEvent {
 	return s.recvEventChan
 }
 
-// Close 关闭连接
+// Close 关闭
 func (s *_TcpSession) Close(err error) {
 	if err != nil {
 		s.ctrl.SendRst(err)

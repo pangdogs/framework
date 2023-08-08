@@ -48,7 +48,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 		Transceiver: &protocol.Transceiver{
 			Conn:    conn,
 			Encoder: &codec.Encoder{},
-			Decoder: &codec.Decoder{MsgCreator: g.options.CodecMsgCreator},
+			Decoder: &codec.Decoder{MsgCreator: g.options.DecoderMsgCreator},
 			Timeout: g.options.IOTimeout,
 		},
 	}
@@ -109,12 +109,17 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			continueFlow = false
 		}
 
-		// 检查是否同意使用客户端建议的加密与压缩方案
-		if g.options.AgreeClientProposal {
+		// 检查是否同意使用客户端建议的加密方案
+		if g.options.AgreeClientEncryptionProposal {
 			cs = cliHello.Msg.CipherSuite
-			cm = cliHello.Msg.Compression
 		} else {
 			cs = g.options.EncCipherSuite
+		}
+
+		// 检查是否同意使用客户端建议的压缩方案
+		if g.options.AgreeClientCompressionProposal {
+			cm = cliHello.Msg.Compression
+		} else {
 			cm = g.options.Compression
 		}
 
