@@ -56,6 +56,6 @@ type Session interface {
 	RecvDataChan() <-chan RecvData
 	// RecvEventChan 接收自定义事件的chan
 	RecvEventChan() <-chan RecvEvent
-	// Close 关闭连接
+	// Close 关闭
 	Close(err error)
 }

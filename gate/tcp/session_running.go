@@ -11,6 +11,7 @@ import (
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 // Init 初始化
@@ -72,11 +73,20 @@ func (s *_TcpSession) Run() {
 	}()
 
 	pinged := false
+	var timeout time.Time
 
 	// 调整会话状态为活跃
 	s.SetState(gate.SessionState_Active)
 
 	for {
+		// 非活跃状态，检测超时时间
+		if s.state == gate.SessionState_Inactive {
+			if time.Now().After(timeout) {
+				s.cancel()
+			}
+		}
+
+		// 检测会话是否已关闭
 		select {
 		case <-s.Done():
 			return
@@ -92,14 +102,18 @@ func (s *_TcpSession) Run() {
 					pinged = true
 				} else {
 					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-					s.SetState(gate.SessionState_Inactive)
+					if s.SetState(gate.SessionState_Inactive) {
+						timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+					}
 				}
 				continue
 			}
 
 			// 其他网络io类错误，调整会话状态不活跃
 			if errors.Is(err, protocol.ErrNetIO) {
-				s.SetState(gate.SessionState_Inactive)
+				if s.SetState(gate.SessionState_Inactive) {
+					timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+				}
 				continue
 			}
 
@@ -115,11 +129,11 @@ func (s *_TcpSession) Run() {
 }
 
 // SetState 调整会话状态
-func (s *_TcpSession) SetState(state gate.SessionState) {
+func (s *_TcpSession) SetState(state gate.SessionState) bool {
 	old := s.state
 
 	if old == state {
-		return
+		return false
 	}
 
 	s.Lock()
@@ -140,7 +154,10 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 		if handler == nil {
 			continue
 		}
-		internal.CallVoid(func() { handler(session, old, state) })
+		err := internal.CallVoid(func() { handler(session, old, state) })
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", session.GetId(), err)
+		}
 	}
 
 	for i := range s.stateChangedHandlers {
@@ -148,8 +165,13 @@ func (s *_TcpSession) SetState(state gate.SessionState) {
 		if handler == nil {
 			continue
 		}
-		internal.CallVoid(func() { handler(session, old, state) })
+		err := internal.CallVoid(func() { handler(session, old, state) })
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", session.GetId(), err)
+		}
 	}
+
+	return true
 }
 
 // EventHandler 接收自定义事件的处理器
