@@ -5,10 +5,10 @@ import (
 	"kit.golaxy.org/plugins/dsync"
 )
 
-var definePlugin = define.DefineServicePlugin[dsync.DSync, DSyncOption](newRedisDSync)
-
-// Install 安装插件
-var Install = definePlugin.Install
-
-// Uninstall 卸载插件
-var Uninstall = definePlugin.Uninstall
+var (
+	definePlugin = define.DefineServicePlugin[dsync.DSync, DSyncOption](newRedisDSync)
+	// Install 安装插件
+	Install = definePlugin.Install
+	// Uninstall 卸载插件
+	Uninstall = definePlugin.Uninstall
+)

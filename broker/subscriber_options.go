@@ -3,12 +3,13 @@ package broker
 // WithOption is a helper struct to provide default options.
 type WithOption struct{}
 
-// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
-// message and optional Ack method to acknowledge receipt of the message.
-type EventHandler = func(e Event) error
-
-// UnsubscribedCb Unsubscribed callback method.
-type UnsubscribedCb = func(sub Subscriber)
+type (
+	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
+	// message and optional Ack method to acknowledge receipt of the message.
+	EventHandler = func(e Event) error
+	// UnsubscribedCb Unsubscribed callback method.
+	UnsubscribedCb = func(sub Subscriber)
+)
 
 // SubscriberOptions represents the options for subscribe topic.
 type SubscriberOptions struct {
