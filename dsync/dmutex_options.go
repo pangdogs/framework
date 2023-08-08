@@ -9,11 +9,12 @@ import (
 // WithOption is a helper struct to provide default options.
 type WithOption struct{}
 
-// A DelayFunc is used to decide the amount of time to wait between retries.
-type DelayFunc = func(tries int) time.Duration
-
-// GenValueFunc is used to generate a random value.
-type GenValueFunc = func() (string, error)
+type (
+	// A DelayFunc is used to decide the amount of time to wait between retries.
+	DelayFunc = func(tries int) time.Duration
+	// GenValueFunc is used to generate a random value.
+	GenValueFunc = func() (string, error)
+)
 
 // DMutexOptions represents the options for acquiring a distributed mutex.
 type DMutexOptions struct {

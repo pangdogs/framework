@@ -11,14 +11,14 @@ import (
 	"time"
 )
 
+type WithOption struct{}
+
 type (
 	ClientAuthHandler          = func(conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
 	SessionStateChangedHandler = gate.StateChangedHandler                                   // 会话状态变化的处理器
 	SessionRecvDataHandler     = gate.RecvDataHandler                                       // 会话接收的数据的处理器
 	SessionRecvEventHandler    = gate.RecvEventHandler                                      // 会话接收的自定义事件的处理器
 )
-
-type WithOption struct{}
 
 type GateOptions struct {
 	Endpoints                      []string                     // 所有监听地址
