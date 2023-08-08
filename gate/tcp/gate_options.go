@@ -3,6 +3,7 @@ package tcp
 import (
 	"crypto"
 	"crypto/tls"
+	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
@@ -14,10 +15,10 @@ import (
 type WithOption struct{}
 
 type (
-	ClientAuthHandler          = func(conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
-	SessionStateChangedHandler = gate.StateChangedHandler                                   // 会话状态变化的处理器
-	SessionRecvDataHandler     = gate.RecvDataHandler                                       // 会话接收的数据的处理器
-	SessionRecvEventHandler    = gate.RecvEventHandler                                      // 会话接收的自定义事件的处理器
+	ClientAuthHandler          = func(ctx service.Context, conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
+	SessionStateChangedHandler = gate.StateChangedHandler                                                        // 会话状态变化的处理器
+	SessionRecvDataHandler     = gate.RecvDataHandler                                                            // 会话接收的数据的处理器
+	SessionRecvEventHandler    = gate.RecvEventHandler                                                           // 会话接收的自定义事件的处理器
 )
 
 type GateOptions struct {
