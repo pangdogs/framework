@@ -140,23 +140,14 @@ func (s *_TcpSession) SetState(state gate.SessionState) bool {
 	s.state = state
 	s.Unlock()
 
-	var session gate.Session
-
-	switch state {
-	case gate.SessionState_Handshake:
-		session = &_TcpSessionSetting{_TcpSession: s}
-	default:
-		session = s
-	}
-
 	for i := range s.gate.options.SessionStateChangedHandlers {
 		handler := s.gate.options.SessionStateChangedHandlers[i]
 		if handler == nil {
 			continue
 		}
-		err := internal.CallVoid(func() { handler(session, old, state) })
+		err := internal.CallVoid(func() { handler(s, old, state) })
 		if err != nil {
-			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", session.GetId(), err)
+			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), err)
 		}
 	}
 
@@ -165,9 +156,9 @@ func (s *_TcpSession) SetState(state gate.SessionState) bool {
 		if handler == nil {
 			continue
 		}
-		err := internal.CallVoid(func() { handler(session, old, state) })
+		err := internal.CallVoid(func() { handler(s, old, state) })
 		if err != nil {
-			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", session.GetId(), err)
+			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), err)
 		}
 	}
 

@@ -103,6 +103,8 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 			if err != nil {
 				return protocol.Event[*transport.MsgHello]{}, err
 			}
+
+			// 调整会话状态为握手中
 			v.SetState(gate.SessionState_Handshake)
 
 			session = v
@@ -316,6 +318,9 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 		// 存储会话
 		g.sessionMap.Store(session.GetId(), session)
 		atomic.AddInt64(&g.sessionCount, 1)
+
+		// 调整会话状态为已确认
+		session.SetState(gate.SessionState_Confirmed)
 
 		// 运行会话
 		go session.Run()
