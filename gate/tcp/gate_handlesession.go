@@ -223,7 +223,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				if handler == nil {
 					continue
 				}
-				err := internal.Call(func() error { return handler(conn, e.Msg.Token, e.Msg.Extensions) })
+				err := internal.Call(func() error { return handler(g.ctx, conn, e.Msg.Token, e.Msg.Extensions) })
 				if err != nil {
 					return &protocol.RstError{
 						Code:    transport.Code_AuthFailed,

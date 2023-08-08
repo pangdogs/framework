@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
+	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
@@ -63,6 +64,11 @@ type _TcpSession struct {
 // String implements fmt.Stringer
 func (s *_TcpSession) String() string {
 	return fmt.Sprintf("{Id:%s Token:%s State:%d}", s.GetId(), s.GetToken(), s.GetState())
+}
+
+// GetContext 获取服务上下文
+func (s *_TcpSession) GetContext() service.Context {
+	return s.gate.ctx
 }
 
 // GetId 获取会话Id

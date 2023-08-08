@@ -3,6 +3,7 @@ package gate
 import (
 	"fmt"
 	"golang.org/x/net/context"
+	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
@@ -36,6 +37,8 @@ type RecvEvent struct {
 type Session interface {
 	context.Context
 	fmt.Stringer
+	// GetContext 获取服务上下文
+	GetContext() service.Context
 	// GetId 获取会话Id
 	GetId() string
 	// GetToken 获取token
