@@ -14,7 +14,7 @@ import (
 
 func newTcpGate(options ...GateOption) gate.Gate {
 	opts := GateOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

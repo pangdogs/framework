@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type DSyncOptions struct {
 	EtcdClient    *clientv3.Client
@@ -23,32 +23,32 @@ type DSyncOptions struct {
 
 type DSyncOption func(options *DSyncOptions)
 
-func (WithOption) Default() DSyncOption {
+func (Option) Default() DSyncOption {
 	return func(options *DSyncOptions) {
-		WithOption{}.EtcdClient(nil)(options)
-		WithOption{}.EtcdConfig(nil)(options)
-		WithOption{}.KeyPrefix("/golaxy/mutex/")(options)
-		WithOption{}.WatchChanSize(128)(options)
-		WithOption{}.FastAuth("", "")(options)
-		WithOption{}.FastAddresses("127.0.0.1:2379")(options)
-		WithOption{}.FastSecure(false)(options)
-		WithOption{}.FastTLSConfig(nil)(options)
+		Option{}.EtcdClient(nil)(options)
+		Option{}.EtcdConfig(nil)(options)
+		Option{}.KeyPrefix("/golaxy/mutex/")(options)
+		Option{}.WatchChanSize(128)(options)
+		Option{}.FastAuth("", "")(options)
+		Option{}.FastAddresses("127.0.0.1:2379")(options)
+		Option{}.FastSecure(false)(options)
+		Option{}.FastTLSConfig(nil)(options)
 	}
 }
 
-func (WithOption) EtcdClient(cli *clientv3.Client) DSyncOption {
+func (Option) EtcdClient(cli *clientv3.Client) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.EtcdClient = cli
 	}
 }
 
-func (WithOption) EtcdConfig(config *clientv3.Config) DSyncOption {
+func (Option) EtcdConfig(config *clientv3.Config) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.EtcdConfig = config
 	}
 }
 
-func (WithOption) KeyPrefix(prefix string) DSyncOption {
+func (Option) KeyPrefix(prefix string) DSyncOption {
 	return func(options *DSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
@@ -57,7 +57,7 @@ func (WithOption) KeyPrefix(prefix string) DSyncOption {
 	}
 }
 
-func (WithOption) WatchChanSize(size int) DSyncOption {
+func (Option) WatchChanSize(size int) DSyncOption {
 	return func(options *DSyncOptions) {
 		if size < 0 {
 			panic("option WatchChanSize can't be set to a value less then 0")
@@ -66,14 +66,14 @@ func (WithOption) WatchChanSize(size int) DSyncOption {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) DSyncOption {
+func (Option) FastAuth(username, password string) DSyncOption {
 	return func(options *DSyncOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddresses(addrs ...string) DSyncOption {
+func (Option) FastAddresses(addrs ...string) DSyncOption {
 	return func(options *DSyncOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -84,13 +84,13 @@ func (WithOption) FastAddresses(addrs ...string) DSyncOption {
 	}
 }
 
-func (WithOption) FastSecure(secure bool) DSyncOption {
+func (Option) FastSecure(secure bool) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.FastSecure = secure
 	}
 }
 
-func (WithOption) FastTLSConfig(conf *tls.Config) DSyncOption {
+func (Option) FastTLSConfig(conf *tls.Config) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.FastTLSConfig = conf
 	}

@@ -23,7 +23,7 @@ var NewRegistry = newRedisRegistry
 
 func newRedisRegistry(options ...RegistryOption) registry.Registry {
 	opts := RegistryOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

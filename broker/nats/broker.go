@@ -12,7 +12,7 @@ import (
 
 func newNatsBroker(options ...BrokerOption) broker.Broker {
 	opts := BrokerOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -93,7 +93,7 @@ func (b *_NatsBroker) subscribe(ctx context.Context, mode _SubscribeMode, patter
 	}
 
 	opts := broker.SubscriberOptions{}
-	broker.WithOption{}.Default()(&opts)
+	broker.Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

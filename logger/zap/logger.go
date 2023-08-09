@@ -11,7 +11,7 @@ import (
 
 func newZapLogger(options ...LoggerOption) logger.Logger {
 	opts := LoggerOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

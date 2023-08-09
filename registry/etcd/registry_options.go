@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type RegistryOptions struct {
 	EtcdClient    *clientv3.Client
@@ -23,32 +23,32 @@ type RegistryOptions struct {
 
 type RegistryOption func(options *RegistryOptions)
 
-func (WithOption) Default() RegistryOption {
+func (Option) Default() RegistryOption {
 	return func(options *RegistryOptions) {
-		WithOption{}.EtcdClient(nil)(options)
-		WithOption{}.EtcdConfig(nil)(options)
-		WithOption{}.KeyPrefix("/golaxy/registry/")(options)
-		WithOption{}.WatchChanSize(128)(options)
-		WithOption{}.FastAuth("", "")(options)
-		WithOption{}.FastAddresses("127.0.0.1:2379")(options)
-		WithOption{}.FastSecure(false)(options)
-		WithOption{}.FastTLSConfig(nil)(options)
+		Option{}.EtcdClient(nil)(options)
+		Option{}.EtcdConfig(nil)(options)
+		Option{}.KeyPrefix("/golaxy/registry/")(options)
+		Option{}.WatchChanSize(128)(options)
+		Option{}.FastAuth("", "")(options)
+		Option{}.FastAddresses("127.0.0.1:2379")(options)
+		Option{}.FastSecure(false)(options)
+		Option{}.FastTLSConfig(nil)(options)
 	}
 }
 
-func (WithOption) EtcdClient(cli *clientv3.Client) RegistryOption {
+func (Option) EtcdClient(cli *clientv3.Client) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.EtcdClient = cli
 	}
 }
 
-func (WithOption) EtcdConfig(config *clientv3.Config) RegistryOption {
+func (Option) EtcdConfig(config *clientv3.Config) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.EtcdConfig = config
 	}
 }
 
-func (WithOption) KeyPrefix(prefix string) RegistryOption {
+func (Option) KeyPrefix(prefix string) RegistryOption {
 	return func(options *RegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
@@ -57,7 +57,7 @@ func (WithOption) KeyPrefix(prefix string) RegistryOption {
 	}
 }
 
-func (WithOption) WatchChanSize(size int) RegistryOption {
+func (Option) WatchChanSize(size int) RegistryOption {
 	return func(options *RegistryOptions) {
 		if size < 0 {
 			panic("option WatchChanSize can't be set to a value less then 0")
@@ -66,14 +66,14 @@ func (WithOption) WatchChanSize(size int) RegistryOption {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) RegistryOption {
+func (Option) FastAuth(username, password string) RegistryOption {
 	return func(options *RegistryOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddresses(addrs ...string) RegistryOption {
+func (Option) FastAddresses(addrs ...string) RegistryOption {
 	return func(options *RegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -84,13 +84,13 @@ func (WithOption) FastAddresses(addrs ...string) RegistryOption {
 	}
 }
 
-func (WithOption) FastSecure(secure bool) RegistryOption {
+func (Option) FastSecure(secure bool) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.FastSecure = secure
 	}
 }
 
-func (WithOption) FastTLSConfig(conf *tls.Config) RegistryOption {
+func (Option) FastTLSConfig(conf *tls.Config) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.FastTLSConfig = conf
 	}

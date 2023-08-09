@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type DSyncOptions struct {
 	RedisClient  *redis.Client
@@ -21,37 +21,37 @@ type DSyncOptions struct {
 
 type DSyncOption func(options *DSyncOptions)
 
-func (WithOption) Default() DSyncOption {
+func (Option) Default() DSyncOption {
 	return func(options *DSyncOptions) {
-		WithOption{}.RedisClient(nil)(options)
-		WithOption{}.RedisConfig(nil)(options)
-		WithOption{}.RedisURL("")(options)
-		WithOption{}.KeyPrefix("golaxy:mutex:")(options)
-		WithOption{}.FastAuth("", "")(options)
-		WithOption{}.FastAddress("127.0.0.1:6379")(options)
-		WithOption{}.FastDBIndex(0)(options)
+		Option{}.RedisClient(nil)(options)
+		Option{}.RedisConfig(nil)(options)
+		Option{}.RedisURL("")(options)
+		Option{}.KeyPrefix("golaxy:mutex:")(options)
+		Option{}.FastAuth("", "")(options)
+		Option{}.FastAddress("127.0.0.1:6379")(options)
+		Option{}.FastDBIndex(0)(options)
 	}
 }
 
-func (WithOption) RedisClient(cli *redis.Client) DSyncOption {
+func (Option) RedisClient(cli *redis.Client) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.RedisClient = cli
 	}
 }
 
-func (WithOption) RedisConfig(conf *redis.Options) DSyncOption {
+func (Option) RedisConfig(conf *redis.Options) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.RedisConfig = conf
 	}
 }
 
-func (WithOption) RedisURL(url string) DSyncOption {
+func (Option) RedisURL(url string) DSyncOption {
 	return func(o *DSyncOptions) {
 		o.RedisURL = url
 	}
 }
 
-func (WithOption) KeyPrefix(prefix string) DSyncOption {
+func (Option) KeyPrefix(prefix string) DSyncOption {
 	return func(o *DSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
@@ -60,14 +60,14 @@ func (WithOption) KeyPrefix(prefix string) DSyncOption {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) DSyncOption {
+func (Option) FastAuth(username, password string) DSyncOption {
 	return func(options *DSyncOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddress(addr string) DSyncOption {
+func (Option) FastAddress(addr string) DSyncOption {
 	return func(options *DSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(err)
@@ -76,7 +76,7 @@ func (WithOption) FastAddress(addr string) DSyncOption {
 	}
 }
 
-func (WithOption) FastDBIndex(idx int) DSyncOption {
+func (Option) FastDBIndex(idx int) DSyncOption {
 	return func(options *DSyncOptions) {
 		options.FastDBIndex = idx
 	}

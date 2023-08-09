@@ -1,7 +1,7 @@
 package broker
 
-// WithOption is a helper struct to provide default options.
-type WithOption struct{}
+// Option is a helper struct to provide default options.
+type Option struct{}
 
 type (
 	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
@@ -29,18 +29,18 @@ type SubscriberOptions struct {
 type SubscriberOption func(*SubscriberOptions)
 
 // Default sets the default options for subscribe topic.
-func (WithOption) Default() SubscriberOption {
+func (Option) Default() SubscriberOption {
 	return func(options *SubscriberOptions) {
-		WithOption{}.AutoAck(true)(options)
-		WithOption{}.QueueName("")(options)
-		WithOption{}.EventHandler(nil)(options)
-		WithOption{}.EventChanSize(128)(options)
-		WithOption{}.UnsubscribedCb(nil)(options)
+		Option{}.AutoAck(true)(options)
+		Option{}.QueueName("")(options)
+		Option{}.EventHandler(nil)(options)
+		Option{}.EventChanSize(128)(options)
+		Option{}.UnsubscribedCb(nil)(options)
 	}
 }
 
 // AutoAck defaults to true. When a handler returns with a nil error the message is acked.
-func (WithOption) AutoAck(b bool) SubscriberOption {
+func (Option) AutoAck(b bool) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.AutoAck = b
 	}
@@ -48,28 +48,28 @@ func (WithOption) AutoAck(b bool) SubscriberOption {
 
 // QueueName subscribers with the same queue name will create a shared subscription where each
 // receives a subset of messages.
-func (WithOption) QueueName(name string) SubscriberOption {
+func (Option) QueueName(name string) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.QueueName = name
 	}
 }
 
 // EventHandler is the function that will be called to handle the received events.
-func (WithOption) EventHandler(handler EventHandler) SubscriberOption {
+func (Option) EventHandler(handler EventHandler) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.EventHandler = handler
 	}
 }
 
 // EventChanSize specifies the size of the event channel used for received synchronously event.
-func (WithOption) EventChanSize(size int) SubscriberOption {
+func (Option) EventChanSize(size int) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.EventChanSize = size
 	}
 }
 
 // UnsubscribedCb Unsubscribed callback method.
-func (WithOption) UnsubscribedCb(fn UnsubscribedCb) SubscriberOption {
+func (Option) UnsubscribedCb(fn UnsubscribedCb) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.UnsubscribedCb = fn
 	}

@@ -245,7 +245,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 
 	//// 使用token加分布式锁
 	//if token != "" {
-	//	mutex := dsync.NewDMutex(g.ctx, fmt.Sprintf("session-token-%s", token), dsync.WithOption{}.Expiry(handshake.Transceiver.IOTimeout))
+	//	mutex := dsync.NewDMutex(g.ctx, fmt.Sprintf("session-token-%s", token), dsync.Option{}.Expiry(handshake.Transceiver.IOTimeout))
 	//	if err := mutex.Lock(context.Background()); err != nil {
 	//		return nil, err
 	//	}
