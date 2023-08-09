@@ -4,7 +4,7 @@ import (
 	"kit.golaxy.org/plugins/registry"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type RegistryOptions struct {
 	Registry registry.Registry
@@ -12,13 +12,13 @@ type RegistryOptions struct {
 
 type RegistryOption func(options *RegistryOptions)
 
-func (WithOption) Default() RegistryOption {
+func (Option) Default() RegistryOption {
 	return func(options *RegistryOptions) {
-		WithOption{}.Cached(nil)(options)
+		Option{}.Cached(nil)(options)
 	}
 }
 
-func (WithOption) Cached(r registry.Registry) RegistryOption {
+func (Option) Cached(r registry.Registry) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.Registry = r
 	}

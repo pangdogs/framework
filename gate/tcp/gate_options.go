@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type (
 	ClientAuthHandler          = func(ctx service.Context, conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
@@ -53,49 +53,49 @@ type GateOptions struct {
 
 type GateOption func(options *GateOptions)
 
-func (WithOption) Default() GateOption {
+func (Option) Default() GateOption {
 	return func(options *GateOptions) {
-		WithOption{}.Endpoints("0.0.0.0:0")(options)
-		WithOption{}.TLSConfig(nil)(options)
-		WithOption{}.TCPNoDelay(nil)(options)
-		WithOption{}.TCPQuickAck(nil)(options)
-		WithOption{}.TCPRecvBuf(nil)(options)
-		WithOption{}.TCPSendBuf(nil)(options)
-		WithOption{}.TCPLinger(nil)(options)
-		WithOption{}.IOTimeout(3 * time.Second)(options)
-		WithOption{}.IORetryTimes(3)(options)
-		WithOption{}.IOSequencedBuffCap(1024 * 128)(options)
-		WithOption{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
-		WithOption{}.AgreeClientEncryptionProposal(false)(options)
-		WithOption{}.EncCipherSuite(transport.CipherSuite{
+		Option{}.Endpoints("0.0.0.0:0")(options)
+		Option{}.TLSConfig(nil)(options)
+		Option{}.TCPNoDelay(nil)(options)
+		Option{}.TCPQuickAck(nil)(options)
+		Option{}.TCPRecvBuf(nil)(options)
+		Option{}.TCPSendBuf(nil)(options)
+		Option{}.TCPLinger(nil)(options)
+		Option{}.IOTimeout(3 * time.Second)(options)
+		Option{}.IORetryTimes(3)(options)
+		Option{}.IOSequencedBuffCap(1024 * 128)(options)
+		Option{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
+		Option{}.AgreeClientEncryptionProposal(false)(options)
+		Option{}.EncCipherSuite(transport.CipherSuite{
 			SecretKeyExchange:   transport.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: transport.SymmetricEncryption_AES,
 			BlockCipherMode:     transport.BlockCipherMode_CTR,
 			PaddingMode:         transport.PaddingMode_None,
 			MACHash:             transport.Hash_Fnv1a32,
 		})(options)
-		WithOption{}.EncNonceStep(new(big.Int).SetInt64(1))
-		WithOption{}.EncECDHENamedCurve(transport.NamedCurve_X25519)(options)
-		WithOption{}.EncSignatureAlgorithm(transport.SignatureAlgorithm{
+		Option{}.EncNonceStep(new(big.Int).SetInt64(1))
+		Option{}.EncECDHENamedCurve(transport.NamedCurve_X25519)(options)
+		Option{}.EncSignatureAlgorithm(transport.SignatureAlgorithm{
 			AsymmetricEncryption: transport.AsymmetricEncryption_None,
 			PaddingMode:          transport.PaddingMode_None,
 			Hash:                 transport.Hash_None,
 		})(options)
-		WithOption{}.EncSignaturePrivateKey(nil)
-		WithOption{}.EncVerifyClientSignature(false)
-		WithOption{}.EncVerifySignaturePublicKey(nil)
-		WithOption{}.AgreeClientCompressionProposal(false)
-		WithOption{}.Compression(transport.Compression_Brotli)(options)
-		WithOption{}.CompressedSize(1024 * 32)(options)
-		WithOption{}.SessionInactiveTimeout(60 * time.Second)(options)
-		WithOption{}.ClientAuthHandlers(nil)(options)
-		WithOption{}.SessionStateChangedHandlers(nil)(options)
-		WithOption{}.SessionRecvDataHandlers(nil)(options)
-		WithOption{}.SessionRecvEventHandlers(nil)(options)
+		Option{}.EncSignaturePrivateKey(nil)
+		Option{}.EncVerifyClientSignature(false)
+		Option{}.EncVerifySignaturePublicKey(nil)
+		Option{}.AgreeClientCompressionProposal(false)
+		Option{}.Compression(transport.Compression_Brotli)(options)
+		Option{}.CompressedSize(1024 * 32)(options)
+		Option{}.SessionInactiveTimeout(60 * time.Second)(options)
+		Option{}.ClientAuthHandlers(nil)(options)
+		Option{}.SessionStateChangedHandlers(nil)(options)
+		Option{}.SessionRecvDataHandlers(nil)(options)
+		Option{}.SessionRecvEventHandlers(nil)(options)
 	}
 }
 
-func (WithOption) Endpoints(endpoints ...string) GateOption {
+func (Option) Endpoints(endpoints ...string) GateOption {
 	return func(options *GateOptions) {
 		for _, endpoint := range endpoints {
 			if _, _, err := net.SplitHostPort(endpoint); err != nil {
@@ -106,61 +106,61 @@ func (WithOption) Endpoints(endpoints ...string) GateOption {
 	}
 }
 
-func (WithOption) TLSConfig(tlsConfig *tls.Config) GateOption {
+func (Option) TLSConfig(tlsConfig *tls.Config) GateOption {
 	return func(options *GateOptions) {
 		options.TLSConfig = tlsConfig
 	}
 }
 
-func (WithOption) TCPNoDelay(b *bool) GateOption {
+func (Option) TCPNoDelay(b *bool) GateOption {
 	return func(options *GateOptions) {
 		options.TCPNoDelay = b
 	}
 }
 
-func (WithOption) TCPQuickAck(b *bool) GateOption {
+func (Option) TCPQuickAck(b *bool) GateOption {
 	return func(options *GateOptions) {
 		options.TCPQuickAck = b
 	}
 }
 
-func (WithOption) TCPRecvBuf(size *int) GateOption {
+func (Option) TCPRecvBuf(size *int) GateOption {
 	return func(options *GateOptions) {
 		options.TCPRecvBuf = size
 	}
 }
 
-func (WithOption) TCPSendBuf(size *int) GateOption {
+func (Option) TCPSendBuf(size *int) GateOption {
 	return func(options *GateOptions) {
 		options.TCPSendBuf = size
 	}
 }
 
-func (WithOption) TCPLinger(sec *int) GateOption {
+func (Option) TCPLinger(sec *int) GateOption {
 	return func(options *GateOptions) {
 		options.TCPLinger = sec
 	}
 }
 
-func (WithOption) IOTimeout(d time.Duration) GateOption {
+func (Option) IOTimeout(d time.Duration) GateOption {
 	return func(options *GateOptions) {
 		options.IOTimeout = d
 	}
 }
 
-func (WithOption) IORetryTimes(times int) GateOption {
+func (Option) IORetryTimes(times int) GateOption {
 	return func(options *GateOptions) {
 		options.IORetryTimes = times
 	}
 }
 
-func (WithOption) IOSequencedBuffCap(cap int) GateOption {
+func (Option) IOSequencedBuffCap(cap int) GateOption {
 	return func(options *GateOptions) {
 		options.IOSequencedBuffCap = cap
 	}
 }
 
-func (WithOption) DecoderMsgCreator(mc codec.IMsgCreator) GateOption {
+func (Option) DecoderMsgCreator(mc codec.IMsgCreator) GateOption {
 	return func(options *GateOptions) {
 		if mc == nil {
 			panic("option DecoderMsgCreator can't be assigned to nil")
@@ -169,97 +169,97 @@ func (WithOption) DecoderMsgCreator(mc codec.IMsgCreator) GateOption {
 	}
 }
 
-func (WithOption) AgreeClientEncryptionProposal(b bool) GateOption {
+func (Option) AgreeClientEncryptionProposal(b bool) GateOption {
 	return func(options *GateOptions) {
 		options.AgreeClientEncryptionProposal = b
 	}
 }
 
-func (WithOption) EncCipherSuite(cs transport.CipherSuite) GateOption {
+func (Option) EncCipherSuite(cs transport.CipherSuite) GateOption {
 	return func(options *GateOptions) {
 		options.EncCipherSuite = cs
 	}
 }
 
-func (WithOption) EncNonceStep(v *big.Int) GateOption {
+func (Option) EncNonceStep(v *big.Int) GateOption {
 	return func(options *GateOptions) {
 		options.EncNonceStep = v
 	}
 }
 
-func (WithOption) EncECDHENamedCurve(nc transport.NamedCurve) GateOption {
+func (Option) EncECDHENamedCurve(nc transport.NamedCurve) GateOption {
 	return func(options *GateOptions) {
 		options.EncECDHENamedCurve = nc
 	}
 }
 
-func (WithOption) EncSignatureAlgorithm(sa transport.SignatureAlgorithm) GateOption {
+func (Option) EncSignatureAlgorithm(sa transport.SignatureAlgorithm) GateOption {
 	return func(options *GateOptions) {
 		options.EncSignatureAlgorithm = sa
 	}
 }
 
-func (WithOption) EncSignaturePrivateKey(priv crypto.PrivateKey) GateOption {
+func (Option) EncSignaturePrivateKey(priv crypto.PrivateKey) GateOption {
 	return func(options *GateOptions) {
 		options.EncSignaturePrivateKey = priv
 	}
 }
 
-func (WithOption) EncVerifyClientSignature(b bool) GateOption {
+func (Option) EncVerifyClientSignature(b bool) GateOption {
 	return func(options *GateOptions) {
 		options.EncVerifyClientSignature = b
 	}
 }
 
-func (WithOption) EncVerifySignaturePublicKey(pub crypto.PublicKey) GateOption {
+func (Option) EncVerifySignaturePublicKey(pub crypto.PublicKey) GateOption {
 	return func(options *GateOptions) {
 		options.EncVerifySignaturePublicKey = pub
 	}
 }
 
-func (WithOption) AgreeClientCompressionProposal(b bool) GateOption {
+func (Option) AgreeClientCompressionProposal(b bool) GateOption {
 	return func(options *GateOptions) {
 		options.AgreeClientCompressionProposal = b
 	}
 }
 
-func (WithOption) Compression(c transport.Compression) GateOption {
+func (Option) Compression(c transport.Compression) GateOption {
 	return func(options *GateOptions) {
 		options.Compression = c
 	}
 }
 
-func (WithOption) CompressedSize(size int) GateOption {
+func (Option) CompressedSize(size int) GateOption {
 	return func(options *GateOptions) {
 		options.CompressedSize = size
 	}
 }
 
-func (WithOption) SessionInactiveTimeout(d time.Duration) GateOption {
+func (Option) SessionInactiveTimeout(d time.Duration) GateOption {
 	return func(options *GateOptions) {
 		options.SessionInactiveTimeout = d
 	}
 }
 
-func (WithOption) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
+func (Option) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
 	return func(options *GateOptions) {
 		options.ClientAuthHandlers = handlers
 	}
 }
 
-func (WithOption) SessionStateChangedHandlers(handlers []SessionStateChangedHandler) GateOption {
+func (Option) SessionStateChangedHandlers(handlers []SessionStateChangedHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionStateChangedHandlers = handlers
 	}
 }
 
-func (WithOption) SessionRecvDataHandlers(handlers []SessionRecvDataHandler) GateOption {
+func (Option) SessionRecvDataHandlers(handlers []SessionRecvDataHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvDataHandlers = handlers
 	}
 }
 
-func (WithOption) SessionRecvEventHandlers(handlers ...SessionRecvEventHandler) GateOption {
+func (Option) SessionRecvEventHandlers(handlers ...SessionRecvEventHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvEventHandlers = handlers
 	}

@@ -80,14 +80,14 @@ func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic str
 
 	ch := make(chan []byte, size)
 
-	_, err := broker.Subscribe(ctx, topic, WithOption{}.EventHandler(func(e Event) error {
+	_, err := broker.Subscribe(ctx, topic, Option{}.EventHandler(func(e Event) error {
 		select {
 		case ch <- e.Message():
 		default:
 			logger.Trace(serviceCtx, "data chan is full")
 		}
 		return nil
-	}), WithOption{}.UnsubscribedCb(func(sub Subscriber) {
+	}), Option{}.UnsubscribedCb(func(sub Subscriber) {
 		close(ch)
 	}))
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 
 func newEtcdDSync(options ...DSyncOption) dsync.DSync {
 	opts := DSyncOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)
@@ -65,7 +65,7 @@ func (s *_EtcdDSync) ShutSP(ctx service.Context) {
 // NewDMutex returns a new distributed mutex with given name.
 func (s *_EtcdDSync) NewDMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
 	opts := dsync.DMutexOptions{}
-	dsync.WithOption{}.Default()(&opts)
+	dsync.Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

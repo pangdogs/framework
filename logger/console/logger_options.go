@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type Field int16
 
@@ -28,48 +28,48 @@ type LoggerOptions struct {
 
 type LoggerOption func(options *LoggerOptions)
 
-func (WithOption) Default() LoggerOption {
+func (Option) Default() LoggerOption {
 	return func(options *LoggerOptions) {
-		WithOption{}.Development(false)
-		WithOption{}.Level(logger.InfoLevel)(options)
-		WithOption{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
-		WithOption{}.Separator(`|`)(options)
-		WithOption{}.TimestampLayout(time.RFC3339Nano)(options)
-		WithOption{}.CallerFullName(false)(options)
+		Option{}.Development(false)
+		Option{}.Level(logger.InfoLevel)(options)
+		Option{}.Fields(ServiceField | RuntimeField | TimestampField | LevelField | CallerField)(options)
+		Option{}.Separator(`|`)(options)
+		Option{}.TimestampLayout(time.RFC3339Nano)(options)
+		Option{}.CallerFullName(false)(options)
 	}
 }
 
-func (WithOption) Development(b bool) LoggerOption {
+func (Option) Development(b bool) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.Development = b
 	}
 }
 
-func (WithOption) Level(level logger.Level) LoggerOption {
+func (Option) Level(level logger.Level) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.Level = level
 	}
 }
 
-func (WithOption) Fields(fields Field) LoggerOption {
+func (Option) Fields(fields Field) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.Fields = fields
 	}
 }
 
-func (WithOption) Separator(sp string) LoggerOption {
+func (Option) Separator(sp string) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.Separator = sp
 	}
 }
 
-func (WithOption) TimestampLayout(layout string) LoggerOption {
+func (Option) TimestampLayout(layout string) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.TimestampLayout = layout
 	}
 }
 
-func (WithOption) CallerFullName(b bool) LoggerOption {
+func (Option) CallerFullName(b bool) LoggerOption {
 	return func(options *LoggerOptions) {
 		options.CallerFullName = b
 	}

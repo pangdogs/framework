@@ -25,7 +25,7 @@ var NewRegistry = newEtcdRegistry
 
 func newEtcdRegistry(options ...RegistryOption) registry.Registry {
 	opts := RegistryOptions{}
-	WithOption{}.Default()(&opts)
+	Option{}.Default()(&opts)
 
 	for i := range options {
 		options[i](&opts)

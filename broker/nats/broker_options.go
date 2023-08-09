@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type WithOption struct{}
+type Option struct{}
 
 type BrokerOptions struct {
 	NatsClient    *nats.Conn
@@ -19,23 +19,23 @@ type BrokerOptions struct {
 
 type BrokerOption func(options *BrokerOptions)
 
-func (WithOption) Default() BrokerOption {
+func (Option) Default() BrokerOption {
 	return func(options *BrokerOptions) {
-		WithOption{}.NatsClient(nil)(options)
-		WithOption{}.TopicPrefix("golaxy.")(options)
-		WithOption{}.QueuePrefix("golaxy.")(options)
-		WithOption{}.FastAuth("", "")(options)
-		WithOption{}.FastAddresses("127.0.0.1:4222")(options)
+		Option{}.NatsClient(nil)(options)
+		Option{}.TopicPrefix("golaxy.")(options)
+		Option{}.QueuePrefix("golaxy.")(options)
+		Option{}.FastAuth("", "")(options)
+		Option{}.FastAddresses("127.0.0.1:4222")(options)
 	}
 }
 
-func (WithOption) NatsClient(cli *nats.Conn) BrokerOption {
+func (Option) NatsClient(cli *nats.Conn) BrokerOption {
 	return func(o *BrokerOptions) {
 		o.NatsClient = cli
 	}
 }
 
-func (WithOption) TopicPrefix(prefix string) BrokerOption {
+func (Option) TopicPrefix(prefix string) BrokerOption {
 	return func(o *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
@@ -44,7 +44,7 @@ func (WithOption) TopicPrefix(prefix string) BrokerOption {
 	}
 }
 
-func (WithOption) QueuePrefix(prefix string) BrokerOption {
+func (Option) QueuePrefix(prefix string) BrokerOption {
 	return func(o *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
@@ -53,14 +53,14 @@ func (WithOption) QueuePrefix(prefix string) BrokerOption {
 	}
 }
 
-func (WithOption) FastAuth(username, password string) BrokerOption {
+func (Option) FastAuth(username, password string) BrokerOption {
 	return func(options *BrokerOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
 	}
 }
 
-func (WithOption) FastAddresses(addrs ...string) BrokerOption {
+func (Option) FastAddresses(addrs ...string) BrokerOption {
 	return func(options *BrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
