@@ -29,8 +29,6 @@ type _ZapLogger struct {
 
 // InitSP 初始化服务插件
 func (l *_ZapLogger) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
-
 	l.sugaredLoggers = make([]*zap.SugaredLogger, l.options.CallerMaxSkip)
 
 	for i := range l.sugaredLoggers {
@@ -40,6 +38,8 @@ func (l *_ZapLogger) InitSP(ctx service.Context) {
 		}
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
+
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
 }
 
 // ShutSP 关闭服务插件

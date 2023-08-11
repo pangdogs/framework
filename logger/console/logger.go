@@ -35,9 +35,9 @@ type _ConsoleLogger struct {
 
 // InitSP init service plugin
 func (l *_ConsoleLogger) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
-
 	l.serviceField = ctx.String()
+
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
 }
 
 // ShutSP shut service plugin
