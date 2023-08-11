@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 )
 
-func (g *_TcpGate) handleSession(conn net.Conn) {
+func (g *_GtpGate) handleSession(conn net.Conn) {
 	var err error
 
 	defer func() {
@@ -42,7 +42,7 @@ func (g *_TcpGate) handleSession(conn net.Conn) {
 	logger.Infof(g.ctx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
-func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
+func (g *_GtpGate) handshake(conn net.Conn) (*_GtpSession, error) {
 	// 握手协议
 	handshake := &protocol.HandshakeProtocol{
 		Transceiver: &protocol.Transceiver{
@@ -59,7 +59,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 	var cliRandom, servRandom []byte
 	var cliHelloBytes, servHelloBytes []byte
 	var continueFlow, encryptionFlow, authFlow bool
-	var session *_TcpSession
+	var session *_GtpSession
 
 	defer func() {
 		if cliRandom != nil {
@@ -96,10 +96,10 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 				}
 			}
 
-			session = v.(*_TcpSession)
+			session = v.(*_GtpSession)
 			continueFlow = true
 		} else {
-			v, err := newTcpSession(g, conn)
+			v, err := newGtpSession(g, conn)
 			if err != nil {
 				return protocol.Event[*transport.MsgHello]{}, err
 			}
@@ -329,7 +329,7 @@ func (g *_TcpGate) handshake(conn net.Conn) (*_TcpSession, error) {
 	return session, nil
 }
 
-func (g *_TcpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs transport.CipherSuite, cm transport.Compression,
+func (g *_GtpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs transport.CipherSuite, cm transport.Compression,
 	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId string) (err error) {
 	// 控制协议
 	ctrl := protocol.CtrlProtocol{
@@ -574,7 +574,7 @@ func (g *_TcpGate) secretKeyExchange(handshake *protocol.HandshakeProtocol, cs t
 	return nil
 }
 
-func (g *_TcpGate) makeIV(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
+func (g *_GtpGate) makeIV(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
 	size, ok := se.IV()
 	if !ok {
 		return nil, nil
@@ -592,7 +592,7 @@ func (g *_TcpGate) makeIV(se transport.SymmetricEncryption, pubSize int) (*big.I
 	return iv, nil
 }
 
-func (g *_TcpGate) makeNonce(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
+func (g *_GtpGate) makeNonce(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
 	size, ok := se.Nonce()
 	if !ok {
 		return nil, nil
@@ -610,7 +610,7 @@ func (g *_TcpGate) makeNonce(se transport.SymmetricEncryption, pubSize int) (*bi
 	return nonce, nil
 }
 
-func (g *_TcpGate) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
+func (g *_GtpGate) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
 	}
@@ -635,7 +635,7 @@ func (g *_TcpGate) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
 	}
 }
 
-func (g *_TcpGate) makePaddingMode(paddingMode transport.PaddingMode) (method.Padding, error) {
+func (g *_GtpGate) makePaddingMode(paddingMode transport.PaddingMode) (method.Padding, error) {
 	if paddingMode == transport.PaddingMode_None {
 		return nil, nil
 	}
@@ -648,7 +648,7 @@ func (g *_TcpGate) makePaddingMode(paddingMode transport.PaddingMode) (method.Pa
 	return padding, nil
 }
 
-func (g *_TcpGate) makeMACModule(hash transport.Hash, sharedKeyBytes []byte) (codec.IMACModule, bool, error) {
+func (g *_GtpGate) makeMACModule(hash transport.Hash, sharedKeyBytes []byte) (codec.IMACModule, bool, error) {
 	if hash.Bits() <= 0 {
 		return nil, false, nil
 	}
@@ -687,7 +687,7 @@ func (g *_TcpGate) makeMACModule(hash transport.Hash, sharedKeyBytes []byte) (co
 	return macModule, true, nil
 }
 
-func (g *_TcpGate) makeCompressionModule(compression transport.Compression) (codec.ICompressionModule, int, error) {
+func (g *_GtpGate) makeCompressionModule(compression transport.Compression) (codec.ICompressionModule, int, error) {
 	if compression == transport.Compression_None {
 		return nil, 0, nil
 	}
@@ -704,7 +704,7 @@ func (g *_TcpGate) makeCompressionModule(compression transport.Compression) (cod
 	return compressionModule, g.options.CompressedSize, err
 }
 
-func (g *_TcpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) ([]byte, error) {
+func (g *_GtpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) ([]byte, error) {
 	if g.options.EncSignatureAlgorithm.AsymmetricEncryption == transport.AsymmetricEncryption_None {
 		return nil, nil
 	}
@@ -741,7 +741,7 @@ func (g *_TcpGate) sign(cs transport.CipherSuite, cm transport.Compression, cliR
 	return signature, nil
 }
 
-func (g *_TcpGate) verify(signature []byte, cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) error {
+func (g *_GtpGate) verify(signature []byte, cs transport.CipherSuite, cm transport.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if g.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")

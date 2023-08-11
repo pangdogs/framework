@@ -6,7 +6,7 @@ import (
 )
 
 // RangeSessions 遍历所有会话
-func (g *_TcpGate) RangeSessions(fun func(session gate.Session) bool) {
+func (g *_GtpGate) RangeSessions(fun func(session gate.Session) bool) {
 	if fun == nil {
 		return
 	}
@@ -16,6 +16,6 @@ func (g *_TcpGate) RangeSessions(fun func(session gate.Session) bool) {
 }
 
 // CountSessions 统计所有会话数量
-func (g *_TcpGate) CountSessions() int {
+func (g *_GtpGate) CountSessions() int {
 	return int(atomic.LoadInt64(&g.sessionCount))
 }

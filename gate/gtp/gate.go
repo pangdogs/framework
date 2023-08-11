@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-func newTcpGate(options ...GateOption) gate.Gate {
+func newGtpGate(options ...GateOption) gate.Gate {
 	opts := GateOptions{}
 	Option{}.Default()(&opts)
 
@@ -20,12 +20,12 @@ func newTcpGate(options ...GateOption) gate.Gate {
 		options[i](&opts)
 	}
 
-	return &_TcpGate{
+	return &_GtpGate{
 		options: opts,
 	}
 }
 
-type _TcpGate struct {
+type _GtpGate struct {
 	options      GateOptions
 	ctx          service.Context
 	listeners    []net.Listener
@@ -34,7 +34,7 @@ type _TcpGate struct {
 }
 
 // InitSP 初始化服务插件
-func (g *_TcpGate) InitSP(ctx service.Context) {
+func (g *_GtpGate) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*g))
 
 	g.ctx = ctx
@@ -82,7 +82,7 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (g *_TcpGate) ShutSP(ctx service.Context) {
+func (g *_GtpGate) ShutSP(ctx service.Context) {
 	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 
 	for _, listener := range g.listeners {
@@ -91,16 +91,16 @@ func (g *_TcpGate) ShutSP(ctx service.Context) {
 }
 
 // Broadcast 广播数据
-func (g *_TcpGate) Broadcast(data []byte) error {
+func (g *_GtpGate) Broadcast(data []byte) error {
 	return nil
 }
 
 // Multicast 组播数据
-func (g *_TcpGate) Multicast(groupId string, data []byte) error {
+func (g *_GtpGate) Multicast(groupId string, data []byte) error {
 	return nil
 }
 
 // Unicast 单播数据
-func (g *_TcpGate) Unicast(sessionId string, data []byte) error {
+func (g *_GtpGate) Unicast(sessionId string, data []byte) error {
 	return nil
 }

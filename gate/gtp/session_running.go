@@ -15,7 +15,7 @@ import (
 )
 
 // Init 初始化
-func (s *_TcpSession) Init(transceiver *protocol.Transceiver, token string) {
+func (s *_GtpSession) Init(transceiver *protocol.Transceiver, token string) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -31,7 +31,7 @@ func (s *_TcpSession) Init(transceiver *protocol.Transceiver, token string) {
 }
 
 // Renew 刷新
-func (s *_TcpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
+func (s *_GtpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -45,17 +45,17 @@ func (s *_TcpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvS
 }
 
 // PauseIO 暂停收发消息
-func (s *_TcpSession) PauseIO() {
+func (s *_GtpSession) PauseIO() {
 	s.transceiver.Pause()
 }
 
 // ContinueIO 继续收发消息
-func (s *_TcpSession) ContinueIO() {
+func (s *_GtpSession) ContinueIO() {
 	s.transceiver.Continue()
 }
 
 // Run 运行（会话的主线程）
-func (s *_TcpSession) Run() {
+func (s *_GtpSession) Run() {
 	defer func() {
 		if panicErr := util.Panic2Err(); panicErr != nil {
 			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), panicErr)
@@ -129,7 +129,7 @@ func (s *_TcpSession) Run() {
 }
 
 // SetState 调整会话状态
-func (s *_TcpSession) SetState(state gate.SessionState) bool {
+func (s *_GtpSession) SetState(state gate.SessionState) bool {
 	old := s.state
 
 	if old == state {
@@ -166,7 +166,7 @@ func (s *_TcpSession) SetState(state gate.SessionState) bool {
 }
 
 // EventHandler 接收自定义事件的处理器
-func (s *_TcpSession) EventHandler(event protocol.Event[transport.Msg]) error {
+func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 	if s.recvEventChan != nil {
 		select {
 		case s.recvEventChan <- gate.RecvEvent{Event: event.Clone()}:
@@ -201,7 +201,7 @@ func (s *_TcpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 }
 
 // PayloadHandler Payload消息事件处理器
-func (s *_TcpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]) error {
+func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]) error {
 	if s.recvDataChan != nil {
 		select {
 		case s.recvDataChan <- gate.RecvData{
