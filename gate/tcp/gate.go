@@ -57,7 +57,7 @@ func (g *_TcpGate) InitSP(ctx service.Context) {
 
 		g.listeners = append(g.listeners, listener)
 
-		logger.Infof(g.ctx, "listener %q started")
+		logger.Infof(g.ctx, "listener %q started", listener.Addr())
 	}
 
 	for _, listener := range g.listeners {
