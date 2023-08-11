@@ -13,19 +13,19 @@ import (
 	"sync"
 )
 
-// newTcpSession 创建会话
-func newTcpSession(tcpGate *_TcpGate, conn net.Conn) (*_TcpSession, error) {
+// newGtpSession 创建会话
+func newGtpSession(gtpGate *_GtpGate, conn net.Conn) (*_GtpSession, error) {
 	if conn == nil {
 		return nil, errors.New("conn is nil")
 	}
 
-	session := &_TcpSession{
-		gate:  tcpGate,
+	session := &_GtpSession{
+		gate:  gtpGate,
 		id:    ksuid.New().String(),
 		state: gate.SessionState_Birth,
 	}
 
-	session.Context, session.cancel = context.WithCancel(tcpGate.ctx)
+	session.Context, session.cancel = context.WithCancel(gtpGate.ctx)
 	session.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
@@ -42,11 +42,11 @@ func newTcpSession(tcpGate *_TcpGate, conn net.Conn) (*_TcpSession, error) {
 	return session, nil
 }
 
-type _TcpSession struct {
+type _GtpSession struct {
 	context.Context
 	sync.Mutex
 	cancel               context.CancelFunc
-	gate                 *_TcpGate
+	gate                 *_GtpGate
 	id                   string
 	token                string
 	state                gate.SessionState
@@ -62,58 +62,58 @@ type _TcpSession struct {
 }
 
 // String implements fmt.Stringer
-func (s *_TcpSession) String() string {
+func (s *_GtpSession) String() string {
 	return fmt.Sprintf("{Id:%s Token:%s State:%d}", s.GetId(), s.GetToken(), s.GetState())
 }
 
 // GetContext 获取服务上下文
-func (s *_TcpSession) GetContext() service.Context {
+func (s *_GtpSession) GetContext() service.Context {
 	return s.gate.ctx
 }
 
 // GetId 获取会话Id
-func (s *_TcpSession) GetId() string {
+func (s *_GtpSession) GetId() string {
 	return s.id
 }
 
 // GetToken 获取token
-func (s *_TcpSession) GetToken() string {
+func (s *_GtpSession) GetToken() string {
 	return s.token
 }
 
 // GetState 获取会话状态
-func (s *_TcpSession) GetState() gate.SessionState {
+func (s *_GtpSession) GetState() gate.SessionState {
 	s.Lock()
 	defer s.Unlock()
 	return s.state
 }
 
 // GetGroups 获取所属的会话组Id
-func (s *_TcpSession) GetGroups() []string {
+func (s *_GtpSession) GetGroups() []string {
 	return nil
 }
 
 // GetListenAddr 获取监听地址
-func (s *_TcpSession) GetListenAddr() net.Addr {
+func (s *_GtpSession) GetListenAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.LocalAddr()
 }
 
 // GetClientAddr 获取客户端地址
-func (s *_TcpSession) GetClientAddr() net.Addr {
+func (s *_GtpSession) GetClientAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.RemoteAddr()
 }
 
 // SendData 发送数据
-func (s *_TcpSession) SendData(data []byte, sequenced bool) error {
+func (s *_GtpSession) SendData(data []byte, sequenced bool) error {
 	return s.trans.SendData(data, sequenced)
 }
 
 // SendEvent 发送自定义事件
-func (s *_TcpSession) SendEvent(event protocol.Event[transport.Msg]) error {
+func (s *_GtpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 	return protocol.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
@@ -121,7 +121,7 @@ func (s *_TcpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 }
 
 // RecvDataChan 接收数据的chan
-func (s *_TcpSession) RecvDataChan() <-chan gate.RecvData {
+func (s *_GtpSession) RecvDataChan() <-chan gate.RecvData {
 	if s.recvDataChan == nil {
 		ch := make(chan gate.RecvData, 1)
 		ch <- gate.RecvData{Error: errors.New("RecvDataChan is not used")}
@@ -132,7 +132,7 @@ func (s *_TcpSession) RecvDataChan() <-chan gate.RecvData {
 }
 
 // RecvEventChan 接收自定义事件的chan
-func (s *_TcpSession) RecvEventChan() <-chan gate.RecvEvent {
+func (s *_GtpSession) RecvEventChan() <-chan gate.RecvEvent {
 	if s.recvEventChan == nil {
 		ch := make(chan gate.RecvEvent, 1)
 		ch <- gate.RecvEvent{Error: errors.New("RecvEventChan is not used")}
@@ -143,7 +143,7 @@ func (s *_TcpSession) RecvEventChan() <-chan gate.RecvEvent {
 }
 
 // Close 关闭
-func (s *_TcpSession) Close(err error) {
+func (s *_GtpSession) Close(err error) {
 	if err != nil {
 		s.ctrl.SendRst(err)
 	}

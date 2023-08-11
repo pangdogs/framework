@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	definePlugin = define.DefineServicePlugin[gate.Gate, GateOption](newTcpGate)
+	definePlugin = define.DefineServicePlugin[gate.Gate, GateOption](newGtpGate)
 	// Install 安装插件
 	Install = definePlugin.Install
 	// Uninstall 卸载插件

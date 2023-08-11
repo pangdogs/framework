@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-func (g *_TcpGate) getListenConfig() *net.ListenConfig {
+func (g *_GtpGate) getListenConfig() *net.ListenConfig {
 	var noDelay *int
 	if g.options.TCPNoDelay != nil {
 		noDelay = util.New(util.Bool2Int(*g.options.TCPNoDelay))
