@@ -1,7 +1,6 @@
 package gate
 
 import (
-	"errors"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 )
@@ -11,21 +10,6 @@ type (
 	RecvDataHandler     = func(session Session, data []byte, sequenced bool) error         // 会话接收的数据的处理器
 	RecvEventHandler    = func(session Session, event protocol.Event[transport.Msg]) error // 会话接收的自定义事件的处理器
 )
-
-// GetSessionSetting 获取会话设置接口
-func GetSessionSetting(session Session) (SessionSetting, error) {
-	setting, ok := session.(SessionSetting)
-	if !ok {
-		return nil, errors.New("can't set up session")
-	}
-
-	switch session.GetState() {
-	case SessionState_Handshake, SessionState_Confirmed:
-		return setting, nil
-	default:
-		return nil, errors.New("incorrect session state")
-	}
-}
 
 // SessionSetting 会话设置接口（在会话状态Handshake与Confirmed时可用）
 type SessionSetting interface {
