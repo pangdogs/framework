@@ -15,10 +15,7 @@ import (
 type Option struct{}
 
 type (
-	ClientAuthHandler          = func(ctx service.Context, conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
-	SessionStateChangedHandler = gate.StateChangedHandler                                                        // 会话状态变化的处理器
-	SessionRecvDataHandler     = gate.RecvDataHandler                                                            // 会话接收的数据的处理器
-	SessionRecvEventHandler    = gate.RecvEventHandler                                                           // 会话接收的自定义事件的处理器
+	ClientAuthHandler = func(ctx service.Context, conn net.Conn, token string, extensions []byte) error // 客户端鉴权鉴权处理器
 )
 
 type GateOptions struct {
@@ -46,9 +43,9 @@ type GateOptions struct {
 	CompressedSize                 int                          // 通信中启用压缩阀值（字节），<=0表示不开启
 	SessionInactiveTimeout         time.Duration                // 会话不活跃后的超时时间
 	ClientAuthHandlers             []ClientAuthHandler          // 客户端鉴权鉴权处理器列表
-	SessionStateChangedHandlers    []SessionStateChangedHandler // 会话状态变化的处理器列表（优先级高于会话的处理器）
-	SessionRecvDataHandlers        []SessionRecvDataHandler     // 会话接收的数据的处理器列表（优先级高于会话的处理器）
-	SessionRecvEventHandlers       []SessionRecvEventHandler    // 会话接收的自定义事件的处理器列表（优先级高于会话的处理器）
+	SessionStateChangedHandlers    []gate.StateChangedHandler   // 会话状态变化的处理器列表（优先级高于会话的处理器）
+	SessionRecvDataHandlers        []gate.RecvDataHandler       // 会话接收的数据的处理器列表（优先级高于会话的处理器）
+	SessionRecvEventHandlers       []gate.RecvEventHandler      // 会话接收的自定义事件的处理器列表（优先级高于会话的处理器）
 }
 
 type GateOption func(options *GateOptions)
@@ -247,19 +244,19 @@ func (Option) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
 	}
 }
 
-func (Option) SessionStateChangedHandlers(handlers []SessionStateChangedHandler) GateOption {
+func (Option) SessionStateChangedHandlers(handlers []gate.StateChangedHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionStateChangedHandlers = handlers
 	}
 }
 
-func (Option) SessionRecvDataHandlers(handlers []SessionRecvDataHandler) GateOption {
+func (Option) SessionRecvDataHandlers(handlers []gate.RecvDataHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvDataHandlers = handlers
 	}
 }
 
-func (Option) SessionRecvEventHandlers(handlers ...SessionRecvEventHandler) GateOption {
+func (Option) SessionRecvEventHandlers(handlers ...gate.RecvEventHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvEventHandlers = handlers
 	}

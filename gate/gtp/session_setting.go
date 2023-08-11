@@ -1,8 +1,24 @@
 package gtp
 
 import (
+	"errors"
 	"kit.golaxy.org/plugins/gate"
 )
+
+// GetSessionSetting 获取会话设置接口
+func GetSessionSetting(session gate.Session) (gate.SessionSetting, error) {
+	gtpSession, ok := session.(*_GtpSession)
+	if !ok {
+		return nil, errors.New("incorrect session type")
+	}
+
+	switch session.GetState() {
+	case gate.SessionState_Handshake, gate.SessionState_Confirmed:
+		return &_GtpSessionSetting{_GtpSession: gtpSession}, nil
+	default:
+		return nil, errors.New("incorrect session state")
+	}
+}
 
 // _GtpSessionSetting 会话设置
 type _GtpSessionSetting struct {
