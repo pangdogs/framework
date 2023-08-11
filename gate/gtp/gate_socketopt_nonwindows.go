@@ -1,6 +1,6 @@
 //go:build !windows
 
-package tcp
+package gtp
 
 import (
 	"kit.golaxy.org/golaxy/util"
