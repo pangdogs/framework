@@ -1,4 +1,4 @@
-package tcp
+package gtp
 
 import (
 	"context"
