@@ -83,7 +83,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
 	}
 
 	if buff.Len() < int(mpl.Len) {
-		return transport.MsgPacket{}, ErrBufferNotEnough
+		return transport.MsgPacket{}, fmt.Errorf("%w: %d < %d", ErrBufferNotEnough, buff.Len(), mpl.Len)
 	}
 
 	buf := BytesPool.Get(int(mpl.Len))
