@@ -119,10 +119,10 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 
 	for {
 		// 解码消息
-		mp, err := t.Decoder.Fetch()
-		if err != nil {
-			if !errors.Is(err, codec.ErrBufferNotEnough) {
-				return Event[transport.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
+		mp, fetchErr := t.Decoder.Fetch()
+		if fetchErr != nil {
+			if !errors.Is(fetchErr, codec.ErrBufferNotEnough) {
+				return Event[transport.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", fetchErr)
 			}
 		} else {
 			return Event[transport.Msg]{
@@ -141,7 +141,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w: %w", ErrNetIO, err)
+			return Event[transport.Msg]{}, fmt.Errorf("recv msg-packet failed, %w, %w: %w", fetchErr, ErrNetIO, err)
 		}
 	}
 }
