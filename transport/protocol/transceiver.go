@@ -121,7 +121,7 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 		// 解码消息
 		mp, err := t.Decoder.Fetch()
 		if err != nil {
-			if !errors.Is(err, codec.ErrEmptyBuffer) {
+			if !errors.Is(err, codec.ErrBufferNotEnough) {
 				return Event[transport.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
 			}
 		} else {

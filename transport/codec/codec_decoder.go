@@ -9,9 +9,8 @@ import (
 )
 
 var (
-	ErrEmptyBuffer           = errors.New("empty buffer")                    // 缓存为空
-	ErrMsgPacketExceedsLimit = errors.New("msg-packet length exceeds limit") // 消息包长度超过限制
-	ErrMsgNotRegistered      = errors.New("msg not registered")              // 消息未注册
+	ErrBufferNotEnough  = errors.New("buffer data not enough") // 缓冲区数据不足
+	ErrMsgNotRegistered = errors.New("msg not registered")     // 消息未注册
 )
 
 // IDecoder 消息包解码器接口
@@ -38,7 +37,6 @@ type IDecoder interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgPacketLenLimit uint32             // 消息包长度限制
 	MsgCreator        IMsgCreator        // 消息对象构建器
 	EncryptionModule  IEncryptionModule  // 加密模块
 	MACModule         IMACModule         // MAC模块
@@ -81,16 +79,11 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
 	// 读取消息包长度
 	_, err := mpl.Write(buff.Bytes())
 	if err != nil {
-		return transport.MsgPacket{}, ErrEmptyBuffer
-	}
-
-	// 检测消息包长度
-	if d.MsgPacketLenLimit > 0 && mpl.Len > d.MsgPacketLenLimit {
-		return transport.MsgPacket{}, ErrMsgPacketExceedsLimit
+		return transport.MsgPacket{}, ErrBufferNotEnough
 	}
 
 	if buff.Len() < int(mpl.Len) {
-		return transport.MsgPacket{}, ErrEmptyBuffer
+		return transport.MsgPacket{}, ErrBufferNotEnough
 	}
 
 	buf := BytesPool.Get(int(mpl.Len))
