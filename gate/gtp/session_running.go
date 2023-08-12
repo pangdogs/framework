@@ -28,6 +28,20 @@ func (s *_GtpSession) Init(transceiver *protocol.Transceiver, token string) {
 
 	// 初始化token
 	s.token = token
+
+	// 初始化channel
+	if s.gate.options.SessionSendDataChanSize > 0 {
+		s.sendDataChan = make(chan gate.SendData, s.gate.options.SessionSendDataChanSize)
+	}
+	if s.gate.options.SessionRecvDataChanSize > 0 {
+		s.recvDataChan = make(chan gate.RecvData, s.gate.options.SessionRecvDataChanSize)
+	}
+	if s.gate.options.SessionSendEventSize > 0 {
+		s.sendEventChan = make(chan protocol.Event[transport.Msg], s.gate.options.SessionSendEventSize)
+	}
+	if s.gate.options.SessionRecvEventSize > 0 {
+		s.recvEventChan = make(chan gate.RecvEvent, s.gate.options.SessionRecvEventSize)
+	}
 }
 
 // Renew 刷新
