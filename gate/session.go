@@ -22,6 +22,12 @@ const (
 	SessionState_Death                         // 已过期
 )
 
+// SendData 发送的数据
+type SendData struct {
+	Data      []byte // 数据
+	Sequenced bool   // 是否有时序
+}
+
 // RecvData 接收的数据
 type RecvData struct {
 	Data      []byte // 数据
@@ -57,9 +63,13 @@ type Session interface {
 	SendData(data []byte, sequenced bool) error
 	// SendEvent 发送自定义事件
 	SendEvent(event protocol.Event[transport.Msg]) error
-	// RecvDataChan 接收数据的chan
+	// SendDataChan 发送数据的channel
+	SendDataChan() chan<- SendData
+	// RecvDataChan 接收数据的channel
 	RecvDataChan() <-chan RecvData
-	// RecvEventChan 接收自定义事件的chan
+	// SendEventChan 发送自定义事件的channel
+	SendEventChan() chan<- protocol.Event[transport.Msg]
+	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan RecvEvent
 	// Close 关闭
 	Close(err error)

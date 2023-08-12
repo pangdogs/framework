@@ -78,6 +78,38 @@ func (s *_GtpSession) Run() {
 	// 调整会话状态为活跃
 	s.SetState(gate.SessionState_Active)
 
+	// 启动发送数据的线程
+	if s.sendDataChan != nil {
+		go func() {
+			for {
+				select {
+				case sd := <-s.sendDataChan:
+					if err := s.SendData(sd.Data, sd.Sequenced); err != nil {
+						logger.Errorf(s.gate.ctx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
+					}
+				case <-s.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	// 启动发送自定义事件的线程
+	if s.sendEventChan != nil {
+		go func() {
+			for {
+				select {
+				case e := <-s.sendEventChan:
+					if err := s.SendEvent(e); err != nil {
+						logger.Errorf(s.gate.ctx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
+					}
+				case <-s.Done():
+					return
+				}
+			}
+		}()
+	}
+
 	for {
 		// 非活跃状态，检测超时时间
 		if s.state == gate.SessionState_Inactive {
@@ -171,7 +203,7 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 		select {
 		case s.recvEventChan <- gate.RecvEvent{Event: event.Clone()}:
 		default:
-			logger.Errorf(s.gate.ctx, "session %q RecvEventChan is full", s.GetId())
+			logger.Errorf(s.gate.ctx, "session %q receive event channel is full", s.GetId())
 		}
 	}
 
@@ -209,7 +241,7 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 			Sequenced: event.Flags.Is(transport.Flag_Sequenced),
 		}:
 		default:
-			logger.Errorf(s.gate.ctx, "session %q RecvChan is full", s.GetId())
+			logger.Errorf(s.gate.ctx, "session %q receive data channel is full", s.GetId())
 		}
 	}
 

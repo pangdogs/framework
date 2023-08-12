@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gate"
+	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
@@ -57,7 +58,9 @@ type _GtpSession struct {
 	stateChangedHandlers []gate.StateChangedHandler
 	recvDataHandlers     []gate.RecvDataHandler
 	recvEventHandlers    []gate.RecvEventHandler
+	sendDataChan         chan gate.SendData
 	recvDataChan         chan gate.RecvData
+	sendEventChan        chan protocol.Event[transport.Msg]
 	recvEventChan        chan gate.RecvEvent
 }
 
@@ -120,24 +123,34 @@ func (s *_GtpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 	}.Send(s.transceiver.Send(event))
 }
 
-// RecvDataChan 接收数据的chan
+// SendDataChan 发送数据的channel
+func (s *_GtpSession) SendDataChan() chan<- gate.SendData {
+	if s.sendDataChan == nil {
+		logger.Panicf(s.gate.ctx, "send data channel size less equal 0, can't be used")
+	}
+	return s.sendDataChan
+}
+
+// RecvDataChan 接收数据的channel
 func (s *_GtpSession) RecvDataChan() <-chan gate.RecvData {
 	if s.recvDataChan == nil {
-		ch := make(chan gate.RecvData, 1)
-		ch <- gate.RecvData{Error: errors.New("RecvDataChan is not used")}
-		close(ch)
-		return ch
+		logger.Panicf(s.gate.ctx, "receive data channel size less equal 0, can't be used")
 	}
 	return s.recvDataChan
 }
 
-// RecvEventChan 接收自定义事件的chan
+// SendEventChan 发送自定义事件的channel
+func (s *_GtpSession) SendEventChan() chan<- protocol.Event[transport.Msg] {
+	if s.sendEventChan == nil {
+		logger.Panicf(s.gate.ctx, "send event channel size less equal 0, can't be used")
+	}
+	return s.sendEventChan
+}
+
+// RecvEventChan 接收自定义事件的channel
 func (s *_GtpSession) RecvEventChan() <-chan gate.RecvEvent {
 	if s.recvEventChan == nil {
-		ch := make(chan gate.RecvEvent, 1)
-		ch <- gate.RecvEvent{Error: errors.New("RecvEventChan is not used")}
-		close(ch)
-		return ch
+		logger.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.recvEventChan
 }
