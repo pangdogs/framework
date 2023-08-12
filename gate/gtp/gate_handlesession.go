@@ -48,7 +48,7 @@ func (g *_GtpGate) handshake(conn net.Conn) (*_GtpSession, error) {
 		Transceiver: &protocol.Transceiver{
 			Conn:    conn,
 			Encoder: &codec.Encoder{},
-			Decoder: &codec.Decoder{MsgCreator: g.options.DecoderMsgCreator},
+			Decoder: &codec.Decoder{MsgCreator: g.options.DecoderMsgCreator, MsgPacketLenLimit: g.options.DecoderMsgPacketLenLimit},
 			Timeout: g.options.IOTimeout,
 		},
 	}
