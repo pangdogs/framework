@@ -45,7 +45,7 @@ func (s *_GtpSessionSetting) RecvEventHandlers(handlers []gate.RecvEventHandler)
 	return nil
 }
 
-// SendDataChanSize 设置发送数据的chan的大小，<=0表示不使用channel
+// SendDataChanSize 设置发送数据的channel的大小，<=0表示不使用channel
 func (s *_GtpSessionSetting) SendDataChanSize(size int) error {
 	if size <= 0 {
 		s.sendDataChan = nil
@@ -55,7 +55,7 @@ func (s *_GtpSessionSetting) SendDataChanSize(size int) error {
 	return nil
 }
 
-// RecvDataChanSize 设置接收数据的chan的大小，<=0表示不使用channel
+// RecvDataChanSize 设置接收数据的channel的大小，<=0表示不使用channel
 func (s *_GtpSessionSetting) RecvDataChanSize(size int) error {
 	if size <= 0 {
 		s.recvDataChan = nil
@@ -65,7 +65,7 @@ func (s *_GtpSessionSetting) RecvDataChanSize(size int) error {
 	return nil
 }
 
-// SendEventSize 设置发送自定义事件的chan的大小，<=0表示不使用channel
+// SendEventSize 设置发送自定义事件的channel的大小，<=0表示不使用channel
 func (s *_GtpSessionSetting) SendEventSize(size int) error {
 	if size <= 0 {
 		s.sendEventChan = nil
@@ -75,7 +75,7 @@ func (s *_GtpSessionSetting) SendEventSize(size int) error {
 	return nil
 }
 
-// RecvEventSize 设置自定义事件的chan的大小，<=0表示不使用channel
+// RecvEventSize 设置自定义事件的channel的大小，<=0表示不使用channel
 func (s *_GtpSessionSetting) RecvEventSize(size int) error {
 	if size <= 0 {
 		s.recvEventChan = nil

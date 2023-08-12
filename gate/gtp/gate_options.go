@@ -41,9 +41,13 @@ type GateOptions struct {
 	AgreeClientCompressionProposal bool                         // 是否同意使用客户端建议的压缩方案
 	Compression                    transport.Compression        // 通信中的压缩函数
 	CompressedSize                 int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	SessionInactiveTimeout         time.Duration                // 会话不活跃后的超时时间
 	ClientAuthHandlers             []ClientAuthHandler          // 客户端鉴权鉴权处理器列表
+	SessionInactiveTimeout         time.Duration                // 会话不活跃后的超时时间
 	SessionStateChangedHandlers    []gate.StateChangedHandler   // 会话状态变化的处理器列表（优先级高于会话的处理器）
+	SessionSendDataChanSize        int                          // 会话发送数据的channel的大小，<=0表示不使用channel
+	SessionRecvDataChanSize        int                          // 会话接收数据的channel的大小，<=0表示不使用channel
+	SessionSendEventSize           int                          // 会话发送自定义事件的channel的大小，<=0表示不使用channel
+	SessionRecvEventSize           int                          // 会话接收自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvDataHandlers        []gate.RecvDataHandler       // 会话接收的数据的处理器列表（优先级高于会话的处理器）
 	SessionRecvEventHandlers       []gate.RecvEventHandler      // 会话接收的自定义事件的处理器列表（优先级高于会话的处理器）
 }
@@ -84,9 +88,13 @@ func (Option) Default() GateOption {
 		Option{}.AgreeClientCompressionProposal(false)
 		Option{}.Compression(transport.Compression_Brotli)(options)
 		Option{}.CompressedSize(1024 * 32)(options)
-		Option{}.SessionInactiveTimeout(60 * time.Second)(options)
 		Option{}.ClientAuthHandlers(nil)(options)
+		Option{}.SessionInactiveTimeout(60 * time.Second)(options)
 		Option{}.SessionStateChangedHandlers(nil)(options)
+		Option{}.SessionSendDataChanSize(0)(options)
+		Option{}.SessionRecvDataChanSize(0)(options)
+		Option{}.SessionSendEventSize(0)(options)
+		Option{}.SessionRecvEventSize(0)(options)
 		Option{}.SessionRecvDataHandlers(nil)(options)
 		Option{}.SessionRecvEventHandlers(nil)(options)
 	}
@@ -232,25 +240,49 @@ func (Option) CompressedSize(size int) GateOption {
 	}
 }
 
-func (Option) SessionInactiveTimeout(d time.Duration) GateOption {
-	return func(options *GateOptions) {
-		options.SessionInactiveTimeout = d
-	}
-}
-
 func (Option) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
 	return func(options *GateOptions) {
 		options.ClientAuthHandlers = handlers
 	}
 }
 
-func (Option) SessionStateChangedHandlers(handlers []gate.StateChangedHandler) GateOption {
+func (Option) SessionInactiveTimeout(d time.Duration) GateOption {
+	return func(options *GateOptions) {
+		options.SessionInactiveTimeout = d
+	}
+}
+
+func (Option) SessionStateChangedHandlers(handlers ...gate.StateChangedHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionStateChangedHandlers = handlers
 	}
 }
 
-func (Option) SessionRecvDataHandlers(handlers []gate.RecvDataHandler) GateOption {
+func (Option) SessionSendDataChanSize(size int) GateOption {
+	return func(options *GateOptions) {
+		options.SessionSendDataChanSize = size
+	}
+}
+
+func (Option) SessionRecvDataChanSize(size int) GateOption {
+	return func(options *GateOptions) {
+		options.SessionRecvDataChanSize = size
+	}
+}
+
+func (Option) SessionSendEventSize(size int) GateOption {
+	return func(options *GateOptions) {
+		options.SessionSendEventSize = size
+	}
+}
+
+func (Option) SessionRecvEventSize(size int) GateOption {
+	return func(options *GateOptions) {
+		options.SessionRecvEventSize = size
+	}
+}
+
+func (Option) SessionRecvDataHandlers(handlers ...gate.RecvDataHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvDataHandlers = handlers
 	}
