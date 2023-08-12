@@ -3,6 +3,8 @@ package gtp
 import (
 	"errors"
 	"kit.golaxy.org/plugins/gate"
+	"kit.golaxy.org/plugins/transport"
+	"kit.golaxy.org/plugins/transport/protocol"
 )
 
 // GetSessionSetting 获取会话设置接口
@@ -25,26 +27,36 @@ type _GtpSessionSetting struct {
 	*_GtpSession
 }
 
-// InitStateChangedHandlers 设置接收会话状态变化的处理器
-func (s *_GtpSessionSetting) InitStateChangedHandlers(handlers []gate.StateChangedHandler) error {
+// StateChangedHandlers 设置接收会话状态变化的处理器
+func (s *_GtpSessionSetting) StateChangedHandlers(handlers []gate.StateChangedHandler) error {
 	s.stateChangedHandlers = handlers
 	return nil
 }
 
-// InitRecvDataHandlers 设置接收数据的处理器
-func (s *_GtpSessionSetting) InitRecvDataHandlers(handlers []gate.RecvDataHandler) error {
+// RecvDataHandlers 设置接收数据的处理器
+func (s *_GtpSessionSetting) RecvDataHandlers(handlers []gate.RecvDataHandler) error {
 	s.recvDataHandlers = handlers
 	return nil
 }
 
-// InitRecvEventHandlers 设置接收自定义事件的处理器
-func (s *_GtpSessionSetting) InitRecvEventHandlers(handlers []gate.RecvEventHandler) error {
+// RecvEventHandlers 设置接收自定义事件的处理器
+func (s *_GtpSessionSetting) RecvEventHandlers(handlers []gate.RecvEventHandler) error {
 	s.recvEventHandlers = handlers
 	return nil
 }
 
-// InitRecvDataChanSize 设置接收数据的chan的大小，<=0表示不使用chan
-func (s *_GtpSessionSetting) InitRecvDataChanSize(size int) error {
+// SendDataChanSize 设置发送数据的chan的大小，<=0表示不使用channel
+func (s *_GtpSessionSetting) SendDataChanSize(size int) error {
+	if size <= 0 {
+		s.sendDataChan = nil
+		return nil
+	}
+	s.sendDataChan = make(chan gate.SendData, size)
+	return nil
+}
+
+// RecvDataChanSize 设置接收数据的chan的大小，<=0表示不使用channel
+func (s *_GtpSessionSetting) RecvDataChanSize(size int) error {
 	if size <= 0 {
 		s.recvDataChan = nil
 		return nil
@@ -53,8 +65,18 @@ func (s *_GtpSessionSetting) InitRecvDataChanSize(size int) error {
 	return nil
 }
 
-// InitRecvEventSize 设置自定义事件的chan的大小，<=0表示不使用chan
-func (s *_GtpSessionSetting) InitRecvEventSize(size int) error {
+// SendEventSize 设置发送自定义事件的chan的大小，<=0表示不使用channel
+func (s *_GtpSessionSetting) SendEventSize(size int) error {
+	if size <= 0 {
+		s.sendEventChan = nil
+		return nil
+	}
+	s.sendEventChan = make(chan protocol.Event[transport.Msg], size)
+	return nil
+}
+
+// RecvEventSize 设置自定义事件的chan的大小，<=0表示不使用channel
+func (s *_GtpSessionSetting) RecvEventSize(size int) error {
 	if size <= 0 {
 		s.recvEventChan = nil
 		return nil
