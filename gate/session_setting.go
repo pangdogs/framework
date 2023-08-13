@@ -19,12 +19,12 @@ type SessionSetting interface {
 	RecvDataHandlers(handlers []RecvDataHandler) error
 	// RecvEventHandlers 设置接收自定义事件的处理器
 	RecvEventHandlers(handlers []RecvEventHandler) error
-	// SendDataChanSize 设置发送数据的chan的大小，<=0表示不使用channel
+	// SendDataChanSize 设置发送数据的channel的大小，<=0表示不使用channel
 	SendDataChanSize(size int) error
-	// RecvDataChanSize 设置接收数据的chan的大小，<=0表示不使用channel
+	// RecvDataChanSize 设置接收数据的channel的大小，<=0表示不使用channel
 	RecvDataChanSize(size int) error
-	// SendEventSize 设置发送自定义事件的chan的大小，<=0表示不使用channel
+	// SendEventSize 设置发送自定义事件的channel的大小，<=0表示不使用channel
 	SendEventSize(size int) error
-	// RecvEventSize 设置接收自定义事件的chan的大小，<=0表示不使用channel
+	// RecvEventSize 设置接收自定义事件的channel的大小，<=0表示不使用channel
 	RecvEventSize(size int) error
 }
