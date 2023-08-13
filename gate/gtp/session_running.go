@@ -3,6 +3,7 @@ package gtp
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/internal"
@@ -71,8 +72,8 @@ func (s *_GtpSession) ContinueIO() {
 // Run 运行（会话的主线程）
 func (s *_GtpSession) Run() {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), panicErr)
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), fmt.Errorf("panicked: %w", panicErr))
 		}
 
 		// 调整会话状态为已过期
