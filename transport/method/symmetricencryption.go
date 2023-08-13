@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"errors"
+	"fmt"
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
 	"kit.golaxy.org/golaxy/util"
@@ -87,9 +88,9 @@ func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipher
 // NewBlock 创建分组
 func NewBlock(se transport.SymmetricEncryption, key []byte) (block cipher.Block, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			block = nil
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 
@@ -104,10 +105,10 @@ func NewBlock(se transport.SymmetricEncryption, key []byte) (block cipher.Block,
 // NewBlockCipherMode 创建分组密码模式
 func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []byte) (encrypter, decrypter CipherStream, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			encrypter = nil
 			decrypter = nil
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 
@@ -147,9 +148,9 @@ type _XORKeyStream struct {
 
 func (s _XORKeyStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 	s.XORKeyStream(dst, src)
@@ -190,9 +191,9 @@ type _BlockModeEncryptStream struct {
 
 func (s _BlockModeEncryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 	s.CryptBlocks(dst, src)
@@ -229,9 +230,9 @@ type _BlockModeDecryptStream struct {
 
 func (s _BlockModeDecryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 	s.CryptBlocks(dst, src)
@@ -268,9 +269,9 @@ type _AEADEncryptStream struct {
 
 func (s _AEADEncryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {
@@ -306,9 +307,9 @@ type _AEADDecryptStream struct {
 
 func (s _AEADDecryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = panicErr
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {

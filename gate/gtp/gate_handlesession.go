@@ -24,8 +24,8 @@ func (g *_GtpGate) handleSession(conn net.Conn) {
 	var err error
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			logger.Errorf(g.ctx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)

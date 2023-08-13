@@ -37,8 +37,8 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		trans.GC()
 	}()
@@ -84,8 +84,8 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			trans.SendRst(err)
@@ -136,8 +136,8 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		trans.GC()
 	}()
@@ -213,8 +213,8 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			trans.SendRst(err)
@@ -281,8 +281,8 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) (err erro
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 
@@ -308,8 +308,8 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			trans.SendRst(err)
@@ -345,8 +345,8 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) (
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
 
@@ -372,8 +372,8 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			trans.SendRst(err)
@@ -413,8 +413,8 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		trans.GC()
 	}()
@@ -449,8 +449,8 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(); panicErr != nil {
-			err = panicErr
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 		if err != nil {
 			trans.SendRst(err)
