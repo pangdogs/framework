@@ -306,10 +306,10 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 			return protocol.PackEvent(cliECDHE), nil
 
 		}, func(servChangeCipherSpec protocol.Event[*transport.MsgChangeCipherSpec]) (protocol.Event[*transport.MsgChangeCipherSpec], error) {
-			servVerifyEncryption := servChangeCipherSpec.Flags.Is(transport.Flag_VerifyEncryption)
+			verifyEncryption := servChangeCipherSpec.Flags.Is(transport.Flag_VerifyEncryption)
 
 			// 验证加密是否正确
-			if servVerifyEncryption {
+			if verifyEncryption {
 				decryptedHello, err := decEncryptionModule.Transforming(nil, servChangeCipherSpec.Msg.EncryptedHello)
 				if err != nil {
 					return protocol.Event[*transport.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
@@ -321,12 +321,17 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 			}
 
 			cliChangeCipherSpec := protocol.Event[*transport.MsgChangeCipherSpec]{
-				Flags: transport.Flags_None().Setd(transport.Flag_VerifyEncryption, servVerifyEncryption),
+				Flags: transport.Flags_None().Setd(transport.Flag_VerifyEncryption, verifyEncryption),
 				Msg:   &transport.MsgChangeCipherSpec{},
 			}
 
-			if servVerifyEncryption {
-				cliChangeCipherSpec.Msg.EncryptedHello = cliHelloBytes
+			// 加密hello消息
+			if verifyEncryption {
+				encryptedHello, err := encEncryptionModule.Transforming(nil, cliHelloBytes)
+				if err != nil {
+					return protocol.Event[*transport.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
+				}
+				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello
 			}
 
 			return cliChangeCipherSpec, nil
