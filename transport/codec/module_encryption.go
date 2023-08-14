@@ -21,21 +21,21 @@ type IEncryptionModule interface {
 
 // EncryptionModule 加密模块
 type EncryptionModule struct {
-	CipherStream method.CipherStream // 密码流
-	Padding      method.Padding      // 填充方案
-	FetchNonce   FetchNonce          // 获取nonce值
-	gcList       [][]byte            // GC列表
+	Cipher     method.Cipher  // 对称密码算法
+	Padding    method.Padding // 填充方案
+	FetchNonce FetchNonce     // 获取nonce值
+	gcList     [][]byte       // GC列表
 }
 
 // Transforming 变换数据
 func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error) {
-	if m.CipherStream == nil {
-		return nil, errors.New("setting CipherStream is nil")
+	if m.Cipher == nil {
+		return nil, errors.New("setting Cipher is nil")
 	}
 
 	var in []byte
 
-	is := m.CipherStream.InputSize(len(src))
+	is := m.Cipher.InputSize(len(src))
 	if is > len(src) {
 		buf := BytesPool.Get(is)
 		defer BytesPool.Put(buf)
@@ -46,7 +46,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 		in = src
 	}
 
-	os := m.CipherStream.OutputSize(len(src))
+	os := m.Cipher.OutputSize(len(src))
 	if os > len(dst) {
 		buf := BytesPool.Get(os)
 		defer func() {
@@ -62,7 +62,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 		ret = dst
 	}
 
-	if m.CipherStream.Pad() {
+	if m.Cipher.Pad() {
 		if m.Padding == nil {
 			return nil, errors.New("setting Padding is nil")
 		}
@@ -72,18 +72,25 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 		}
 	}
 
-	nonce, err := m.FetchNonce()
-	if err != nil {
-		return nil, err
+	var nonce []byte
+
+	if m.Cipher.NonceSize() > 0 {
+		if m.FetchNonce == nil {
+			return nil, errors.New("setting FetchNonce is nil")
+		}
+		nonce, err = m.FetchNonce()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	ts, err := m.CipherStream.Transforming(ret, in, nonce)
+	ts, err := m.Cipher.Transforming(ret, in, nonce)
 	if err != nil {
 		return nil, err
 	}
 	ret = ret[:ts]
 
-	if m.CipherStream.Unpad() {
+	if m.Cipher.Unpad() {
 		if m.Padding == nil {
 			return nil, errors.New("setting Padding is nil")
 		}
@@ -98,10 +105,10 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 
 // SizeOfAddition 附加数据大小
 func (m *EncryptionModule) SizeOfAddition(msgLen int) (int, error) {
-	if m.CipherStream == nil {
-		return 0, errors.New("setting CipherStream is nil")
+	if m.Cipher == nil {
+		return 0, errors.New("setting Cipher is nil")
 	}
-	size := m.CipherStream.OutputSize(msgLen) - msgLen
+	size := m.Cipher.OutputSize(msgLen) - msgLen
 	if size < 0 {
 		return 0, nil
 	}

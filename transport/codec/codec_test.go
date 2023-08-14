@@ -16,7 +16,7 @@ func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
 	//iv, _ := rand.Prime(rand.Reader, chacha20.NonceSize*8)
 
-	encrypter, decrypter, err := method.NewCipherStream(transport.SymmetricEncryption_AES, transport.BlockCipherMode_GCM, key.Bytes(), nil)
+	encrypter, decrypter, err := method.NewCipher(transport.SymmetricEncryption_AES, transport.BlockCipherMode_GCM, key.Bytes(), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ func TestCodec(t *testing.T) {
 
 	encoder := Encoder{
 		EncryptionModule: &EncryptionModule{
-			CipherStream: encrypter,
+			Cipher: encrypter,
 			//Padding:      padding,
 			FetchNonce: func() ([]byte, error) {
 				return nonce.Bytes(), nil
@@ -76,7 +76,7 @@ func TestCodec(t *testing.T) {
 	decoder := Decoder{
 		MsgCreator: DefaultMsgCreator(),
 		EncryptionModule: &EncryptionModule{
-			CipherStream: decrypter,
+			Cipher: decrypter,
 			//Padding:      padding,
 			FetchNonce: func() ([]byte, error) {
 				return nonce.Bytes(), nil

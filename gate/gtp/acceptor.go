@@ -464,15 +464,15 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 				}
 
 				// 创建并设置加解密流
-				encrypter, decrypter, err := method.NewCipherStream(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, ivBytes)
+				encryptor, decrypter, err := method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, ivBytes)
 				if err != nil {
 					return protocol.Event[*transport.MsgChangeCipherSpec]{}, &protocol.RstError{
 						Code:    transport.Code_EncryptFailed,
 						Message: fmt.Sprintf("new cipher stream failed, %s", err),
 					}
 				}
-				encEncryptionModule.CipherStream = encrypter
-				decEncryptionModule.CipherStream = decrypter
+				encEncryptionModule.Cipher = encryptor
+				decEncryptionModule.Cipher = decrypter
 
 				// 加密hello消息
 				encryptedHello, err := encEncryptionModule.Transforming(nil, servHelloBytes)

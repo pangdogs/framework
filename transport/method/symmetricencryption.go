@@ -11,8 +11,8 @@ import (
 	"kit.golaxy.org/plugins/transport"
 )
 
-// CipherStream 密码流
-type CipherStream interface {
+// Cipher 对称密码算法
+type Cipher interface {
 	// Transforming 变换数据
 	Transforming(dst, src, nonce []byte) (int, error)
 	// BlockSize block大小
@@ -31,8 +31,8 @@ type CipherStream interface {
 	OutputSize(size int) int
 }
 
-// NewCipherStream 创建密码流
-func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, key, iv []byte) (encrypter, decrypter CipherStream, err error) {
+// NewCipher 创建对称密码算法
+func NewCipher(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, key, iv []byte) (encryptor, decrypter Cipher, err error) {
 	switch se {
 	case transport.SymmetricEncryption_AES:
 		block, err := NewBlock(se, key)
@@ -42,43 +42,43 @@ func NewCipherStream(se transport.SymmetricEncryption, bcm transport.BlockCipher
 		return NewBlockCipherMode(bcm, block, iv)
 
 	case transport.SymmetricEncryption_ChaCha20, transport.SymmetricEncryption_XChaCha20:
-		encryptStream, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		_encryptor, err := chacha20.NewUnauthenticatedCipher(key, iv)
 		if err != nil {
 			return nil, nil, err
 		}
-		decryptStream, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		_decrypter, err := chacha20.NewUnauthenticatedCipher(key, iv)
 		if err != nil {
 			return nil, nil, err
 		}
-		encrypter = _XORKeyStream{Stream: encryptStream}
-		decrypter = _XORKeyStream{Stream: decryptStream}
-		return encrypter, decrypter, nil
+		encryptor = _XORKeyStream{Stream: _encryptor}
+		decrypter = _XORKeyStream{Stream: _decrypter}
+		return encryptor, decrypter, nil
 
 	case transport.SymmetricEncryption_ChaCha20_Poly1305:
-		encryptStream, err := chacha20poly1305.New(key)
+		_encryptor, err := chacha20poly1305.New(key)
 		if err != nil {
 			return nil, nil, err
 		}
-		decryptStream, err := chacha20poly1305.New(key)
+		_decrypter, err := chacha20poly1305.New(key)
 		if err != nil {
 			return nil, nil, err
 		}
-		encrypter = _AEADEncryptStream{AEAD: encryptStream}
-		decrypter = _AEADDecryptStream{AEAD: decryptStream}
-		return encrypter, decrypter, nil
+		encryptor = _AEADEncryptor{AEAD: _encryptor}
+		decrypter = _AEADDecrypter{AEAD: _decrypter}
+		return encryptor, decrypter, nil
 
 	case transport.SymmetricEncryption_XChaCha20_Poly1305:
-		encryptStream, err := chacha20poly1305.NewX(key)
+		_encryptor, err := chacha20poly1305.NewX(key)
 		if err != nil {
 			return nil, nil, err
 		}
-		decryptStream, err := chacha20poly1305.NewX(key)
+		_decrypter, err := chacha20poly1305.NewX(key)
 		if err != nil {
 			return nil, nil, err
 		}
-		encrypter = _AEADEncryptStream{AEAD: encryptStream}
-		decrypter = _AEADDecryptStream{AEAD: decryptStream}
-		return encrypter, decrypter, nil
+		encryptor = _AEADEncryptor{AEAD: _encryptor}
+		decrypter = _AEADDecrypter{AEAD: _decrypter}
+		return encryptor, decrypter, nil
 
 	default:
 		return nil, nil, ErrInvalidMethod
@@ -103,10 +103,10 @@ func NewBlock(se transport.SymmetricEncryption, key []byte) (block cipher.Block,
 }
 
 // NewBlockCipherMode 创建分组密码模式
-func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []byte) (encrypter, decrypter CipherStream, err error) {
+func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []byte) (encryptor, decrypter Cipher, err error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
-			encrypter = nil
+			encryptor = nil
 			decrypter = nil
 			err = fmt.Errorf("panicked: %w", panicErr)
 		}
@@ -114,19 +114,19 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 
 	switch bcm {
 	case transport.BlockCipherMode_CTR:
-		encrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
+		encryptor = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
 		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
 		return
 	case transport.BlockCipherMode_CBC:
-		encrypter = _BlockModeEncryptStream{BlockMode: cipher.NewCBCEncrypter(block, iv)}
-		decrypter = _BlockModeDecryptStream{BlockMode: cipher.NewCBCDecrypter(block, iv)}
+		encryptor = _BlockModeEncryptor{BlockMode: cipher.NewCBCEncrypter(block, iv)}
+		decrypter = _BlockModeDecrypter{BlockMode: cipher.NewCBCDecrypter(block, iv)}
 		return
 	case transport.BlockCipherMode_CFB:
-		encrypter = _XORKeyStream{Stream: cipher.NewCFBEncrypter(block, iv)}
+		encryptor = _XORKeyStream{Stream: cipher.NewCFBEncrypter(block, iv)}
 		decrypter = _XORKeyStream{Stream: cipher.NewCFBDecrypter(block, iv)}
 		return
 	case transport.BlockCipherMode_OFB:
-		encrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
+		encryptor = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
 		decrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
 		return
 	case transport.BlockCipherMode_GCM:
@@ -134,9 +134,9 @@ func NewBlockCipherMode(bcm transport.BlockCipherMode, block cipher.Block, iv []
 		if err != nil {
 			return nil, nil, err
 		}
-		encrypter = _AEADEncryptStream{AEAD: mode}
-		decrypter = _AEADDecryptStream{AEAD: mode}
-		return encrypter, decrypter, nil
+		encryptor = _AEADEncryptor{AEAD: mode}
+		decrypter = _AEADDecrypter{AEAD: mode}
+		return encryptor, decrypter, nil
 	default:
 		return nil, nil, ErrInvalidMethod
 	}
@@ -185,11 +185,11 @@ func (s _XORKeyStream) OutputSize(size int) int {
 	return size
 }
 
-type _BlockModeEncryptStream struct {
+type _BlockModeEncryptor struct {
 	cipher.BlockMode
 }
 
-func (s _BlockModeEncryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
+func (s _BlockModeEncryptor) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
@@ -200,35 +200,35 @@ func (s _BlockModeEncryptStream) Transforming(dst, src, nonce []byte) (size int,
 	return len(dst), nil
 }
 
-func (s _BlockModeEncryptStream) NonceSize() int {
+func (s _BlockModeEncryptor) NonceSize() int {
 	return 0
 }
 
-func (s _BlockModeEncryptStream) Overhead() int {
+func (s _BlockModeEncryptor) Overhead() int {
 	return 0
 }
 
-func (s _BlockModeEncryptStream) Pad() bool {
+func (s _BlockModeEncryptor) Pad() bool {
 	return true
 }
 
-func (s _BlockModeEncryptStream) Unpad() bool {
+func (s _BlockModeEncryptor) Unpad() bool {
 	return false
 }
 
-func (s _BlockModeEncryptStream) InputSize(size int) int {
+func (s _BlockModeEncryptor) InputSize(size int) int {
 	return size + (s.BlockSize() - size%s.BlockSize())
 }
 
-func (s _BlockModeEncryptStream) OutputSize(size int) int {
+func (s _BlockModeEncryptor) OutputSize(size int) int {
 	return size + (s.BlockSize() - size%s.BlockSize())
 }
 
-type _BlockModeDecryptStream struct {
+type _BlockModeDecrypter struct {
 	cipher.BlockMode
 }
 
-func (s _BlockModeDecryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
+func (s _BlockModeDecrypter) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
@@ -239,35 +239,35 @@ func (s _BlockModeDecryptStream) Transforming(dst, src, nonce []byte) (size int,
 	return len(dst), nil
 }
 
-func (s _BlockModeDecryptStream) NonceSize() int {
+func (s _BlockModeDecrypter) NonceSize() int {
 	return 0
 }
 
-func (s _BlockModeDecryptStream) Overhead() int {
+func (s _BlockModeDecrypter) Overhead() int {
 	return 0
 }
 
-func (s _BlockModeDecryptStream) Pad() bool {
+func (s _BlockModeDecrypter) Pad() bool {
 	return false
 }
 
-func (s _BlockModeDecryptStream) Unpad() bool {
+func (s _BlockModeDecrypter) Unpad() bool {
 	return true
 }
 
-func (s _BlockModeDecryptStream) InputSize(size int) int {
+func (s _BlockModeDecrypter) InputSize(size int) int {
 	return size
 }
 
-func (s _BlockModeDecryptStream) OutputSize(size int) int {
+func (s _BlockModeDecrypter) OutputSize(size int) int {
 	return size - (s.BlockSize() - size%s.BlockSize())
 }
 
-type _AEADEncryptStream struct {
+type _AEADEncryptor struct {
 	cipher.AEAD
 }
 
-func (s _AEADEncryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
+func (s _AEADEncryptor) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
@@ -281,31 +281,31 @@ func (s _AEADEncryptStream) Transforming(dst, src, nonce []byte) (size int, err 
 	return len(out), nil
 }
 
-func (s _AEADEncryptStream) BlockSize() int {
+func (s _AEADEncryptor) BlockSize() int {
 	return 0
 }
 
-func (s _AEADEncryptStream) Pad() bool {
+func (s _AEADEncryptor) Pad() bool {
 	return false
 }
 
-func (s _AEADEncryptStream) Unpad() bool {
+func (s _AEADEncryptor) Unpad() bool {
 	return false
 }
 
-func (s _AEADEncryptStream) InputSize(size int) int {
+func (s _AEADEncryptor) InputSize(size int) int {
 	return size
 }
 
-func (s _AEADEncryptStream) OutputSize(size int) int {
+func (s _AEADEncryptor) OutputSize(size int) int {
 	return size + s.Overhead()
 }
 
-type _AEADDecryptStream struct {
+type _AEADDecrypter struct {
 	cipher.AEAD
 }
 
-func (s _AEADDecryptStream) Transforming(dst, src, nonce []byte) (size int, err error) {
+func (s _AEADDecrypter) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
@@ -320,22 +320,22 @@ func (s _AEADDecryptStream) Transforming(dst, src, nonce []byte) (size int, err 
 	return len(out), err
 }
 
-func (s _AEADDecryptStream) BlockSize() int {
+func (s _AEADDecrypter) BlockSize() int {
 	return 0
 }
 
-func (s _AEADDecryptStream) Pad() bool {
+func (s _AEADDecrypter) Pad() bool {
 	return false
 }
 
-func (s _AEADDecryptStream) Unpad() bool {
+func (s _AEADDecrypter) Unpad() bool {
 	return false
 }
 
-func (s _AEADDecryptStream) InputSize(size int) int {
+func (s _AEADDecrypter) InputSize(size int) int {
 	return size
 }
 
-func (s _AEADDecryptStream) OutputSize(size int) int {
+func (s _AEADDecrypter) OutputSize(size int) int {
 	return size - s.Overhead()
 }
