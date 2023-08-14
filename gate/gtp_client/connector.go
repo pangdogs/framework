@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/plugins/transport/protocol"
 )
 
 // _Connector 网络连接器
@@ -46,6 +47,19 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 		endpoint: endpoint,
 		logger:   ctor.Options.ZapLogger.Sugar(),
 	}
+
+	client.transceiver.Conn = conn
+
+	// 初始化消息事件分发器
+	client.dispatcher.Transceiver = &client.transceiver
+	client.dispatcher.EventHandlers = []protocol.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
+
+	// 初始化传输协议
+	client.trans.Transceiver = &client.transceiver
+	client.trans.PayloadHandler = client.payloadHandler
+
+	// 初始化控制协议
+	client.ctrl.Transceiver = &client.transceiver
 
 	err = ctor.handshake(conn, client)
 	if err != nil {
