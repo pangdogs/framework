@@ -337,8 +337,6 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 
 	// 选择秘钥交换函数，并与客户端交换秘钥
 	switch cs.SecretKeyExchange {
-	case transport.SecretKeyExchange_None:
-		break
 	case transport.SecretKeyExchange_ECDHE:
 		// 创建曲线
 		curve, err := method.NewNamedCurve(acc.Options.EncECDHENamedCurve)
@@ -372,23 +370,21 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 		}()
 
 		// 设置分组对齐填充方案
-		if cs.BlockCipherMode.Padding() {
-			if encEncryptionModule.Padding, err = acc.makePaddingMode(cs.PaddingMode); err != nil {
-				return err
-			}
-			if decEncryptionModule.Padding, err = acc.makePaddingMode(cs.PaddingMode); err != nil {
-				return err
-			}
+		if encEncryptionModule.Padding, err = acc.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+			return err
+		}
+		if decEncryptionModule.Padding, err = acc.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+			return err
 		}
 
 		// 创建iv值
-		iv, err := acc.makeIV(cs.SymmetricEncryption, cs.BlockCipherMode, len(servPubBytes))
+		iv, err := acc.makeIV(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
 		}
 
 		// 创建nonce值
-		nonce, err := acc.makeNonce(cs.SymmetricEncryption, cs.BlockCipherMode, len(servPubBytes))
+		nonce, err := acc.makeNonce(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
 		}
@@ -402,8 +398,8 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 		if nonce != nil {
 			nonceBytes = nonce.Bytes()
 			nonceStepBytes = acc.Options.EncNonceStep.Bytes()
-			encEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce)
-			decEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce)
+			encEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.Options.EncNonceStep)
+			decEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.Options.EncNonceStep)
 		}
 
 		// 临时共享秘钥
@@ -563,17 +559,16 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 }
 
 // makeIV 构造iv值
-func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
+func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.BlockCipherMode) (*big.Int, error) {
 	size, ok := se.IV()
 	if !ok {
-		if !bcm.IV() {
+		if !se.BlockCipherMode() || !bcm.IV() {
 			return nil, nil
 		}
-		size, _ = se.BlockSize()
-	}
-
-	if size <= 0 {
-		size = pubSize
+		size, ok = se.BlockSize()
+		if !ok {
+			return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs IV, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
+		}
 	}
 
 	iv, err := rand.Prime(rand.Reader, size*8)
@@ -585,17 +580,16 @@ func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.Blo
 }
 
 // makeNonce 构造nonce值
-func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
+func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, bcm transport.BlockCipherMode) (*big.Int, error) {
 	size, ok := se.Nonce()
 	if !ok {
-		if !bcm.IV() {
+		if !se.BlockCipherMode() || !bcm.Nonce() {
 			return nil, nil
 		}
-		size, _ = se.BlockSize()
-	}
-
-	if size <= 0 {
-		size = pubSize
+		size, ok = se.BlockSize()
+		if !ok {
+			return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs Nonce, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
+		}
 	}
 
 	nonce, err := rand.Prime(rand.Reader, size*8)
@@ -607,7 +601,7 @@ func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, bcm transport.
 }
 
 // makeFetchNonce 构造获取nonce值函数
-func (acc *_Acceptor) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
+func (acc *_Acceptor) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
 	}
@@ -618,11 +612,11 @@ func (acc *_Acceptor) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
 	bits := nonce.BitLen()
 
 	return func() ([]byte, error) {
-		if acc.Options.EncNonceStep == nil || acc.Options.EncNonceStep.Sign() == 0 {
+		if nonceStep == nil || nonceStep.Sign() == 0 {
 			return encryptionNonceNonceBuff, nil
 		}
 
-		encryptionNonce.Add(encryptionNonce, acc.Options.EncNonceStep)
+		encryptionNonce.Add(encryptionNonce, nonceStep)
 		if encryptionNonce.BitLen() > bits {
 			encryptionNonce.SetInt64(0)
 		}
@@ -633,9 +627,13 @@ func (acc *_Acceptor) makeFetchNonce(nonce *big.Int) codec.FetchNonce {
 }
 
 // makePaddingMode 构造填充方案
-func (acc *_Acceptor) makePaddingMode(paddingMode transport.PaddingMode) (method.Padding, error) {
-	if paddingMode == transport.PaddingMode_None {
+func (acc *_Acceptor) makePaddingMode(bcm transport.BlockCipherMode, paddingMode transport.PaddingMode) (method.Padding, error) {
+	if !bcm.Padding() {
 		return nil, nil
+	}
+
+	if paddingMode == transport.PaddingMode_None {
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d, plaintext padding is necessary", bcm)
 	}
 
 	padding, err := method.NewPadding(paddingMode)

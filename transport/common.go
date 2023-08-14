@@ -76,6 +76,16 @@ func (se SymmetricEncryption) Nonce() (int, bool) {
 	}
 }
 
+// BlockCipherMode 是否需要分组密码工作模式配合
+func (se SymmetricEncryption) BlockCipherMode() bool {
+	switch se {
+	case SymmetricEncryption_AES:
+		return true
+	default:
+		return false
+	}
+}
+
 // PaddingMode 数据填充方案
 type PaddingMode uint8
 
