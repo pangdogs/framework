@@ -199,8 +199,6 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId string) error {
 	// 选择秘钥交换函数，并与客户端交换秘钥
 	switch cs.SecretKeyExchange {
-	case transport.SecretKeyExchange_None:
-		break
 	case transport.SecretKeyExchange_ECDHE:
 		// 临时共享秘钥
 		var sharedKeyBytes []byte
@@ -271,13 +269,11 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 			}
 
 			// 设置分组对齐填充方案
-			if cs.BlockCipherMode.Padding() {
-				if encEncryptionModule.Padding, err = ctor.makePaddingMode(cs.PaddingMode); err != nil {
-					return protocol.Event[transport.Msg]{}, err
-				}
-				if decEncryptionModule.Padding, err = ctor.makePaddingMode(cs.PaddingMode); err != nil {
-					return protocol.Event[transport.Msg]{}, err
-				}
+			if encEncryptionModule.Padding, err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+				return protocol.Event[transport.Msg]{}, err
+			}
+			if decEncryptionModule.Padding, err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+				return protocol.Event[transport.Msg]{}, err
 			}
 
 			// 设置nonce值
@@ -411,9 +407,13 @@ func (ctor *_Connector) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNon
 }
 
 // makePaddingMode 构造填充方案
-func (ctor *_Connector) makePaddingMode(paddingMode transport.PaddingMode) (method.Padding, error) {
-	if paddingMode == transport.PaddingMode_None {
+func (ctor *_Connector) makePaddingMode(bcm transport.BlockCipherMode, paddingMode transport.PaddingMode) (method.Padding, error) {
+	if !bcm.Padding() {
 		return nil, nil
+	}
+
+	if paddingMode == transport.PaddingMode_None {
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d, plaintext padding is necessary", bcm)
 	}
 
 	padding, err := method.NewPadding(paddingMode)
