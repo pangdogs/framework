@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"crypto/aes"
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -40,6 +41,16 @@ const (
 	SymmetricEncryption_ChaCha20_Poly1305                             // ChaCha20-Poly1305算法
 	SymmetricEncryption_XChaCha20_Poly1305                            // XChaCha20-Poly1305算法
 )
+
+// BlockSize 获取block大小
+func (se SymmetricEncryption) BlockSize() (int, bool) {
+	switch se {
+	case SymmetricEncryption_AES:
+		return aes.BlockSize, true
+	default:
+		return 0, false
+	}
+}
 
 // IV 获取iv大小和是否需要iv，iv大小为0表示与加密算法的blocksize相同
 func (se SymmetricEncryption) IV() (int, bool) {
