@@ -153,7 +153,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		}
 	}
 
-	var remoteRecvSeq uint32
+	var remoteSendSeq, remoteRecvSeq uint32
 
 	// 等待服务端通知握手结束
 	err = handshake.ClientFinished(func(finished protocol.Event[*transport.MsgFinished]) error {
@@ -169,6 +169,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", transport.Flag_ContinueOK)
 		}
 
+		remoteSendSeq = finished.Msg.SendSeq
 		remoteRecvSeq = finished.Msg.RecvSeq
 		return nil
 	})
@@ -183,6 +184,9 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			return err
 		}
 	} else {
+		// 重置缓存
+		handshake.Transceiver.SequencedBuff.Reset(remoteSendSeq, remoteRecvSeq, ctor.Options.IOSequencedBuffCap)
+
 		// 初始化客户端
 		client.init(handshake.Transceiver)
 	}
