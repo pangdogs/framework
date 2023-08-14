@@ -286,12 +286,12 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 			}
 
 			// 创建并设置加解密流
-			encrypter, decrypter, err := method.NewCipherStream(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV)
+			encryptor, decrypter, err := method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV)
 			if err != nil {
 				return protocol.Event[transport.Msg]{}, fmt.Errorf("new cipher stream failed, %s", err)
 			}
-			encEncryptionModule.CipherStream = encrypter
-			decEncryptionModule.CipherStream = decrypter
+			encEncryptionModule.Cipher = encryptor
+			decEncryptionModule.Cipher = decrypter
 
 			cliECDHE := protocol.Event[*transport.MsgECDHESecretKeyExchange]{
 				Flags: transport.Flags_None().Setd(transport.Flag_Signature, len(signature) > 0),
