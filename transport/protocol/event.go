@@ -47,7 +47,7 @@ type RstError struct {
 
 // Error 错误信息
 func (e *RstError) Error() string {
-	return fmt.Sprintf("(%d)%s", e.Code, e.Message)
+	return fmt.Sprintf("%d-%s", e.Code, e.Message)
 }
 
 // EventToRstErr Rst错误消息事件转换为错误提示
