@@ -185,7 +185,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		}
 	} else {
 		// 重置缓存
-		handshake.Transceiver.SequencedBuff.Reset(remoteSendSeq, remoteRecvSeq, ctor.Options.IOSequencedBuffCap)
+		handshake.Transceiver.SequencedBuff.Reset(remoteRecvSeq, remoteSendSeq, ctor.Options.IOSequencedBuffCap)
 
 		// 初始化客户端
 		client.init(handshake.Transceiver)
