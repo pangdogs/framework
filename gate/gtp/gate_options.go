@@ -75,7 +75,7 @@ func (Option) Default() GateOption {
 			PaddingMode:         transport.PaddingMode_None,
 			MACHash:             transport.Hash_Fnv1a32,
 		})(options)
-		Option{}.EncNonceStep(new(big.Int).SetInt64(1))
+		Option{}.EncNonceStep(new(big.Int).SetInt64(1))(options)
 		Option{}.EncECDHENamedCurve(transport.NamedCurve_X25519)(options)
 		Option{}.EncSignatureAlgorithm(transport.SignatureAlgorithm{
 			AsymmetricEncryption: transport.AsymmetricEncryption_None,
