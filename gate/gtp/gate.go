@@ -43,7 +43,7 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 		logger.Panic(ctx, "no endpoints need to listen")
 	}
 
-	listenConf := g.getListenConfig()
+	listenConf := newListenConfig(&g.options)
 
 	for _, endpoint := range g.options.Endpoints {
 		listener, err := listenConf.Listen(context.Background(), "tcp", endpoint)
@@ -75,7 +75,7 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 
 				logger.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
 
-				go g.handleSession(conn)
+				go g.HandleSession(conn)
 			}
 		}(listener)
 	}

@@ -82,10 +82,10 @@ func (Option) Default() GateOption {
 			PaddingMode:          transport.PaddingMode_None,
 			Hash:                 transport.Hash_None,
 		})(options)
-		Option{}.EncSignaturePrivateKey(nil)
-		Option{}.EncVerifyClientSignature(false)
-		Option{}.EncVerifySignaturePublicKey(nil)
-		Option{}.AgreeClientCompressionProposal(false)
+		Option{}.EncSignaturePrivateKey(nil)(options)
+		Option{}.EncVerifyClientSignature(false)(options)
+		Option{}.EncVerifySignaturePublicKey(nil)(options)
+		Option{}.AgreeClientCompressionProposal(false)(options)
 		Option{}.Compression(transport.Compression_Brotli)(options)
 		Option{}.CompressedSize(1024 * 32)(options)
 		Option{}.ClientAuthHandlers(nil)(options)

@@ -65,6 +65,7 @@ type MsgECDHESecretKeyExchange struct {
 	PublicKey          []byte             // 公钥
 	IV                 []byte             // iv
 	Nonce              []byte             // nonce
+	NonceStep          []byte             // nonce step
 	SignatureAlgorithm SignatureAlgorithm // 签名算法
 	Signature          []byte             // 签名
 }
@@ -82,6 +83,9 @@ func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	if err := bs.WriteBytes(m.Nonce); err != nil {
+		return 0, err
+	}
+	if err := bs.WriteBytes(m.NonceStep); err != nil {
 		return 0, err
 	}
 	if _, err := bs.ReadFrom(&m.SignatureAlgorithm); err != nil {
@@ -112,6 +116,10 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	nonceStep, err := bs.ReadBytesRef()
+	if err != nil {
+		return 0, err
+	}
 	signatureAlgorithm := SignatureAlgorithm{}
 	if _, err := bs.WriteTo(&signatureAlgorithm); err != nil {
 		return 0, err
@@ -124,6 +132,7 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	m.PublicKey = publicKey
 	m.IV = iv
 	m.Nonce = nonce
+	m.NonceStep = nonceStep
 	m.SignatureAlgorithm = signatureAlgorithm
 	m.Signature = signature
 	return bs.BytesRead(), nil
@@ -132,7 +141,7 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 // Size 消息大小
 func (m *MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
-		binaryutil.SizeofBytes(m.Nonce) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
+		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
 }
 
 // MsgId 消息Id
@@ -147,6 +156,7 @@ func (m *MsgECDHESecretKeyExchange) Clone() Msg {
 		PublicKey:          bytes.Clone(m.PublicKey),
 		IV:                 bytes.Clone(m.IV),
 		Nonce:              bytes.Clone(m.Nonce),
+		NonceStep:          bytes.Clone(m.NonceStep),
 		SignatureAlgorithm: m.SignatureAlgorithm,
 		Signature:          bytes.Clone(m.Signature),
 	}

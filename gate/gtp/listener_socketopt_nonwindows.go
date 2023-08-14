@@ -8,20 +8,20 @@ import (
 	"syscall"
 )
 
-func (g *_GtpGate) getListenConfig() *net.ListenConfig {
+func newListenConfig(options *GateOptions) *net.ListenConfig {
 	var noDelay *int
-	if g.options.TCPNoDelay != nil {
-		noDelay = util.New(util.Bool2Int(*g.options.TCPNoDelay))
+	if options.TCPNoDelay != nil {
+		noDelay = util.New(util.Bool2Int(*options.TCPNoDelay))
 	}
 
 	var quickAck *int
-	if g.options.TCPQuickAck != nil {
-		quickAck = util.New(util.Bool2Int(*g.options.TCPQuickAck))
+	if options.TCPQuickAck != nil {
+		quickAck = util.New(util.Bool2Int(*options.TCPQuickAck))
 	}
 
-	recvBuf := g.options.TCPRecvBuf
-	sendBuf := g.options.TCPSendBuf
-	lingerSec := g.options.TCPLinger
+	recvBuf := options.TCPRecvBuf
+	sendBuf := options.TCPSendBuf
+	lingerSec := options.TCPLinger
 
 	return &net.ListenConfig{
 		Control: func(network, address string, conn syscall.RawConn) error {
