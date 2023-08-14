@@ -382,13 +382,13 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 		}
 
 		// 创建iv值
-		iv, err := acc.makeIV(cs.SymmetricEncryption, len(servPubBytes))
+		iv, err := acc.makeIV(cs.SymmetricEncryption, cs.BlockCipherMode, len(servPubBytes))
 		if err != nil {
 			return err
 		}
 
 		// 创建nonce值
-		nonce, err := acc.makeNonce(cs.SymmetricEncryption, len(servPubBytes))
+		nonce, err := acc.makeNonce(cs.SymmetricEncryption, cs.BlockCipherMode, len(servPubBytes))
 		if err != nil {
 			return err
 		}
@@ -563,9 +563,9 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 }
 
 // makeIV 构造iv值
-func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
+func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
 	size, ok := se.IV()
-	if !ok {
+	if !ok && !bcm.IV() {
 		return nil, nil
 	}
 
@@ -582,9 +582,9 @@ func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, pubSize int) (*bi
 }
 
 // makeNonce 构造nonce值
-func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, pubSize int) (*big.Int, error) {
+func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
 	size, ok := se.Nonce()
-	if !ok {
+	if !ok && !bcm.Nonce() {
 		return nil, nil
 	}
 
