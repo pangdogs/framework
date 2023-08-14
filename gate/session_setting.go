@@ -14,11 +14,11 @@ type (
 // SessionSetting 会话设置接口（在会话状态Handshake与Confirmed时可用）
 type SessionSetting interface {
 	// StateChangedHandlers 设置接收会话状态变化的处理器
-	StateChangedHandlers(handlers []StateChangedHandler) error
+	StateChangedHandlers(handlers ...StateChangedHandler) error
 	// RecvDataHandlers 设置接收数据的处理器
-	RecvDataHandlers(handlers []RecvDataHandler) error
+	RecvDataHandlers(handlers ...RecvDataHandler) error
 	// RecvEventHandlers 设置接收自定义事件的处理器
-	RecvEventHandlers(handlers []RecvEventHandler) error
+	RecvEventHandlers(handlers ...RecvEventHandler) error
 	// SendDataChanSize 设置发送数据的channel的大小，<=0表示不使用channel
 	SendDataChanSize(size int) error
 	// RecvDataChanSize 设置接收数据的channel的大小，<=0表示不使用channel

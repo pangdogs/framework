@@ -28,19 +28,19 @@ type _GtpSessionSetting struct {
 }
 
 // StateChangedHandlers 设置接收会话状态变化的处理器
-func (s *_GtpSessionSetting) StateChangedHandlers(handlers []gate.StateChangedHandler) error {
+func (s *_GtpSessionSetting) StateChangedHandlers(handlers ...gate.StateChangedHandler) error {
 	s.stateChangedHandlers = handlers
 	return nil
 }
 
 // RecvDataHandlers 设置接收数据的处理器
-func (s *_GtpSessionSetting) RecvDataHandlers(handlers []gate.RecvDataHandler) error {
+func (s *_GtpSessionSetting) RecvDataHandlers(handlers ...gate.RecvDataHandler) error {
 	s.recvDataHandlers = handlers
 	return nil
 }
 
 // RecvEventHandlers 设置接收自定义事件的处理器
-func (s *_GtpSessionSetting) RecvEventHandlers(handlers []gate.RecvEventHandler) error {
+func (s *_GtpSessionSetting) RecvEventHandlers(handlers ...gate.RecvEventHandler) error {
 	s.recvEventHandlers = handlers
 	return nil
 }
