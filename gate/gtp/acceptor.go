@@ -565,8 +565,11 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 // makeIV 构造iv值
 func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
 	size, ok := se.IV()
-	if !ok && !bcm.IV() {
-		return nil, nil
+	if !ok {
+		if !bcm.IV() {
+			return nil, nil
+		}
+		size, _ = se.BlockSize()
 	}
 
 	if size <= 0 {
@@ -584,8 +587,11 @@ func (acc *_Acceptor) makeIV(se transport.SymmetricEncryption, bcm transport.Blo
 // makeNonce 构造nonce值
 func (acc *_Acceptor) makeNonce(se transport.SymmetricEncryption, bcm transport.BlockCipherMode, pubSize int) (*big.Int, error) {
 	size, ok := se.Nonce()
-	if !ok && !bcm.Nonce() {
-		return nil, nil
+	if !ok {
+		if !bcm.IV() {
+			return nil, nil
+		}
+		size, _ = se.BlockSize()
 	}
 
 	if size <= 0 {
