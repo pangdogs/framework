@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 )
 
+// HandleSession 处理会话
 func (g *_GtpGate) HandleSession(conn net.Conn) {
 	var err error
 
@@ -36,6 +37,7 @@ func (g *_GtpGate) HandleSession(conn net.Conn) {
 	logger.Infof(g.ctx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
+// LoadSession 查询会话
 func (g *_GtpGate) LoadSession(sessionId string) (*_GtpSession, bool) {
 	v, ok := g.sessionMap.Load(sessionId)
 	if !ok {
@@ -44,11 +46,13 @@ func (g *_GtpGate) LoadSession(sessionId string) (*_GtpSession, bool) {
 	return v.(*_GtpSession), true
 }
 
+// StoreSession 存储会话
 func (g *_GtpGate) StoreSession(session *_GtpSession) {
 	g.sessionMap.Store(session.GetId(), session)
 	atomic.AddInt64(&g.sessionCount, 1)
 }
 
-func (g *_GtpGate) CompareAndSwapSession(session *_GtpSession) bool {
+// ValidateSession 会话有效性
+func (g *_GtpGate) ValidateSession(session *_GtpSession) bool {
 	return g.sessionMap.CompareAndSwap(session.GetId(), session, session)
 }

@@ -285,8 +285,8 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 	}
 
 	if continueFlow {
-		// 检测会话是否已失效
-		if !acc.Gate.CompareAndSwapSession(session) {
+		// 检测会话有效性
+		if !acc.Gate.ValidateSession(session) {
 			err = &protocol.RstError{
 				Code:    transport.Code_ContinueFailed,
 				Message: fmt.Sprintf("session %q has expired", session.GetId()),
