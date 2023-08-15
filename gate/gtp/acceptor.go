@@ -38,6 +38,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 			Decoder: &codec.Decoder{MsgCreator: acc.Options.DecoderMsgCreator},
 			Timeout: acc.Options.IOTimeout,
 		},
+		RetryTimes: acc.Options.IORetryTimes,
 	}
 	handshake.Transceiver.SequencedBuff.Reset(math_rand.Uint32(), math_rand.Uint32(), acc.Options.IOSequencedBuffCap)
 

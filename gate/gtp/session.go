@@ -31,14 +31,17 @@ func newGtpSession(gtpGate *_GtpGate, conn net.Conn) (*_GtpSession, error) {
 
 	// 初始化消息事件分发器
 	session.dispatcher.Transceiver = &session.transceiver
+	session.dispatcher.RetryTimes = gtpGate.options.IORetryTimes
 	session.dispatcher.EventHandlers = []protocol.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
 
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver
+	session.trans.RetryTimes = gtpGate.options.IORetryTimes
 	session.trans.PayloadHandler = session.PayloadHandler
 
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver
+	session.ctrl.RetryTimes = gtpGate.options.IORetryTimes
 
 	return session, nil
 }
