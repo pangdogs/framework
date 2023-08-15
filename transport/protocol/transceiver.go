@@ -58,7 +58,7 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 
 	// 数据写入链路
 	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, %w: %w", ErrNetIO, err)
+		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.SequencedBuff.cached, ErrNetIO, err)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func (t *Transceiver) Resend() error {
 
 	// 数据写入链路
 	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, %w: %w", ErrNetIO, err)
+		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.SequencedBuff.cached, ErrNetIO, err)
 	}
 
 	return nil
