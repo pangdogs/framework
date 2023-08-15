@@ -2,7 +2,11 @@
 
 package gtp_client
 
-import "net"
+import (
+	"kit.golaxy.org/golaxy/util"
+	"net"
+	"syscall"
+)
 
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
