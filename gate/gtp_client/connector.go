@@ -52,14 +52,17 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 
 	// 初始化消息事件分发器
 	client.dispatcher.Transceiver = &client.transceiver
+	client.dispatcher.RetryTimes = ctor.Options.IORetryTimes
 	client.dispatcher.EventHandlers = []protocol.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
+	client.trans.RetryTimes = ctor.Options.IORetryTimes
 	client.trans.PayloadHandler = client.payloadHandler
 
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver
+	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
 
 	err = ctor.handshake(conn, client)
 	if err != nil {

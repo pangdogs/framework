@@ -24,6 +24,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			Decoder: &codec.Decoder{MsgCreator: ctor.Options.DecoderMsgCreator},
 			Timeout: ctor.Options.IOTimeout,
 		},
+		RetryTimes: ctor.Options.IORetryTimes,
 	}
 	handshake.Transceiver.SequencedBuff.Reset(0, 0, ctor.Options.IOSequencedBuffCap)
 
