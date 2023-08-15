@@ -16,12 +16,16 @@ import (
 
 // handshake 握手过程
 func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
+	// 编解码器
+	ctor.encoder = &codec.Encoder{}
+	ctor.decoder = &codec.Decoder{MsgCreator: ctor.Options.DecoderMsgCreator}
+
 	// 握手协议
 	handshake := &protocol.HandshakeProtocol{
 		Transceiver: &protocol.Transceiver{
 			Conn:    conn,
-			Encoder: &codec.Encoder{},
-			Decoder: &codec.Decoder{MsgCreator: ctor.Options.DecoderMsgCreator},
+			Encoder: ctor.encoder,
+			Decoder: ctor.decoder,
 			Timeout: ctor.Options.IOTimeout,
 		},
 		RetryTimes: ctor.Options.IORetryTimes,
@@ -122,6 +126,12 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// 安装压缩模块
+	err = ctor.setupCompressionModule(cm)
+	if err != nil {
+		return err
 	}
 
 	// 开启鉴权时，向服务端发起鉴权
@@ -341,43 +351,45 @@ func (ctor *_Connector) secretKeyExchange(handshake *protocol.HandshakeProtocol,
 			return err
 		}
 
-		// 编码器
-		encoder := &codec.Encoder{
-			EncryptionModule: encEncryptionModule,
-			Encryption:       true,
-		}
+		// 安装加密模块
+		ctor.setupEncryptionModule(encEncryptionModule, decEncryptionModule)
 
-		if encoder.MACModule, encoder.PatchMAC, err = ctor.makeMACModule(cs.MACHash, sharedKeyBytes); err != nil {
-			return err
-		}
+		// 安装MAC模块
+		return ctor.setupMACModule(cs.MACHash, sharedKeyBytes)
 
-		if encoder.CompressionModule, encoder.CompressedSize, err = ctor.makeCompressionModule(cm); err != nil {
-			return err
-		}
-
-		// 解码器
-		decoder := &codec.Decoder{
-			MsgCreator:       handshake.Transceiver.Decoder.GetMsgCreator(),
-			EncryptionModule: decEncryptionModule,
-		}
-
-		if decoder.MACModule, _, err = ctor.makeMACModule(cs.MACHash, sharedKeyBytes); err != nil {
-			return err
-		}
-
-		if decoder.CompressionModule, _, err = ctor.makeCompressionModule(cm); err != nil {
-			return err
-		}
-
-		// 更换解编码器
-		handshake.Transceiver.Encoder = encoder
-		handshake.Transceiver.Decoder = decoder
-
-		return nil
 	default:
 		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
 	}
 
+	return nil
+}
+
+// setupCompressionModule 安装压缩模块
+func (ctor *_Connector) setupCompressionModule(cm transport.Compression) (err error) {
+	if ctor.encoder.CompressionModule, ctor.encoder.CompressedSize, err = ctor.makeCompressionModule(cm); err != nil {
+		return err
+	}
+	if ctor.decoder.CompressionModule, _, err = ctor.makeCompressionModule(cm); err != nil {
+		return err
+	}
+	return nil
+}
+
+// setupEncryptionModule 安装加密模块
+func (ctor *_Connector) setupEncryptionModule(encEncryptionModule, decEncryptionModule *codec.EncryptionModule) {
+	ctor.encoder.EncryptionModule = encEncryptionModule
+	ctor.encoder.Encryption = true
+	ctor.decoder.EncryptionModule = decEncryptionModule
+}
+
+// setupMACModule 安装MAC模块
+func (ctor *_Connector) setupMACModule(hash transport.Hash, sharedKeyBytes []byte) (err error) {
+	if ctor.encoder.MACModule, ctor.encoder.PatchMAC, err = ctor.makeMACModule(hash, sharedKeyBytes); err != nil {
+		return err
+	}
+	if ctor.decoder.MACModule, _, err = ctor.makeMACModule(hash, sharedKeyBytes); err != nil {
+		return err
+	}
 	return nil
 }
 

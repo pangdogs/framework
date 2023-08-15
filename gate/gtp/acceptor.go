@@ -21,6 +21,8 @@ import (
 type _Acceptor struct {
 	Gate    *_GtpGate
 	Options *GateOptions
+	encoder *codec.Encoder
+	decoder *codec.Decoder
 }
 
 // Accept 接受网络连接
@@ -30,12 +32,16 @@ func (acc *_Acceptor) Accept(conn net.Conn) (*_GtpSession, error) {
 
 // handshake 握手过程
 func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
+	// 编解码器
+	acc.encoder = &codec.Encoder{}
+	acc.decoder = &codec.Decoder{MsgCreator: acc.Options.DecoderMsgCreator}
+
 	// 握手协议
 	handshake := &protocol.HandshakeProtocol{
 		Transceiver: &protocol.Transceiver{
 			Conn:    conn,
-			Encoder: &codec.Encoder{},
-			Decoder: &codec.Decoder{MsgCreator: acc.Options.DecoderMsgCreator},
+			Encoder: acc.encoder,
+			Decoder: acc.decoder,
 			Timeout: acc.Options.IOTimeout,
 		},
 		RetryTimes: acc.Options.IORetryTimes,
@@ -191,6 +197,12 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// 安装压缩模块
+	err = acc.setupCompressionModule(cm)
+	if err != nil {
+		return nil, err
 	}
 
 	var token string
@@ -519,43 +531,45 @@ func (acc *_Acceptor) secretKeyExchange(handshake *protocol.HandshakeProtocol, c
 			return err
 		}
 
-		// 编码器
-		encoder := &codec.Encoder{
-			EncryptionModule: encEncryptionModule,
-			Encryption:       true,
-		}
+		// 安装加密模块
+		acc.setupEncryptionModule(encEncryptionModule, decEncryptionModule)
 
-		if encoder.MACModule, encoder.PatchMAC, err = acc.makeMACModule(cs.MACHash, sharedKeyBytes); err != nil {
-			return err
-		}
+		// 安装MAC模块
+		return acc.setupMACModule(cs.MACHash, sharedKeyBytes)
 
-		if encoder.CompressionModule, encoder.CompressedSize, err = acc.makeCompressionModule(cm); err != nil {
-			return err
-		}
-
-		// 解码器
-		decoder := &codec.Decoder{
-			MsgCreator:       handshake.Transceiver.Decoder.GetMsgCreator(),
-			EncryptionModule: decEncryptionModule,
-		}
-
-		if decoder.MACModule, _, err = acc.makeMACModule(cs.MACHash, sharedKeyBytes); err != nil {
-			return err
-		}
-
-		if decoder.CompressionModule, _, err = acc.makeCompressionModule(cm); err != nil {
-			return err
-		}
-
-		// 更换解编码器
-		handshake.Transceiver.Encoder = encoder
-		handshake.Transceiver.Decoder = decoder
-
-		return nil
 	default:
 		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
 	}
 
+	return nil
+}
+
+// setupCompressionModule 安装压缩模块
+func (acc *_Acceptor) setupCompressionModule(cm transport.Compression) (err error) {
+	if acc.encoder.CompressionModule, acc.encoder.CompressedSize, err = acc.makeCompressionModule(cm); err != nil {
+		return err
+	}
+	if acc.decoder.CompressionModule, _, err = acc.makeCompressionModule(cm); err != nil {
+		return err
+	}
+	return nil
+}
+
+// setupEncryptionModule 安装加密模块
+func (acc *_Acceptor) setupEncryptionModule(encEncryptionModule, decEncryptionModule *codec.EncryptionModule) {
+	acc.encoder.EncryptionModule = encEncryptionModule
+	acc.encoder.Encryption = true
+	acc.decoder.EncryptionModule = decEncryptionModule
+}
+
+// setupMACModule 安装MAC模块
+func (acc *_Acceptor) setupMACModule(hash transport.Hash, sharedKeyBytes []byte) (err error) {
+	if acc.encoder.MACModule, acc.encoder.PatchMAC, err = acc.makeMACModule(hash, sharedKeyBytes); err != nil {
+		return err
+	}
+	if acc.decoder.MACModule, _, err = acc.makeMACModule(hash, sharedKeyBytes); err != nil {
+		return err
+	}
 	return nil
 }
 

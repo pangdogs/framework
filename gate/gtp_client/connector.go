@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/plugins/transport/codec"
 	"kit.golaxy.org/plugins/transport/protocol"
 )
 
 // _Connector 网络连接器
 type _Connector struct {
 	Options ClientOptions
+	encoder *codec.Encoder
+	decoder *codec.Decoder
 }
 
 // Connect 连接服务端
