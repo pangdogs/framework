@@ -14,7 +14,7 @@ import (
 )
 
 // init 初始化
-func (c *Client) init(transceiver *protocol.Transceiver) {
+func (c *Client) init(transceiver *protocol.Transceiver, sessionId string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -24,6 +24,9 @@ func (c *Client) init(transceiver *protocol.Transceiver) {
 	c.transceiver.Decoder = transceiver.Decoder
 	c.transceiver.Timeout = transceiver.Timeout
 	c.transceiver.SequencedBuff.Reset(transceiver.SequencedBuff.SendSeq, transceiver.SequencedBuff.RecvSeq, transceiver.SequencedBuff.Cap)
+
+	// 初始化会话Id
+	c.sessionId = sessionId
 }
 
 // renew 刷新
