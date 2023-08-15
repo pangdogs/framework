@@ -7,6 +7,7 @@ import (
 	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
+	"net"
 	"sync"
 )
 
@@ -36,7 +37,7 @@ type Client struct {
 
 // String implements fmt.Stringer
 func (c *Client) String() string {
-	return fmt.Sprintf("{SessionId:%s AuthToken:%s Endpoint:%s}", c.GetSessionId(), c.GetToken(), c.GetEndpoint())
+	return fmt.Sprintf("{SessionId:%s Token:%s Endpoint:%s}", c.GetSessionId(), c.GetToken(), c.GetEndpoint())
 }
 
 // GetSessionId 获取会话Id
@@ -52,6 +53,20 @@ func (c *Client) GetToken() string {
 // GetEndpoint 获取服务器地址
 func (c *Client) GetEndpoint() string {
 	return c.endpoint
+}
+
+// GetLocalAddr 获取本地地址
+func (c *Client) GetLocalAddr() net.Addr {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.transceiver.Conn.LocalAddr()
+}
+
+// GetRemoteAddr 获取对端地址
+func (c *Client) GetRemoteAddr() net.Addr {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.transceiver.Conn.RemoteAddr()
 }
 
 // SendData 发送数据

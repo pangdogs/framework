@@ -55,10 +55,10 @@ type Session interface {
 	GetState() SessionState
 	// GetGroups 获取所属的会话组Id
 	GetGroups() []string
-	// GetListenAddr 获取监听地址
-	GetListenAddr() net.Addr
-	// GetClientAddr 获取客户端地址
-	GetClientAddr() net.Addr
+	// GetLocalAddr 获取本地地址
+	GetLocalAddr() net.Addr
+	// GetRemoteAddr 获取对端地址
+	GetRemoteAddr() net.Addr
 	// SendData 发送数据
 	SendData(data []byte, sequenced bool) error
 	// SendEvent 发送自定义事件

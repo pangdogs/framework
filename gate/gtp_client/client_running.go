@@ -27,6 +27,20 @@ func (c *Client) init(transceiver *protocol.Transceiver, sessionId string) {
 
 	// 初始化会话Id
 	c.sessionId = sessionId
+
+	// 初始化channel
+	if c.options.SendDataChanSize > 0 {
+		c.sendDataChan = make(chan gate.SendData, c.options.SendDataChanSize)
+	}
+	if c.options.RecvDataChanSize > 0 {
+		c.recvDataChan = make(chan gate.RecvData, c.options.RecvDataChanSize)
+	}
+	if c.options.SendEventSize > 0 {
+		c.sendEventChan = make(chan protocol.Event[transport.Msg], c.options.SendEventSize)
+	}
+	if c.options.RecvEventSize > 0 {
+		c.recvEventChan = make(chan gate.RecvEvent, c.options.RecvEventSize)
+	}
 }
 
 // renew 刷新

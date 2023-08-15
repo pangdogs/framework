@@ -8,6 +8,7 @@ import (
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/transport/codec"
 	"kit.golaxy.org/plugins/transport/protocol"
+	"net"
 )
 
 // _Connector 网络连接器
@@ -41,31 +42,7 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 		}
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
-
-	client = &Client{
-		Context:  ctx,
-		cancel:   cancel,
-		options:  ctor.Options,
-		endpoint: endpoint,
-		logger:   ctor.Options.ZapLogger.Sugar(),
-	}
-
-	client.transceiver.Conn = conn
-
-	// 初始化消息事件分发器
-	client.dispatcher.Transceiver = &client.transceiver
-	client.dispatcher.RetryTimes = ctor.Options.IORetryTimes
-	client.dispatcher.EventHandlers = []protocol.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
-
-	// 初始化传输协议
-	client.trans.Transceiver = &client.transceiver
-	client.trans.RetryTimes = ctor.Options.IORetryTimes
-	client.trans.PayloadHandler = client.payloadHandler
-
-	// 初始化控制协议
-	client.ctrl.Transceiver = &client.transceiver
-	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
+	client = ctor.newClient(ctx, conn, endpoint)
 
 	err = ctor.handshake(conn, client)
 	if err != nil {
@@ -98,4 +75,32 @@ func (ctor *_Connector) Reconnect(client *Client) error {
 	}
 
 	return nil
+}
+
+// newClient 创建客户端
+func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint string) *Client {
+	client := &Client{
+		options:  ctor.Options,
+		endpoint: endpoint,
+		logger:   ctor.Options.ZapLogger.Sugar(),
+	}
+
+	client.Context, client.cancel = context.WithCancel(ctx)
+	client.transceiver.Conn = conn
+
+	// 初始化消息事件分发器
+	client.dispatcher.Transceiver = &client.transceiver
+	client.dispatcher.RetryTimes = ctor.Options.IORetryTimes
+	client.dispatcher.EventHandlers = []protocol.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
+
+	// 初始化传输协议
+	client.trans.Transceiver = &client.transceiver
+	client.trans.RetryTimes = ctor.Options.IORetryTimes
+	client.trans.PayloadHandler = client.payloadHandler
+
+	// 初始化控制协议
+	client.ctrl.Transceiver = &client.transceiver
+	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
+
+	return client
 }

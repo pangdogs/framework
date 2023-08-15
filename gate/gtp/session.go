@@ -1,9 +1,7 @@
 package gtp
 
 import (
-	"errors"
 	"fmt"
-	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gate"
@@ -13,38 +11,6 @@ import (
 	"net"
 	"sync"
 )
-
-// newGtpSession 创建会话
-func newGtpSession(gtpGate *_GtpGate, conn net.Conn) (*_GtpSession, error) {
-	if conn == nil {
-		return nil, errors.New("conn is nil")
-	}
-
-	session := &_GtpSession{
-		gate:  gtpGate,
-		id:    ksuid.New().String(),
-		state: gate.SessionState_Birth,
-	}
-
-	session.Context, session.cancel = context.WithCancel(gtpGate.ctx)
-	session.transceiver.Conn = conn
-
-	// 初始化消息事件分发器
-	session.dispatcher.Transceiver = &session.transceiver
-	session.dispatcher.RetryTimes = gtpGate.options.IORetryTimes
-	session.dispatcher.EventHandlers = []protocol.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
-
-	// 初始化传输协议
-	session.trans.Transceiver = &session.transceiver
-	session.trans.RetryTimes = gtpGate.options.IORetryTimes
-	session.trans.PayloadHandler = session.PayloadHandler
-
-	// 初始化控制协议
-	session.ctrl.Transceiver = &session.transceiver
-	session.ctrl.RetryTimes = gtpGate.options.IORetryTimes
-
-	return session, nil
-}
 
 type _GtpSession struct {
 	context.Context
@@ -99,15 +65,15 @@ func (s *_GtpSession) GetGroups() []string {
 	return nil
 }
 
-// GetListenAddr 获取监听地址
-func (s *_GtpSession) GetListenAddr() net.Addr {
+// GetLocalAddr 获取本地地址
+func (s *_GtpSession) GetLocalAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.LocalAddr()
 }
 
-// GetClientAddr 获取客户端地址
-func (s *_GtpSession) GetClientAddr() net.Addr {
+// GetRemoteAddr 获取对端地址
+func (s *_GtpSession) GetRemoteAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.RemoteAddr()
