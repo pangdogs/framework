@@ -39,6 +39,9 @@ func (s *SequencedBuff) Reset(sendSeq, recvSeq uint32, cap int) {
 
 // Synchronization 同步对端时序
 func (s *SequencedBuff) Synchronization(remoteRecvSeq uint32) bool {
+	// 计算对端等待序号
+	remoteRecvSeq -= 1
+
 	// 序号已对齐
 	if s.SendSeq == remoteRecvSeq {
 		return true
@@ -61,6 +64,7 @@ func (s *SequencedBuff) Synchronization(remoteRecvSeq uint32) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
