@@ -47,7 +47,7 @@ func (l *_ConsoleLogger) ShutSP(ctx service.Context) {
 
 // InitRP init runtime plugin
 func (l *_ConsoleLogger) InitRP(ctx runtime.Context) {
-	l.serviceField = service.Get(ctx).String()
+	l.serviceField = service.Current(ctx).String()
 	l.runtimeField = ctx.String()
 
 	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
