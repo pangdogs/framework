@@ -59,12 +59,7 @@ func (s *_GtpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvS
 	defer s.Unlock()
 
 	// 刷新链路
-	sendSeq, recvSeq, err = s.transceiver.Renew(conn, remoteRecvSeq)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return
+	return s.transceiver.Renew(conn, remoteRecvSeq)
 }
 
 // PauseIO 暂停收发消息

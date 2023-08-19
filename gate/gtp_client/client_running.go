@@ -53,12 +53,7 @@ func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq ui
 	defer c.mutex.Unlock()
 
 	// 刷新链路
-	sendSeq, recvSeq, err = c.transceiver.Renew(conn, remoteRecvSeq)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return sendSeq, recvSeq, nil
+	return c.transceiver.Renew(conn, remoteRecvSeq)
 }
 
 // pauseIO 暂停收发消息
