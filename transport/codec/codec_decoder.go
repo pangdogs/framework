@@ -96,7 +96,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transpor
 	// 读取消息包
 	_, err = buff.Read(buf)
 	if err != nil {
-		return transport.MsgPacket{}, err
+		return transport.MsgPacket{}, fmt.Errorf("read msg-packet-bytes failed, %w", err)
 	}
 
 	mp := transport.MsgPacket{}
@@ -104,14 +104,14 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transpor
 	// 读取消息头
 	_, err = mp.Head.Write(buf)
 	if err != nil {
-		return transport.MsgPacket{}, err
+		return transport.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
 
 	// 验证消息头
 	if validation != nil {
 		err = validation(mp.Head)
 		if err != nil {
-			return transport.MsgPacket{}, err
+			return transport.MsgPacket{}, fmt.Errorf("validation msg-packet-head failed, %w", err)
 		}
 	}
 
@@ -131,7 +131,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transpor
 		}
 		msgBuf, err = d.EncryptionModule.Transforming(msgBuf, msgBuf)
 		if err != nil {
-			return transport.MsgPacket{}, err
+			return transport.MsgPacket{}, fmt.Errorf("dencrypt msg failed, %w", err)
 		}
 
 		// 检查MAC标记
@@ -142,7 +142,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transpor
 			// 检测MAC
 			msgBuf, err = d.MACModule.VerifyMAC(mp.Head.MsgId, mp.Head.Flags, msgBuf)
 			if err != nil {
-				return transport.MsgPacket{}, err
+				return transport.MsgPacket{}, fmt.Errorf("verify msg-mac failed, %w", err)
 			}
 		}
 	}
@@ -154,14 +154,14 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transpor
 		}
 		msgBuf, err = d.CompressionModule.Uncompress(msgBuf)
 		if err != nil {
-			return transport.MsgPacket{}, err
+			return transport.MsgPacket{}, fmt.Errorf("uncompress msg failed, %w", err)
 		}
 	}
 
 	// 读取消息
 	_, err = mp.Msg.Write(msgBuf)
 	if err != nil {
-		return transport.MsgPacket{}, err
+		return transport.MsgPacket{}, fmt.Errorf("read msg failed, %w", err)
 	}
 
 	return mp, nil

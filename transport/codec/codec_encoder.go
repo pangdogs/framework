@@ -3,6 +3,7 @@ package codec
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"kit.golaxy.org/plugins/transport"
 )
@@ -88,7 +89,7 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 		}
 		encAddition, err := e.EncryptionModule.SizeOfAddition(msg.Size())
 		if err != nil {
-			return err
+			return fmt.Errorf("encrypt SizeOfAddition failed, %w", err)
 		}
 		msgAddition += encAddition
 
@@ -106,7 +107,7 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 	// 写入消息
 	mn, err := msg.Read(mpBuf[head.Size():])
 	if err != nil {
-		return err
+		return fmt.Errorf("write msg failed, %w", err)
 	}
 	end := head.Size() + mn
 
@@ -117,7 +118,7 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 		}
 		buf, compressed, err := e.CompressionModule.Compress(mpBuf[head.Size():end])
 		if err != nil {
-			return err
+			return fmt.Errorf("compress msg failed, %w", err)
 		}
 		if compressed {
 			defer e.CompressionModule.GC()
@@ -138,12 +139,12 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 			head.Flags.Set(transport.Flag_MAC, true)
 
 			if _, err = head.Read(mpBuf); err != nil {
-				return err
+				return fmt.Errorf("failed to write msg-packet-head for patch msg-mac, %w", err)
 			}
 
 			buf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf[head.Size():end])
 			if err != nil {
-				return err
+				return fmt.Errorf("patch msg-mac failed, %w", err)
 			}
 			defer e.MACModule.GC()
 
@@ -153,7 +154,7 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 
 		buf, err := e.EncryptionModule.Transforming(mpBuf[head.Size():end], mpBuf[head.Size():end])
 		if err != nil {
-			return err
+			return fmt.Errorf("encrypt msg failed, %w", err)
 		}
 		defer e.EncryptionModule.GC()
 
@@ -164,11 +165,15 @@ func (e *Encoder) StuffTo(writer io.Writer, flags transport.Flags, msg transport
 	// 写入消息头
 	head.Len = uint32(end)
 	if _, err = head.Read(mpBuf); err != nil {
-		return err
+		return fmt.Errorf("write msg-packet-head failed, %w", err)
 	}
 
 	_, err = writer.Write(mpBuf[:end])
-	return err
+	if err != nil {
+		return fmt.Errorf("write msg-packet-bytes failed, %w", err)
+	}
+
+	return nil
 }
 
 // GetEncryptionModule 获取加密模块
