@@ -20,7 +20,7 @@ type ClientOptions struct {
 	TCPLinger                   *int                         // TCP的PLinger选项，nil表示使用系统默认值
 	IOTimeout                   time.Duration                // 网络io超时时间
 	IORetryTimes                int                          // 网络io超时后的重试次数
-	IOSequencedBuffCap          int                          // 网络io时序缓存容量（字节）
+	IOBufferCap                 int                          // 网络io缓存容量（字节）
 	DecoderMsgCreator           codec.IMsgCreator            // 消息包解码器的消息构建器
 	EncCipherSuite              transport.CipherSuite        // 加密通信中的密码学套件
 	EncSignatureAlgorithm       transport.SignatureAlgorithm // 加密通信中的签名算法
@@ -53,7 +53,7 @@ func (Option) Default() ClientOption {
 		Option{}.TCPLinger(nil)(options)
 		Option{}.IOTimeout(3 * time.Second)(options)
 		Option{}.IORetryTimes(3)(options)
-		Option{}.IOSequencedBuffCap(1024 * 128)(options)
+		Option{}.IOBufferCap(1024 * 128)(options)
 		Option{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
 		Option{}.EncCipherSuite(transport.CipherSuite{
 			SecretKeyExchange:   transport.SecretKeyExchange_ECDHE,
@@ -133,9 +133,9 @@ func (Option) IORetryTimes(times int) ClientOption {
 	}
 }
 
-func (Option) IOSequencedBuffCap(cap int) ClientOption {
+func (Option) IOBufferCap(cap int) ClientOption {
 	return func(options *ClientOptions) {
-		options.IOSequencedBuffCap = cap
+		options.IOBufferCap = cap
 	}
 }
 

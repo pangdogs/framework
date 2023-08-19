@@ -51,7 +51,7 @@ func (s *_GtpSessionSetting) SendDataChanSize(size int) error {
 		s.sendDataChan = nil
 		return nil
 	}
-	s.sendDataChan = make(chan gate.SendData, size)
+	s.sendDataChan = make(chan []byte, size)
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (s *_GtpSessionSetting) RecvDataChanSize(size int) error {
 		s.recvDataChan = nil
 		return nil
 	}
-	s.recvDataChan = make(chan gate.RecvData, size)
+	s.recvDataChan = make(chan []byte, size)
 	return nil
 }
 
@@ -81,6 +81,6 @@ func (s *_GtpSessionSetting) RecvEventSize(size int) error {
 		s.recvEventChan = nil
 		return nil
 	}
-	s.recvEventChan = make(chan gate.RecvEvent, size)
+	s.recvEventChan = make(chan protocol.Event[transport.Msg], size)
 	return nil
 }

@@ -9,40 +9,48 @@ import (
 	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/transport"
+	"kit.golaxy.org/plugins/transport/codec"
 	"kit.golaxy.org/plugins/transport/protocol"
+	"math/rand"
 	"net"
 	"sync/atomic"
 	"time"
 )
 
 // Init 初始化
-func (s *_GtpSession) Init(transceiver *protocol.Transceiver, token string) {
+func (s *_GtpSession) Init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, token string) (sendSeq, recvSeq uint32) {
 	s.Lock()
 	defer s.Unlock()
 
 	// 初始化消息收发器
-	s.transceiver.Conn = transceiver.Conn
-	s.transceiver.Encoder = transceiver.Encoder
-	s.transceiver.Decoder = transceiver.Decoder
-	s.transceiver.Timeout = transceiver.Timeout
-	s.transceiver.SequencedBuff.Reset(transceiver.SequencedBuff.SendSeq, transceiver.SequencedBuff.RecvSeq, transceiver.SequencedBuff.Cap)
+	s.transceiver.Conn = conn
+	s.transceiver.Encoder = encoder
+	s.transceiver.Decoder = decoder
+	s.transceiver.Timeout = s.gate.options.IOTimeout
+
+	buff := &protocol.SequencedBuffer{}
+	buff.Reset(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
+
+	s.transceiver.Buffer = buff
 
 	// 初始化token
 	s.token = token
 
 	// 初始化channel
 	if s.gate.options.SessionSendDataChanSize > 0 {
-		s.sendDataChan = make(chan gate.SendData, s.gate.options.SessionSendDataChanSize)
+		s.sendDataChan = make(chan []byte, s.gate.options.SessionSendDataChanSize)
 	}
 	if s.gate.options.SessionRecvDataChanSize > 0 {
-		s.recvDataChan = make(chan gate.RecvData, s.gate.options.SessionRecvDataChanSize)
+		s.recvDataChan = make(chan []byte, s.gate.options.SessionRecvDataChanSize)
 	}
 	if s.gate.options.SessionSendEventSize > 0 {
 		s.sendEventChan = make(chan protocol.Event[transport.Msg], s.gate.options.SessionSendEventSize)
 	}
 	if s.gate.options.SessionRecvEventSize > 0 {
-		s.recvEventChan = make(chan gate.RecvEvent, s.gate.options.SessionRecvEventSize)
+		s.recvEventChan = make(chan protocol.Event[transport.Msg], s.gate.options.SessionRecvEventSize)
 	}
+
+	return buff.SendSeq(), buff.RecvSeq()
 }
 
 // Renew 刷新
@@ -56,7 +64,7 @@ func (s *_GtpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvS
 		return 0, 0, err
 	}
 
-	return s.transceiver.SequencedBuff.SendSeq, s.transceiver.SequencedBuff.RecvSeq, nil
+	return
 }
 
 // PauseIO 暂停收发消息
@@ -98,8 +106,8 @@ func (s *_GtpSession) Run() {
 		go func() {
 			for {
 				select {
-				case sd := <-s.sendDataChan:
-					if err := s.SendData(sd.Data, sd.Sequenced); err != nil {
+				case data := <-s.sendDataChan:
+					if err := s.SendData(data); err != nil {
 						logger.Errorf(s.gate.ctx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
@@ -114,8 +122,8 @@ func (s *_GtpSession) Run() {
 		go func() {
 			for {
 				select {
-				case e := <-s.sendEventChan:
-					if err := s.SendEvent(e); err != nil {
+				case event := <-s.sendEventChan:
+					if err := s.SendEvent(event); err != nil {
 						logger.Errorf(s.gate.ctx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
@@ -216,7 +224,7 @@ func (s *_GtpSession) SetState(state gate.SessionState) bool {
 func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 	if s.recvEventChan != nil {
 		select {
-		case s.recvEventChan <- gate.RecvEvent{Event: event.Clone()}:
+		case s.recvEventChan <- event.Clone():
 		default:
 			logger.Errorf(s.gate.ctx, "session %q receive event channel is full", s.GetId())
 		}
@@ -251,10 +259,7 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]) error {
 	if s.recvDataChan != nil {
 		select {
-		case s.recvDataChan <- gate.RecvData{
-			Data:      bytes.Clone(event.Msg.Data),
-			Sequenced: event.Flags.Is(transport.Flag_Sequenced),
-		}:
+		case s.recvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
 			logger.Errorf(s.gate.ctx, "session %q receive data channel is full", s.GetId())
 		}
@@ -265,7 +270,7 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 		if handler == nil {
 			continue
 		}
-		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
+		err := internal.Call(func() error { return handler(s, event.Msg.Data) })
 		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
@@ -276,7 +281,7 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 		if handler == nil {
 			continue
 		}
-		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
+		err := internal.Call(func() error { return handler(s, event.Msg.Data) })
 		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}

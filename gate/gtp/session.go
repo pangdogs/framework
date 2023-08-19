@@ -15,22 +15,20 @@ import (
 type _GtpSession struct {
 	context.Context
 	sync.Mutex
-	cancel               context.CancelFunc
-	gate                 *_GtpGate
-	id                   string
-	token                string
-	state                gate.SessionState
-	transceiver          protocol.Transceiver
-	dispatcher           protocol.EventDispatcher
-	trans                protocol.TransProtocol
-	ctrl                 protocol.CtrlProtocol
-	stateChangedHandlers []gate.StateChangedHandler
-	recvDataHandlers     []gate.RecvDataHandler
-	recvEventHandlers    []gate.RecvEventHandler
-	sendDataChan         chan gate.SendData
-	recvDataChan         chan gate.RecvData
-	sendEventChan        chan protocol.Event[transport.Msg]
-	recvEventChan        chan gate.RecvEvent
+	cancel                       context.CancelFunc
+	gate                         *_GtpGate
+	id                           string
+	token                        string
+	state                        gate.SessionState
+	transceiver                  protocol.Transceiver
+	dispatcher                   protocol.EventDispatcher
+	trans                        protocol.TransProtocol
+	ctrl                         protocol.CtrlProtocol
+	stateChangedHandlers         []gate.StateChangedHandler
+	recvDataHandlers             []gate.RecvDataHandler
+	recvEventHandlers            []gate.RecvEventHandler
+	sendDataChan, recvDataChan   chan []byte
+	sendEventChan, recvEventChan chan protocol.Event[transport.Msg]
 }
 
 // String implements fmt.Stringer
@@ -80,8 +78,8 @@ func (s *_GtpSession) GetRemoteAddr() net.Addr {
 }
 
 // SendData 发送数据
-func (s *_GtpSession) SendData(data []byte, sequenced bool) error {
-	return s.trans.SendData(data, sequenced)
+func (s *_GtpSession) SendData(data []byte) error {
+	return s.trans.SendData(data)
 }
 
 // SendEvent 发送自定义事件
@@ -93,7 +91,7 @@ func (s *_GtpSession) SendEvent(event protocol.Event[transport.Msg]) error {
 }
 
 // SendDataChan 发送数据的channel
-func (s *_GtpSession) SendDataChan() chan<- gate.SendData {
+func (s *_GtpSession) SendDataChan() chan<- []byte {
 	if s.sendDataChan == nil {
 		logger.Panicf(s.gate.ctx, "send data channel size less equal 0, can't be used")
 	}
@@ -101,7 +99,7 @@ func (s *_GtpSession) SendDataChan() chan<- gate.SendData {
 }
 
 // RecvDataChan 接收数据的channel
-func (s *_GtpSession) RecvDataChan() <-chan gate.RecvData {
+func (s *_GtpSession) RecvDataChan() <-chan []byte {
 	if s.recvDataChan == nil {
 		logger.Panicf(s.gate.ctx, "receive data channel size less equal 0, can't be used")
 	}
@@ -117,7 +115,7 @@ func (s *_GtpSession) SendEventChan() chan<- protocol.Event[transport.Msg] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (s *_GtpSession) RecvEventChan() <-chan gate.RecvEvent {
+func (s *_GtpSession) RecvEventChan() <-chan protocol.Event[transport.Msg] {
 	if s.recvEventChan == nil {
 		logger.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
 	}

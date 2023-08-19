@@ -28,7 +28,7 @@ type Transceiver struct {
 	Encoder              codec.IEncoder // 消息包编码器
 	Decoder              codec.IDecoder // 消息包解码器
 	Timeout              time.Duration  // 网络io超时时间
-	SequencedBuff        SequencedBuff  // 时序缓存
+	Buffer               Buffer         // 缓存
 	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
 }
 
@@ -45,8 +45,12 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 		return errors.New("encoder is nil")
 	}
 
+	if t.Buffer == nil {
+		return errors.New("buffer is nil")
+	}
+
 	// 编码消息
-	if err := t.Encoder.StuffTo(&t.SequencedBuff, e.Flags, e.Msg); err != nil {
+	if err := t.Encoder.StuffTo(t.Buffer, e.Flags, e.Msg); err != nil {
 		return fmt.Errorf("stuff msg failed, %w", err)
 	}
 
@@ -57,8 +61,8 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 	}
 
 	// 数据写入链路
-	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.SequencedBuff.cached, ErrNetIO, err)
+	if _, err := t.Buffer.WriteTo(t.Conn); err != nil {
+		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -67,8 +71,8 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 // SendRst 发送Rst消息事件
 func (t *Transceiver) SendRst(err error) error {
 	// 包装错误信息
-	rstErr, ok := err.(*RstError)
-	if !ok {
+	var rstErr *RstError
+	if ok := errors.As(err, &rstErr); !ok {
 		rstErr = &RstError{Code: transport.Code_Reject}
 		if err != nil {
 			rstErr.Message = err.Error()
@@ -90,6 +94,10 @@ func (t *Transceiver) Resend() error {
 		return errors.New("encoder is nil")
 	}
 
+	if t.Buffer == nil {
+		return errors.New("buffer is nil")
+	}
+
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
 			return fmt.Errorf("set conn send timeout failed, %w", err)
@@ -97,8 +105,8 @@ func (t *Transceiver) Resend() error {
 	}
 
 	// 数据写入链路
-	if _, err := t.SequencedBuff.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.SequencedBuff.cached, ErrNetIO, err)
+	if _, err := t.Buffer.WriteTo(t.Conn); err != nil {
+		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -119,18 +127,18 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 
 	for {
 		// 解码消息
-		mp, fetchErr := t.Decoder.Fetch()
-		if fetchErr != nil {
-			if !errors.Is(fetchErr, codec.ErrBufferNotEnough) {
-				return Event[transport.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", fetchErr)
-			}
-		} else {
+		mp, fetchErr := t.Decoder.Fetch(t.Buffer.Validation)
+		if fetchErr == nil {
 			return Event[transport.Msg]{
 				Flags: mp.Head.Flags,
 				Seq:   mp.Head.Seq,
 				Ack:   mp.Head.Ack,
 				Msg:   mp.Msg,
-			}, t.SequencedBuff.Validation(mp)
+			}, t.Buffer.Ack(mp.Head.Ack)
+		}
+
+		if !errors.Is(fetchErr, codec.ErrBufferNotEnough) {
+			return Event[transport.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", fetchErr)
 		}
 
 		if t.Timeout > 0 {
@@ -153,8 +161,8 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 	}
 
 	// 同步对端时序
-	if !t.SequencedBuff.Synchronization(remoteRecvSeq) {
-		return 0, 0, errors.New("transceiver sequenced buff synchronization failed")
+	if err = t.Buffer.Synchronization(remoteRecvSeq); err != nil {
+		return 0, 0, fmt.Errorf("synchronize sequence failed, %s", err)
 	}
 
 	// 切换连接
@@ -163,7 +171,7 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 		t.Conn = conn
 	}
 
-	return t.SequencedBuff.SendSeq, t.SequencedBuff.RecvSeq, nil
+	return t.Buffer.SendSeq(), t.Buffer.RecvSeq(), nil
 }
 
 // Pause 暂停收发消息

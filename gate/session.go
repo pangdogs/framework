@@ -22,25 +22,6 @@ const (
 	SessionState_Death                         // 已过期
 )
 
-// SendData 发送的数据
-type SendData struct {
-	Data      []byte // 数据
-	Sequenced bool   // 是否有时序
-}
-
-// RecvData 接收的数据
-type RecvData struct {
-	Data      []byte // 数据
-	Sequenced bool   // 是否有时序
-	Error     error  // 错误信息
-}
-
-// RecvEvent 接收的自定义事件
-type RecvEvent struct {
-	Event protocol.Event[transport.Msg] // 消息事件
-	Error error                         // 错误信息
-}
-
 // Session 客户端会话
 type Session interface {
 	context.Context
@@ -60,17 +41,17 @@ type Session interface {
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
 	// SendData 发送数据
-	SendData(data []byte, sequenced bool) error
+	SendData(data []byte) error
 	// SendEvent 发送自定义事件
 	SendEvent(event protocol.Event[transport.Msg]) error
 	// SendDataChan 发送数据的channel
-	SendDataChan() chan<- SendData
+	SendDataChan() chan<- []byte
 	// RecvDataChan 接收数据的channel
-	RecvDataChan() <-chan RecvData
+	RecvDataChan() <-chan []byte
 	// SendEventChan 发送自定义事件的channel
 	SendEventChan() chan<- protocol.Event[transport.Msg]
 	// RecvEventChan 接收自定义事件的channel
-	RecvEventChan() <-chan RecvEvent
+	RecvEventChan() <-chan protocol.Event[transport.Msg]
 	// Close 关闭
 	Close(err error)
 }

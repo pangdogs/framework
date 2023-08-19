@@ -43,8 +43,6 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*transport.MsgHello], helloF
 		trans.GC()
 	}()
 
-	hello.Flags.Set(transport.Flag_Sequenced, false)
-
 	err = h.retrySend(trans.Send(PackEvent(hello)))
 	if err != nil {
 		return err
@@ -110,8 +108,6 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		return err
 	}
 
-	reply.Flags.Set(transport.Flag_Sequenced, false)
-
 	err = h.retrySend(trans.Send(PackEvent(reply)))
 	if err != nil {
 		return err
@@ -161,8 +157,6 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	secretKeyExchangeReply.Flags.Set(transport.Flag_Sequenced, false)
-
 	err = h.retrySend(trans.Send(PackEvent(secretKeyExchangeReply)))
 	if err != nil {
 		return err
@@ -186,8 +180,6 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	if err != nil {
 		return err
 	}
-
-	changeCipherSpecReply.Flags.Set(transport.Flag_Sequenced, false)
 
 	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecReply)))
 	if err != nil {
@@ -222,8 +214,6 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		trans.GC()
 	}()
 
-	secretKeyExchange.Flags.Set(transport.Flag_Sequenced, false)
-
 	err = h.retrySend(trans.Send(PackEvent(secretKeyExchange)))
 	if err != nil {
 		return err
@@ -245,8 +235,6 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	if err != nil {
 		return err
 	}
-
-	changeCipherSpecMsg.Flags.Set(transport.Flag_Sequenced, false)
 
 	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecMsg)))
 	if err != nil {
@@ -285,8 +273,6 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*transport.MsgAuth]) (err erro
 			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
-
-	auth.Flags.Set(transport.Flag_Sequenced, false)
 
 	err = h.retrySend(trans.Send(PackEvent(auth)))
 	if err != nil {
@@ -349,8 +335,6 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[*transport.MsgContinue]) (
 			err = fmt.Errorf("panicked: %w", panicErr)
 		}
 	}()
-
-	cont.Flags.Set(transport.Flag_Sequenced, false)
 
 	err = h.retrySend(trans.Send(PackEvent(cont)))
 	if err != nil {
@@ -456,8 +440,6 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*transport.MsgFinished
 			trans.SendRst(err)
 		}
 	}()
-
-	finished.Flags.Set(transport.Flag_Sequenced, false)
 
 	err = h.retrySend(trans.Send(PackEvent(finished)))
 	if err != nil {

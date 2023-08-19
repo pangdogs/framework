@@ -12,7 +12,6 @@ import (
 	"kit.golaxy.org/plugins/transport/method"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"math/big"
-	math_rand "math/rand"
 	"net"
 	"strings"
 )
@@ -30,10 +29,10 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 			Encoder: acc.encoder,
 			Decoder: acc.decoder,
 			Timeout: acc.Options.IOTimeout,
+			Buffer:  &protocol.UnsequencedBuffer{},
 		},
 		RetryTimes: acc.Options.IORetryTimes,
 	}
-	handshake.Transceiver.SequencedBuff.Reset(math_rand.Uint32(), math_rand.Uint32(), acc.Options.IOSequencedBuffCap)
 
 	var cs transport.CipherSuite
 	var cm transport.Compression
@@ -262,11 +261,11 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 			return nil, err
 		}
 	} else {
-		sendSeq = handshake.Transceiver.SequencedBuff.SendSeq
-		recvSeq = handshake.Transceiver.SequencedBuff.RecvSeq
-
 		// 初始化会话
-		session.Init(handshake.Transceiver, token)
+		sendSeq, recvSeq = session.Init(handshake.Transceiver.Conn,
+			handshake.Transceiver.Encoder,
+			handshake.Transceiver.Decoder,
+			token)
 	}
 
 	// 通知客户端握手结束

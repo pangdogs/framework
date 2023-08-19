@@ -13,6 +13,10 @@ var (
 	ErrMsgNotRegistered = errors.New("msg not registered")     // 消息未注册
 )
 
+type (
+	Validation = func(msgHead transport.MsgHead) error // 验证消息头
+)
+
 // IDecoder 消息包解码器接口
 type IDecoder interface {
 	io.Writer
@@ -20,9 +24,9 @@ type IDecoder interface {
 	// Reset 重置缓存
 	Reset()
 	// Fetch 取出消息包
-	Fetch() (transport.MsgPacket, error)
+	Fetch(validation Validation) (transport.MsgPacket, error)
 	// FetchFrom 取出消息包
-	FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error)
+	FetchFrom(buff *bytes.Buffer, validation Validation) (transport.MsgPacket, error)
 	// GetMsgCreator 获取消息对象构建器
 	GetMsgCreator() IMsgCreator
 	// GetEncryptionModule 获取加密模块
@@ -68,12 +72,12 @@ func (d *Decoder) Reset() {
 }
 
 // Fetch 取出消息包
-func (d *Decoder) Fetch() (transport.MsgPacket, error) {
-	return d.FetchFrom(&d.buffer)
+func (d *Decoder) Fetch(validation Validation) (transport.MsgPacket, error) {
+	return d.FetchFrom(&d.buffer, validation)
 }
 
 // FetchFrom 取出消息包
-func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
+func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (transport.MsgPacket, error) {
 	mpl := transport.MsgPacketLen{}
 
 	// 读取消息包长度
@@ -101,6 +105,14 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer) (transport.MsgPacket, error) {
 	_, err = mp.Head.Write(buf)
 	if err != nil {
 		return transport.MsgPacket{}, err
+	}
+
+	// 验证消息头
+	if validation != nil {
+		err = validation(mp.Head)
+		if err != nil {
+			return transport.MsgPacket{}, err
+		}
 	}
 
 	// 创建消息体

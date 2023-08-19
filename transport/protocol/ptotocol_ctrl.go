@@ -46,7 +46,7 @@ func (c *CtrlProtocol) SendPing() error {
 		return errors.New("setting Transceiver is nil")
 	}
 	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
-		Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Ping),
+		Flags: transport.Flags(transport.Flag_Ping),
 		Msg:   &transport.MsgHeartbeat{},
 	})))
 }
@@ -79,7 +79,7 @@ func (c *CtrlProtocol) EventHandler(e Event[transport.Msg]) error {
 				return errors.New("setting Transceiver is nil")
 			}
 			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*transport.MsgHeartbeat]{
-				Flags: transport.Flags(transport.Flag_Sequenced | transport.Flag_Pong),
+				Flags: transport.Flags(transport.Flag_Pong),
 				Msg:   &transport.MsgHeartbeat{},
 			})))
 			if err != nil {

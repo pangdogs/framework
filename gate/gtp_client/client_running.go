@@ -5,41 +5,45 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy/util"
-	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/transport"
+	"kit.golaxy.org/plugins/transport/codec"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
 	"time"
 )
 
 // init 初始化
-func (c *Client) init(transceiver *protocol.Transceiver, sessionId string) {
+func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, remoteSendSeq, remoteRecvSeq uint32, sessionId string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	// 初始化消息收发器
-	c.transceiver.Conn = transceiver.Conn
-	c.transceiver.Encoder = transceiver.Encoder
-	c.transceiver.Decoder = transceiver.Decoder
-	c.transceiver.Timeout = transceiver.Timeout
-	c.transceiver.SequencedBuff.Reset(transceiver.SequencedBuff.SendSeq, transceiver.SequencedBuff.RecvSeq, transceiver.SequencedBuff.Cap)
+	c.transceiver.Conn = conn
+	c.transceiver.Encoder = encoder
+	c.transceiver.Decoder = decoder
+	c.transceiver.Timeout = c.options.IOTimeout
+
+	buff := &protocol.SequencedBuffer{}
+	buff.Reset(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
+
+	c.transceiver.Buffer = buff
 
 	// 初始化会话Id
 	c.sessionId = sessionId
 
 	// 初始化channel
 	if c.options.SendDataChanSize > 0 {
-		c.sendDataChan = make(chan gate.SendData, c.options.SendDataChanSize)
+		c.sendDataChan = make(chan []byte, c.options.SendDataChanSize)
 	}
 	if c.options.RecvDataChanSize > 0 {
-		c.recvDataChan = make(chan gate.RecvData, c.options.RecvDataChanSize)
+		c.recvDataChan = make(chan []byte, c.options.RecvDataChanSize)
 	}
 	if c.options.SendEventSize > 0 {
 		c.sendEventChan = make(chan protocol.Event[transport.Msg], c.options.SendEventSize)
 	}
 	if c.options.RecvEventSize > 0 {
-		c.recvEventChan = make(chan gate.RecvEvent, c.options.RecvEventSize)
+		c.recvEventChan = make(chan protocol.Event[transport.Msg], c.options.RecvEventSize)
 	}
 }
 
@@ -54,7 +58,7 @@ func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq ui
 		return 0, 0, err
 	}
 
-	return c.transceiver.SequencedBuff.SendSeq, c.transceiver.SequencedBuff.RecvSeq, nil
+	return sendSeq, recvSeq, nil
 }
 
 // pauseIO 暂停收发消息
@@ -85,8 +89,8 @@ func (c *Client) run() {
 		go func() {
 			for {
 				select {
-				case sd := <-c.sendDataChan:
-					if err := c.SendData(sd.Data, sd.Sequenced); err != nil {
+				case data := <-c.sendDataChan:
+					if err := c.SendData(data); err != nil {
 						c.logger.Errorf("client %q fetch data from the send data channel for sending failed, %s", c.GetSessionId(), err)
 					}
 				case <-c.Done():
@@ -101,8 +105,8 @@ func (c *Client) run() {
 		go func() {
 			for {
 				select {
-				case e := <-c.sendEventChan:
-					if err := c.SendEvent(e); err != nil {
+				case event := <-c.sendEventChan:
+					if err := c.SendEvent(event); err != nil {
 						c.logger.Errorf("client %q fetch event from the send event channel for sending failed, %s", c.GetSessionId(), err)
 					}
 				case <-c.Done():
@@ -166,7 +170,7 @@ func (c *Client) run() {
 func (c *Client) eventHandler(event protocol.Event[transport.Msg]) error {
 	if c.recvEventChan != nil {
 		select {
-		case c.recvEventChan <- gate.RecvEvent{Event: event.Clone()}:
+		case c.recvEventChan <- event.Clone():
 		default:
 			c.logger.Errorf("client %q receive event channel is full", c.GetSessionId())
 		}
@@ -190,10 +194,7 @@ func (c *Client) eventHandler(event protocol.Event[transport.Msg]) error {
 func (c *Client) payloadHandler(event protocol.Event[*transport.MsgPayload]) error {
 	if c.recvDataChan != nil {
 		select {
-		case c.recvDataChan <- gate.RecvData{
-			Data:      bytes.Clone(event.Msg.Data),
-			Sequenced: event.Flags.Is(transport.Flag_Sequenced),
-		}:
+		case c.recvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
 			c.logger.Errorf("client %q receive data channel is full", c.GetSessionId())
 		}
@@ -204,7 +205,7 @@ func (c *Client) payloadHandler(event protocol.Event[*transport.MsgPayload]) err
 		if handler == nil {
 			continue
 		}
-		err := internal.Call(func() error { return handler(c, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
+		err := internal.Call(func() error { return handler(c, event.Msg.Data) })
 		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
