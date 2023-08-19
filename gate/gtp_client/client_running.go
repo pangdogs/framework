@@ -178,7 +178,7 @@ func (c *Client) eventHandler(event protocol.Event[transport.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(c, event) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
@@ -205,7 +205,7 @@ func (c *Client) payloadHandler(event protocol.Event[*transport.MsgPayload]) err
 			continue
 		}
 		err := internal.Call(func() error { return handler(c, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
