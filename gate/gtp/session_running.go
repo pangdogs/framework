@@ -228,7 +228,7 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
@@ -239,7 +239,7 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
@@ -266,7 +266,7 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}
@@ -277,7 +277,7 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event.Msg.Data, event.Flags.Is(transport.Flag_Sequenced)) })
-		if err == nil || !errors.As(err, protocol.ErrUnexpectedMsg) {
+		if err == nil || !errors.Is(err, protocol.ErrUnexpectedMsg) {
 			return err
 		}
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	FetchNonce = func() ([]byte, error)
+	FetchNonce = func() ([]byte, error) // 获取nonce值
 )
 
 // IEncryptionModule 加密模块接口

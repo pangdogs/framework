@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrIncorrectMAC = errors.New("incorrect MAC")
+	ErrIncorrectMAC = errors.New("incorrect MAC") // MAC值不正确
 )
 
 // IMACModule MAC模块接口
