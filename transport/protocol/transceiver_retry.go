@@ -39,9 +39,14 @@ func (r Retry) Recv(e Event[transport.Msg], err error) (Event[transport.Msg], er
 	if !errors.Is(err, os.ErrDeadlineExceeded) {
 		return e, err
 	}
-	for i := r.Times; i > 0; i-- {
-		if e, err = r.Transceiver.Recv(); err != nil {
+	for i := r.Times; i > 0; {
+		e, err = r.Transceiver.Recv()
+		if err != nil {
 			if errors.Is(err, os.ErrDeadlineExceeded) {
+				i--
+				continue
+			}
+			if errors.Is(err, ErrDiscardSeq) {
 				continue
 			}
 		}
