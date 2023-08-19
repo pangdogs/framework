@@ -11,7 +11,7 @@ type UnsequencedBuffer struct {
 	bytes.Buffer
 }
 
-// Synchronization 同步对端时序，对齐缓存
+// Synchronization 同步对端时序，对齐缓存序号
 func (s *UnsequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	return errors.New("not support")
 }

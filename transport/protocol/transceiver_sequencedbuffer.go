@@ -12,7 +12,7 @@ import (
 type Buffer interface {
 	io.Writer
 	io.WriterTo
-	// Synchronization 同步对端时序，对齐缓存
+	// Synchronization 同步对端时序，对齐缓存序号
 	Synchronization(remoteRecvSeq uint32) error
 	// Validation 验证消息头
 	Validation(msgHead transport.MsgHead) error
@@ -125,14 +125,9 @@ func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
 	return wn, nil
 }
 
-// Synchronization 同步对端时序，对齐缓存
+// Synchronization 同步对端时序，对齐缓存序号
 func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
-	// 序号已对齐
-	if s.sendSeq == remoteRecvSeq {
-		return nil
-	}
-
-	// 调整序号
+	// 对齐序号
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
