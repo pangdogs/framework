@@ -131,7 +131,7 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
-		d := int32(s.sendSeq - remoteRecvSeq)
+		d := int32(frame.Seq - remoteRecvSeq)
 		if d <= 0 {
 			for j := i; j < len(s.frames); j++ {
 				s.frames[j].Offset = 0
