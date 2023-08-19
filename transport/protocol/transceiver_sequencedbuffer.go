@@ -138,8 +138,7 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 			}
 
 			s.sent = i
-			s.sendSeq = frame.Seq
-			s.ackSeq = s.sendSeq - 1
+			s.ackSeq = frame.Seq - 1
 
 			return nil
 		}
