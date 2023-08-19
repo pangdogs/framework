@@ -166,10 +166,10 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 	}
 
 	// 切换连接
-	if t.Conn != nil && t.Conn != conn {
+	if t.Conn != nil {
 		t.Conn.Close()
-		t.Conn = conn
 	}
+	t.Conn = conn
 
 	return t.Buffer.SendSeq(), t.Buffer.RecvSeq(), nil
 }
