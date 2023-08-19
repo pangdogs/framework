@@ -192,3 +192,11 @@ func (t *Transceiver) GC() {
 		t.Decoder.GC()
 	}
 }
+
+// Clean 清理
+func (t *Transceiver) Clean() {
+	t.GC()
+	if t.Buffer != nil {
+		t.Buffer.Clean()
+	}
+}

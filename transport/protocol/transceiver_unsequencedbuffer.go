@@ -45,3 +45,8 @@ func (s *UnsequencedBuffer) AckSeq() uint32 {
 func (s *UnsequencedBuffer) Cached() int {
 	return s.Len()
 }
+
+// Clean 清理
+func (s *UnsequencedBuffer) Clean() {
+	s.Buffer.Reset()
+}

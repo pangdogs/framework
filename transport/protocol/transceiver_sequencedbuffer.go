@@ -28,6 +28,8 @@ type Buffer interface {
 	Cap() int
 	// Cached 已缓存大小
 	Cached() int
+	// Clean 清理
+	Clean()
 }
 
 // _SequencedFrame 时序帧
@@ -198,6 +200,20 @@ func (s *SequencedBuffer) Cap() int {
 // Cached 已缓存大小
 func (s *SequencedBuffer) Cached() int {
 	return s.cached
+}
+
+// Clean 清理
+func (s *SequencedBuffer) Clean() {
+	s.sendSeq = 0
+	s.recvSeq = 0
+	s.ackSeq = 0
+	s.cap = 0
+	s.cached = 0
+	s.sent = 0
+	for i := range s.frames {
+		codec.BytesPool.Put(s.frames[i].Data)
+	}
+	s.frames = nil
 }
 
 func (s *SequencedBuffer) getLocalAck() uint32 {

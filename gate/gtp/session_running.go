@@ -82,8 +82,11 @@ func (s *_GtpSession) Run() {
 		// 调整会话状态为已过期
 		s.SetState(gate.SessionState_Death)
 
-		// 关闭链接
-		s.transceiver.Conn.Close()
+		// 关闭连接和清理数据
+		if s.transceiver.Conn != nil {
+			s.transceiver.Conn.Close()
+		}
+		s.transceiver.Clean()
 
 		// 删除会话
 		s.gate.sessionMap.Delete(s.GetId())
