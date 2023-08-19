@@ -177,7 +177,12 @@ func (s *_GtpSession) Run() {
 		pinged = false
 
 		// 调整会话状态活跃
-		s.SetState(gate.SessionState_Active)
+		if s.SetState(gate.SessionState_Active) {
+			protocol.Retry{
+				Transceiver: &s.transceiver,
+				Times:       s.gate.options.IORetryTimes,
+			}.Send(s.transceiver.Resend())
+		}
 	}
 }
 

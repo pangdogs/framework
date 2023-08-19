@@ -158,9 +158,17 @@ func (c *Client) run() {
 			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
 		}
 
-		// 没有错误，或非网络io类错误，重置ping状态，调整连接状态活跃
+		// 没有错误，或非网络io类错误，重置ping状态
 		pinged = false
-		active = true
+
+		// 调整连接状态活跃
+		if !active {
+			active = true
+			protocol.Retry{
+				Transceiver: &c.transceiver,
+				Times:       c.options.IORetryTimes,
+			}.Send(c.transceiver.Resend())
+		}
 	}
 }
 
