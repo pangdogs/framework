@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/protocol"
 	"net"
@@ -12,27 +11,25 @@ import (
 )
 
 type (
-	RecvDataHandler  = func(client *Client, data []byte, sequenced bool) error         // 客户端接收的数据的处理器
+	RecvDataHandler  = func(client *Client, data []byte) error                         // 客户端接收的数据的处理器
 	RecvEventHandler = func(client *Client, event protocol.Event[transport.Msg]) error // 客户端接收的自定义事件的处理器
 )
 
 // Client 客户端
 type Client struct {
 	context.Context
-	cancel        context.CancelFunc
-	mutex         sync.Mutex
-	options       ClientOptions
-	sessionId     string
-	endpoint      string
-	transceiver   protocol.Transceiver
-	dispatcher    protocol.EventDispatcher
-	trans         protocol.TransProtocol
-	ctrl          protocol.CtrlProtocol
-	sendDataChan  chan gate.SendData
-	recvDataChan  chan gate.RecvData
-	sendEventChan chan protocol.Event[transport.Msg]
-	recvEventChan chan gate.RecvEvent
-	logger        *zap.SugaredLogger
+	cancel                       context.CancelFunc
+	mutex                        sync.Mutex
+	options                      ClientOptions
+	sessionId                    string
+	endpoint                     string
+	transceiver                  protocol.Transceiver
+	dispatcher                   protocol.EventDispatcher
+	trans                        protocol.TransProtocol
+	ctrl                         protocol.CtrlProtocol
+	sendDataChan, recvDataChan   chan []byte
+	sendEventChan, recvEventChan chan protocol.Event[transport.Msg]
+	logger                       *zap.SugaredLogger
 }
 
 // String implements fmt.Stringer
@@ -70,8 +67,8 @@ func (c *Client) GetRemoteAddr() net.Addr {
 }
 
 // SendData 发送数据
-func (c *Client) SendData(data []byte, sequenced bool) error {
-	return c.trans.SendData(data, sequenced)
+func (c *Client) SendData(data []byte) error {
+	return c.trans.SendData(data)
 }
 
 // SendEvent 发送自定义事件
@@ -83,7 +80,7 @@ func (c *Client) SendEvent(event protocol.Event[transport.Msg]) error {
 }
 
 // SendDataChan 发送数据的channel
-func (c *Client) SendDataChan() chan<- gate.SendData {
+func (c *Client) SendDataChan() chan<- []byte {
 	if c.sendDataChan == nil {
 		c.logger.Panic("send data channel size less equal 0, can't be used")
 	}
@@ -91,7 +88,7 @@ func (c *Client) SendDataChan() chan<- gate.SendData {
 }
 
 // RecvDataChan 接收数据的channel
-func (c *Client) RecvDataChan() <-chan gate.RecvData {
+func (c *Client) RecvDataChan() <-chan []byte {
 	if c.recvDataChan == nil {
 		c.logger.Panic("receive data channel size less equal 0, can't be used")
 	}
@@ -107,7 +104,7 @@ func (c *Client) SendEventChan() chan<- protocol.Event[transport.Msg] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (c *Client) RecvEventChan() <-chan gate.RecvEvent {
+func (c *Client) RecvEventChan() <-chan protocol.Event[transport.Msg] {
 	if c.recvEventChan == nil {
 		c.logger.Panic("receive event channel size less equal 0, can't be used")
 	}

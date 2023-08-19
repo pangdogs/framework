@@ -17,13 +17,12 @@ type TransProtocol struct {
 }
 
 // SendData 发送数据
-func (t *TransProtocol) SendData(data []byte, sequenced bool) error {
+func (t *TransProtocol) SendData(data []byte) error {
 	if t.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 	return t.retrySend(t.Transceiver.Send(PackEvent(Event[*transport.MsgPayload]{
-		Flags: transport.Flags_None().Setd(transport.Flag_Sequenced, sequenced),
-		Msg:   &transport.MsgPayload{Data: data},
+		Msg: &transport.MsgPayload{Data: data},
 	})))
 }
 

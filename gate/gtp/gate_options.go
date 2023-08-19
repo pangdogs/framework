@@ -28,7 +28,7 @@ type GateOptions struct {
 	TCPLinger                      *int                         // TCP的PLinger选项，nil表示使用系统默认值
 	IOTimeout                      time.Duration                // 网络io超时时间
 	IORetryTimes                   int                          // 网络io超时后的重试次数
-	IOSequencedBuffCap             int                          // 网络io时序缓存容量（字节）
+	IOBufferCap                    int                          // 网络io缓存容量（字节）
 	DecoderMsgCreator              codec.IMsgCreator            // 消息包解码器的消息构建器
 	AgreeClientEncryptionProposal  bool                         // 是否同意使用客户端建议的加密方案
 	EncCipherSuite                 transport.CipherSuite        // 加密通信中的密码学套件
@@ -65,7 +65,7 @@ func (Option) Default() GateOption {
 		Option{}.TCPLinger(nil)(options)
 		Option{}.IOTimeout(3 * time.Second)(options)
 		Option{}.IORetryTimes(3)(options)
-		Option{}.IOSequencedBuffCap(1024 * 128)(options)
+		Option{}.IOBufferCap(1024 * 128)(options)
 		Option{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
 		Option{}.AgreeClientEncryptionProposal(false)(options)
 		Option{}.EncCipherSuite(transport.CipherSuite{
@@ -159,9 +159,9 @@ func (Option) IORetryTimes(times int) GateOption {
 	}
 }
 
-func (Option) IOSequencedBuffCap(cap int) GateOption {
+func (Option) IOBufferCap(cap int) GateOption {
 	return func(options *GateOptions) {
-		options.IOSequencedBuffCap = cap
+		options.IOBufferCap = cap
 	}
 }
 

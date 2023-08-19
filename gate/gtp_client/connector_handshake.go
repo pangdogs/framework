@@ -27,10 +27,10 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			Encoder: ctor.encoder,
 			Decoder: ctor.decoder,
 			Timeout: ctor.Options.IOTimeout,
+			Buffer:  &protocol.UnsequencedBuffer{},
 		},
 		RetryTimes: ctor.Options.IORetryTimes,
 	}
-	handshake.Transceiver.SequencedBuff.Reset(0, 0, ctor.Options.IOSequencedBuffCap)
 
 	var sessionId string
 	cs := ctor.Options.EncCipherSuite
@@ -155,8 +155,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if continueFlow {
 		err = handshake.ClientContinue(protocol.Event[*transport.MsgContinue]{
 			Msg: &transport.MsgContinue{
-				SendSeq: client.transceiver.SequencedBuff.SendSeq,
-				RecvSeq: client.transceiver.SequencedBuff.RecvSeq,
+				SendSeq: client.transceiver.Buffer.SendSeq(),
+				RecvSeq: client.transceiver.Buffer.RecvSeq(),
 			},
 		})
 		if err != nil {
@@ -195,11 +195,13 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			return err
 		}
 	} else {
-		// 重置缓存
-		handshake.Transceiver.SequencedBuff.Reset(remoteRecvSeq, remoteSendSeq, ctor.Options.IOSequencedBuffCap)
-
 		// 初始化客户端
-		client.init(handshake.Transceiver, sessionId)
+		client.init(handshake.Transceiver.Conn,
+			handshake.Transceiver.Encoder,
+			handshake.Transceiver.Decoder,
+			remoteSendSeq,
+			remoteRecvSeq,
+			sessionId)
 	}
 
 	return nil
