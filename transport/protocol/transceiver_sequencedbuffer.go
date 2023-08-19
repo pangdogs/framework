@@ -127,11 +127,8 @@ func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
 
 // Synchronization 同步对端时序，对齐缓存
 func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
-	// 计算对端Ack序号
-	remoteAckSeq := remoteRecvSeq - 1
-
 	// 序号已对齐
-	if s.sendSeq == remoteAckSeq {
+	if s.sendSeq == remoteRecvSeq {
 		return nil
 	}
 
@@ -139,7 +136,7 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
-		if frame.Seq == remoteAckSeq {
+		if frame.Seq == remoteRecvSeq {
 			for j := i; j < len(s.frames); j++ {
 				s.frames[j].Offset = 0
 			}
