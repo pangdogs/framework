@@ -134,16 +134,15 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	}
 
 	// 调整序号
-	for i := s.sent - 1; i >= 0; i-- {
+	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
 		if frame.Seq == remoteAckSeq {
-			s.sent = i
-
-			for j := s.sent; j < len(s.frames); j++ {
+			for j := i; j < len(s.frames); j++ {
 				s.frames[j].Offset = 0
 			}
 
+			s.sent = i
 			s.sendSeq = frame.Seq
 			s.ackSeq = s.sendSeq - 1
 
@@ -223,15 +222,11 @@ func (s *SequencedBuffer) ack(seq uint32) {
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)
+			s.sent = 0
 
 			s.cached = cached
 			if s.cached < 0 {
-				s.cached = 0
-			}
-
-			s.sent -= i + 1
-			if s.sent < 0 {
-				s.sent = 0
+				panic(fmt.Errorf("sequenced buffer cached less 0 invalid"))
 			}
 
 			break
@@ -254,15 +249,11 @@ func (s *SequencedBuffer) reduce(size int) {
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)
+			s.sent = 0
 
 			s.cached = cached
 			if s.cached < 0 {
-				s.cached = 0
-			}
-
-			s.sent -= i + 1
-			if s.sent < 0 {
-				s.sent = 0
+				panic(fmt.Errorf("sequenced buffer cached less 0 invalid"))
 			}
 
 			break
