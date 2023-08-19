@@ -33,6 +33,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 		},
 		RetryTimes: acc.Options.IORetryTimes,
 	}
+	defer handshake.Transceiver.Clean()
 
 	var cs transport.CipherSuite
 	var cm transport.Compression

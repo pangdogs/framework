@@ -72,7 +72,10 @@ func (c *Client) run() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			c.logger.Errorf("client %q panicked, %s", c.GetSessionId(), fmt.Errorf("panicked: %w", panicErr))
 		}
-		c.transceiver.Conn.Close()
+		if c.transceiver.Conn != nil {
+			c.transceiver.Conn.Close()
+		}
+		c.transceiver.Clean()
 	}()
 
 	active := true

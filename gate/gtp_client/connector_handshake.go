@@ -31,6 +31,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		},
 		RetryTimes: ctor.Options.IORetryTimes,
 	}
+	defer handshake.Transceiver.Clean()
 
 	var sessionId string
 	cs := ctor.Options.EncCipherSuite
