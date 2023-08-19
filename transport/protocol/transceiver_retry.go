@@ -36,7 +36,7 @@ func (r Retry) Recv(e Event[transport.Msg], err error) (Event[transport.Msg], er
 	if err == nil {
 		return e, nil
 	}
-	if !errors.Is(err, os.ErrDeadlineExceeded) {
+	if !errors.Is(err, ErrDiscardSeq) && !errors.Is(err, os.ErrDeadlineExceeded) {
 		return e, err
 	}
 	for i := r.Times; i > 0; {
