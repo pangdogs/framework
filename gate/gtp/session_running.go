@@ -34,7 +34,7 @@ func (s *_GtpSession) Init(conn net.Conn, encoder codec.IEncoder, decoder codec.
 	s.transceiver.Buffer = buff
 
 	// 初始化刷新通知channel
-	s.renewChan = make(chan struct{}, 10)
+	s.renewChan = make(chan struct{}, 1)
 
 	// 初始化token
 	s.token = token
@@ -62,7 +62,11 @@ func (s *_GtpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvS
 
 	defer func() {
 		s.Unlock()
-		s.renewChan <- struct{}{}
+
+		select {
+		case s.renewChan <- struct{}{}:
+		default:
+		}
 	}()
 
 	// 刷新链路
