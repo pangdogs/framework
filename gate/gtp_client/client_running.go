@@ -259,7 +259,7 @@ func (c *Client) heartbeatHandler(event protocol.Event[*transport.MsgHeartbeat])
 	if event.Flags.Is(transport.Flag_Ping) {
 		c.logger.Debugf("session %q receive ping", c.GetSessionId())
 	} else {
-		c.logger.Debugf("session %q receive poing", c.GetSessionId())
+		c.logger.Debugf("session %q receive pong", c.GetSessionId())
 	}
 	return nil
 }
