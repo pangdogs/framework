@@ -193,7 +193,11 @@ func (s *_GtpSession) Run() {
 					case <-timer.C:
 						return
 					case <-s.renewChan:
-						s.ctrl.SendPing()
+						// 发送缓存的消息
+						protocol.Retry{
+							Transceiver: &s.transceiver,
+							Times:       s.gate.options.IORetryTimes,
+						}.Send(s.transceiver.Resend())
 						return
 					case <-s.Done():
 						return
@@ -211,13 +215,7 @@ func (s *_GtpSession) Run() {
 		pinged = false
 
 		// 调整会话状态活跃
-		if s.SetState(gate.SessionState_Active) {
-			// 发送缓存的消息
-			protocol.Retry{
-				Transceiver: &s.transceiver,
-				Times:       s.gate.options.IORetryTimes,
-			}.Send(s.transceiver.Resend())
-		}
+		s.SetState(gate.SessionState_Active)
 	}
 }
 
