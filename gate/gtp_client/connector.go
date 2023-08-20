@@ -101,6 +101,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver
 	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
+	client.ctrl.HeartbeatHandler = client.heartbeatHandler
 
 	return client
 }

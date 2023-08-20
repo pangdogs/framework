@@ -328,3 +328,13 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 
 	return protocol.ErrUnexpectedMsg
 }
+
+// HeartbeatHandler Heartbeat消息事件处理器
+func (s *_GtpSession) HeartbeatHandler(event protocol.Event[*transport.MsgHeartbeat]) error {
+	if event.Flags.Is(transport.Flag_Ping) {
+		logger.Debugf(s.gate.ctx, "session %q receive ping", s.GetId())
+	} else {
+		logger.Debugf(s.gate.ctx, "session %q receive pong", s.GetId())
+	}
+	return nil
+}
