@@ -33,6 +33,9 @@ func (s *_GtpSession) Init(conn net.Conn, encoder codec.IEncoder, decoder codec.
 
 	s.transceiver.Buffer = buff
 
+	// 初始化刷新通知channel
+	s.renewChan = make(chan struct{}, 10)
+
 	// 初始化token
 	s.token = token
 
@@ -56,7 +59,11 @@ func (s *_GtpSession) Init(conn net.Conn, encoder codec.IEncoder, decoder codec.
 // Renew 刷新
 func (s *_GtpSession) Renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	s.Lock()
-	defer s.Unlock()
+
+	defer func() {
+		s.Unlock()
+		s.renewChan <- struct{}{}
+	}()
 
 	// 刷新链路
 	return s.transceiver.Renew(conn, remoteRecvSeq)
@@ -167,6 +174,21 @@ func (s *_GtpSession) Run() {
 				if s.SetState(gate.SessionState_Inactive) {
 					timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 				}
+
+				func() {
+					timer := time.NewTimer(10 * time.Second)
+					defer timer.Stop()
+
+					select {
+					case <-timer.C:
+						return
+					case <-s.renewChan:
+						return
+					case <-s.Done():
+						return
+					}
+				}()
+
 				continue
 			}
 

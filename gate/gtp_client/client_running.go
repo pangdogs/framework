@@ -29,6 +29,9 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 
 	c.transceiver.Buffer = buff
 
+	// 初始化刷新通知channel
+	c.renewChan = make(chan struct{}, 10)
+
 	// 初始化会话Id
 	c.sessionId = sessionId
 
@@ -50,7 +53,11 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 // renew 刷新
 func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	c.mutex.Lock()
-	defer c.mutex.Unlock()
+
+	defer func() {
+		c.mutex.Unlock()
+		c.renewChan <- struct{}{}
+	}()
 
 	// 刷新链路
 	return c.transceiver.Renew(conn, remoteRecvSeq)
@@ -152,6 +159,21 @@ func (c *Client) run() {
 					active = false
 					timeout = time.Now().Add(c.options.InactiveTimeout)
 				}
+
+				func() {
+					timer := time.NewTimer(10 * time.Second)
+					defer timer.Stop()
+
+					select {
+					case <-timer.C:
+						return
+					case <-c.renewChan:
+						return
+					case <-c.Done():
+						return
+					}
+				}()
+
 				continue
 			}
 
