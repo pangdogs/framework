@@ -127,7 +127,7 @@ func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
 
 // Synchronization 同步对端时序，对齐缓存序号
 func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
-	// 对齐序号
+	// 从时序帧中查询对端序号
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
@@ -142,6 +142,11 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 
 			return nil
 		}
+	}
+
+	// 发送序号与对端接收序号相同
+	if s.sendSeq == remoteRecvSeq {
+		return nil
 	}
 
 	return fmt.Errorf("frame %d not found", remoteRecvSeq)
