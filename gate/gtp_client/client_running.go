@@ -83,7 +83,10 @@ func (c *Client) run() {
 			c.transceiver.Conn.Close()
 		}
 		c.transceiver.Clean()
+		c.logger.Debugf("client %q shutdown, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 	}()
+
+	c.logger.Debugf("client %q started, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
 	active := true
 	pinged := false
@@ -138,12 +141,18 @@ func (c *Client) run() {
 
 		// 分发消息事件
 		if err := c.dispatcher.Dispatching(); err != nil {
+			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
+
 			// 网络io超时，触发心跳检测，向对方发送ping
 			if errors.Is(err, protocol.ErrTimeout) {
 				if !pinged {
+					c.logger.Debugf("client %q send ping", c.GetSessionId())
+
 					c.ctrl.SendPing()
 					pinged = true
 				} else {
+					c.logger.Debugf("client %q no pong received", c.GetSessionId())
+
 					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
 					if active {
 						active = false
@@ -174,10 +183,10 @@ func (c *Client) run() {
 					}
 				}()
 
+				c.logger.Debugf("client %q retry dispatching event, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 				continue
 			}
 
-			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
 			continue
 		}
 

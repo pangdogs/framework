@@ -98,7 +98,11 @@ func (s *_GtpSession) Run() {
 		// 删除会话
 		s.gate.sessionMap.Delete(s.GetId())
 		atomic.AddInt64(&s.gate.sessionCount, -1)
+
+		logger.Debugf(s.gate.ctx, "session %q shutdown, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 	}()
+
+	logger.Debugf(s.gate.ctx, "session %q started, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 
 	pinged := false
 	var timeout time.Time
@@ -155,12 +159,18 @@ func (s *_GtpSession) Run() {
 
 		// 分发消息事件
 		if err := s.dispatcher.Dispatching(); err != nil {
+			logger.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
+
 			// 网络io超时，触发心跳检测，向对方发送ping
 			if errors.Is(err, protocol.ErrTimeout) {
 				if !pinged {
+					logger.Debugf(s.gate.ctx, "session %q send ping", s.GetId())
+
 					s.ctrl.SendPing()
 					pinged = true
 				} else {
+					logger.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
+
 					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
 					if s.SetState(gate.SessionState_Inactive) {
 						timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
@@ -189,10 +199,10 @@ func (s *_GtpSession) Run() {
 					}
 				}()
 
+				logger.Debugf(s.gate.ctx, "session %q retry dispatching event, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 				continue
 			}
 
-			logger.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
 			continue
 		}
 
@@ -221,6 +231,8 @@ func (s *_GtpSession) SetState(state gate.SessionState) bool {
 	s.Lock()
 	s.state = state
 	s.Unlock()
+
+	logger.Debugf(s.gate.ctx, "session %q state %q => %q", s.GetId(), old, state)
 
 	for i := range s.gate.options.SessionStateChangedHandlers {
 		handler := s.gate.options.SessionStateChangedHandlers[i]
