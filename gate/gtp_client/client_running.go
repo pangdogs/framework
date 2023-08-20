@@ -177,7 +177,11 @@ func (c *Client) run() {
 					case <-timer.C:
 						return
 					case <-c.renewChan:
-						c.ctrl.SendPing()
+						// 发送缓存的消息
+						protocol.Retry{
+							Transceiver: &c.transceiver,
+							Times:       c.options.IORetryTimes,
+						}.Send(c.transceiver.Resend())
 						return
 					case <-c.Done():
 						return
@@ -195,15 +199,7 @@ func (c *Client) run() {
 		pinged = false
 
 		// 调整连接状态活跃
-		if !active {
-			active = true
-
-			// 发送缓存的消息
-			protocol.Retry{
-				Transceiver: &c.transceiver,
-				Times:       c.options.IORetryTimes,
-			}.Send(c.transceiver.Resend())
-		}
+		active = true
 	}
 }
 
