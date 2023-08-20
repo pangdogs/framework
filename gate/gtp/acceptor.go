@@ -51,6 +51,7 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver
 	session.ctrl.RetryTimes = acc.Gate.options.IORetryTimes
+	session.ctrl.HeartbeatHandler = session.HeartbeatHandler
 
 	return session, nil
 }
