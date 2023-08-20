@@ -99,10 +99,10 @@ func (s *_GtpSession) Run() {
 		s.gate.sessionMap.Delete(s.GetId())
 		atomic.AddInt64(&s.gate.sessionCount, -1)
 
-		logger.Debugf(s.gate.ctx, "session %q shutdown, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+		logger.Debugf(s.gate.ctx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 	}()
 
-	logger.Debugf(s.gate.ctx, "session %q started, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	logger.Debugf(s.gate.ctx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 
 	pinged := false
 	var timeout time.Time
@@ -199,7 +199,7 @@ func (s *_GtpSession) Run() {
 					}
 				}()
 
-				logger.Debugf(s.gate.ctx, "session %q retry dispatching event, local %q, remote %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+				logger.Debugf(s.gate.ctx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 				continue
 			}
 
