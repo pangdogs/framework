@@ -24,6 +24,7 @@ type _GtpSession struct {
 	dispatcher                   protocol.EventDispatcher
 	trans                        protocol.TransProtocol
 	ctrl                         protocol.CtrlProtocol
+	renewChan                    chan struct{}
 	stateChangedHandlers         []gate.StateChangedHandler
 	recvDataHandlers             []gate.RecvDataHandler
 	recvEventHandlers            []gate.RecvEventHandler
