@@ -182,6 +182,8 @@ func (c *Client) run() {
 							Transceiver: &c.transceiver,
 							Times:       c.options.IORetryTimes,
 						}.Send(c.transceiver.Resend())
+						// 重置ping状态
+						pinged = false
 						return
 					case <-c.Done():
 						return
@@ -197,7 +199,6 @@ func (c *Client) run() {
 
 		// 没有错误，或非网络io类错误，重置ping状态
 		pinged = false
-
 		// 调整连接状态活跃
 		active = true
 	}

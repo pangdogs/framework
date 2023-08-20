@@ -198,6 +198,8 @@ func (s *_GtpSession) Run() {
 							Transceiver: &s.transceiver,
 							Times:       s.gate.options.IORetryTimes,
 						}.Send(s.transceiver.Resend())
+						// 重置ping状态
+						pinged = false
 						return
 					case <-s.Done():
 						return
@@ -213,7 +215,6 @@ func (s *_GtpSession) Run() {
 
 		// 没有错误，或非网络io类错误，重置ping状态
 		pinged = false
-
 		// 调整会话状态活跃
 		s.SetState(gate.SessionState_Active)
 	}
