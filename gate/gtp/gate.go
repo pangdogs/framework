@@ -10,6 +10,7 @@ import (
 	"kit.golaxy.org/plugins/logger"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 func newGtpGate(options ...GateOption) gate.Gate {
@@ -90,17 +91,22 @@ func (g *_GtpGate) ShutSP(ctx service.Context) {
 	}
 }
 
-// Broadcast 广播数据
-func (g *_GtpGate) Broadcast(data []byte) error {
-	return nil
+// GetSession 查询会话
+func (g *_GtpGate) GetSession(sessionId string) (gate.Session, bool) {
+	return g.LoadSession(sessionId)
 }
 
-// Multicast 组播数据
-func (g *_GtpGate) Multicast(groupId string, data []byte) error {
-	return nil
+// RangeSessions 遍历所有会话
+func (g *_GtpGate) RangeSessions(fun func(session gate.Session) bool) {
+	if fun == nil {
+		return
+	}
+	g.sessionMap.Range(func(k, v any) bool {
+		return fun(v.(gate.Session))
+	})
 }
 
-// Unicast 单播数据
-func (g *_GtpGate) Unicast(sessionId string, data []byte) error {
-	return nil
+// CountSessions 统计所有会话数量
+func (g *_GtpGate) CountSessions() int {
+	return int(atomic.LoadInt64(&g.sessionCount))
 }
