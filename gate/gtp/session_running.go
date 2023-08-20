@@ -171,6 +171,7 @@ func (s *_GtpSession) Run() {
 			}
 
 			logger.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
+			continue
 		}
 
 		// 没有错误，或非网络io类错误，重置ping状态
@@ -178,6 +179,7 @@ func (s *_GtpSession) Run() {
 
 		// 调整会话状态活跃
 		if s.SetState(gate.SessionState_Active) {
+			// 发送缓存的消息
 			protocol.Retry{
 				Transceiver: &s.transceiver,
 				Times:       s.gate.options.IORetryTimes,

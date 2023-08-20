@@ -156,6 +156,7 @@ func (c *Client) run() {
 			}
 
 			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
+			continue
 		}
 
 		// 没有错误，或非网络io类错误，重置ping状态
@@ -164,6 +165,8 @@ func (c *Client) run() {
 		// 调整连接状态活跃
 		if !active {
 			active = true
+
+			// 发送缓存的消息
 			protocol.Retry{
 				Transceiver: &c.transceiver,
 				Times:       c.options.IORetryTimes,
