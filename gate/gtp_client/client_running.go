@@ -83,10 +83,10 @@ func (c *Client) run() {
 			c.transceiver.Conn.Close()
 		}
 		c.transceiver.Clean()
-		c.logger.Debugf("client %q shutdown, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+		c.logger.Debugf("client %q shutdown, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 	}()
 
-	c.logger.Debugf("client %q started, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+	c.logger.Debugf("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
 	active := true
 	pinged := false
@@ -183,7 +183,7 @@ func (c *Client) run() {
 					}
 				}()
 
-				c.logger.Debugf("client %q retry dispatching event, local %q, remote %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+				c.logger.Debugf("client %q retry dispatching event, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 				continue
 			}
 
