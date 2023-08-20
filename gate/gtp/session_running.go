@@ -193,6 +193,7 @@ func (s *_GtpSession) Run() {
 					case <-timer.C:
 						return
 					case <-s.renewChan:
+						s.ctrl.SendPing()
 						return
 					case <-s.Done():
 						return

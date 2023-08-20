@@ -177,6 +177,7 @@ func (c *Client) run() {
 					case <-timer.C:
 						return
 					case <-c.renewChan:
+						c.ctrl.SendPing()
 						return
 					case <-c.Done():
 						return
