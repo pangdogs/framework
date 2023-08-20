@@ -257,9 +257,9 @@ func (c *Client) payloadHandler(event protocol.Event[*transport.MsgPayload]) err
 // heartbeatHandler Heartbeat消息事件处理器
 func (c *Client) heartbeatHandler(event protocol.Event[*transport.MsgHeartbeat]) error {
 	if event.Flags.Is(transport.Flag_Ping) {
-		c.logger.Debugf("session %q receive ping", c.GetSessionId())
+		c.logger.Debugf("client %q receive ping", c.GetSessionId())
 	} else {
-		c.logger.Debugf("session %q receive pong", c.GetSessionId())
+		c.logger.Debugf("client %q receive pong", c.GetSessionId())
 	}
 	return nil
 }
