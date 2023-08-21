@@ -59,11 +59,6 @@ func (s *_GtpSession) GetState() gate.SessionState {
 	return s.state
 }
 
-// GetGroups 获取所属的会话组Id
-func (s *_GtpSession) GetGroups() []string {
-	return nil
-}
-
 // GetLocalAddr 获取本地地址
 func (s *_GtpSession) GetLocalAddr() net.Addr {
 	s.Lock()
