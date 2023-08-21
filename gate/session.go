@@ -26,6 +26,8 @@ const (
 type Session interface {
 	context.Context
 	fmt.Stringer
+	// Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
+	Options(options ...SessionOption) error
 	// GetContext 获取服务上下文
 	GetContext() service.Context
 	// GetId 获取会话Id

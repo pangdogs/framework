@@ -38,6 +38,8 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	session.Context, session.cancel = context.WithCancel(acc.Gate.ctx)
 	session.transceiver.Conn = conn
 
+	gate.Option{}.Default()(&session.options)
+
 	// 初始化消息事件分发器
 	session.dispatcher.Transceiver = &session.transceiver
 	session.dispatcher.RetryTimes = acc.Gate.options.IORetryTimes
