@@ -94,12 +94,6 @@ func (s *_GtpSession) Run() {
 
 	logger.Debugf(s.gate.ctx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 
-	pinged := false
-	var timeout time.Time
-
-	// 调整会话状态为活跃
-	s.SetState(gate.SessionState_Active)
-
 	// 启动发送数据的线程
 	if s.options.SendDataChan != nil {
 		go func() {
@@ -131,6 +125,12 @@ func (s *_GtpSession) Run() {
 			}
 		}()
 	}
+
+	pinged := false
+	var timeout time.Time
+
+	// 调整会话状态为活跃
+	s.SetState(gate.SessionState_Active)
 
 	for {
 		// 非活跃状态，检测超时时间

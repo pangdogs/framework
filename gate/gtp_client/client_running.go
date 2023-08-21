@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/transport"
@@ -88,10 +89,6 @@ func (c *Client) run() {
 
 	c.logger.Debugf("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
-	active := true
-	pinged := false
-	var timeout time.Time
-
 	// 启动发送数据的线程
 	if c.sendDataChan != nil {
 		go func() {
@@ -124,9 +121,56 @@ func (c *Client) run() {
 		}()
 	}
 
+	active := true
+	pinged := false
+	var retryCancel context.CancelFunc
+	var timeout time.Time
+
+	// 修改活跃状态
+	changeActive := func(b bool) {
+		if active == b {
+			return
+		}
+		active = b
+
+		if active {
+			if retryCancel != nil {
+				retryCancel()
+				retryCancel = nil
+			}
+		} else {
+			if c.options.AutoReconnect {
+				// 非活跃状态，开启自动重连，启动自动重连线程
+				var ctx context.Context
+				ctx, retryCancel = context.WithCancel(c)
+
+				go func() {
+					for i := 0; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+						}
+
+						if err := Reonnect(c); err != nil {
+							c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
+							continue
+						}
+
+						c.logger.Debugf("client %q auto reconnect ok, retry %d times", c.GetSessionId(), i+1)
+						return
+					}
+					c.cancel()
+				}()
+			} else {
+				timeout = time.Now().Add(c.options.InactiveTimeout)
+			}
+		}
+	}
+
 	for {
-		// 非活跃状态，检测超时时间
-		if !active {
+		// 非活跃状态，未开启自动重连，检测超时时间
+		if !active && retryCancel == nil {
 			if time.Now().After(timeout) {
 				c.cancel()
 			}
@@ -154,20 +198,14 @@ func (c *Client) run() {
 					c.logger.Debugf("client %q no pong received", c.GetSessionId())
 
 					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
-					if active {
-						active = false
-						timeout = time.Now().Add(c.options.InactiveTimeout)
-					}
+					changeActive(false)
 				}
 				continue
 			}
 
 			// 其他网络io类错误，调整连接状态不活跃
 			if errors.Is(err, protocol.ErrNetIO) {
-				if active {
-					active = false
-					timeout = time.Now().Add(c.options.InactiveTimeout)
-				}
+				changeActive(false)
 
 				func() {
 					timer := time.NewTimer(10 * time.Second)
@@ -200,7 +238,7 @@ func (c *Client) run() {
 		// 没有错误，或非网络io类错误，重置ping状态
 		pinged = false
 		// 调整连接状态活跃
-		active = true
+		changeActive(true)
 	}
 }
 
