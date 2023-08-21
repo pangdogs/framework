@@ -34,8 +34,6 @@ type Session interface {
 	GetToken() string
 	// GetState 获取会话状态
 	GetState() SessionState
-	// GetGroups 获取所属的会话组Id
-	GetGroups() []string
 	// GetLocalAddr 获取本地地址
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
