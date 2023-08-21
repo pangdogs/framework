@@ -29,7 +29,10 @@ type ClientOptions struct {
 	EncVerifySignaturePublicKey crypto.PublicKey             // 加密通信中，验证服务端签名用的公钥
 	Compression                 transport.Compression        // 通信中的压缩函数
 	CompressedSize              int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	InactiveTimeout             time.Duration                // 连接不活跃后的超时时间
+	AutoReconnect               bool                         // 开启自动重连
+	AutoReconnectInterval       time.Duration                // 自动重连的时间间隔
+	AutoReconnectRetryTimes     int                          // 自动重连的重试次数，<=0表示无限重试
+	InactiveTimeout             time.Duration                // 连接不活跃后的超时时间，开启自动重连后无效
 	SendDataChanSize            int                          // 发送数据的channel的大小，<=0表示不使用channel
 	RecvDataChanSize            int                          // 接收数据的channel的大小，<=0表示不使用channel
 	SendEventSize               int                          // 发送自定义事件的channel的大小，<=0表示不使用channel
@@ -72,6 +75,9 @@ func (Option) Default() ClientOption {
 		Option{}.EncVerifyServerSignature(false)(options)
 		Option{}.Compression(transport.Compression_Brotli)(options)
 		Option{}.CompressedSize(1024 * 32)(options)
+		Option{}.AutoReconnect(false)(options)
+		Option{}.AutoReconnectInterval(3 * time.Second)(options)
+		Option{}.AutoReconnectRetryTimes(100)(options)
 		Option{}.InactiveTimeout(60 * time.Second)(options)
 		Option{}.SendDataChanSize(0)(options)
 		Option{}.RecvDataChanSize(0)(options)
@@ -187,6 +193,24 @@ func (Option) Compression(c transport.Compression) ClientOption {
 func (Option) CompressedSize(size int) ClientOption {
 	return func(options *ClientOptions) {
 		options.CompressedSize = size
+	}
+}
+
+func (Option) AutoReconnect(b bool) ClientOption {
+	return func(options *ClientOptions) {
+		options.AutoReconnect = b
+	}
+}
+
+func (Option) AutoReconnectInterval(dur time.Duration) ClientOption {
+	return func(options *ClientOptions) {
+		options.AutoReconnectInterval = dur
+	}
+}
+
+func (Option) AutoReconnectRetryTimes(times int) ClientOption {
+	return func(options *ClientOptions) {
+		options.AutoReconnectRetryTimes = times
 	}
 }
 

@@ -55,7 +55,7 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 }
 
 // Reconnect 重连服务端
-func (ctor *_Connector) Reconnect(client *Client) error {
+func (ctor *_Connector) Reconnect(client *Client) (err error) {
 	if client == nil {
 		return errors.New("client is nil")
 	}
@@ -68,6 +68,15 @@ func (ctor *_Connector) Reconnect(client *Client) error {
 	if ctor.Options.TLSConfig != nil {
 		conn = tls.Client(conn, ctor.Options.TLSConfig)
 	}
+
+	defer func() {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			err = fmt.Errorf("panicked: %w", panicErr)
+		}
+		if err != nil {
+			conn.Close()
+		}
+	}()
 
 	err = ctor.handshake(conn, client)
 	if err != nil {
