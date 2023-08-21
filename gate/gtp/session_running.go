@@ -39,20 +39,6 @@ func (s *_GtpSession) Init(conn net.Conn, encoder codec.IEncoder, decoder codec.
 	// 初始化token
 	s.token = token
 
-	// 初始化channel
-	if s.gate.options.SessionSendDataChanSize > 0 {
-		s.sendDataChan = make(chan []byte, s.gate.options.SessionSendDataChanSize)
-	}
-	if s.gate.options.SessionRecvDataChanSize > 0 {
-		s.recvDataChan = make(chan []byte, s.gate.options.SessionRecvDataChanSize)
-	}
-	if s.gate.options.SessionSendEventSize > 0 {
-		s.sendEventChan = make(chan protocol.Event[transport.Msg], s.gate.options.SessionSendEventSize)
-	}
-	if s.gate.options.SessionRecvEventSize > 0 {
-		s.recvEventChan = make(chan protocol.Event[transport.Msg], s.gate.options.SessionRecvEventSize)
-	}
-
 	return buff.SendSeq(), buff.RecvSeq()
 }
 
@@ -115,11 +101,11 @@ func (s *_GtpSession) Run() {
 	s.SetState(gate.SessionState_Active)
 
 	// 启动发送数据的线程
-	if s.sendDataChan != nil {
+	if s.options.SendDataChan != nil {
 		go func() {
 			for {
 				select {
-				case data := <-s.sendDataChan:
+				case data := <-s.options.SendDataChan:
 					if err := s.SendData(data); err != nil {
 						logger.Errorf(s.gate.ctx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
 					}
@@ -131,11 +117,11 @@ func (s *_GtpSession) Run() {
 	}
 
 	// 启动发送自定义事件的线程
-	if s.sendEventChan != nil {
+	if s.options.SendEventChan != nil {
 		go func() {
 			for {
 				select {
-				case event := <-s.sendEventChan:
+				case event := <-s.options.SendEventChan:
 					if err := s.SendEvent(event); err != nil {
 						logger.Errorf(s.gate.ctx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
 					}
@@ -249,8 +235,8 @@ func (s *_GtpSession) SetState(state gate.SessionState) bool {
 		}
 	}
 
-	for i := range s.stateChangedHandlers {
-		handler := s.stateChangedHandlers[i]
+	for i := range s.options.StateChangedHandlers {
+		handler := s.options.StateChangedHandlers[i]
 		if handler == nil {
 			continue
 		}
@@ -265,9 +251,9 @@ func (s *_GtpSession) SetState(state gate.SessionState) bool {
 
 // EventHandler 接收自定义事件的处理器
 func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
-	if s.recvEventChan != nil {
+	if s.options.RecvEventChan != nil {
 		select {
-		case s.recvEventChan <- event.Clone():
+		case s.options.RecvEventChan <- event.Clone():
 		default:
 			logger.Errorf(s.gate.ctx, "session %q receive event channel is full", s.GetId())
 		}
@@ -284,8 +270,8 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 		}
 	}
 
-	for i := range s.recvEventHandlers {
-		handler := s.recvEventHandlers[i]
+	for i := range s.options.RecvEventHandlers {
+		handler := s.options.RecvEventHandlers[i]
 		if handler == nil {
 			continue
 		}
@@ -300,9 +286,9 @@ func (s *_GtpSession) EventHandler(event protocol.Event[transport.Msg]) error {
 
 // PayloadHandler Payload消息事件处理器
 func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]) error {
-	if s.recvDataChan != nil {
+	if s.options.RecvDataChan != nil {
 		select {
-		case s.recvDataChan <- bytes.Clone(event.Msg.Data):
+		case s.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
 			logger.Errorf(s.gate.ctx, "session %q receive data channel is full", s.GetId())
 		}
@@ -319,8 +305,8 @@ func (s *_GtpSession) PayloadHandler(event protocol.Event[*transport.MsgPayload]
 		}
 	}
 
-	for i := range s.recvDataHandlers {
-		handler := s.recvDataHandlers[i]
+	for i := range s.options.RecvDataHandlers {
+		handler := s.options.RecvDataHandlers[i]
 		if handler == nil {
 			continue
 		}
