@@ -46,8 +46,6 @@ func (s *_GtpSession) Options(options ...gate.SessionOption) error {
 		return errors.New("incorrect session state")
 	}
 
-	gate.Option{}.Default()(&s.options)
-
 	for i := range options {
 		options[i](&s.options)
 	}
