@@ -57,7 +57,7 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, %w", err)
+			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
 		}
 	}
 
@@ -101,7 +101,7 @@ func (t *Transceiver) Resend() error {
 
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, %w", err)
+			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
 		}
 	}
 
