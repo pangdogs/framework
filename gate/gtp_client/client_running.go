@@ -257,6 +257,14 @@ func (c *Client) reconnect() {
 
 		if err := Reonnect(c); err != nil {
 			c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
+
+			// 服务端返回rst拒绝连接，刷新链路失败，这两种情况下不再重试，关闭客户端
+			var rstErr *protocol.RstError
+			if errors.As(err, &rstErr) || errors.Is(err, protocol.ErrRenewConn) {
+				c.cancel()
+				return
+			}
+
 			time.Sleep(c.options.AutoReconnectInterval)
 			continue
 		}
