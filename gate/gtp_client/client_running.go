@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/transport"
@@ -31,7 +30,7 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 	c.transceiver.Buffer = buff
 
 	// 初始化刷新通知channel
-	c.renewChan = make(chan struct{}, 10)
+	c.renewChan = make(chan struct{}, 1)
 
 	// 初始化会话Id
 	c.sessionId = sessionId
@@ -57,7 +56,11 @@ func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq ui
 
 	defer func() {
 		c.mutex.Unlock()
-		c.renewChan <- struct{}{}
+
+		select {
+		case c.renewChan <- struct{}{}:
+		default:
+		}
 	}()
 
 	// 刷新链路
@@ -122,56 +125,50 @@ func (c *Client) run() {
 	}
 
 	active := true
+	reconnectChan := make(chan struct{}, 1)
 	pinged := false
-	var retryCancel context.CancelFunc
 	var timeout time.Time
+
+	// 启动自动重连线程
+	if c.options.AutoReconnect {
+		go func() {
+			for {
+				select {
+				case <-c.Done():
+					return
+				case <-reconnectChan:
+					// 重连
+					c.reconnect()
+					// 重连结束，释放channel
+					for {
+						select {
+						case <-reconnectChan:
+						default:
+							return
+						}
+					}
+				}
+			}
+		}()
+	}
 
 	// 修改活跃状态
 	changeActive := func(b bool) {
-		if active == b {
-			return
-		}
 		active = b
 
-		if active {
-			if retryCancel != nil {
-				retryCancel()
-				retryCancel = nil
-			}
-		} else {
-			if c.options.AutoReconnect {
-				// 非活跃状态，开启自动重连，启动自动重连线程
-				var ctx context.Context
-				ctx, retryCancel = context.WithCancel(c)
-
-				go func() {
-					for i := 0; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
-						select {
-						case <-ctx.Done():
-							return
-						default:
-						}
-
-						if err := Reonnect(c); err != nil {
-							c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
-							continue
-						}
-
-						c.logger.Debugf("client %q auto reconnect ok, retry %d times", c.GetSessionId(), i+1)
-						return
-					}
-					c.cancel()
-				}()
-			} else {
-				timeout = time.Now().Add(c.options.InactiveTimeout)
+		if !active {
+			select {
+			case reconnectChan <- struct{}{}:
+			default:
 			}
 		}
 	}
 
 	for {
 		// 非活跃状态，未开启自动重连，检测超时时间
-		if !active && retryCancel == nil {
+		if !active && !c.options.AutoReconnect {
 			if time.Now().After(timeout) {
+				// 超时关闭连接
 				c.cancel()
 			}
 		}
@@ -240,6 +237,27 @@ func (c *Client) run() {
 		// 调整连接状态活跃
 		changeActive(true)
 	}
+}
+
+// reconnect 重连
+func (c *Client) reconnect() {
+	for i := 0; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
+		select {
+		case <-c.Done():
+			return
+		default:
+		}
+
+		if err := Reonnect(c); err != nil {
+			c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
+			continue
+		}
+
+		c.logger.Debugf("client %q auto reconnect ok, retry %d times", c.GetSessionId(), i+1)
+		return
+	}
+	// 多次重连失败，关闭连接
+	c.cancel()
 }
 
 // eventHandler 接收自定义事件的处理器
