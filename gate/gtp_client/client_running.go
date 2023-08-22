@@ -140,11 +140,12 @@ func (c *Client) run() {
 					// 重连
 					c.reconnect()
 					// 重连结束，释放channel
+				release:
 					for {
 						select {
 						case <-reconnectChan:
 						default:
-							return
+							break release
 						}
 					}
 				}
