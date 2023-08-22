@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	ErrRenewConn     = errors.New("renew conn")          // 刷新链路错误
 	ErrUnexpectedSeq = errors.New("unexpected sequence") // 收到非预期的消息序号，表示序号不连续
 	ErrDiscardSeq    = errors.New("discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
 	ErrNetIO         = errors.New("net i/o")             // 网络io类错误
@@ -72,7 +73,7 @@ func (t *Transceiver) Send(e Event[transport.Msg]) error {
 func (t *Transceiver) SendRst(err error) error {
 	// 包装错误信息
 	var rstErr *RstError
-	if ok := errors.As(err, &rstErr); !ok {
+	if !errors.As(err, &rstErr) {
 		rstErr = &RstError{Code: transport.Code_Reject}
 		if err != nil {
 			rstErr.Message = err.Error()
@@ -157,12 +158,12 @@ func (t *Transceiver) Recv() (Event[transport.Msg], error) {
 // Renew 刷新链路
 func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
 	if conn == nil {
-		return 0, 0, errors.New("conn is nil")
+		return 0, 0, fmt.Errorf("%w, conn is nil", ErrRenewConn)
 	}
 
 	// 同步对端时序
 	if err = t.Buffer.Synchronization(remoteRecvSeq); err != nil {
-		return 0, 0, fmt.Errorf("synchronize sequence failed, %s", err)
+		return 0, 0, fmt.Errorf("%w, synchronize sequence failed, %s", ErrRenewConn, err)
 	}
 
 	// 切换连接
