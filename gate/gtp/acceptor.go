@@ -38,6 +38,7 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	session.Context, session.cancel = context.WithCancel(acc.Gate.ctx)
 	session.transceiver.Conn = conn
 
+	// 初始化会话默认选项
 	gate.Option{}.Default()(&session.options)
 	gate.Option{}.SendDataChanSize(acc.Options.SessionSendDataChanSize)(&session.options)
 	gate.Option{}.RecvDataChanSize(acc.Options.SessionRecvDataChanSize)(&session.options)
