@@ -27,6 +27,7 @@ type Client struct {
 	dispatcher                   protocol.EventDispatcher
 	trans                        protocol.TransProtocol
 	ctrl                         protocol.CtrlProtocol
+	reconnectChan                chan struct{}
 	renewChan                    chan struct{}
 	sendDataChan, recvDataChan   chan []byte
 	sendEventChan, recvEventChan chan protocol.Event[transport.Msg]
