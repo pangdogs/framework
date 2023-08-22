@@ -32,6 +32,11 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 	// 初始化刷新通知channel
 	c.renewChan = make(chan struct{}, 1)
 
+	// 初始化自动重连channel
+	if c.options.AutoReconnect {
+		c.reconnectChan = make(chan struct{}, 1)
+	}
+
 	// 初始化会话Id
 	c.sessionId = sessionId
 
@@ -125,7 +130,6 @@ func (c *Client) run() {
 	}
 
 	active := true
-	reconnectChan := make(chan struct{}, 1)
 	pinged := false
 	var timeout time.Time
 
@@ -136,18 +140,8 @@ func (c *Client) run() {
 				select {
 				case <-c.Done():
 					return
-				case <-reconnectChan:
-					// 重连
+				case <-c.reconnectChan:
 					c.reconnect()
-					// 重连结束，释放channel
-				release:
-					for {
-						select {
-						case <-reconnectChan:
-						default:
-							break release
-						}
-					}
 				}
 			}
 		}()
@@ -157,9 +151,9 @@ func (c *Client) run() {
 	changeActive := func(b bool) {
 		active = b
 
-		if !active {
+		if !active && c.options.AutoReconnect {
 			select {
-			case reconnectChan <- struct{}{}:
+			case c.reconnectChan <- struct{}{}:
 			default:
 			}
 		}
@@ -242,6 +236,18 @@ func (c *Client) run() {
 
 // reconnect 重连
 func (c *Client) reconnect() {
+	defer func() {
+		// 释放自动重连channel
+		for {
+			select {
+			case <-c.reconnectChan:
+			default:
+				return
+			}
+		}
+	}()
+
+	// 尝试重连
 	for i := 0; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
 		select {
 		case <-c.Done():
@@ -254,9 +260,10 @@ func (c *Client) reconnect() {
 			continue
 		}
 
-		c.logger.Debugf("client %q auto reconnect ok, retry %d times", c.GetSessionId(), i+1)
+		c.logger.Debugf("client %q auto reconnect ok, retry %d times, conn %q -> %q", c.GetSessionId(), i+1, c.GetLocalAddr(), c.GetRemoteAddr())
 		return
 	}
+
 	// 多次重连失败，关闭连接
 	c.cancel()
 }
