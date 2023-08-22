@@ -257,6 +257,7 @@ func (c *Client) reconnect() {
 
 		if err := Reonnect(c); err != nil {
 			c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
+			time.Sleep(c.options.AutoReconnectInterval)
 			continue
 		}
 
