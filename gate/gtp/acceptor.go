@@ -39,6 +39,10 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	session.transceiver.Conn = conn
 
 	gate.Option{}.Default()(&session.options)
+	gate.Option{}.SendDataChanSize(acc.Options.SessionSendDataChanSize)(&session.options)
+	gate.Option{}.RecvDataChanSize(acc.Options.SessionRecvDataChanSize)(&session.options)
+	gate.Option{}.SendEventChanSize(acc.Options.SessionSendEventSize)(&session.options)
+	gate.Option{}.RecvEventChanSize(acc.Options.SessionRecvEventSize)(&session.options)
 
 	// 初始化消息事件分发器
 	session.dispatcher.Transceiver = &session.transceiver

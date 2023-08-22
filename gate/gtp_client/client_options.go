@@ -6,42 +6,43 @@ import (
 	"go.uber.org/zap"
 	"kit.golaxy.org/plugins/transport"
 	"kit.golaxy.org/plugins/transport/codec"
+	"kit.golaxy.org/plugins/transport/protocol"
 	"time"
 )
 
 type Option struct{}
 
 type ClientOptions struct {
-	TLSConfig                   *tls.Config                  // TLS配置，nil表示不使用TLS加密链路
-	TCPNoDelay                  *bool                        // TCP的NoDelay选项，nil表示使用系统默认值
-	TCPQuickAck                 *bool                        // TCP的QuickAck选项，nil表示使用系统默认值
-	TCPRecvBuf                  *int                         // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
-	TCPSendBuf                  *int                         // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
-	TCPLinger                   *int                         // TCP的PLinger选项，nil表示使用系统默认值
-	IOTimeout                   time.Duration                // 网络io超时时间
-	IORetryTimes                int                          // 网络io超时后的重试次数
-	IOBufferCap                 int                          // 网络io缓存容量（字节）
-	DecoderMsgCreator           codec.IMsgCreator            // 消息包解码器的消息构建器
-	EncCipherSuite              transport.CipherSuite        // 加密通信中的密码学套件
-	EncSignatureAlgorithm       transport.SignatureAlgorithm // 加密通信中的签名算法
-	EncSignaturePrivateKey      crypto.PrivateKey            // 加密通信中，签名用的私钥
-	EncVerifyServerSignature    bool                         // 加密通信中，是否验证服务端签名
-	EncVerifySignaturePublicKey crypto.PublicKey             // 加密通信中，验证服务端签名用的公钥
-	Compression                 transport.Compression        // 通信中的压缩函数
-	CompressedSize              int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	AutoReconnect               bool                         // 开启自动重连
-	AutoReconnectInterval       time.Duration                // 自动重连的时间间隔
-	AutoReconnectRetryTimes     int                          // 自动重连的重试次数，<=0表示无限重试
-	InactiveTimeout             time.Duration                // 连接不活跃后的超时时间，开启自动重连后无效
-	SendDataChanSize            int                          // 发送数据的channel的大小，<=0表示不使用channel
-	RecvDataChanSize            int                          // 接收数据的channel的大小，<=0表示不使用channel
-	SendEventSize               int                          // 发送自定义事件的channel的大小，<=0表示不使用channel
-	RecvEventSize               int                          // 接收自定义事件的channel的大小，<=0表示不使用channel
-	RecvDataHandlers            []RecvDataHandler            // 接收的数据的处理器列表
-	RecvEventHandlers           []RecvEventHandler           // 接收的自定义事件的处理器列表
-	AuthToken                   string                       // 鉴权token
-	AuthExtensions              []byte                       // 鉴权extensions
-	ZapLogger                   *zap.Logger                  // zap日志
+	TLSConfig                   *tls.Config                        // TLS配置，nil表示不使用TLS加密链路
+	TCPNoDelay                  *bool                              // TCP的NoDelay选项，nil表示使用系统默认值
+	TCPQuickAck                 *bool                              // TCP的QuickAck选项，nil表示使用系统默认值
+	TCPRecvBuf                  *int                               // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+	TCPSendBuf                  *int                               // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+	TCPLinger                   *int                               // TCP的PLinger选项，nil表示使用系统默认值
+	IOTimeout                   time.Duration                      // 网络io超时时间
+	IORetryTimes                int                                // 网络io超时后的重试次数
+	IOBufferCap                 int                                // 网络io缓存容量（字节）
+	DecoderMsgCreator           codec.IMsgCreator                  // 消息包解码器的消息构建器
+	EncCipherSuite              transport.CipherSuite              // 加密通信中的密码学套件
+	EncSignatureAlgorithm       transport.SignatureAlgorithm       // 加密通信中的签名算法
+	EncSignaturePrivateKey      crypto.PrivateKey                  // 加密通信中，签名用的私钥
+	EncVerifyServerSignature    bool                               // 加密通信中，是否验证服务端签名
+	EncVerifySignaturePublicKey crypto.PublicKey                   // 加密通信中，验证服务端签名用的公钥
+	Compression                 transport.Compression              // 通信中的压缩函数
+	CompressedSize              int                                // 通信中启用压缩阀值（字节），<=0表示不开启
+	AutoReconnect               bool                               // 开启自动重连
+	AutoReconnectInterval       time.Duration                      // 自动重连的时间间隔
+	AutoReconnectRetryTimes     int                                // 自动重连的重试次数，<=0表示无限重试
+	InactiveTimeout             time.Duration                      // 连接不活跃后的超时时间，开启自动重连后无效
+	SendDataChan                chan []byte                        // 发送数据的channel
+	RecvDataChan                chan []byte                        // 接收数据的channel
+	SendEventChan               chan protocol.Event[transport.Msg] // 发送自定义事件的channel
+	RecvEventChan               chan protocol.Event[transport.Msg] // 接收自定义事件的channel
+	RecvDataHandlers            []RecvDataHandler                  // 接收的数据的处理器列表
+	RecvEventHandlers           []RecvEventHandler                 // 接收的自定义事件的处理器列表
+	AuthToken                   string                             // 鉴权token
+	AuthExtensions              []byte                             // 鉴权extensions
+	ZapLogger                   *zap.Logger                        // zap日志
 }
 
 type ClientOption func(options *ClientOptions)
@@ -222,25 +223,41 @@ func (Option) InactiveTimeout(d time.Duration) ClientOption {
 
 func (Option) SendDataChanSize(size int) ClientOption {
 	return func(options *ClientOptions) {
-		options.SendDataChanSize = size
+		if size > 0 {
+			options.SendDataChan = make(chan []byte, size)
+		} else {
+			options.SendDataChan = nil
+		}
 	}
 }
 
 func (Option) RecvDataChanSize(size int) ClientOption {
 	return func(options *ClientOptions) {
-		options.RecvDataChanSize = size
+		if size > 0 {
+			options.RecvDataChan = make(chan []byte, size)
+		} else {
+			options.RecvDataChan = nil
+		}
 	}
 }
 
 func (Option) SendEventSize(size int) ClientOption {
 	return func(options *ClientOptions) {
-		options.SendEventSize = size
+		if size > 0 {
+			options.SendEventChan = make(chan protocol.Event[transport.Msg], size)
+		} else {
+			options.SendEventChan = nil
+		}
 	}
 }
 
 func (Option) RecvEventSize(size int) ClientOption {
 	return func(options *ClientOptions) {
-		options.RecvEventSize = size
+		if size > 0 {
+			options.RecvEventChan = make(chan protocol.Event[transport.Msg], size)
+		} else {
+			options.RecvEventChan = nil
+		}
 	}
 }
 

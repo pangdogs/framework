@@ -39,20 +39,6 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 
 	// 初始化会话Id
 	c.sessionId = sessionId
-
-	// 初始化channel
-	if c.options.SendDataChanSize > 0 {
-		c.sendDataChan = make(chan []byte, c.options.SendDataChanSize)
-	}
-	if c.options.RecvDataChanSize > 0 {
-		c.recvDataChan = make(chan []byte, c.options.RecvDataChanSize)
-	}
-	if c.options.SendEventSize > 0 {
-		c.sendEventChan = make(chan protocol.Event[transport.Msg], c.options.SendEventSize)
-	}
-	if c.options.RecvEventSize > 0 {
-		c.recvEventChan = make(chan protocol.Event[transport.Msg], c.options.RecvEventSize)
-	}
 }
 
 // renew 刷新
@@ -98,11 +84,11 @@ func (c *Client) run() {
 	c.logger.Debugf("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
 	// 启动发送数据的线程
-	if c.sendDataChan != nil {
+	if c.options.SendDataChan != nil {
 		go func() {
 			for {
 				select {
-				case data := <-c.sendDataChan:
+				case data := <-c.options.SendDataChan:
 					if err := c.SendData(data); err != nil {
 						c.logger.Errorf("client %q fetch data from the send data channel for sending failed, %s", c.GetSessionId(), err)
 					}
@@ -114,11 +100,11 @@ func (c *Client) run() {
 	}
 
 	// 启动发送自定义事件的线程
-	if c.sendEventChan != nil {
+	if c.options.SendEventChan != nil {
 		go func() {
 			for {
 				select {
-				case event := <-c.sendEventChan:
+				case event := <-c.options.SendEventChan:
 					if err := c.SendEvent(event); err != nil {
 						c.logger.Errorf("client %q fetch event from the send event channel for sending failed, %s", c.GetSessionId(), err)
 					}
@@ -279,9 +265,9 @@ func (c *Client) reconnect() {
 
 // eventHandler 接收自定义事件的处理器
 func (c *Client) eventHandler(event protocol.Event[transport.Msg]) error {
-	if c.recvEventChan != nil {
+	if c.options.RecvEventChan != nil {
 		select {
-		case c.recvEventChan <- event.Clone():
+		case c.options.RecvEventChan <- event.Clone():
 		default:
 			c.logger.Errorf("client %q receive event channel is full", c.GetSessionId())
 		}
@@ -303,9 +289,9 @@ func (c *Client) eventHandler(event protocol.Event[transport.Msg]) error {
 
 // payloadHandler Payload消息事件处理器
 func (c *Client) payloadHandler(event protocol.Event[*transport.MsgPayload]) error {
-	if c.recvDataChan != nil {
+	if c.options.RecvDataChan != nil {
 		select {
-		case c.recvDataChan <- bytes.Clone(event.Msg.Data):
+		case c.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
 			c.logger.Errorf("client %q receive data channel is full", c.GetSessionId())
 		}

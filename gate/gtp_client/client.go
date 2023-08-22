@@ -18,20 +18,18 @@ type (
 // Client 客户端
 type Client struct {
 	context.Context
-	cancel                       context.CancelFunc
-	mutex                        sync.Mutex
-	options                      ClientOptions
-	sessionId                    string
-	endpoint                     string
-	transceiver                  protocol.Transceiver
-	dispatcher                   protocol.EventDispatcher
-	trans                        protocol.TransProtocol
-	ctrl                         protocol.CtrlProtocol
-	reconnectChan                chan struct{}
-	renewChan                    chan struct{}
-	sendDataChan, recvDataChan   chan []byte
-	sendEventChan, recvEventChan chan protocol.Event[transport.Msg]
-	logger                       *zap.SugaredLogger
+	cancel        context.CancelFunc
+	mutex         sync.Mutex
+	options       ClientOptions
+	sessionId     string
+	endpoint      string
+	transceiver   protocol.Transceiver
+	dispatcher    protocol.EventDispatcher
+	trans         protocol.TransProtocol
+	ctrl          protocol.CtrlProtocol
+	reconnectChan chan struct{}
+	renewChan     chan struct{}
+	logger        *zap.SugaredLogger
 }
 
 // String implements fmt.Stringer
@@ -83,34 +81,34 @@ func (c *Client) SendEvent(event protocol.Event[transport.Msg]) error {
 
 // SendDataChan 发送数据的channel
 func (c *Client) SendDataChan() chan<- []byte {
-	if c.sendDataChan == nil {
+	if c.options.SendDataChan == nil {
 		c.logger.Panic("send data channel size less equal 0, can't be used")
 	}
-	return c.sendDataChan
+	return c.options.SendDataChan
 }
 
 // RecvDataChan 接收数据的channel
 func (c *Client) RecvDataChan() <-chan []byte {
-	if c.recvDataChan == nil {
+	if c.options.RecvDataChan == nil {
 		c.logger.Panic("receive data channel size less equal 0, can't be used")
 	}
-	return c.recvDataChan
+	return c.options.RecvDataChan
 }
 
 // SendEventChan 发送自定义事件的channel
 func (c *Client) SendEventChan() chan<- protocol.Event[transport.Msg] {
-	if c.sendEventChan == nil {
+	if c.options.SendEventChan == nil {
 		c.logger.Panic("send event channel size less equal 0, can't be used")
 	}
-	return c.sendEventChan
+	return c.options.SendEventChan
 }
 
 // RecvEventChan 接收自定义事件的channel
 func (c *Client) RecvEventChan() <-chan protocol.Event[transport.Msg] {
-	if c.recvEventChan == nil {
+	if c.options.RecvEventChan == nil {
 		c.logger.Panic("receive event channel size less equal 0, can't be used")
 	}
-	return c.recvEventChan
+	return c.options.RecvEventChan
 }
 
 // Close 关闭
