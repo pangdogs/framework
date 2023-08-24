@@ -14,6 +14,7 @@ type LimitWriter struct {
 	W     io.Writer
 }
 
+// NewLimitWriter creates a new instance of LimitWriter.
 func NewLimitWriter(w io.Writer, n int) *LimitWriter {
 	// If anyone tries this, just make a 0 writer.
 	if n < 0 {
@@ -26,6 +27,7 @@ func NewLimitWriter(w io.Writer, n int) *LimitWriter {
 	}
 }
 
+// Write implements io.Writer
 func (l *LimitWriter) Write(p []byte) (int, error) {
 	if l.N >= l.Limit {
 		return 0, ErrLimitReached
