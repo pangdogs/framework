@@ -230,15 +230,6 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 		}
 	}
 
-	//// 使用token加分布式锁
-	//if token != "" {
-	//	mutex := dsync.NewDMutex(acc.ctx, fmt.Sprintf("session-token-%s", token), dsync.Option{}.Expiry(handshake.Transceiver.IOTimeout))
-	//	if err := mutex.Lock(context.Background()); err != nil {
-	//		return nil, err
-	//	}
-	//	defer mutex.Unlock(context.Background())
-	//}
-
 	// 暂停会话的收发消息io，等握手结束后恢复
 	session.PauseIO()
 	defer session.ContinueIO()
