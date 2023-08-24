@@ -6,6 +6,7 @@ type BytesWriter struct {
 	Bytes []byte
 }
 
+// NewBytesWriter creates a new instance of BytesWriter.
 func NewBytesWriter(bs []byte) *BytesWriter {
 	return &BytesWriter{
 		N:     0,
@@ -13,6 +14,7 @@ func NewBytesWriter(bs []byte) *BytesWriter {
 	}
 }
 
+// Write implements io.Writer
 func (l *BytesWriter) Write(p []byte) (int, error) {
 	if l.N >= len(l.Bytes) {
 		return 0, ErrLimitReached
