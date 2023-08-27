@@ -14,11 +14,11 @@ type RegistryOption func(options *RegistryOptions)
 
 func (Option) Default() RegistryOption {
 	return func(options *RegistryOptions) {
-		Option{}.Cached(nil)(options)
+		Option{}.Wrap(nil)(options)
 	}
 }
 
-func (Option) Cached(r registry.Registry) RegistryOption {
+func (Option) Wrap(r registry.Registry) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.Registry = r
 	}
