@@ -237,7 +237,7 @@ func (s *_GtpSession) SetState(state SessionState) bool {
 		if handler == nil {
 			continue
 		}
-		err := internal.CallVoid(func() { handler(s, old, state) })
+		err := internal.CallVoid(func() { handler(old, state) })
 		if err != nil {
 			logger.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), err)
 		}
@@ -272,7 +272,7 @@ func (s *_GtpSession) EventHandler(event transport.Event[gtp.Msg]) error {
 		if handler == nil {
 			continue
 		}
-		err := internal.Call(func() error { return handler(s, event) })
+		err := internal.Call(func() error { return handler(event) })
 		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
 			return err
 		}
@@ -307,7 +307,7 @@ func (s *_GtpSession) PayloadHandler(event transport.Event[*gtp.MsgPayload]) err
 		if handler == nil {
 			continue
 		}
-		err := internal.Call(func() error { return handler(s, event.Msg.Data) })
+		err := internal.Call(func() error { return handler(event.Msg.Data) })
 		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
 			return err
 		}
