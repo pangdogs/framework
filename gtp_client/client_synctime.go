@@ -19,18 +19,20 @@ func (rt *ResponseTime) SyncTime() time.Time {
 }
 
 // RequestTime 请求对端同步时间
-func (c *Client) RequestTime(ctx context.Context) (<-chan transport.Ret[*ResponseTime], error) {
+func (c *Client) RequestTime(ctx context.Context) <-chan transport.Ret[*ResponseTime] {
 	resp := make(transport.AsyncRespChan[*ResponseTime], 1)
 
 	reqId, err := c.asyncDispatcher.MakeRequest(ctx, resp)
 	if err != nil {
-		return nil, err
+		resp <- transport.Ret[*ResponseTime]{Error: err}
+		return resp
 	}
 
 	err = c.ctrl.RequestTime(reqId)
 	if err != nil {
-		return nil, err
+		resp <- transport.Ret[*ResponseTime]{Error: err}
+		return resp
 	}
 
-	return resp, nil
+	return resp
 }
