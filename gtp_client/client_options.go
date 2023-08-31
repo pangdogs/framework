@@ -12,6 +12,11 @@ import (
 
 type Option struct{}
 
+type (
+	RecvDataHandler  = func(client *Client, data []byte) error                    // 客户端接收的数据的处理器
+	RecvEventHandler = func(client *Client, event transport.Event[gtp.Msg]) error // 客户端接收的自定义事件的处理器
+)
+
 type ClientOptions struct {
 	TLSConfig                   *tls.Config                   // TLS配置，nil表示不使用TLS加密链路
 	TCPNoDelay                  *bool                         // TCP的NoDelay选项，nil表示使用系统默认值

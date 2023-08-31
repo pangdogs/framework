@@ -1,35 +1,31 @@
 package gtp_client
 
 import (
+	"context"
 	"fmt"
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"net"
 	"sync"
 )
 
-type (
-	RecvDataHandler  = func(client *Client, data []byte) error                    // 客户端接收的数据的处理器
-	RecvEventHandler = func(client *Client, event transport.Event[gtp.Msg]) error // 客户端接收的自定义事件的处理器
-)
-
 // Client 客户端
 type Client struct {
 	context.Context
-	cancel        context.CancelFunc
-	mutex         sync.Mutex
-	options       ClientOptions
-	sessionId     string
-	endpoint      string
-	transceiver   transport.Transceiver
-	dispatcher    transport.EventDispatcher
-	trans         transport.TransProtocol
-	ctrl          transport.CtrlProtocol
-	reconnectChan chan struct{}
-	renewChan     chan struct{}
-	logger        *zap.SugaredLogger
+	cancel          context.CancelFunc
+	mutex           sync.Mutex
+	options         ClientOptions
+	sessionId       string
+	endpoint        string
+	transceiver     transport.Transceiver
+	eventDispatcher transport.EventDispatcher
+	asyncDispatcher transport.AsyncDispatcher
+	trans           transport.TransProtocol
+	ctrl            transport.CtrlProtocol
+	reconnectChan   chan struct{}
+	renewChan       chan struct{}
+	logger          *zap.SugaredLogger
 }
 
 // String implements fmt.Stringer

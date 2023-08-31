@@ -1,9 +1,9 @@
 package nats_broker
 
 import (
+	"context"
 	"errors"
 	"github.com/nats-io/nats.go"
-	"golang.org/x/net/context"
 	"strings"
 )
 

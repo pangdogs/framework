@@ -1,9 +1,9 @@
 package gtp_gate
 
 import (
+	"context"
 	"errors"
 	"github.com/segmentio/ksuid"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"net"
@@ -45,9 +45,9 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	_SessionOption{}.RecvEventChanSize(acc.Options.SessionRecvEventSize)(&session.options)
 
 	// 初始化消息事件分发器
-	session.dispatcher.Transceiver = &session.transceiver
-	session.dispatcher.RetryTimes = acc.Gate.options.IORetryTimes
-	session.dispatcher.EventHandlers = []transport.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
+	session.eventDispatcher.Transceiver = &session.transceiver
+	session.eventDispatcher.RetryTimes = acc.Gate.options.IORetryTimes
+	session.eventDispatcher.EventHandlers = []transport.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
 
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver

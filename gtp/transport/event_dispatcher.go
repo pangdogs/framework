@@ -1,9 +1,9 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/internal"
 )

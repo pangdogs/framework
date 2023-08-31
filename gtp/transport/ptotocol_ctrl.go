@@ -30,13 +30,17 @@ func (c *CtrlProtocol) SendRst(err error) error {
 	return c.Transceiver.SendRst(err)
 }
 
-// SendSyncTime 发送SyncTime消息事件
-func (c *CtrlProtocol) SendSyncTime() error {
+// RequestTime 请求同步时间
+func (c *CtrlProtocol) RequestTime(reqId int64) error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
-		Msg: &gtp.MsgSyncTime{UnixMilli: time.Now().UnixMilli()}},
+		Flags: gtp.Flags(gtp.Flag_ReqTime),
+		Msg: &gtp.MsgSyncTime{
+			ReqId:          reqId,
+			LocalUnixMilli: time.Now().UnixMilli(),
+		}},
 	)))
 }
 
@@ -67,9 +71,29 @@ func (c *CtrlProtocol) EventHandler(e Event[gtp.Msg]) error {
 		}
 		return nil
 	case gtp.MsgId_SyncTime:
-		if c.SyncTimeHandler != nil {
-			return c.SyncTimeHandler(UnpackEvent[*gtp.MsgSyncTime](e))
+		syncTime := UnpackEvent[*gtp.MsgSyncTime](e)
+
+		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
+			if c.Transceiver == nil {
+				return errors.New("setting Transceiver is nil")
+			}
+			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
+				Flags: gtp.Flags(gtp.Flag_RespTime),
+				Msg: &gtp.MsgSyncTime{
+					ReqId:           syncTime.Msg.ReqId,
+					LocalUnixMilli:  time.Now().UnixMilli(),
+					RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
+				},
+			})))
+			if err != nil {
+				return err
+			}
 		}
+
+		if c.SyncTimeHandler != nil {
+			return c.SyncTimeHandler(syncTime)
+		}
+
 		return nil
 	case gtp.MsgId_Heartbeat:
 		heartbeat := UnpackEvent[*gtp.MsgHeartbeat](e)
