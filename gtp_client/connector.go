@@ -8,6 +8,7 @@ import (
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
+	"math/rand"
 	"net"
 )
 
@@ -101,6 +102,10 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.Options.IORetryTimes
 	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
+
+	// 初始化异步请求响应分发器
+	client.asyncDispatcher.ReqId = rand.Int63()
+	client.asyncDispatcher.Timeout = ctor.Options.IOTimeout
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
