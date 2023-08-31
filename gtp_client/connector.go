@@ -1,10 +1,10 @@
 package gtp_client
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -98,9 +98,9 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
-	client.dispatcher.Transceiver = &client.transceiver
-	client.dispatcher.RetryTimes = ctor.Options.IORetryTimes
-	client.dispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
+	client.eventDispatcher.Transceiver = &client.transceiver
+	client.eventDispatcher.RetryTimes = ctor.Options.IORetryTimes
+	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
@@ -111,6 +111,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.Transceiver = &client.transceiver
 	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
 	client.ctrl.HeartbeatHandler = client.heartbeatHandler
+	client.ctrl.SyncTimeHandler = client.syncTimeHandler
 
 	return client
 }

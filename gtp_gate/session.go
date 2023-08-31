@@ -2,9 +2,9 @@
 package gtp_gate
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -62,17 +62,17 @@ type Session interface {
 type _GtpSession struct {
 	context.Context
 	sync.Mutex
-	cancel      context.CancelFunc
-	gate        *_GtpGate
-	options     SessionOptions
-	id          string
-	token       string
-	state       SessionState
-	transceiver transport.Transceiver
-	dispatcher  transport.EventDispatcher
-	trans       transport.TransProtocol
-	ctrl        transport.CtrlProtocol
-	renewChan   chan struct{}
+	cancel          context.CancelFunc
+	gate            *_GtpGate
+	options         SessionOptions
+	id              string
+	token           string
+	state           SessionState
+	transceiver     transport.Transceiver
+	eventDispatcher transport.EventDispatcher
+	trans           transport.TransProtocol
+	ctrl            transport.CtrlProtocol
+	renewChan       chan struct{}
 }
 
 // String implements fmt.Stringer

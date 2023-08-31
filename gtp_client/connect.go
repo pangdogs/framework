@@ -1,8 +1,8 @@
 package gtp_client
 
 import (
+	"context"
 	"errors"
-	"golang.org/x/net/context"
 )
 
 // Connect 连接服务端

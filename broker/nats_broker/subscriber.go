@@ -1,8 +1,8 @@
 package nats_broker
 
 import (
+	"context"
 	"github.com/nats-io/nats.go"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/logger"

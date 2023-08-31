@@ -1,8 +1,8 @@
 package transport
 
 import (
+	"context"
 	"fmt"
-	"golang.org/x/net/context"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"math/rand"
@@ -125,21 +125,6 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				go func() {
-					for {
-						for {
-							err := ctrl.SendSyncTime()
-							if err != nil {
-								panic(err)
-							}
-
-							fmt.Println(time.Now().Format(time.RFC3339Nano), "server => sync time")
-
-							time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
-						}
-					}
-				}()
-
 				dispatcher.Run(context.Background(), func(err error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err", err)
 				})
@@ -198,7 +183,7 @@ func TestProtocol(t *testing.T) {
 				return nil
 			},
 			SyncTimeHandler: func(e Event[*gtp.MsgSyncTime]) error {
-				fmt.Printf("%s client <= sync time %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.UnixMilli)
+				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalUnixMilli, e.Msg.RemoteUnixMilli)
 				return nil
 			},
 		}
@@ -215,6 +200,21 @@ func TestProtocol(t *testing.T) {
 			Transceiver:   transceiver,
 			EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
 		}
+
+		go func() {
+			for {
+				for {
+					err := ctrl.RequestTime(0)
+					if err != nil {
+						panic(err)
+					}
+
+					fmt.Println(time.Now().Format(time.RFC3339Nano), "client => request time")
+
+					time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
+				}
+			}
+		}()
 
 		go func() {
 			for {

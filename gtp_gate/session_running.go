@@ -145,7 +145,7 @@ func (s *_GtpSession) Run() {
 		}
 
 		// 分发消息事件
-		if err := s.dispatcher.Dispatching(); err != nil {
+		if err := s.eventDispatcher.Dispatching(); err != nil {
 			logger.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
 
 			// 网络io超时，触发心跳检测，向对方发送ping
@@ -262,8 +262,8 @@ func (s *_GtpSession) EventHandler(event transport.Event[gtp.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
 		}
 	}
 
@@ -273,12 +273,12 @@ func (s *_GtpSession) EventHandler(event transport.Event[gtp.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(event) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
 		}
 	}
 
-	return transport.ErrUnexpectedMsg
+	return nil
 }
 
 // PayloadHandler Payload消息事件处理器
@@ -297,8 +297,8 @@ func (s *_GtpSession) PayloadHandler(event transport.Event[*gtp.MsgPayload]) err
 			continue
 		}
 		err := internal.Call(func() error { return handler(s, event.Msg.Data) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
 		}
 	}
 
@@ -308,12 +308,12 @@ func (s *_GtpSession) PayloadHandler(event transport.Event[*gtp.MsgPayload]) err
 			continue
 		}
 		err := internal.Call(func() error { return handler(event.Msg.Data) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			logger.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
 		}
 	}
 
-	return transport.ErrUnexpectedMsg
+	return nil
 }
 
 // HeartbeatHandler Heartbeat消息事件处理器

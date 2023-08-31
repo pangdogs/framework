@@ -162,7 +162,7 @@ func (c *Client) run() {
 		}
 
 		// 分发消息事件
-		if err := c.dispatcher.Dispatching(); err != nil {
+		if err := c.eventDispatcher.Dispatching(); err != nil {
 			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
 
 			// 网络io超时，触发心跳检测，向对方发送ping
@@ -279,8 +279,8 @@ func (c *Client) eventHandler(event transport.Event[gtp.Msg]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(c, event) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			c.logger.Errorf("client %q receive event handler error: %s", c.GetSessionId(), err)
 		}
 	}
 
@@ -303,12 +303,12 @@ func (c *Client) payloadHandler(event transport.Event[*gtp.MsgPayload]) error {
 			continue
 		}
 		err := internal.Call(func() error { return handler(c, event.Msg.Data) })
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			return err
+		if err != nil {
+			c.logger.Errorf("client %q receive data event handler error: %s", c.GetSessionId(), err)
 		}
 	}
 
-	return transport.ErrUnexpectedMsg
+	return nil
 }
 
 // heartbeatHandler Heartbeat消息事件处理器
@@ -317,6 +317,23 @@ func (c *Client) heartbeatHandler(event transport.Event[*gtp.MsgHeartbeat]) erro
 		c.logger.Debugf("client %q receive ping", c.GetSessionId())
 	} else {
 		c.logger.Debugf("client %q receive pong", c.GetSessionId())
+	}
+	return nil
+}
+
+// syncTimeHandler SyncTime消息事件处理器
+func (c *Client) syncTimeHandler(event transport.Event[*gtp.MsgSyncTime]) error {
+	if event.Flags.Is(gtp.Flag_RespTime) {
+		c.logger.Debugf("client %q receive sync time, remote unix time: %d, local request unix time: %d",
+			c.GetSessionId(), event.Msg.LocalUnixMilli, event.Msg.RemoteUnixMilli)
+
+		respTime := &ResponseTime{
+			RequestTime: time.UnixMilli(event.Msg.RemoteUnixMilli),
+			LocalTime:   time.Now(),
+			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
+		}
+
+		c.asyncDispatcher.Dispatching(event.Msg.ReqId, respTime, nil)
 	}
 	return nil
 }

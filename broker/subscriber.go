@@ -1,8 +1,8 @@
 package broker
 
 import (
+	"context"
 	"errors"
-	"golang.org/x/net/context"
 )
 
 // ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
