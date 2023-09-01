@@ -329,7 +329,10 @@ func (c *Client) syncTimeHandler(event transport.Event[*gtp.MsgSyncTime]) error 
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-		c.asyncDispatcher.Dispatching(event.Msg.ReqId, respTime, nil)
+		err := c.asyncDispatcher.Dispatching(event.Msg.ReqId, respTime, nil)
+		if err != nil {
+			c.logger.Errorf("client %q dispatching the response time failed, %s", c.GetSessionId(), err)
+		}
 	}
 	return nil
 }
