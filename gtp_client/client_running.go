@@ -324,15 +324,11 @@ func (c *Client) heartbeatHandler(event transport.Event[*gtp.MsgHeartbeat]) erro
 // syncTimeHandler SyncTime消息事件处理器
 func (c *Client) syncTimeHandler(event transport.Event[*gtp.MsgSyncTime]) error {
 	if event.Flags.Is(gtp.Flag_RespTime) {
-		c.logger.Debugf("client %q receive sync time, remote unix time: %d, local request unix time: %d",
-			c.GetSessionId(), event.Msg.LocalUnixMilli, event.Msg.RemoteUnixMilli)
-
 		respTime := &ResponseTime{
 			RequestTime: time.UnixMilli(event.Msg.RemoteUnixMilli),
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-
 		c.asyncDispatcher.Dispatching(event.Msg.ReqId, respTime, nil)
 	}
 	return nil
