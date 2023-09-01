@@ -13,9 +13,19 @@ type ResponseTime struct {
 	RemoteTime  time.Time // 响应时的对端时间
 }
 
+// RTT 往返时间
+func (rt *ResponseTime) RTT() time.Duration {
+	return rt.LocalTime.Sub(rt.RequestTime)
+}
+
 // SyncTime 同步的时间
 func (rt *ResponseTime) SyncTime() time.Time {
-	return rt.RemoteTime.Add(rt.LocalTime.Sub(rt.RequestTime) / 2)
+	return rt.RemoteTime.Add(rt.RTT() / 2)
+}
+
+// NowTime 当前时间
+func (rt *ResponseTime) NowTime() time.Time {
+	return rt.SyncTime().Add(time.Now().Sub(rt.LocalTime))
 }
 
 // RequestTime 请求对端同步时间
