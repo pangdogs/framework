@@ -47,6 +47,7 @@ type AsyncRespChan[T any] chan Ret[T]
 // Push 填入返回结果
 func (resp AsyncRespChan[T]) Push(v any, err error) {
 	resp <- newRet[T](v, err)
+	close(resp)
 }
 
 // AsyncRespHandler 接收返回值的处理器
