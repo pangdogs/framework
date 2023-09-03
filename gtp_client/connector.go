@@ -105,7 +105,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 
 	// 初始化异步请求响应分发器
 	client.asyncDispatcher.ReqId = rand.Int63()
-	client.asyncDispatcher.Timeout = ctor.Options.IOTimeout
+	client.asyncDispatcher.Timeout = ctor.Options.AsyncRequestTimeout
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
