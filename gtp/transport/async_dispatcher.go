@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"kit.golaxy.org/golaxy/util"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,34 +36,50 @@ func newRet[T any](rv any, err error) (ret Ret[T]) {
 	return
 }
 
-// IAsyncResp 异步响应接口
-type IAsyncResp interface {
+// AsyncResp 异步响应接口
+type AsyncResp interface {
 	// Push 填入返回结果
-	Push(v any, err error)
+	Push(v any, err error) error
 }
 
 // AsyncRespChan 异步响应接收返回值的channel
 type AsyncRespChan[T any] chan Ret[T]
 
 // Push 填入返回结果
-func (resp AsyncRespChan[T]) Push(rv any, err error) {
+func (resp AsyncRespChan[T]) Push(rv any, err error) (retErr error) {
+	defer func() {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			retErr = panicErr
+		}
+	}()
+
 	resp <- newRet[T](rv, err)
 	close(resp)
+
+	return nil
 }
 
 // AsyncRespHandler 接收返回值的处理器
 type AsyncRespHandler[T any] func(ret Ret[T])
 
 // Push 填入返回结果
-func (resp AsyncRespHandler[T]) Push(rv any, err error) {
-	(resp)(newRet[T](rv, err))
+func (resp AsyncRespHandler[T]) Push(rv any, err error) (retErr error) {
+	defer func() {
+		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+			retErr = panicErr
+		}
+	}()
+
+	resp(newRet[T](rv, err))
+
+	return nil
 }
 
 type _AsyncReq struct {
 	Ctx    context.Context
-	Cancel context.CancelFunc
+	cancel context.CancelFunc
 	Id     int64
-	Resp   IAsyncResp
+	Resp   AsyncResp
 }
 
 func (req *_AsyncReq) Wait(d *AsyncDispatcher, ctx context.Context) {
@@ -79,21 +96,36 @@ func (req *_AsyncReq) Wait(d *AsyncDispatcher, ctx context.Context) {
 	}
 }
 
-func (req *_AsyncReq) Reply(rv any, err error) {
-	req.Cancel()
+func (req *_AsyncReq) Reply(rv any, err error) error {
+	req.cancel()
+
 	if req.Resp != nil {
-		req.Resp.Push(rv, err)
+		return req.Resp.Push(rv, err)
 	}
+
+	return nil
 }
 
-func newAsyncReq(reqId int64, resp IAsyncResp) *_AsyncReq {
+func newAsyncReq(reqId int64, resp AsyncResp) *_AsyncReq {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &_AsyncReq{
 		Ctx:    ctx,
-		Cancel: cancel,
+		cancel: cancel,
 		Id:     reqId,
 		Resp:   resp,
 	}
+}
+
+// AsyncReq 异步请求
+type AsyncReq struct {
+	Ctx             context.Context
+	Id              int64
+	asyncDispatcher *AsyncDispatcher
+}
+
+// Interrupt 中断
+func (req AsyncReq) Interrupt(err error) {
+	req.asyncDispatcher.Dispatching(req.Id, nil, err)
 }
 
 // AsyncDispatcher 异步请求响应分发器
@@ -104,7 +136,7 @@ type AsyncDispatcher struct {
 }
 
 // MakeRequest 创建异步请求
-func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp IAsyncResp) int64 {
+func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp AsyncResp) AsyncReq {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -114,7 +146,10 @@ func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp IAsyncResp) int6
 
 	go req.Wait(d, ctx)
 
-	return req.Id
+	return AsyncReq{
+		Ctx: req.Ctx,
+		Id:  req.Id,
+	}
 }
 
 // Dispatching 分发异步响应返回值
@@ -123,6 +158,5 @@ func (d *AsyncDispatcher) Dispatching(reqId int64, rv any, err error) error {
 	if !ok {
 		return ErrAsyncReqNotFound
 	}
-	v.(*_AsyncReq).Reply(rv, err)
-	return nil
+	return v.(*_AsyncReq).Reply(rv, err)
 }
