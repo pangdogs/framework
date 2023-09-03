@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// NewConsoleZapLogger 创建控制台样式zap logger
+// NewConsoleZapLogger 创建控制台样式zap logger（支持文件分割）
 func NewConsoleZapLogger(level zapcore.Level, separator, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
 	var write zapcore.WriteSyncer
 
@@ -67,7 +67,7 @@ func NewConsoleZapLogger(level zapcore.Level, separator, fileName string, maxSiz
 	return logger, atomicLevel
 }
 
-// NewJsonZapLogger 创建Json样式zap logger
+// NewJsonZapLogger 创建Json样式zap logger（支持文件分割）
 func NewJsonZapLogger(level zapcore.Level, fileName string, maxSize int, stdout, development bool) (*zap.Logger, zap.AtomicLevel) {
 	var write zapcore.WriteSyncer
 

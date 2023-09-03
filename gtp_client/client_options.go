@@ -95,7 +95,7 @@ func (Option) Default() ClientOption {
 		Option{}.AsyncRequestTimeout(10 * time.Second)(options)
 		Option{}.AuthToken("")(options)
 		Option{}.AuthExtensions(nil)(options)
-		Option{}.ZapLogger(DefaultLogger)(options)
+		Option{}.ZapLogger(zap.NewExample())(options)
 	}
 }
 
