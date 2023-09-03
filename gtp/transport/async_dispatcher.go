@@ -81,7 +81,9 @@ func (req *_AsyncReq) Wait(d *AsyncDispatcher, ctx context.Context) {
 
 func (req *_AsyncReq) Reply(rv any, err error) {
 	req.Cancel()
-	req.Resp.Push(rv, err)
+	if req.Resp != nil {
+		req.Resp.Push(rv, err)
+	}
 }
 
 func newAsyncReq(reqId int64, resp IAsyncResp) *_AsyncReq {
@@ -102,11 +104,7 @@ type AsyncDispatcher struct {
 }
 
 // MakeRequest 创建异步请求
-func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp IAsyncResp) (int64, error) {
-	if resp == nil {
-		return 0, errors.New("resp is nil")
-	}
-
+func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp IAsyncResp) int64 {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -116,7 +114,7 @@ func (d *AsyncDispatcher) MakeRequest(ctx context.Context, resp IAsyncResp) (int
 
 	go req.Wait(d, ctx)
 
-	return req.Id, nil
+	return req.Id
 }
 
 // Dispatching 分发异步响应返回值

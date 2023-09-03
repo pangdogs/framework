@@ -32,17 +32,10 @@ func (rt *ResponseTime) NowTime() time.Time {
 func (c *Client) RequestTime(ctx context.Context) <-chan transport.Ret[*ResponseTime] {
 	resp := make(transport.AsyncRespChan[*ResponseTime], 1)
 
-	reqId, err := c.asyncDispatcher.MakeRequest(ctx, resp)
+	reqId := c.asyncDispatcher.MakeRequest(ctx, resp)
+	err := c.ctrl.RequestTime(reqId)
 	if err != nil {
-		resp <- transport.Ret[*ResponseTime]{Error: err}
-		close(resp)
-		return resp
-	}
-
-	err = c.ctrl.RequestTime(reqId)
-	if err != nil {
-		resp <- transport.Ret[*ResponseTime]{Error: err}
-		close(resp)
+		c.asyncDispatcher.Dispatching(reqId, nil, err)
 		return resp
 	}
 
