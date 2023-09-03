@@ -128,6 +128,14 @@ func (req AsyncReq) Interrupt(err error) {
 	req.asyncDispatcher.Dispatching(req.Id, nil, err)
 }
 
+// IAsyncDispatcher 异步请求响应分发器接口
+type IAsyncDispatcher interface {
+	// MakeRequest 创建异步请求
+	MakeRequest(ctx context.Context, resp AsyncResp) AsyncReq
+	// Dispatching 分发异步响应返回值
+	Dispatching(reqId int64, rv any, err error) error
+}
+
 // AsyncDispatcher 异步请求响应分发器
 type AsyncDispatcher struct {
 	ReqId    int64         // 请求id生成器

@@ -44,6 +44,7 @@ type GateOptions struct {
 	AgreeClientCompressionProposal bool                         // 是否同意使用客户端建议的压缩方案
 	Compression                    gtp.Compression              // 通信中的压缩函数
 	CompressedSize                 int                          // 通信中启用压缩阀值（字节），<=0表示不开启
+	AsyncRequestTimeout            time.Duration                // 异步请求超时时间
 	ClientAuthHandlers             []ClientAuthHandler          // 客户端鉴权鉴权处理器列表
 	SessionInactiveTimeout         time.Duration                // 会话不活跃后的超时时间
 	SessionStateChangedHandlers    []SessionStateChangedHandler // 会话状态变化的处理器列表（优先级高于会话的处理器）
@@ -91,6 +92,7 @@ func (_GateOption) Default() GateOption {
 		_GateOption{}.AgreeClientCompressionProposal(false)(options)
 		_GateOption{}.Compression(gtp.Compression_Brotli)(options)
 		_GateOption{}.CompressedSize(1024 * 32)(options)
+		_GateOption{}.AsyncRequestTimeout(10 * time.Second)(options)
 		_GateOption{}.ClientAuthHandlers(nil)(options)
 		_GateOption{}.SessionInactiveTimeout(60 * time.Second)(options)
 		_GateOption{}.SessionStateChangedHandlers(nil)(options)
@@ -240,6 +242,12 @@ func (_GateOption) Compression(c gtp.Compression) GateOption {
 func (_GateOption) CompressedSize(size int) GateOption {
 	return func(options *GateOptions) {
 		options.CompressedSize = size
+	}
+}
+
+func (_GateOption) AsyncRequestTimeout(d time.Duration) GateOption {
+	return func(options *GateOptions) {
+		options.AsyncRequestTimeout = d
 	}
 }
 

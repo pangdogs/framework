@@ -55,6 +55,8 @@ type Session interface {
 	SendEventChan() chan<- transport.Event[gtp.Msg]
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
+	// GetAsyncDispatcher 获取异步请求响应分发器
+	GetAsyncDispatcher() transport.IAsyncDispatcher
 	// Close 关闭
 	Close(err error)
 }
@@ -178,6 +180,11 @@ func (s *_GtpSession) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 		logger.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.options.RecvEventChan
+}
+
+// GetAsyncDispatcher 获取异步请求响应分发器
+func (s *_GtpSession) GetAsyncDispatcher() transport.IAsyncDispatcher {
+	return &s.gate.asyncDispatcher
 }
 
 // Close 关闭
