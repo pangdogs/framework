@@ -6,7 +6,9 @@ import (
 	"errors"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/plugins/gtp/transport"
 	"kit.golaxy.org/plugins/logger"
+	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -36,11 +38,12 @@ func newGtpGate(options ...GateOption) Gate {
 }
 
 type _GtpGate struct {
-	options      GateOptions
-	ctx          service.Context
-	listeners    []net.Listener
-	sessionMap   sync.Map
-	sessionCount int64
+	options         GateOptions
+	ctx             service.Context
+	listeners       []net.Listener
+	sessionMap      sync.Map
+	sessionCount    int64
+	asyncDispatcher transport.AsyncDispatcher
 }
 
 // InitSP 初始化服务插件
@@ -48,6 +51,8 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*g))
 
 	g.ctx = ctx
+	g.asyncDispatcher.ReqId = rand.Int63()
+	g.asyncDispatcher.Timeout = g.options.AsyncRequestTimeout
 
 	if len(g.options.Endpoints) <= 0 {
 		logger.Panic(ctx, "no endpoints need to listen")

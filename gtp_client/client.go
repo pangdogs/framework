@@ -107,6 +107,11 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	return c.options.RecvEventChan
 }
 
+// GetAsyncDispatcher 获取异步请求响应分发器
+func (c *Client) GetAsyncDispatcher() transport.IAsyncDispatcher {
+	return &c.asyncDispatcher
+}
+
 // Close 关闭
 func (c *Client) Close() {
 	c.cancel()
