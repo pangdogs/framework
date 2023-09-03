@@ -92,7 +92,7 @@ func (Option) Default() ClientOption {
 		Option{}.RecvEventSize(0)(options)
 		Option{}.RecvDataHandlers(nil)(options)
 		Option{}.RecvEventHandlers(nil)(options)
-		Option{}.AsyncRequestTimeout(9 * time.Second)(options)
+		Option{}.AsyncRequestTimeout(10 * time.Second)(options)
 		Option{}.AuthToken("")(options)
 		Option{}.AuthExtensions(nil)(options)
 		Option{}.ZapLogger(DefaultLogger)(options)
