@@ -44,7 +44,6 @@ type GateOptions struct {
 	AgreeClientCompressionProposal bool                         // 是否同意使用客户端建议的压缩方案
 	Compression                    gtp.Compression              // 通信中的压缩函数
 	CompressedSize                 int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	AsyncRequestTimeout            time.Duration                // 异步请求超时时间
 	ClientAuthHandlers             []ClientAuthHandler          // 客户端鉴权鉴权处理器列表
 	SessionInactiveTimeout         time.Duration                // 会话不活跃后的超时时间
 	SessionStateChangedHandlers    []SessionStateChangedHandler // 会话状态变化的处理器列表（优先级高于会话的处理器）
@@ -54,6 +53,7 @@ type GateOptions struct {
 	SessionRecvEventSize           int                          // 会话接收自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvDataHandlers        []SessionRecvDataHandler     // 会话接收的数据的处理器列表（优先级高于会话的处理器）
 	SessionRecvEventHandlers       []SessionRecvEventHandler    // 会话接收的自定义事件的处理器列表（优先级高于会话的处理器）
+	PromiseTimeout                 time.Duration                // 异步编程模型承诺（Promise）请求超时时间
 }
 
 type GateOption func(options *GateOptions)
@@ -92,7 +92,6 @@ func (_GateOption) Default() GateOption {
 		_GateOption{}.AgreeClientCompressionProposal(false)(options)
 		_GateOption{}.Compression(gtp.Compression_Brotli)(options)
 		_GateOption{}.CompressedSize(1024 * 32)(options)
-		_GateOption{}.AsyncRequestTimeout(10 * time.Second)(options)
 		_GateOption{}.ClientAuthHandlers(nil)(options)
 		_GateOption{}.SessionInactiveTimeout(60 * time.Second)(options)
 		_GateOption{}.SessionStateChangedHandlers(nil)(options)
@@ -102,6 +101,7 @@ func (_GateOption) Default() GateOption {
 		_GateOption{}.SessionRecvEventSize(0)(options)
 		_GateOption{}.SessionRecvDataHandlers(nil)(options)
 		_GateOption{}.SessionRecvEventHandlers(nil)(options)
+		_GateOption{}.PromiseTimeout(10 * time.Second)(options)
 	}
 }
 
@@ -245,12 +245,6 @@ func (_GateOption) CompressedSize(size int) GateOption {
 	}
 }
 
-func (_GateOption) AsyncRequestTimeout(d time.Duration) GateOption {
-	return func(options *GateOptions) {
-		options.AsyncRequestTimeout = d
-	}
-}
-
 func (_GateOption) ClientAuthHandlers(handlers []ClientAuthHandler) GateOption {
 	return func(options *GateOptions) {
 		options.ClientAuthHandlers = handlers
@@ -302,5 +296,11 @@ func (_GateOption) SessionRecvDataHandlers(handlers ...SessionRecvDataHandler) G
 func (_GateOption) SessionRecvEventHandlers(handlers ...SessionRecvEventHandler) GateOption {
 	return func(options *GateOptions) {
 		options.SessionRecvEventHandlers = handlers
+	}
+}
+
+func (_GateOption) PromiseTimeout(d time.Duration) GateOption {
+	return func(options *GateOptions) {
+		options.PromiseTimeout = d
 	}
 }

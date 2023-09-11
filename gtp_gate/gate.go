@@ -38,12 +38,12 @@ func newGtpGate(options ...GateOption) Gate {
 }
 
 type _GtpGate struct {
-	options         GateOptions
-	ctx             service.Context
-	listeners       []net.Listener
-	sessionMap      sync.Map
-	sessionCount    int64
-	asyncDispatcher transport.AsyncDispatcher
+	options      GateOptions
+	ctx          service.Context
+	listeners    []net.Listener
+	sessionMap   sync.Map
+	sessionCount int64
+	promise      transport.Promise
 }
 
 // InitSP 初始化服务插件
@@ -51,8 +51,10 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*g))
 
 	g.ctx = ctx
-	g.asyncDispatcher.ReqId = rand.Int63()
-	g.asyncDispatcher.Timeout = g.options.AsyncRequestTimeout
+
+	g.promise.Ctx = ctx
+	g.promise.Id = rand.Int63()
+	g.promise.Timeout = g.options.PromiseTimeout
 
 	if len(g.options.Endpoints) <= 0 {
 		logger.Panic(ctx, "no endpoints need to listen")

@@ -20,11 +20,11 @@ type Client struct {
 	endpoint        string
 	transceiver     transport.Transceiver
 	eventDispatcher transport.EventDispatcher
-	asyncDispatcher transport.AsyncDispatcher
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
 	reconnectChan   chan struct{}
 	renewChan       chan struct{}
+	promise         transport.Promise
 	logger          *zap.SugaredLogger
 }
 
@@ -107,9 +107,9 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	return c.options.RecvEventChan
 }
 
-// GetAsyncDispatcher 获取异步请求响应分发器
-func (c *Client) GetAsyncDispatcher() transport.IAsyncDispatcher {
-	return &c.asyncDispatcher
+// GetPromise 获取异步编程模型承诺（Promise）
+func (c *Client) GetPromise() transport.IPromise {
+	return &c.promise
 }
 
 // Close 关闭
