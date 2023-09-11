@@ -145,8 +145,6 @@ func (d *Promise) MakeRequest(ctx context.Context, resp AsyncResp) AsyncReq {
 	}
 
 	wait := d.newWait(resp)
-	d.waits.Store(wait.Req.Id, wait)
-
 	go wait.Run(ctx, d.Timeout)
 
 	return wait.Req
@@ -159,8 +157,6 @@ func (d *Promise) MakeRequestWithTimeout(ctx context.Context, resp AsyncResp, ti
 	}
 
 	wait := d.newWait(resp)
-	d.waits.Store(wait.Req.Id, wait)
-
 	go wait.Run(ctx, timeout)
 
 	return wait.Req
@@ -177,7 +173,8 @@ func (d *Promise) Dispatching(reqId int64, rv any, err error) error {
 
 func (d *Promise) newWait(resp AsyncResp) *_AsyncWait {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &_AsyncWait{
+
+	wait := &_AsyncWait{
 		Req: AsyncReq{
 			Ctx:     ctx,
 			Id:      atomic.AddInt64(&d.Id, 1),
@@ -186,4 +183,7 @@ func (d *Promise) newWait(resp AsyncResp) *_AsyncWait {
 		Resp:   resp,
 		Cancel: cancel,
 	}
+	d.waits.Store(wait.Req.Id, wait)
+
+	return wait
 }
