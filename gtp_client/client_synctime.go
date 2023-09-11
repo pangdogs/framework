@@ -31,7 +31,7 @@ func (rt *ResponseTime) NowTime() time.Time {
 // RequestTime 请求对端同步时间
 func (c *Client) RequestTime(ctx context.Context) <-chan transport.Ret[*ResponseTime] {
 	resp := make(transport.AsyncRespChan[*ResponseTime], 1)
-	req := c.asyncDispatcher.MakeRequest(ctx, resp)
+	req := c.promise.MakeRequest(ctx, resp)
 
 	if err := c.ctrl.RequestTime(req.Id); err != nil {
 		req.Interrupt(err)

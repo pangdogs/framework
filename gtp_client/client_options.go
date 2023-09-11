@@ -45,7 +45,7 @@ type ClientOptions struct {
 	RecvEventChan               chan transport.Event[gtp.Msg] // 接收自定义事件的channel
 	RecvDataHandlers            []RecvDataHandler             // 接收的数据的处理器列表
 	RecvEventHandlers           []RecvEventHandler            // 接收的自定义事件的处理器列表
-	AsyncRequestTimeout         time.Duration                 // 异步请求超时时间
+	PromiseTimeout              time.Duration                 // 异步编程模型承诺（Promise）请求超时时间
 	AuthToken                   string                        // 鉴权token
 	AuthExtensions              []byte                        // 鉴权extensions
 	ZapLogger                   *zap.Logger                   // zap日志
@@ -92,7 +92,7 @@ func (Option) Default() ClientOption {
 		Option{}.RecvEventSize(0)(options)
 		Option{}.RecvDataHandlers(nil)(options)
 		Option{}.RecvEventHandlers(nil)(options)
-		Option{}.AsyncRequestTimeout(10 * time.Second)(options)
+		Option{}.PromiseTimeout(10 * time.Second)(options)
 		Option{}.AuthToken("")(options)
 		Option{}.AuthExtensions(nil)(options)
 		Option{}.ZapLogger(zap.NewExample())(options)
@@ -280,9 +280,9 @@ func (Option) RecvEventHandlers(handlers ...RecvEventHandler) ClientOption {
 	}
 }
 
-func (Option) AsyncRequestTimeout(d time.Duration) ClientOption {
+func (Option) PromiseTimeout(d time.Duration) ClientOption {
 	return func(options *ClientOptions) {
-		options.AsyncRequestTimeout = d
+		options.PromiseTimeout = d
 	}
 }
 

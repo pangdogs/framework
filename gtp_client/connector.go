@@ -103,10 +103,6 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.eventDispatcher.RetryTimes = ctor.Options.IORetryTimes
 	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
 
-	// 初始化异步请求响应分发器
-	client.asyncDispatcher.ReqId = rand.Int63()
-	client.asyncDispatcher.Timeout = ctor.Options.AsyncRequestTimeout
-
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.Options.IORetryTimes
@@ -117,6 +113,11 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
 	client.ctrl.HeartbeatHandler = client.heartbeatHandler
 	client.ctrl.SyncTimeHandler = client.syncTimeHandler
+
+	// 初始化promise
+	client.promise.Ctx = client.Context
+	client.promise.Id = rand.Int63()
+	client.promise.Timeout = ctor.Options.PromiseTimeout
 
 	return client
 }

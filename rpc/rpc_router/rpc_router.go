@@ -4,7 +4,6 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/gate"
 	"kit.golaxy.org/plugins/logger"
 	"kit.golaxy.org/plugins/registry"
 	"kit.golaxy.org/plugins/rpc"
