@@ -24,7 +24,7 @@ type Client struct {
 	ctrl            transport.CtrlProtocol
 	reconnectChan   chan struct{}
 	renewChan       chan struct{}
-	promise         transport.Promise
+	futures         transport.Futures
 	logger          *zap.SugaredLogger
 }
 
@@ -107,9 +107,9 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	return c.options.RecvEventChan
 }
 
-// GetPromise 获取异步编程模型承诺（Promise）
-func (c *Client) GetPromise() transport.IPromise {
-	return &c.promise
+// GetFutures 获取异步模型Future控制器
+func (c *Client) GetFutures() transport.IFutures {
+	return &c.futures
 }
 
 // Close 关闭

@@ -114,10 +114,10 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.HeartbeatHandler = client.heartbeatHandler
 	client.ctrl.SyncTimeHandler = client.syncTimeHandler
 
-	// 初始化promise
-	client.promise.Ctx = client.Context
-	client.promise.Id = rand.Int63()
-	client.promise.Timeout = ctor.Options.PromiseTimeout
+	// 初始化异步模型Future控制器
+	client.futures.Ctx = client.Context
+	client.futures.Id = rand.Int63()
+	client.futures.Timeout = ctor.Options.FutureTimeout
 
 	return client
 }

@@ -43,7 +43,7 @@ type _GtpGate struct {
 	listeners    []net.Listener
 	sessionMap   sync.Map
 	sessionCount int64
-	promise      transport.Promise
+	futures      transport.Futures
 }
 
 // InitSP 初始化服务插件
@@ -52,9 +52,9 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 
 	g.ctx = ctx
 
-	g.promise.Ctx = ctx
-	g.promise.Id = rand.Int63()
-	g.promise.Timeout = g.options.PromiseTimeout
+	g.futures.Ctx = ctx
+	g.futures.Id = rand.Int63()
+	g.futures.Timeout = g.options.FutureTimeout
 
 	if len(g.options.Endpoints) <= 0 {
 		logger.Panic(ctx, "no endpoints need to listen")
