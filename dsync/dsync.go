@@ -2,6 +2,8 @@ package dsync
 
 // DSync represents a distributed synchronization mechanism.
 type DSync interface {
-	// NewDMutex returns a new distributed mutex with given name.
-	NewDMutex(name string, options ...DMutexOption) DMutex
+	// NewMutex returns a new distributed mutex with given name.
+	NewMutex(name string, options ...DMutexOption) DMutex
+	// GetSeparator return name path separator.
+	GetSeparator() string
 }

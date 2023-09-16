@@ -68,24 +68,24 @@ type Futures struct {
 }
 
 // Make 创建Future
-func (c *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future {
+func (fs *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	_timeout := c.Timeout
+	_timeout := fs.Timeout
 	if len(timeout) > 0 {
 		_timeout = timeout[0]
 	}
 
-	task := c.newFutureTask(resp)
+	task := fs.newFutureTask(resp)
 	go task.Run(ctx, _timeout)
 
 	return task.Future
 }
 
 // Request 异步请求
-func (c *Futures) Request(ctx context.Context, handler func(future Future), timeout ...time.Duration) runtime.AsyncRet {
+func (fs *Futures) Request(ctx context.Context, handler func(future Future), timeout ...time.Duration) runtime.AsyncRet {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -95,33 +95,33 @@ func (c *Futures) Request(ctx context.Context, handler func(future Future), time
 	}
 
 	asyncRet := make(RespAsyncRet, 1)
-	handler(c.Make(ctx, asyncRet, timeout...))
+	handler(fs.Make(ctx, asyncRet, timeout...))
 
 	return asyncRet.Cast()
 }
 
 // Dispatching 分发异步响应返回值
-func (c *Futures) Dispatching(id int64, rv any, err error) error {
-	v, ok := c.tasks.LoadAndDelete(id)
+func (fs *Futures) Dispatching(id int64, rv any, err error) error {
+	v, ok := fs.tasks.LoadAndDelete(id)
 	if !ok {
 		return ErrFutureNotFound
 	}
 	return v.(*_FutureTask).Reply(rv, err)
 }
 
-func (c *Futures) newFutureTask(resp Resp) *_FutureTask {
+func (fs *Futures) newFutureTask(resp Resp) *_FutureTask {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	wait := &_FutureTask{
 		Future: Future{
 			Ctx:     ctx,
-			Id:      atomic.AddInt64(&c.Id, 1),
-			futures: c,
+			Id:      atomic.AddInt64(&fs.Id, 1),
+			futures: fs,
 		},
 		Resp:   resp,
 		Cancel: cancel,
 	}
-	c.tasks.Store(wait.Future.Id, wait)
+	fs.tasks.Store(wait.Future.Id, wait)
 
 	return wait
 }

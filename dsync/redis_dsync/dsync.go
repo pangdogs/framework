@@ -62,8 +62,8 @@ func (s *_RedisDsync) ShutSP(ctx service.Context) {
 	}
 }
 
-// NewDMutex returns a new distributed mutex with given name.
-func (s *_RedisDsync) NewDMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
+// NewMutex returns a new distributed mutex with given name.
+func (s *_RedisDsync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
 	opts := dsync.DMutexOptions{}
 	dsync.Option{}.Default()(&opts)
 
@@ -72,6 +72,11 @@ func (s *_RedisDsync) NewDMutex(name string, options ...dsync.DMutexOption) dsyn
 	}
 
 	return newRedisDMutex(s, name, opts)
+}
+
+// GetSeparator return name path separator.
+func (s *_RedisDsync) GetSeparator() string {
+	return ":"
 }
 
 func (s *_RedisDsync) configure() *redis.Options {
