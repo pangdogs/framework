@@ -43,8 +43,6 @@ type Session interface {
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
-	// GetPromise 获取异步编程模型承诺（Promise）接口
-	GetPromise() transport.IPromise
 	// SendData 发送数据
 	SendData(data []byte) error
 	// SendEvent 发送自定义事件
@@ -57,6 +55,8 @@ type Session interface {
 	SendEventChan() chan<- transport.Event[gtp.Msg]
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
+	// GetFutures 获取异步模型Future控制器
+	GetFutures() transport.IFutures
 	// Close 关闭
 	Close(err error)
 }
@@ -182,9 +182,9 @@ func (s *_GtpSession) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	return s.options.RecvEventChan
 }
 
-// GetPromise 获取异步编程模型承诺（Promise）
-func (s *_GtpSession) GetPromise() transport.IPromise {
-	return &s.gate.promise
+// GetFutures 获取异步模型Future控制器
+func (s *_GtpSession) GetFutures() transport.IFutures {
+	return &s.gate.futures
 }
 
 // Close 关闭
