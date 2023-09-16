@@ -64,11 +64,11 @@ func (resp RespHandler[T]) Push(rv any, err error) (retErr error) {
 	return nil
 }
 
-// RespRet 异步调用结果
-type RespRet chan runtime.Ret
+// RespAsyncRet 接收响应返回值的异步调用结果
+type RespAsyncRet chan runtime.Ret
 
 // Push 填入返回结果
-func (resp RespRet) Push(rv any, err error) (retErr error) {
+func (resp RespAsyncRet) Push(rv any, err error) (retErr error) {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
@@ -82,6 +82,6 @@ func (resp RespRet) Push(rv any, err error) (retErr error) {
 }
 
 // Cast 转换为异步调用结果
-func (resp RespRet) Cast() runtime.AsyncRet {
+func (resp RespAsyncRet) Cast() runtime.AsyncRet {
 	return chan runtime.Ret(resp)
 }
