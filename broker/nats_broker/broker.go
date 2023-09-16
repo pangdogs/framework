@@ -107,7 +107,12 @@ func (b *_NatsBroker) Flush(ctx context.Context) error {
 	return b.client.FlushWithContext(ctx)
 }
 
-// MaxPayload return max payload bytes.
-func (b *_NatsBroker) MaxPayload() int64 {
+// GetMaxPayload return max payload bytes.
+func (b *_NatsBroker) GetMaxPayload() int64 {
 	return b.client.MaxPayload()
+}
+
+// GetSeparator return topic path separator.
+func (b *_NatsBroker) GetSeparator() string {
+	return "."
 }

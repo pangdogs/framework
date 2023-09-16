@@ -62,8 +62,8 @@ func (s *_EtcdDSync) ShutSP(ctx service.Context) {
 	}
 }
 
-// NewDMutex returns a new distributed mutex with given name.
-func (s *_EtcdDSync) NewDMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
+// NewMutex returns a new distributed mutex with given name.
+func (s *_EtcdDSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
 	opts := dsync.DMutexOptions{}
 	dsync.Option{}.Default()(&opts)
 
@@ -72,6 +72,11 @@ func (s *_EtcdDSync) NewDMutex(name string, options ...dsync.DMutexOption) dsync
 	}
 
 	return newEtcdDMutex(s, name, opts)
+}
+
+// GetSeparator return name path separator.
+func (s *_EtcdDSync) GetSeparator() string {
+	return "/"
 }
 
 func (s *_EtcdDSync) configure() etcd_client.Config {

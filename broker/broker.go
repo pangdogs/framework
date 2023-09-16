@@ -14,6 +14,8 @@ type Broker interface {
 	SubscribeChan(ctx context.Context, pattern string, options ...SubscriberOption) (ChanSubscriber, error)
 	// Flush will perform a round trip to the server and return when it receives the internal reply.
 	Flush(ctx context.Context) error
-	// MaxPayload return max payload bytes.
-	MaxPayload() int64
+	// GetMaxPayload return max payload bytes.
+	GetMaxPayload() int64
+	// GetSeparator return topic path separator.
+	GetSeparator() string
 }

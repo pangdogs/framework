@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	definePlugin = define.DefineServicePlugin[Distributed](newDistributed)
+	definePlugin = define.DefineServicePlugin[Distributed, DistributedOption](newDistributed)
 	// Name 插件名称
 	Name = definePlugin.Name
 	// Fetch 获取插件
