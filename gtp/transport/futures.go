@@ -94,7 +94,7 @@ func (c *Futures) Request(ctx context.Context, handler func(future Future), time
 		panic("handler is nil")
 	}
 
-	asyncRet := make(RespRet, 1)
+	asyncRet := make(RespAsyncRet, 1)
 	handler(c.Make(ctx, asyncRet, timeout...))
 
 	return asyncRet.Cast()
