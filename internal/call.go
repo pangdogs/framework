@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util"
 )
 
@@ -12,7 +13,7 @@ func Call(fun func() error) (err error) {
 
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -26,7 +27,7 @@ func CallVoid(fun func()) (err error) {
 
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 

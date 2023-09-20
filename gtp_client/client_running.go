@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
@@ -72,7 +73,7 @@ func (c *Client) continueIO() {
 func (c *Client) run() {
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
-			c.logger.Errorf("client %q panicked, %s", c.GetSessionId(), fmt.Errorf("panicked: %w", panicErr))
+			c.logger.Errorf("client %q panicked, %s", c.GetSessionId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()

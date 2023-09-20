@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/gtp"
 )
@@ -90,7 +91,7 @@ func NewBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err e
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			block = nil
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -108,7 +109,7 @@ func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) 
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			encryptor = nil
 			decrypter = nil
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -150,7 +151,7 @@ func (s _XORKeyStream) Transforming(dst, src, nonce []byte) (size int, err error
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 	s.XORKeyStream(dst, src)
@@ -193,7 +194,7 @@ func (s _BlockModeEncryptor) Transforming(dst, src, nonce []byte) (size int, err
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 	s.CryptBlocks(dst, src)
@@ -232,7 +233,7 @@ func (s _BlockModeDecrypter) Transforming(dst, src, nonce []byte) (size int, err
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 	s.CryptBlocks(dst, src)
@@ -271,7 +272,7 @@ func (s _AEADEncryptor) Transforming(dst, src, nonce []byte) (size int, err erro
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {
@@ -309,7 +310,7 @@ func (s _AEADDecrypter) Transforming(dst, src, nonce []byte) (size int, err erro
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
 			size = 0
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {
