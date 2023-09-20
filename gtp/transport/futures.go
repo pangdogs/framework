@@ -3,6 +3,8 @@ package transport
 import (
 	"context"
 	"errors"
+	"fmt"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/runtime"
 	"sync"
 	"sync/atomic"
@@ -91,7 +93,7 @@ func (fs *Futures) Request(ctx context.Context, handler func(future Future), tim
 	}
 
 	if handler == nil {
-		panic("handler is nil")
+		panic(fmt.Errorf("%w: handler is nil", golaxy.ErrArgs))
 	}
 
 	asyncRet := make(RespAsyncRet, 1)

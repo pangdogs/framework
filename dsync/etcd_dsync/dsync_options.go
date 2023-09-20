@@ -2,7 +2,9 @@ package etcd_dsync
 
 import (
 	"crypto/tls"
+	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"kit.golaxy.org/golaxy"
 	"net"
 	"strings"
 )
@@ -60,7 +62,7 @@ func (Option) KeyPrefix(prefix string) DSyncOption {
 func (Option) WatchChanSize(size int) DSyncOption {
 	return func(options *DSyncOptions) {
 		if size < 0 {
-			panic("option WatchChanSize can't be set to a value less then 0")
+			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", golaxy.ErrArgs))
 		}
 		options.WatchChanSize = size
 	}

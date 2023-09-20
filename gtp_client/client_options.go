@@ -3,7 +3,9 @@ package gtp_client
 import (
 	"crypto"
 	"crypto/tls"
+	"fmt"
 	"go.uber.org/zap"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -156,7 +158,7 @@ func (Option) IOBufferCap(cap int) ClientOption {
 func (Option) DecoderMsgCreator(mc codec.IMsgCreator) ClientOption {
 	return func(options *ClientOptions) {
 		if mc == nil {
-			panic("option DecoderMsgCreator can't be assigned to nil")
+			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))
 		}
 		options.DecoderMsgCreator = mc
 	}
@@ -301,7 +303,7 @@ func (Option) AuthExtensions(extensions []byte) ClientOption {
 func (Option) ZapLogger(logger *zap.Logger) ClientOption {
 	return func(options *ClientOptions) {
 		if logger == nil {
-			panic("option ZapLogger can't be assigned to nil")
+			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", golaxy.ErrArgs))
 		}
 		options.ZapLogger = logger
 	}

@@ -2,7 +2,9 @@ package etcd_registry
 
 import (
 	"crypto/tls"
+	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"kit.golaxy.org/golaxy"
 	"net"
 	"strings"
 )
@@ -60,7 +62,7 @@ func (Option) KeyPrefix(prefix string) RegistryOption {
 func (Option) WatchChanSize(size int) RegistryOption {
 	return func(options *RegistryOptions) {
 		if size < 0 {
-			panic("option WatchChanSize can't be set to a value less then 0")
+			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", golaxy.ErrArgs))
 		}
 		options.WatchChanSize = size
 	}
@@ -77,7 +79,7 @@ func (Option) FastAddresses(addrs ...string) RegistryOption {
 	return func(options *RegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(err)
+				panic(fmt.Errorf("%w: %w", golaxy.ErrArgs, err))
 			}
 		}
 		options.FastAddresses = addrs
