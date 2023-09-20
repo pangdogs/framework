@@ -2,6 +2,7 @@ package gtp_gate
 
 import (
 	"fmt"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/logger"
 	"net"
@@ -14,7 +15,7 @@ func (g *_GtpGate) HandleSession(conn net.Conn) {
 
 	defer func() {
 		if panicErr := util.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("panicked: %w", panicErr)
+			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			logger.Errorf(g.ctx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
