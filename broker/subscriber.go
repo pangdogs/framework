@@ -6,7 +6,7 @@ import (
 )
 
 // ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
-var ErrUnsubscribed = errors.New("broker: unsubscribed")
+var ErrUnsubscribed = errors.New("unsubscribed")
 
 // Subscriber is a convenience return type for the Broker.Subscribe method.
 type Subscriber interface {

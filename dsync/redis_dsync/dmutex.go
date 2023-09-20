@@ -8,12 +8,12 @@ import (
 	"strings"
 )
 
-func newRedisDMutex(rs *_RedisDsync, name string, options dsync.DMutexOptions) dsync.DMutex {
+func newRedisMutex(rs *_RedisDsync, name string, options dsync.DMutexOptions) dsync.DMutex {
 	if rs.options.KeyPrefix != "" {
 		name = rs.options.KeyPrefix + name
 	}
 
-	rMutex := rs.NewMutex(name,
+	mutex := rs.redSync.NewMutex(name,
 		redsync.WithExpiry(options.Expiry),
 		redsync.WithTries(options.Tries),
 		redsync.WithRetryDelayFunc(options.DelayFunc),
@@ -23,11 +23,11 @@ func newRedisDMutex(rs *_RedisDsync, name string, options dsync.DMutexOptions) d
 		redsync.WithValue(options.Value),
 	)
 
-	logger.Debugf(rs.ctx, "new dmutex %q", name)
+	logger.Debugf(rs.ctx, "new dsync mutex %q", name)
 
 	return &_RedisDMutex{
 		rs:    rs,
-		Mutex: rMutex,
+		Mutex: mutex,
 	}
 }
 
@@ -52,7 +52,7 @@ func (m *_RedisDMutex) Lock(ctx context.Context) error {
 		return err
 	}
 
-	logger.Debugf(m.rs.ctx, "dmutex %q is locked", m.Mutex.Name())
+	logger.Debugf(m.rs.ctx, "dsync mutex %q is locked", m.Mutex.Name())
 
 	return nil
 }
@@ -72,7 +72,7 @@ func (m *_RedisDMutex) Unlock(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	logger.Debugf(m.rs.ctx, "dmutex %q is unlocked", m.Mutex.Name())
+	logger.Debugf(m.rs.ctx, "dsync mutex %q is unlocked", m.Mutex.Name())
 
 	return nil
 }
@@ -92,7 +92,7 @@ func (m *_RedisDMutex) Extend(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	logger.Debugf(m.rs.ctx, "dmutex %q is extended", m.Mutex.Name())
+	logger.Debugf(m.rs.ctx, "dsync mutex %q is extended", m.Mutex.Name())
 
 	return nil
 }
@@ -104,6 +104,5 @@ func (m *_RedisDMutex) Valid(ctx context.Context) (bool, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-
 	return m.ValidContext(ctx)
 }

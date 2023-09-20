@@ -301,6 +301,9 @@ func (_GateOption) SessionRecvEventHandlers(handlers ...SessionRecvEventHandler)
 
 func (_GateOption) FutureTimeout(d time.Duration) GateOption {
 	return func(options *GateOptions) {
+		if d <= 0 {
+			panic("option FutureTimeout can't be set to a value less equal 0")
+		}
 		options.FutureTimeout = d
 	}
 }

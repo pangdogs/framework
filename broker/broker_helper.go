@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/logger"
 )
@@ -37,11 +36,16 @@ func MaxPayload(serviceCtx service.Context) int64 {
 	return Fetch(serviceCtx).MaxPayload()
 }
 
+// Separator return topic path separator.
+func Separator(serviceCtx service.Context) string {
+	return Fetch(serviceCtx).Separator()
+}
+
 // NewPublishChan creates a new channel for publishing data to a specific topic.
 func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern string, size int) (chan []byte, error) {
-	broker, ok := Access(serviceCtx)
-	if !ok {
-		return nil, fmt.Errorf("plugin %q not install", Name)
+	broker, err := Access(serviceCtx)
+	if err != nil {
+		return nil, err
 	}
 
 	ch := make(chan []byte, size)
@@ -73,14 +77,14 @@ func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern str
 
 // NewSubscribeChan creates a new channel for receiving data from a specific topic.
 func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic string, size int) (<-chan []byte, error) {
-	broker, ok := Access(serviceCtx)
-	if !ok {
-		return nil, fmt.Errorf("plugin %q not install", Name)
+	broker, err := Access(serviceCtx)
+	if err != nil {
+		return nil, err
 	}
 
 	ch := make(chan []byte, size)
 
-	_, err := broker.Subscribe(ctx, topic, Option{}.EventHandler(func(e Event) error {
+	_, err = broker.Subscribe(ctx, topic, Option{}.EventHandler(func(e Event) error {
 		select {
 		case ch <- e.Message():
 		default:

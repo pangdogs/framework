@@ -28,7 +28,7 @@ type _RedisDsync struct {
 	options DSyncOptions
 	ctx     service.Context
 	client  *redis.Client
-	*redsync.Redsync
+	redSync *redsync.Redsync
 }
 
 // InitSP 初始化服务插件
@@ -48,7 +48,7 @@ func (s *_RedisDsync) InitSP(ctx service.Context) {
 		log.Panicf("ping redis %q failed, %v", s.client, err)
 	}
 
-	s.Redsync = redsync.New(goredis.NewPool(s.client))
+	s.redSync = redsync.New(goredis.NewPool(s.client))
 }
 
 // ShutSP 关闭服务插件
@@ -71,11 +71,11 @@ func (s *_RedisDsync) NewMutex(name string, options ...dsync.DMutexOption) dsync
 		options[i](&opts)
 	}
 
-	return newRedisDMutex(s, name, opts)
+	return newRedisMutex(s, name, opts)
 }
 
 // GetSeparator return name path separator.
-func (s *_RedisDsync) GetSeparator() string {
+func (s *_RedisDsync) Separator() string {
 	return ":"
 }
 

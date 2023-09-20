@@ -9,128 +9,112 @@ import (
 
 // Trace logs a message at TraceLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Trace(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(TraceLevel.PackSkip(1), v...)
 	}
 }
 
 // Traceln logs a message at TraceLevel, spaces are always added between operands and a newline is appended.
 func Traceln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(TraceLevel.PackSkip(1), v...)
 	}
 }
 
 // Tracef logs a formatted message at TraceLevel.
 func Tracef(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(TraceLevel.PackSkip(1), format, v...)
 	}
 }
 
 // Debug logs a message at DebugLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Debug(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(DebugLevel.PackSkip(1), v...)
 	}
 }
 
 // Debugln logs a message at DebugLevel, spaces are always added between operands and a newline is appended.
 func Debugln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(DebugLevel.PackSkip(1), v...)
 	}
 }
 
 // Debugf logs a formatted message at DebugLevel.
 func Debugf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(DebugLevel.PackSkip(1), format, v...)
 	}
 }
 
 // Info logs a message at InfoLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Info(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(InfoLevel.PackSkip(1), v...)
 	}
 }
 
 // Infoln logs a message at InfoLevel, spaces are always added between operands and a newline is appended.
 func Infoln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(InfoLevel.PackSkip(1), v...)
 	}
 }
 
 // Infof logs a formatted message at InfoLevel.
 func Infof(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(InfoLevel.PackSkip(1), format, v...)
 	}
 }
 
 // Warn logs a message at WarnLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Warn(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(WarnLevel.PackSkip(1), v...)
 	}
 }
 
 // Warnln logs a message at WarnLevel, spaces are always added between operands and a newline is appended.
 func Warnln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(WarnLevel.PackSkip(1), v...)
 	}
 }
 
 // Warnf logs a formatted message at WarnLevel.
 func Warnf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(WarnLevel.PackSkip(1), format, v...)
 	}
 }
 
 // Error logs a message at ErrorLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Error(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(ErrorLevel.PackSkip(1), v...)
 	}
 }
 
 // Errorln logs a message at ErrorLevel, spaces are always added between operands and a newline is appended.
 func Errorln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(ErrorLevel.PackSkip(1), v...)
 	}
 }
 
 // Errorf logs a formatted message at ErrorLevel.
 func Errorf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(ErrorLevel.PackSkip(1), format, v...)
 	}
 }
 
 // DPanic logs a message at DPanicLevel, spaces are added between operands when neither is a string and a newline is appended.
 func DPanic(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(DPanicLevel.PackSkip(1), v...)
 	} else {
 		panic(errors.New(fmt.Sprint(v...)))
@@ -139,8 +123,7 @@ func DPanic(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // DPanicln logs a message at DPanicLevel, spaces are always added between operands and a newline is appended.
 func DPanicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(DPanicLevel.PackSkip(1), v...)
 	} else {
 		panic(errors.New(fmt.Sprintln(v...)))
@@ -149,8 +132,7 @@ func DPanicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // DPanicf logs a formatted message at DPanicLevel.
 func DPanicf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(DPanicLevel.PackSkip(1), format, v...)
 	} else {
 		panic(fmt.Errorf(format, v...))
@@ -159,8 +141,7 @@ func DPanicf(pluginResolver plugin.PluginResolver, format string, v ...interface
 
 // Panic logs a message at PanicLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Panic(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(PanicLevel.PackSkip(1), v...)
 	} else {
 		panic(errors.New(fmt.Sprint(v...)))
@@ -169,8 +150,7 @@ func Panic(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // Panicln logs a message at PanicLevel, spaces are always added between operands and a newline is appended.
 func Panicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(PanicLevel.PackSkip(1), v...)
 	} else {
 		panic(errors.New(fmt.Sprintln(v...)))
@@ -179,8 +159,7 @@ func Panicln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // Panicf logs a formatted message at PanicLevel.
 func Panicf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(PanicLevel.PackSkip(1), format, v...)
 	} else {
 		panic(fmt.Errorf(format, v...))
@@ -189,8 +168,7 @@ func Panicf(pluginResolver plugin.PluginResolver, format string, v ...interface{
 
 // Fatal logs a message at FatalLevel, spaces are added between operands when neither is a string and a newline is appended.
 func Fatal(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Log(FatalLevel.PackSkip(1), v...)
 	} else {
 		os.Exit(1)
@@ -199,8 +177,7 @@ func Fatal(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // Fatalln logs a message at FatalLevel, spaces are always added between operands and a newline is appended.
 func Fatalln(pluginResolver plugin.PluginResolver, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logln(FatalLevel.PackSkip(1), v...)
 	} else {
 		os.Exit(1)
@@ -209,8 +186,7 @@ func Fatalln(pluginResolver plugin.PluginResolver, v ...interface{}) {
 
 // Fatalf logs a formatted message at FatalLevel.
 func Fatalf(pluginResolver plugin.PluginResolver, format string, v ...interface{}) {
-	log, ok := Access(pluginResolver)
-	if ok {
+	if log, err := Access(pluginResolver); err == nil {
 		log.Logf(FatalLevel.PackSkip(1), format, v...)
 	} else {
 		os.Exit(1)

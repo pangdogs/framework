@@ -3,6 +3,7 @@ package etcd_dsync
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_concurrency "go.etcd.io/etcd/client/v3/concurrency"
 	"kit.golaxy.org/plugins/dsync"
@@ -13,12 +14,12 @@ import (
 	"time"
 )
 
-func newEtcdDMutex(es *_EtcdDSync, name string, options dsync.DMutexOptions) dsync.DMutex {
+func newEtcdMutex(es *_EtcdDSync, name string, options dsync.DMutexOptions) dsync.DMutex {
 	if es.options.KeyPrefix != "" {
 		name = es.options.KeyPrefix + name
 	}
 
-	logger.Debugf(es.ctx, "new dmutex %q", name)
+	logger.Debugf(es.ctx, "new dsync mutex %q", name)
 
 	return &_EtcdDMutex{
 		es:      es,
@@ -95,7 +96,7 @@ func (m *_EtcdDMutex) Lock(ctx context.Context) error {
 	m.mutex = mutex
 	m.until = until
 
-	logger.Debugf(m.es.ctx, "dmutex %q is locked", m.name)
+	logger.Debugf(m.es.ctx, "dsync mutex %q is locked", m.name)
 
 	return nil
 }
@@ -119,7 +120,7 @@ func (m *_EtcdDMutex) Unlock(ctx context.Context) error {
 		return err
 	}
 
-	logger.Debugf(m.es.ctx, "dmutex %q is unlocked", m.name)
+	logger.Debugf(m.es.ctx, "dsync mutex %q is unlocked", m.name)
 
 	m.clean()
 	return nil
@@ -143,7 +144,7 @@ func (m *_EtcdDMutex) Extend(ctx context.Context) error {
 		return err
 	}
 
-	logger.Debugf(m.es.ctx, "dmutex %q is extended", m.name)
+	logger.Debugf(m.es.ctx, "dsync mutex %q is extended", m.name)
 
 	return nil
 }
