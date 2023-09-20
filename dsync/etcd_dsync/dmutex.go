@@ -3,7 +3,6 @@ package etcd_dsync
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_concurrency "go.etcd.io/etcd/client/v3/concurrency"
 	"kit.golaxy.org/plugins/dsync"
