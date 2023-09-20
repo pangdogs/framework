@@ -51,14 +51,14 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 		case _SubscribeMode_Handler:
 			if eventHandler != nil {
 				if err := internal.Call(func() error { return eventHandler(e) }); err != nil {
-					logger.Tracef(ns.nb.ctx, "handle msg event failed, %s", err)
+					logger.Errorf(ns.nb.ctx, "handle msg event failed, %s", err)
 				}
 			}
 		default:
 			select {
 			case eventChan <- e:
 			default:
-				logger.Trace(ns.nb.ctx, "msg event chan is full")
+				logger.Error(ns.nb.ctx, "msg event chan is full")
 			}
 		}
 	}
@@ -85,7 +85,7 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 		if err := sub.Unsubscribe(); err != nil {
 			logger.Errorf(nb.ctx, "unsubscribe topic %q with %q failed, %s", sub.Subject, sub.Queue, err)
 		} else {
-			logger.Debugf(nb.ctx, "unsubscribe topic %q with %q", sub.Subject, sub.Queue)
+			logger.Infof(nb.ctx, "unsubscribe topic %q with %q", sub.Subject, sub.Queue)
 		}
 		if eventChan != nil {
 			close(eventChan)
@@ -95,7 +95,7 @@ func newNatsSubscriber(ctx context.Context, nb *_NatsBroker, mode _SubscribeMode
 		}
 	}()
 
-	logger.Debugf(nb.ctx, "subscribe topic %q with queue %q", pattern, queueName)
+	logger.Infof(nb.ctx, "subscribe topic %q with queue %q", pattern, queueName)
 
 	return ns, nil
 }

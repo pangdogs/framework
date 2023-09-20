@@ -71,11 +71,11 @@ func (s *_EtcdDSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.
 		options[i](&opts)
 	}
 
-	return newEtcdDMutex(s, name, opts)
+	return newEtcdMutex(s, name, opts)
 }
 
-// GetSeparator return name path separator.
-func (s *_EtcdDSync) GetSeparator() string {
+// Separator return name path separator.
+func (s *_EtcdDSync) Separator() string {
 	return "/"
 }
 

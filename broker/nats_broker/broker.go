@@ -104,15 +104,18 @@ func (b *_NatsBroker) subscribe(ctx context.Context, mode _SubscribeMode, patter
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.
 func (b *_NatsBroker) Flush(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return b.client.FlushWithContext(ctx)
 }
 
-// GetMaxPayload return max payload bytes.
-func (b *_NatsBroker) GetMaxPayload() int64 {
+// MaxPayload return max payload bytes.
+func (b *_NatsBroker) MaxPayload() int64 {
 	return b.client.MaxPayload()
 }
 
-// GetSeparator return topic path separator.
-func (b *_NatsBroker) GetSeparator() string {
+// Separator return topic path separator.
+func (b *_NatsBroker) Separator() string {
 	return "."
 }

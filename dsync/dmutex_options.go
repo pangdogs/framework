@@ -51,6 +51,7 @@ func (Option) Default() DMutexOption {
 		Option{}.DriftFactor(0.01)(options)
 		Option{}.TimeoutFactor(0.05)(options)
 		Option{}.GenValueFunc(defaultGenValueFunc)(options)
+		Option{}.Value("")(options)
 	}
 }
 
