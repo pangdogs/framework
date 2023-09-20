@@ -16,7 +16,7 @@ var (
 	ErrRenewConn     = errors.New("renew conn")          // 刷新链路错误
 	ErrUnexpectedSeq = errors.New("unexpected sequence") // 收到非预期的消息序号，表示序号不连续
 	ErrDiscardSeq    = errors.New("discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
-	ErrNetIO         = errors.New("net i/o")             // 网络io类错误
+	ErrNetIO         = errors.New("net i/o")             // 网络io错误
 	ErrTimeout       = os.ErrDeadlineExceeded            // 网络io超时
 	ErrClosed        = os.ErrClosed                      // 网络链路已关闭
 	ErrUnexpectedEOF = io.ErrUnexpectedEOF               // 非预期的io结束
