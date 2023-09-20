@@ -239,7 +239,7 @@ func (s *SequencedBuffer) ack(seq uint32) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				panic(fmt.Errorf("sequenced buffer cached less 0 invalid"))
+				panic("sequenced buffer cached less 0 invalid")
 			}
 
 			break
@@ -266,7 +266,7 @@ func (s *SequencedBuffer) reduce(size int) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				panic(fmt.Errorf("sequenced buffer cached less 0 invalid"))
+				panic("sequenced buffer cached less 0 invalid")
 			}
 
 			break

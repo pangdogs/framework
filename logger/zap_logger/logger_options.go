@@ -1,7 +1,9 @@
 package zap_logger
 
 import (
+	"fmt"
 	"go.uber.org/zap"
+	"kit.golaxy.org/golaxy"
 )
 
 type Option struct{}
@@ -32,7 +34,7 @@ func (Option) Default() LoggerOption {
 func (Option) ZapLogger(logger *zap.Logger) LoggerOption {
 	return func(options *LoggerOptions) {
 		if logger == nil {
-			panic("option ZapLogger can't be assigned to nil")
+			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", golaxy.ErrArgs))
 		}
 		options.ZapLogger = logger
 	}
@@ -47,7 +49,7 @@ func (Option) Fields(fields Field) LoggerOption {
 func (Option) CallerMaxSkip(skip int8) LoggerOption {
 	return func(options *LoggerOptions) {
 		if skip < 0 {
-			panic("option CallerMaxSkip can't be set to a value less than 0")
+			panic(fmt.Errorf("%w: option CallerMaxSkip can't be set to a value less than 0", golaxy.ErrArgs))
 		}
 		options.CallerMaxSkip = skip
 	}

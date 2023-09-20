@@ -1,7 +1,9 @@
 package redis_registry
 
 import (
+	"fmt"
 	"github.com/redis/go-redis/v9"
+	"kit.golaxy.org/golaxy"
 	"net"
 	"strings"
 )
@@ -65,7 +67,7 @@ func (Option) KeyPrefix(prefix string) RegistryOption {
 func (Option) WatchChanSize(size int) RegistryOption {
 	return func(o *RegistryOptions) {
 		if size < 0 {
-			panic("option WatchChanSize can't be set to a value less then 0")
+			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", golaxy.ErrArgs))
 		}
 		o.WatchChanSize = size
 	}
@@ -81,7 +83,7 @@ func (Option) FastAuth(username, password string) RegistryOption {
 func (Option) FastAddress(addr string) RegistryOption {
 	return func(options *RegistryOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
-			panic(err)
+			panic(fmt.Errorf("%w: %w", golaxy.ErrArgs, err))
 		}
 		options.FastAddress = addr
 	}
