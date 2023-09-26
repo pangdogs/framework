@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -71,7 +71,7 @@ func (s *_GtpSession) ContinueIO() {
 // Run 运行（会话的主线程）
 func (s *_GtpSession) Run() {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 

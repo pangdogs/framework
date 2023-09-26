@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/logger"
 )
@@ -30,7 +30,7 @@ type _EtcdDSync struct {
 
 // InitSP 初始化服务插件
 func (s *_EtcdDSync) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*s))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*s))
 
 	s.ctx = ctx
 

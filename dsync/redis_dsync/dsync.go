@@ -5,7 +5,7 @@ import (
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/logger"
 	"log"
@@ -33,7 +33,7 @@ type _RedisDsync struct {
 
 // InitSP 初始化服务插件
 func (s *_RedisDsync) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*s))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*s))
 
 	s.ctx = ctx
 

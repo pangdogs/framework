@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 )
 
 var (
@@ -525,7 +525,7 @@ func (s *ByteStream) ReadStringRef() (string, error) {
 	if len(s.rp) < int(l) {
 		return "", io.ErrUnexpectedEOF
 	}
-	v := util.Bytes2String(s.rp[:l])
+	v := types.Bytes2String(s.rp[:l])
 	s.rp = s.rp[l:]
 	return v, nil
 }

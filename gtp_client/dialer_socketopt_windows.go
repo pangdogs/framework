@@ -3,7 +3,7 @@
 package gtp_client
 
 import (
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"net"
 	"syscall"
 )
@@ -11,7 +11,7 @@ import (
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = util.New(util.Bool2Int(*options.TCPNoDelay))
+		noDelay = types.New(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	recvBuf := options.TCPRecvBuf

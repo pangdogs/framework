@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/nats-io/nats.go"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/logger"
 	"strings"
@@ -31,7 +31,7 @@ type _NatsBroker struct {
 
 // InitSP 初始化服务插件
 func (b *_NatsBroker) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*b))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*b))
 
 	b.ctx = ctx
 

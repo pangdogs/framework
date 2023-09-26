@@ -2,7 +2,7 @@ package transport
 
 import (
 	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 )
 
 // Resp 响应接口
@@ -37,7 +37,7 @@ type RespChan[T any] chan Ret[T]
 // Push 填入返回结果
 func (resp RespChan[T]) Push(rv any, err error) (retErr error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
 		}
 	}()
@@ -54,7 +54,7 @@ type RespHandler[T any] func(ret Ret[T])
 // Push 填入返回结果
 func (resp RespHandler[T]) Push(rv any, err error) (retErr error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
 		}
 	}()
@@ -70,7 +70,7 @@ type RespAsyncRet chan runtime.Ret
 // Push 填入返回结果
 func (resp RespAsyncRet) Push(rv any, err error) (retErr error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
 		}
 	}()

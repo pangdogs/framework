@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap"
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/logger"
 	"reflect"
 )
@@ -39,7 +39,7 @@ func (l *_ZapLogger) InitSP(ctx service.Context) {
 		l.sugaredLoggers[i] = l.options.ZapLogger.WithOptions(options...).Sugar()
 	}
 
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*l))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*l))
 }
 
 // ShutSP 关闭服务插件
