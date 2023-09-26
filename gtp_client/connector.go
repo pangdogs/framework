@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"math/rand"
@@ -36,7 +36,7 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 	}
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
@@ -72,7 +72,7 @@ func (ctor *_Connector) Reconnect(client *Client) (err error) {
 	}
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {

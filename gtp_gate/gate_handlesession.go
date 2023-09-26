@@ -3,7 +3,7 @@ package gtp_gate
 import (
 	"fmt"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/logger"
 	"net"
 	"sync/atomic"
@@ -14,7 +14,7 @@ func (g *_GtpGate) HandleSession(conn net.Conn) {
 	var err error
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {

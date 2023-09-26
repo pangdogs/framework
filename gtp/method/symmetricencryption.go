@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 )
 
@@ -89,7 +89,7 @@ func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv []by
 // NewBlock 创建分组
 func NewBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			block = nil
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
@@ -106,7 +106,7 @@ func NewBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err e
 // NewBlockCipherMode 创建分组密码模式
 func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) (encryptor, decrypter Cipher, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			encryptor = nil
 			decrypter = nil
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
@@ -149,7 +149,7 @@ type _XORKeyStream struct {
 
 func (s _XORKeyStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
@@ -192,7 +192,7 @@ type _BlockModeEncryptor struct {
 
 func (s _BlockModeEncryptor) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
@@ -231,7 +231,7 @@ type _BlockModeDecrypter struct {
 
 func (s _BlockModeDecrypter) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
@@ -270,7 +270,7 @@ type _AEADEncryptor struct {
 
 func (s _AEADEncryptor) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
@@ -308,7 +308,7 @@ type _AEADDecrypter struct {
 
 func (s _AEADDecrypter) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}

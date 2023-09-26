@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"kit.golaxy.org/plugins/logger"
 	"math/rand"
@@ -48,7 +48,7 @@ type _GtpGate struct {
 
 // InitSP 初始化服务插件
 func (g *_GtpGate) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*g))
+	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*g))
 
 	g.ctx = ctx
 

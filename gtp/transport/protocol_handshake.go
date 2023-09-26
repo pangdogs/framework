@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 )
 
@@ -38,7 +38,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*gtp.MsgHello], helloFin Hel
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		trans.GC()
@@ -83,7 +83,7 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
@@ -133,7 +133,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		trans.GC()
@@ -206,7 +206,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
@@ -270,7 +270,7 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*gtp.MsgAuth]) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
@@ -295,7 +295,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
@@ -332,7 +332,7 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[*gtp.MsgContinue]) (err er
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
@@ -357,7 +357,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
@@ -398,7 +398,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		trans.GC()
@@ -434,7 +434,7 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*gtp.MsgFinished]) (er
 	trans := h.Transceiver
 
 	defer func() {
-		if panicErr := util.Panic2Err(recover()); panicErr != nil {
+		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
