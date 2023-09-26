@@ -3,7 +3,7 @@ package dsync
 import (
 	"fmt"
 	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/uid"
+	"kit.golaxy.org/golaxy/util/uid"
 	"math/rand"
 	"time"
 )
