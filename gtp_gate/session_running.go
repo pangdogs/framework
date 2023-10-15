@@ -72,6 +72,7 @@ func (s *_GtpSession) ContinueIO() {
 func (s *_GtpSession) Run() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
+			defer s.cancel()
 			logger.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 

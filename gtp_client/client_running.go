@@ -73,6 +73,7 @@ func (c *Client) continueIO() {
 func (c *Client) run() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
+			defer c.cancel()
 			c.logger.Errorf("client %q panicked, %s", c.GetSessionId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 		if c.transceiver.Conn != nil {

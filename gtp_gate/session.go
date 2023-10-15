@@ -79,7 +79,7 @@ type _GtpSession struct {
 
 // String implements fmt.Stringer
 func (s *_GtpSession) String() string {
-	return fmt.Sprintf("{Id:%s Token:%s State:%d}", s.GetId(), s.GetToken(), s.GetState())
+	return fmt.Sprintf(`{"id":%q "token":%q "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
 }
 
 // Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
