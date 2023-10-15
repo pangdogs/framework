@@ -30,7 +30,7 @@ type Client struct {
 
 // String implements fmt.Stringer
 func (c *Client) String() string {
-	return fmt.Sprintf("{SessionId:%s Token:%s Endpoint:%s}", c.GetSessionId(), c.GetToken(), c.GetEndpoint())
+	return fmt.Sprintf(`{"session_id":%q "token":%q "end_point":%q}`, c.GetSessionId(), c.GetToken(), c.GetEndpoint())
 }
 
 // GetSessionId 获取会话Id
