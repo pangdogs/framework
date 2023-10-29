@@ -2,11 +2,7 @@ package broker
 
 import (
 	"context"
-	"errors"
 )
-
-// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
-var ErrUnsubscribed = errors.New("broker: unsubscribed")
 
 // Subscriber is a convenience return type for the Broker.Subscribe method.
 type Subscriber interface {
@@ -32,7 +28,7 @@ type ChanSubscriber interface {
 	EventChan() <-chan Event
 }
 
-// Event is given to a subscription handler for processing
+// Event is given to a subscription handler for processing.
 type Event interface {
 	// Pattern returns the subscription pattern used to create the event subscriber.
 	Pattern() string

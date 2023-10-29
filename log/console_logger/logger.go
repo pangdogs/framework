@@ -6,7 +6,7 @@ import (
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"os"
 	"reflect"
 	goruntime "runtime"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func newConsoleLogger(options ...LoggerOption) logger.Logger {
+func newLogger(options ...LoggerOption) log.Logger {
 	opts := LoggerOptions{}
 	Option{}.Default()(&opts)
 
@@ -22,89 +22,83 @@ func newConsoleLogger(options ...LoggerOption) logger.Logger {
 		options[i](&opts)
 	}
 
-	return &_ConsoleLogger{
+	return &_Logger{
 		options: opts,
 	}
 }
 
-type _ConsoleLogger struct {
-	options      LoggerOptions
-	serviceField string
-	runtimeField string
+type _Logger struct {
+	options     LoggerOptions
+	serviceInfo string
+	runtimeInfo string
 }
 
 // InitSP init service plugin
-func (l *_ConsoleLogger) InitSP(ctx service.Context) {
-	l.serviceField = ctx.String()
+func (l *_Logger) InitSP(ctx service.Context) {
+	l.serviceInfo = ctx.String()
 
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*l))
+	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*l))
 }
 
 // ShutSP shut service plugin
-func (l *_ConsoleLogger) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (l *_Logger) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 }
 
 // InitRP init runtime plugin
-func (l *_ConsoleLogger) InitRP(ctx runtime.Context) {
-	l.serviceField = service.Current(ctx).String()
-	l.runtimeField = ctx.String()
+func (l *_Logger) InitRP(ctx runtime.Context) {
+	l.serviceInfo = service.Current(ctx).String()
+	l.runtimeInfo = ctx.String()
 
-	logger.Infof(ctx, "init runtime plugin %q with %q", definePlugin.Name, reflect.TypeOf(_ConsoleLogger{}))
+	log.Infof(ctx, "init runtime plugin %q with %q", plugin.Name, reflect.TypeOf(_Logger{}))
 }
 
 // ShutRP shut runtime plugin
-func (l *_ConsoleLogger) ShutRP(ctx runtime.Context) {
-	logger.Infof(ctx, "shut runtime plugin %q", definePlugin.Name)
+func (l *_Logger) ShutRP(ctx runtime.Context) {
+	log.Infof(ctx, "shut runtime plugin %q", plugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
-func (l *_ConsoleLogger) Log(level logger.Level, v ...interface{}) {
-	level, skip := level.UnpackSkip()
-
+func (l *_Logger) Log(level log.Level, v ...interface{}) {
 	if !l.options.Level.Enabled(level) {
 		l.interrupt(level, fmt.Sprint(v...))
 		return
 	}
 
 	msg := fmt.Sprint(v...)
-	l.logMessage(level, skip+2, msg, "\n")
+	l.logMessage(level, l.options.CallerSkip, msg, "\n")
 	l.interrupt(level, msg)
 }
 
 // Logln writes a log entry, spaces are always added between operands and a newline is appended.
-func (l *_ConsoleLogger) Logln(level logger.Level, v ...interface{}) {
-	level, skip := level.UnpackSkip()
-
+func (l *_Logger) Logln(level log.Level, v ...interface{}) {
 	if !l.options.Level.Enabled(level) {
 		l.interrupt(level, fmt.Sprintln(v...))
 		return
 	}
 
 	msg := fmt.Sprintln(v...)
-	l.logMessage(level, skip+2, msg, "")
+	l.logMessage(level, l.options.CallerSkip, msg, "")
 	l.interrupt(level, msg)
 }
 
 // Logf writes a formatted log entry.
-func (l *_ConsoleLogger) Logf(level logger.Level, format string, v ...interface{}) {
-	level, skip := level.UnpackSkip()
-
+func (l *_Logger) Logf(level log.Level, format string, v ...interface{}) {
 	if !l.options.Level.Enabled(level) {
 		l.interrupt(level, fmt.Sprintf(format, v...))
 		return
 	}
 
 	msg := fmt.Sprintf(format, v...)
-	l.logMessage(level, skip+2, msg, "\n")
+	l.logMessage(level, l.options.CallerSkip, msg, "\n")
 	l.interrupt(level, msg)
 }
 
-func (l *_ConsoleLogger) logMessage(level logger.Level, skip int8, msg, endln string) {
+func (l *_Logger) logMessage(level log.Level, skip int, msg, endln string) {
 	var writer io.Writer
 
 	switch level {
-	case logger.ErrorLevel, logger.DPanicLevel, logger.PanicLevel, logger.FatalLevel:
+	case log.ErrorLevel, log.DPanicLevel, log.PanicLevel, log.FatalLevel:
 		writer = os.Stderr
 	default:
 		writer = os.Stdout
@@ -113,35 +107,35 @@ func (l *_ConsoleLogger) logMessage(level logger.Level, skip int8, msg, endln st
 	var fields [16]any
 	var count int32
 
-	if l.serviceField != "" && l.options.Fields&ServiceField != 0 {
-		fields[count] = l.serviceField
+	if l.serviceInfo != "" && l.options.ServiceInfo {
+		fields[count] = l.serviceInfo
 		count++
 		fields[count] = l.options.Separator
 		count++
 	}
 
-	if l.runtimeField != "" && l.options.Fields&RuntimeField != 0 {
-		fields[count] = l.runtimeField
+	if l.runtimeInfo != "" && l.options.RuntimeInfo {
+		fields[count] = l.runtimeInfo
 		count++
 		fields[count] = l.options.Separator
 		count++
 	}
 
-	if l.options.Fields&TimestampField != 0 {
+	{
 		fields[count] = time.Now().Format(l.options.TimestampLayout)
 		count++
 		fields[count] = l.options.Separator
 		count++
 	}
 
-	if l.options.Fields&LevelField != 0 {
+	{
 		fields[count] = level
 		count++
 		fields[count] = l.options.Separator
 		count++
 	}
 
-	if l.options.Fields&CallerField != 0 {
+	{
 		_, file, line, ok := goruntime.Caller(int(skip))
 		if !ok {
 			file = "???"
@@ -176,15 +170,15 @@ func (l *_ConsoleLogger) logMessage(level logger.Level, skip int8, msg, endln st
 	fmt.Fprint(writer, fields[:count]...)
 }
 
-func (l *_ConsoleLogger) interrupt(level logger.Level, msg string) {
+func (l *_Logger) interrupt(level log.Level, msg string) {
 	switch level {
-	case logger.DPanicLevel:
+	case log.DPanicLevel:
 		if l.options.Development {
 			panic(msg)
 		}
-	case logger.PanicLevel:
+	case log.PanicLevel:
 		panic(msg)
-	case logger.FatalLevel:
+	case log.FatalLevel:
 		os.Exit(1)
 	}
 }

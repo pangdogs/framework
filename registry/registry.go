@@ -4,14 +4,17 @@ package registry
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
 var (
+	// ErrRegistry dsync errors.
+	ErrRegistry = errors.New("registry")
 	// ErrNotFound Not found error when Registry.GetService or Registry.GetServiceNode is called
-	ErrNotFound = errors.New("registry: service not found")
+	ErrNotFound = fmt.Errorf("%w: service not found", ErrRegistry)
 	// ErrStoppedWatching Stopped watching error when watcher is stopped
-	ErrStoppedWatching = errors.New("registry: stopped watching")
+	ErrStoppedWatching = fmt.Errorf("%w: stopped watching", ErrRegistry)
 )
 
 // The Registry provides an interface for service discovery

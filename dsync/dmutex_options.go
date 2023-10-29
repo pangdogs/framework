@@ -43,7 +43,7 @@ func (Option) Default() DMutexOption {
 	}
 
 	defaultGenValueFunc := func() (string, error) {
-		return uid.New().String(), nil
+		return string(uid.New()), nil
 	}
 
 	return func(options *DMutexOptions) {

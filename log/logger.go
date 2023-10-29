@@ -1,4 +1,4 @@
-package logger
+package log
 
 import (
 	"bytes"
@@ -62,8 +62,6 @@ func (l *Level) UnmarshalText(text []byte) error {
 }
 
 func (l *Level) unmarshalText(text []byte) bool {
-	_, skip := l.UnpackSkip()
-
 	switch string(text) {
 	case "debug", "DEBUG":
 		*l = DebugLevel
@@ -83,15 +81,11 @@ func (l *Level) unmarshalText(text []byte) bool {
 		return false
 	}
 
-	*l = l.PackSkip(skip)
-
 	return true
 }
 
 // String returns a lower-case ASCII representation of the log level.
 func (l Level) String() string {
-	l, _ = l.UnpackSkip()
-
 	switch l {
 	case TraceLevel:
 		return "trace"
@@ -116,8 +110,6 @@ func (l Level) String() string {
 
 // CapitalString returns an all-caps ASCII representation of the log level.
 func (l Level) CapitalString() string {
-	l, _ = l.UnpackSkip()
-
 	// Printing levels in all-caps is common enough that we should export this
 	// functionality.
 	switch l {
@@ -151,24 +143,7 @@ func (l Level) Get() interface{} {
 	return l
 }
 
-// PackSkip returns a new Level value with an additional skip offset encoded in the high bits.
-// The skip value indicates the number of additional stack frames to skip before logging.
-// It is useful for providing more contextual information in the log.
-func (l Level) PackSkip(skip int8) Level {
-	return l | (Level(skip) << 4)
-}
-
-// UnpackSkip extracts the original Level value and the skip offset from a packed Level value.
-// If the skip offset is not present in the packed value, a default value of 1 is used.
-// It is useful for decoding the skip offset and recovering the original Level value.
-func (l Level) UnpackSkip() (Level, int8) {
-	return l & 0x0f, int8(l >> 4)
-}
-
 // Enabled returns true if the given level is at or above this level.
 func (l Level) Enabled(level Level) bool {
-	l, _ = l.UnpackSkip()
-	level, _ = level.UnpackSkip()
-
 	return level >= l
 }

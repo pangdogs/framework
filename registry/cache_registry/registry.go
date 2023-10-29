@@ -6,13 +6,13 @@ import (
 	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"reflect"
 	"sync"
 )
 
-func newCacheRegistry(options ...RegistryOption) registry.Registry {
+func newRegistry(options ...RegistryOption) registry.Registry {
 	opts := RegistryOptions{}
 	Option{}.Default()(&opts)
 
@@ -20,7 +20,7 @@ func newCacheRegistry(options ...RegistryOption) registry.Registry {
 		options[i](&opts)
 	}
 
-	return &_CacheRegistry{
+	return &_Registry{
 		options:        opts,
 		serviceMap:     map[string]*[]registry.Service{},
 		serviceNodeMap: map[_ServiceNodeKey]*registry.Service{},
@@ -31,7 +31,7 @@ type _ServiceNodeKey struct {
 	ServiceName, NodeId string
 }
 
-type _CacheRegistry struct {
+type _Registry struct {
 	registry.Registry
 	options        RegistryOptions
 	serviceMap     map[string]*[]registry.Service
@@ -41,13 +41,13 @@ type _CacheRegistry struct {
 }
 
 // InitSP 初始化服务插件
-func (r *_CacheRegistry) InitSP(ctx service.Context) {
+func (r *_Registry) InitSP(ctx service.Context) {
 	if r.options.Registry == nil {
-		logger.Panic(ctx, "cached plugin is nil, must be set before init")
+		log.Panic(ctx, "cached plugin is nil, must be set before init")
 	}
 	r.Registry = r.options.Registry
 
-	logger.Infof(ctx, "init service plugin %q with %q, cached %q", definePlugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.options.Registry).Elem()))
+	log.Infof(ctx, "init service plugin %q with %q, cached %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.options.Registry).Elem()))
 
 	if init, ok := r.options.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(ctx)
@@ -55,12 +55,12 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 
 	watcher, err := r.Registry.Watch(ctx, "")
 	if err != nil {
-		logger.Panicf(ctx, "new service watcher failed, %s", err)
+		log.Panicf(ctx, "new service watcher failed, %s", err)
 	}
 
 	services, err := r.Registry.ListServices(ctx)
 	if err != nil {
-		logger.Panicf(ctx, "list all services failed, %s", err)
+		log.Panicf(ctx, "list all services failed, %s", err)
 	}
 
 	for i := range services {
@@ -91,10 +91,10 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 			event, err := watcher.Next()
 			if err != nil {
 				if errors.Is(err, registry.ErrStoppedWatching) {
-					logger.Debugf(ctx, "watch service changes stopped")
+					log.Debugf(ctx, "watch service changes stopped")
 					return
 				}
-				logger.Errorf(ctx, "an error occurred during watch service changes, %s", err)
+				log.Errorf(ctx, "an error occurred during watch service changes, %s", err)
 				return
 			}
 
@@ -187,8 +187,8 @@ func (r *_CacheRegistry) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (r *_CacheRegistry) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (r *_Registry) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 
 	r.wg.Wait()
 
@@ -198,7 +198,7 @@ func (r *_CacheRegistry) ShutSP(ctx service.Context) {
 }
 
 // GetServiceNode 查询服务节点
-func (r *_CacheRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -214,7 +214,7 @@ func (r *_CacheRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId
 }
 
 // GetService 查询服务
-func (r *_CacheRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -233,7 +233,7 @@ func (r *_CacheRegistry) GetService(ctx context.Context, serviceName string) ([]
 }
 
 // ListServices 查询所有服务
-func (r *_CacheRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
+func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -248,7 +248,7 @@ func (r *_CacheRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 	return servicesCopy, nil
 }
 
-func (r *_CacheRegistry) getServiceVersions(serviceName string) *[]registry.Service {
+func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 	services, ok := r.serviceMap[serviceName]
 	if !ok {
 		services = &[]registry.Service{}

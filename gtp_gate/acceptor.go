@@ -11,24 +11,24 @@ import (
 
 // _Acceptor 网络连接接受器
 type _Acceptor struct {
-	Gate    *_GtpGate
+	Gate    *_Gate
 	Options *GateOptions
 	encoder *codec.Encoder
 	decoder *codec.Decoder
 }
 
-// Accept 接受网络连接
-func (acc *_Acceptor) Accept(conn net.Conn) (*_GtpSession, error) {
+// accept 接受网络连接
+func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 	return acc.handshake(conn)
 }
 
-// newGtpSession 创建会话
-func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
+// newSession 创建会话
+func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	if conn == nil {
 		return nil, errors.New("conn is nil")
 	}
 
-	session := &_GtpSession{
+	session := &_Session{
 		gate:  acc.Gate,
 		id:    ksuid.New().String(),
 		state: SessionState_Birth,
@@ -47,17 +47,17 @@ func (acc *_Acceptor) newGtpSession(conn net.Conn) (*_GtpSession, error) {
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver
 	session.eventDispatcher.RetryTimes = acc.Gate.options.IORetryTimes
-	session.eventDispatcher.EventHandlers = []transport.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.EventHandler}
+	session.eventDispatcher.EventHandlers = []transport.EventHandler{session.trans.EventHandler, session.ctrl.EventHandler, session.handleEvent}
 
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver
 	session.trans.RetryTimes = acc.Gate.options.IORetryTimes
-	session.trans.PayloadHandler = session.PayloadHandler
+	session.trans.PayloadHandler = session.handlePayload
 
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver
 	session.ctrl.RetryTimes = acc.Gate.options.IORetryTimes
-	session.ctrl.HeartbeatHandler = session.HeartbeatHandler
+	session.ctrl.HeartbeatHandler = session.handleHeartbeat
 
 	return session, nil
 }

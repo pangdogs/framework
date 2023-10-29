@@ -2,7 +2,6 @@ package registry
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 )
 
@@ -42,10 +41,10 @@ func (t *EventType) MarshalText() ([]byte, error) {
 // UnmarshalText unmarshals text to a EventType.
 func (t *EventType) UnmarshalText(text []byte) error {
 	if t == nil {
-		return errors.New("can't unmarshal a nil *EventType")
+		return fmt.Errorf("%w: can't unmarshal a nil *EventType", ErrRegistry)
 	}
 	if !t.unmarshalText(text) && !t.unmarshalText(bytes.ToLower(text)) {
-		return fmt.Errorf("unrecognized EventType: %q", text)
+		return fmt.Errorf("%w: unrecognized EventType: %q", ErrRegistry, text)
 	}
 	return nil
 }

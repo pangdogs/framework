@@ -3,100 +3,39 @@ package broker
 import (
 	"context"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/plugins/logger"
 )
 
 // Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
 func Publish(serviceCtx service.Context, ctx context.Context, topic string, data []byte) error {
-	return Fetch(serviceCtx).Publish(ctx, topic, data)
+	return Using(serviceCtx).Publish(ctx, topic, data)
 }
 
 // Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
 func Subscribe(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (Subscriber, error) {
-	return Fetch(serviceCtx).Subscribe(ctx, pattern, options...)
+	return Using(serviceCtx).Subscribe(ctx, pattern, options...)
 }
 
 // SubscribeSync will express interest in the given topic pattern.
 func SubscribeSync(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (SyncSubscriber, error) {
-	return Fetch(serviceCtx).SubscribeSync(ctx, pattern, options...)
+	return Using(serviceCtx).SubscribeSync(ctx, pattern, options...)
 }
 
 // SubscribeChan will express interest in the given topic pattern.
 func SubscribeChan(serviceCtx service.Context, ctx context.Context, pattern string, options ...SubscriberOption) (ChanSubscriber, error) {
-	return Fetch(serviceCtx).SubscribeChan(ctx, pattern, options...)
+	return Using(serviceCtx).SubscribeChan(ctx, pattern, options...)
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.
 func Flush(serviceCtx service.Context, ctx context.Context) error {
-	return Fetch(serviceCtx).Flush(ctx)
+	return Using(serviceCtx).Flush(ctx)
 }
 
 // MaxPayload return max payload bytes.
 func MaxPayload(serviceCtx service.Context) int64 {
-	return Fetch(serviceCtx).MaxPayload()
+	return Using(serviceCtx).MaxPayload()
 }
 
 // Separator return topic path separator.
 func Separator(serviceCtx service.Context) string {
-	return Fetch(serviceCtx).Separator()
-}
-
-// NewPublishChan creates a new channel for publishing data to a specific topic.
-func NewPublishChan(serviceCtx service.Context, ctx context.Context, pattern string, size int) (chan []byte, error) {
-	broker, err := Access(serviceCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	ch := make(chan []byte, size)
-
-	go func() {
-		defer func() {
-			if info := recover(); info != nil {
-				logger.Tracef(serviceCtx, "publish data to topic %q failed, %s", pattern, info)
-			}
-		}()
-
-		for {
-			select {
-			case data, ok := <-ch:
-				if !ok {
-					return
-				}
-				if err := broker.Publish(ctx, pattern, data); err != nil {
-					logger.Tracef(serviceCtx, "publish data to topic %q failed, %s", pattern, err)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	return ch, nil
-}
-
-// NewSubscribeChan creates a new channel for receiving data from a specific topic.
-func NewSubscribeChan(serviceCtx service.Context, ctx context.Context, topic string, size int) (<-chan []byte, error) {
-	broker, err := Access(serviceCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	ch := make(chan []byte, size)
-
-	_, err = broker.Subscribe(ctx, topic, Option{}.EventHandler(func(e Event) error {
-		select {
-		case ch <- e.Message():
-		default:
-			logger.Trace(serviceCtx, "data chan is full")
-		}
-		return nil
-	}), Option{}.UnsubscribedCb(func(sub Subscriber) {
-		close(ch)
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	return ch, nil
+	return Using(serviceCtx).Separator()
 }
