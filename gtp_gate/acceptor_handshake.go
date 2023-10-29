@@ -16,7 +16,7 @@ import (
 )
 
 // handshake 握手过程
-func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
+func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	// 编解码器
 	acc.encoder = &codec.Encoder{}
 	acc.decoder = &codec.Decoder{MsgCreator: acc.Options.DecoderMsgCreator}
@@ -39,7 +39,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 	var cliRandom, servRandom []byte
 	var cliHelloBytes, servHelloBytes []byte
 	var continueFlow, encryptionFlow, authFlow bool
-	var session *_GtpSession
+	var session *_Session
 
 	defer func() {
 		if cliRandom != nil {
@@ -68,7 +68,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 
 		// 检查客户端要求的会话是否存在，已存在需要走断线重连流程
 		if cliHello.Msg.SessionId != "" {
-			v, ok := acc.Gate.LoadSession(cliHello.Msg.SessionId)
+			v, ok := acc.Gate.loadSession(cliHello.Msg.SessionId)
 			if !ok {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,
@@ -79,13 +79,13 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 			session = v
 			continueFlow = true
 		} else {
-			v, err := acc.newGtpSession(conn)
+			v, err := acc.newSession(conn)
 			if err != nil {
 				return transport.Event[*gtp.MsgHello]{}, err
 			}
 
 			// 调整会话状态为握手中
-			v.SetState(SessionState_Handshake)
+			v.setState(SessionState_Handshake)
 
 			session = v
 			continueFlow = false
@@ -230,8 +230,8 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 	}
 
 	// 暂停会话的收发消息io，等握手结束后恢复
-	session.PauseIO()
-	defer session.ContinueIO()
+	session.pauseIO()
+	defer session.continueIO()
 
 	var sendSeq, recvSeq uint32
 
@@ -239,7 +239,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 	if continueFlow {
 		err = handshake.ServerContinue(func(e transport.Event[*gtp.MsgContinue]) error {
 			// 刷新会话
-			sendSeq, recvSeq, err = session.Renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
+			sendSeq, recvSeq, err = session.renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_ContinueFailed,
@@ -253,7 +253,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 		}
 	} else {
 		// 初始化会话
-		sendSeq, recvSeq = session.Init(handshake.Transceiver.Conn,
+		sendSeq, recvSeq = session.init(handshake.Transceiver.Conn,
 			handshake.Transceiver.Encoder,
 			handshake.Transceiver.Decoder,
 			token)
@@ -276,7 +276,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 
 	if continueFlow {
 		// 检测会话有效性
-		if !acc.Gate.ValidateSession(session) {
+		if !acc.Gate.validateSession(session) {
 			err = &transport.RstError{
 				Code:    gtp.Code_ContinueFailed,
 				Message: fmt.Sprintf("session %q has expired", session.GetId()),
@@ -292,13 +292,13 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_GtpSession, error) {
 		}
 	} else {
 		// 存储会话
-		acc.Gate.StoreSession(session)
+		acc.Gate.storeSession(session)
 
 		// 调整会话状态为已确认
-		session.SetState(SessionState_Confirmed)
+		session.setState(SessionState_Confirmed)
 
 		// 运行会话
-		go session.Run()
+		go session.run()
 	}
 
 	return session, nil

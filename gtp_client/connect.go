@@ -15,7 +15,7 @@ func Connect(ctx context.Context, endpoint string, options ...ClientOption) (*Cl
 		options[i](&connector.Options)
 	}
 
-	return connector.Connect(ctx, endpoint)
+	return connector.connect(ctx, endpoint)
 }
 
 // Reonnect 重连服务端
@@ -28,5 +28,5 @@ func Reonnect(client *Client) error {
 		Options: client.options,
 	}
 
-	return connector.Reconnect(client)
+	return connector.reconnect(client)
 }

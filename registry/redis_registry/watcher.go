@@ -6,20 +6,13 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"net"
 	"strings"
 )
 
-type _RedisWatcher struct {
-	ctx       service.Context
-	cancel    context.CancelFunc
-	keyCache  map[string]string
-	eventChan chan *registry.Event
-}
-
-func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string) (watcher registry.Watcher, err error) {
+func (r *_Registry) newWatcher(ctx context.Context, serviceName string) (watcher registry.Watcher, err error) {
 	var keyPath string
 	if serviceName != "" {
 		keyPath = getServicePath(r.options.KeyPrefix, serviceName)
@@ -37,7 +30,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 	watch := r.client.PSubscribe(ctx)
 	if err := watch.PSubscribe(ctx, watchPathList...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 	defer func() {
 		if err != nil {
@@ -47,7 +40,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 	keys, err := r.client.Keys(ctx, keyPath).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	keyCache := map[string]string{}
@@ -55,7 +48,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 	if len(keys) > 0 {
 		values, err := r.client.MGet(ctx, keys...).Result()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 		}
 
 		for i, v := range values {
@@ -71,7 +64,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 	go func() {
 		<-ctx.Done()
 		if err := watch.Close(); err != nil {
-			logger.Errorf(r.ctx, "watcher close %q failed, %s", watchPathList, err)
+			log.Errorf(r.ctx, "watcher close %q failed, %s", watchPathList, err)
 		}
 	}()
 
@@ -82,16 +75,16 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			}
 		}()
 
-		logger.Debugf(r.ctx, "start watch %q", watchPathList)
+		log.Debugf(r.ctx, "start watch %q", watchPathList)
 
 		for {
 			msg, err := watch.ReceiveMessage(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
-					logger.Debugf(r.ctx, "stop watch %q, %s", watchPathList, err)
+					log.Debugf(r.ctx, "stop watch %q, %s", watchPathList, err)
 					return
 				}
-				logger.Errorf(r.ctx, "interrupt watch %q, %s", watchPathList, err)
+				log.Errorf(r.ctx, "interrupt watch %q, %s", watchPathList, err)
 				return
 			}
 
@@ -121,7 +114,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 					if errors.Is(err, context.Canceled) {
 						continue
 					}
-					logger.Errorf(r.ctx, "get node %q data failed, %s", key, err)
+					log.Errorf(r.ctx, "get service node %q data failed, %s", key, err)
 					continue
 				}
 
@@ -134,7 +127,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 
 				event.Service, err = decodeService([]byte(val))
 				if err != nil {
-					logger.Errorf(r.ctx, "decode node %q data failed, %s", key, err)
+					log.Errorf(r.ctx, "decode service %q data failed, %s", val, err)
 					continue
 				}
 
@@ -143,7 +136,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			case "del", "expired":
 				v, ok := keyCache[key]
 				if !ok {
-					logger.Errorf(r.ctx, "node %q data not cached", key)
+					log.Errorf(r.ctx, "service node %q data not cached", key)
 					continue
 				}
 
@@ -152,7 +145,7 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 				event.Type = registry.Delete
 				event.Service, err = decodeService([]byte(v))
 				if err != nil {
-					logger.Errorf(r.ctx, "decode node %q data failed, %s", key, err)
+					log.Errorf(r.ctx, "decode service %q data failed, %s", key, err)
 					continue
 				}
 
@@ -161,14 +154,14 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 			}
 
 			if len(event.Service.Nodes) <= 0 {
-				logger.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
+				log.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
 				continue
 			}
 
 			select {
 			case eventChan <- event:
 			case <-ctx.Done():
-				logger.Debugf(r.ctx, "stop watch %q", watchPathList)
+				log.Debugf(r.ctx, "stop watch %q", watchPathList)
 				return
 			}
 		}
@@ -180,6 +173,13 @@ func newRedisWatcher(ctx context.Context, r *_RedisRegistry, serviceName string)
 		keyCache:  keyCache,
 		eventChan: eventChan,
 	}, nil
+}
+
+type _RedisWatcher struct {
+	ctx       service.Context
+	cancel    context.CancelFunc
+	keyCache  map[string]string
+	eventChan chan *registry.Event
 }
 
 // Next is a blocking call

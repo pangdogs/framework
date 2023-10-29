@@ -6,10 +6,10 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/dsync"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 )
 
-func newEtcdDSync(options ...DSyncOption) dsync.DSync {
+func newDSync(options ...DSyncOption) dsync.DSync {
 	opts := DSyncOptions{}
 	Option{}.Default()(&opts)
 
@@ -17,27 +17,27 @@ func newEtcdDSync(options ...DSyncOption) dsync.DSync {
 		options[i](&opts)
 	}
 
-	return &_EtcdDSync{
+	return &_DSync{
 		options: opts,
 	}
 }
 
-type _EtcdDSync struct {
+type _DSync struct {
 	options DSyncOptions
 	ctx     service.Context
 	client  *etcd_client.Client
 }
 
 // InitSP 初始化服务插件
-func (s *_EtcdDSync) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*s))
+func (s *_DSync) InitSP(ctx service.Context) {
+	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*s))
 
 	s.ctx = ctx
 
 	if s.options.EtcdClient == nil {
 		cli, err := etcd_client.New(s.configure())
 		if err != nil {
-			logger.Panic(ctx, err)
+			log.Panicf(ctx, "new etcd client failed, %s", err)
 		}
 		s.client = cli
 	} else {
@@ -46,14 +46,14 @@ func (s *_EtcdDSync) InitSP(ctx service.Context) {
 
 	for _, ep := range s.client.Endpoints() {
 		if _, err := s.client.Status(ctx, ep); err != nil {
-			logger.Panicf(ctx, "status etcd %q failed, %s", ep, err)
+			log.Panicf(ctx, "status etcd %q failed, %s", ep, err)
 		}
 	}
 }
 
 // ShutSP 关闭服务插件
-func (s *_EtcdDSync) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (s *_DSync) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 
 	if s.options.EtcdClient == nil {
 		if s.client != nil {
@@ -63,7 +63,7 @@ func (s *_EtcdDSync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_EtcdDSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
+func (s *_DSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
 	opts := dsync.DMutexOptions{}
 	dsync.Option{}.Default()(&opts)
 
@@ -71,15 +71,15 @@ func (s *_EtcdDSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.
 		options[i](&opts)
 	}
 
-	return newEtcdMutex(s, name, opts)
+	return s.newMutex(name, opts)
 }
 
 // Separator return name path separator.
-func (s *_EtcdDSync) Separator() string {
+func (s *_DSync) Separator() string {
 	return "/"
 }
 
-func (s *_EtcdDSync) configure() etcd_client.Config {
+func (s *_DSync) configure() etcd_client.Config {
 	if s.options.EtcdConfig != nil {
 		return *s.options.EtcdConfig
 	}

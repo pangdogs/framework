@@ -2,15 +2,16 @@ package nats_broker
 
 import (
 	"context"
+	"fmt"
 	"github.com/nats-io/nats.go"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"strings"
 )
 
-func newNatsBroker(options ...BrokerOption) broker.Broker {
+func newBroker(options ...BrokerOption) broker.Broker {
 	opts := BrokerOptions{}
 	Option{}.Default()(&opts)
 
@@ -18,28 +19,27 @@ func newNatsBroker(options ...BrokerOption) broker.Broker {
 		options[i](&opts)
 	}
 
-	return &_NatsBroker{
+	return &_Broker{
 		options: opts,
 	}
 }
 
-type _NatsBroker struct {
+type _Broker struct {
 	options BrokerOptions
 	ctx     service.Context
 	client  *nats.Conn
 }
 
 // InitSP 初始化服务插件
-func (b *_NatsBroker) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*b))
+func (b *_Broker) InitSP(ctx service.Context) {
+	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*b))
 
 	b.ctx = ctx
 
 	if b.options.NatsClient == nil {
-		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","), nats.UserInfo(b.options.FastUsername, b.options.FastPassword),
-			nats.Name(ctx.String()))
+		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","), nats.UserInfo(b.options.FastUsername, b.options.FastPassword), nats.Name(ctx.String()))
 		if err != nil {
-			logger.Panicf(ctx, "connect nats %q failed, %s", b.options.FastAddresses, err)
+			log.Panicf(ctx, "connect nats %q failed, %s", b.options.FastAddresses, err)
 		}
 		b.client = client
 	} else {
@@ -47,47 +47,52 @@ func (b *_NatsBroker) InitSP(ctx service.Context) {
 	}
 
 	if _, err := b.client.RTT(); err != nil {
-		logger.Panicf(ctx, "rtt nats %q failed, %s", b.client.Servers(), err)
+		log.Panicf(ctx, "rtt nats %q failed, %s", b.client.Servers(), err)
 	}
 }
 
 // ShutSP 关闭服务插件
-func (b *_NatsBroker) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (b *_Broker) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 
 	if b.options.NatsClient == nil {
 		if b.client != nil {
 			if err := b.client.Drain(); err != nil {
-				logger.Errorf(ctx, "nats drain failed, %s", err)
+				log.Errorf(ctx, "nats drain failed, %s", err)
 			}
 		}
 	}
 }
 
 // Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
-func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) error {
+func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error {
 	if b.options.TopicPrefix != "" {
 		topic = b.options.TopicPrefix + topic
 	}
-	return b.client.Publish(topic, data)
+
+	if err := b.client.Publish(topic, data); err != nil {
+		return fmt.Errorf("%w: %w", broker.ErrBroker, err)
+	}
+
+	return nil
 }
 
 // Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-func (b *_NatsBroker) Subscribe(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.Subscriber, error) {
+func (b *_Broker) Subscribe(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.Subscriber, error) {
 	return b.subscribe(ctx, _SubscribeMode_Handler, pattern, options...)
 }
 
 // SubscribeSync will express interest in the given topic pattern.
-func (b *_NatsBroker) SubscribeSync(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.SyncSubscriber, error) {
+func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.SyncSubscriber, error) {
 	return b.subscribe(ctx, _SubscribeMode_Sync, pattern, options...)
 }
 
 // SubscribeChan will express interest in the given topic pattern.
-func (b *_NatsBroker) SubscribeChan(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.ChanSubscriber, error) {
+func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.ChanSubscriber, error) {
 	return b.subscribe(ctx, _SubscribeMode_Chan, pattern, options...)
 }
 
-func (b *_NatsBroker) subscribe(ctx context.Context, mode _SubscribeMode, pattern string, options ...broker.SubscriberOption) (*_NatsSubscriber, error) {
+func (b *_Broker) subscribe(ctx context.Context, mode _SubscribeMode, pattern string, options ...broker.SubscriberOption) (*_Subscriber, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -99,23 +104,28 @@ func (b *_NatsBroker) subscribe(ctx context.Context, mode _SubscribeMode, patter
 		options[i](&opts)
 	}
 
-	return newNatsSubscriber(ctx, b, mode, pattern, opts)
+	return b.newSubscriber(ctx, mode, pattern, opts)
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.
-func (b *_NatsBroker) Flush(ctx context.Context) error {
+func (b *_Broker) Flush(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return b.client.FlushWithContext(ctx)
+
+	if err := b.client.FlushWithContext(ctx); err != nil {
+		return fmt.Errorf("%w: %w", broker.ErrBroker, err)
+	}
+
+	return nil
 }
 
 // MaxPayload return max payload bytes.
-func (b *_NatsBroker) MaxPayload() int64 {
+func (b *_Broker) MaxPayload() int64 {
 	return b.client.MaxPayload()
 }
 
 // Separator return topic path separator.
-func (b *_NatsBroker) Separator() string {
+func (b *_Broker) Separator() string {
 	return "."
 }

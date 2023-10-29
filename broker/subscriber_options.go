@@ -7,8 +7,8 @@ type (
 	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
 	// message and optional Ack method to acknowledge receipt of the message.
 	EventHandler = func(e Event) error
-	// UnsubscribedCb Unsubscribed callback method.
-	UnsubscribedCb = func(sub Subscriber)
+	// UnsubscribedHandler Unsubscribed callback method.
+	UnsubscribedHandler = func(sub Subscriber)
 )
 
 // SubscriberOptions represents the options for subscribe topic.
@@ -21,8 +21,8 @@ type SubscriberOptions struct {
 	EventHandler EventHandler
 	// EventChanSize specifies the size of the event channel used for received synchronously event.
 	EventChanSize int
-	// UnsubscribedCb Unsubscribed callback method.
-	UnsubscribedCb UnsubscribedCb
+	// UnsubscribedHandler Unsubscribed callback method.
+	UnsubscribedHandler UnsubscribedHandler
 }
 
 // SubscriberOption represents a configuration option for subscribe topic.
@@ -35,7 +35,7 @@ func (Option) Default() SubscriberOption {
 		Option{}.QueueName("")(options)
 		Option{}.EventHandler(nil)(options)
 		Option{}.EventChanSize(128)(options)
-		Option{}.UnsubscribedCb(nil)(options)
+		Option{}.UnsubscribedHandler(nil)(options)
 	}
 }
 
@@ -68,9 +68,9 @@ func (Option) EventChanSize(size int) SubscriberOption {
 	}
 }
 
-// UnsubscribedCb Unsubscribed callback method.
-func (Option) UnsubscribedCb(fn UnsubscribedCb) SubscriberOption {
+// UnsubscribedHandler Unsubscribed callback method.
+func (Option) UnsubscribedHandler(cb UnsubscribedHandler) SubscriberOption {
 	return func(o *SubscriberOptions) {
-		o.UnsubscribedCb = fn
+		o.UnsubscribedHandler = cb
 	}
 }

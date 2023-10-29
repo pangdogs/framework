@@ -8,7 +8,7 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"net"
 	"sync"
 )
@@ -61,11 +61,11 @@ type Session interface {
 	Close(err error)
 }
 
-type _GtpSession struct {
+type _Session struct {
 	context.Context
 	sync.Mutex
 	cancel          context.CancelFunc
-	gate            *_GtpGate
+	gate            *_Gate
 	options         SessionOptions
 	id              string
 	token           string
@@ -78,12 +78,12 @@ type _GtpSession struct {
 }
 
 // String implements fmt.Stringer
-func (s *_GtpSession) String() string {
+func (s *_Session) String() string {
 	return fmt.Sprintf(`{"id":%q "token":%q "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
 }
 
 // Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
-func (s *_GtpSession) Options(options ...SessionOption) error {
+func (s *_Session) Options(options ...SessionOption) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -102,48 +102,48 @@ func (s *_GtpSession) Options(options ...SessionOption) error {
 }
 
 // GetContext 获取服务上下文
-func (s *_GtpSession) GetContext() service.Context {
+func (s *_Session) GetContext() service.Context {
 	return s.gate.ctx
 }
 
 // GetId 获取会话Id
-func (s *_GtpSession) GetId() string {
+func (s *_Session) GetId() string {
 	return s.id
 }
 
 // GetToken 获取token
-func (s *_GtpSession) GetToken() string {
+func (s *_Session) GetToken() string {
 	return s.token
 }
 
 // GetState 获取会话状态
-func (s *_GtpSession) GetState() SessionState {
+func (s *_Session) GetState() SessionState {
 	s.Lock()
 	defer s.Unlock()
 	return s.state
 }
 
 // GetLocalAddr 获取本地地址
-func (s *_GtpSession) GetLocalAddr() net.Addr {
+func (s *_Session) GetLocalAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.LocalAddr()
 }
 
 // GetRemoteAddr 获取对端地址
-func (s *_GtpSession) GetRemoteAddr() net.Addr {
+func (s *_Session) GetRemoteAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.RemoteAddr()
 }
 
 // SendData 发送数据
-func (s *_GtpSession) SendData(data []byte) error {
+func (s *_Session) SendData(data []byte) error {
 	return s.trans.SendData(data)
 }
 
 // SendEvent 发送自定义事件
-func (s *_GtpSession) SendEvent(event transport.Event[gtp.Msg]) error {
+func (s *_Session) SendEvent(event transport.Event[gtp.Msg]) error {
 	return transport.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
@@ -151,44 +151,44 @@ func (s *_GtpSession) SendEvent(event transport.Event[gtp.Msg]) error {
 }
 
 // SendDataChan 发送数据的channel
-func (s *_GtpSession) SendDataChan() chan<- []byte {
+func (s *_Session) SendDataChan() chan<- []byte {
 	if s.options.SendDataChan == nil {
-		logger.Panicf(s.gate.ctx, "send data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.ctx, "send data channel size less equal 0, can't be used")
 	}
 	return s.options.SendDataChan
 }
 
 // RecvDataChan 接收数据的channel
-func (s *_GtpSession) RecvDataChan() <-chan []byte {
+func (s *_Session) RecvDataChan() <-chan []byte {
 	if s.options.RecvDataChan == nil {
-		logger.Panicf(s.gate.ctx, "receive data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.ctx, "receive data channel size less equal 0, can't be used")
 	}
 	return s.options.RecvDataChan
 }
 
 // SendEventChan 发送自定义事件的channel
-func (s *_GtpSession) SendEventChan() chan<- transport.Event[gtp.Msg] {
+func (s *_Session) SendEventChan() chan<- transport.Event[gtp.Msg] {
 	if s.options.SendEventChan == nil {
-		logger.Panicf(s.gate.ctx, "send event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.ctx, "send event channel size less equal 0, can't be used")
 	}
 	return s.options.SendEventChan
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (s *_GtpSession) RecvEventChan() <-chan transport.Event[gtp.Msg] {
+func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	if s.options.RecvEventChan == nil {
-		logger.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.options.RecvEventChan
 }
 
 // GetFutures 获取异步模型Future控制器
-func (s *_GtpSession) GetFutures() transport.IFutures {
+func (s *_Session) GetFutures() transport.IFutures {
 	return &s.gate.futures
 }
 
 // Close 关闭
-func (s *_GtpSession) Close(err error) {
+func (s *_Session) Close(err error) {
 	if err != nil {
 		s.ctrl.SendRst(err)
 	}

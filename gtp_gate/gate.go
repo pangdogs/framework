@@ -7,7 +7,7 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"math/rand"
 	"net"
 	"sync"
@@ -24,7 +24,7 @@ type Gate interface {
 	CountSessions() int
 }
 
-func newGtpGate(options ...GateOption) Gate {
+func newGate(options ...GateOption) Gate {
 	opts := GateOptions{}
 	_GateOption{}.Default()(&opts)
 
@@ -32,12 +32,12 @@ func newGtpGate(options ...GateOption) Gate {
 		options[i](&opts)
 	}
 
-	return &_GtpGate{
+	return &_Gate{
 		options: opts,
 	}
 }
 
-type _GtpGate struct {
+type _Gate struct {
 	options      GateOptions
 	ctx          service.Context
 	listeners    []net.Listener
@@ -47,8 +47,8 @@ type _GtpGate struct {
 }
 
 // InitSP 初始化服务插件
-func (g *_GtpGate) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*g))
+func (g *_Gate) InitSP(ctx service.Context) {
+	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*g))
 
 	g.ctx = ctx
 
@@ -57,7 +57,7 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 	g.futures.Timeout = g.options.FutureTimeout
 
 	if len(g.options.Endpoints) <= 0 {
-		logger.Panic(ctx, "no endpoints need to listen")
+		log.Panic(ctx, "no endpoints need to listen")
 	}
 
 	listenConf := newListenConfig(&g.options)
@@ -65,7 +65,7 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 	for _, endpoint := range g.options.Endpoints {
 		listener, err := listenConf.Listen(context.Background(), "tcp", endpoint)
 		if err != nil {
-			logger.Panicf(ctx, "listen %q failed, %s", endpoint, err)
+			log.Panicf(ctx, "listen %q failed, %s", endpoint, err)
 		}
 
 		if g.options.TLSConfig != nil {
@@ -74,7 +74,7 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 
 		g.listeners = append(g.listeners, listener)
 
-		logger.Infof(g.ctx, "listener %q started", listener.Addr())
+		log.Infof(g.ctx, "listener %q started", listener.Addr())
 	}
 
 	for _, listener := range g.listeners {
@@ -83,24 +83,23 @@ func (g *_GtpGate) InitSP(ctx service.Context) {
 				conn, err := listener.Accept()
 				if err != nil {
 					if errors.Is(err, net.ErrClosed) {
-						logger.Debugf(ctx, "listener %q closed", listener.Addr())
+						log.Debugf(ctx, "listener %q closed", listener.Addr())
 						return
 					}
-					logger.Errorf(ctx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
-					continue
+					log.Errorf(ctx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
 				}
 
-				logger.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
+				log.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
 
-				go g.HandleSession(conn)
+				go g.handleSession(conn)
 			}
 		}(listener)
 	}
 }
 
 // ShutSP 关闭服务插件
-func (g *_GtpGate) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (g *_Gate) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 
 	for _, listener := range g.listeners {
 		listener.Close()
@@ -108,12 +107,12 @@ func (g *_GtpGate) ShutSP(ctx service.Context) {
 }
 
 // GetSession 查询会话
-func (g *_GtpGate) GetSession(sessionId string) (Session, bool) {
-	return g.LoadSession(sessionId)
+func (g *_Gate) GetSession(sessionId string) (Session, bool) {
+	return g.loadSession(sessionId)
 }
 
 // RangeSessions 遍历所有会话
-func (g *_GtpGate) RangeSessions(fun func(session Session) bool) {
+func (g *_Gate) RangeSessions(fun func(session Session) bool) {
 	if fun == nil {
 		return
 	}
@@ -123,6 +122,6 @@ func (g *_GtpGate) RangeSessions(fun func(session Session) bool) {
 }
 
 // CountSessions 统计所有会话数量
-func (g *_GtpGate) CountSessions() int {
+func (g *_Gate) CountSessions() int {
 	return int(atomic.LoadInt64(&g.sessionCount))
 }

@@ -4,19 +4,11 @@ import (
 	"context"
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 )
 
-type _EtcdWatcher struct {
-	ctx       service.Context
-	cancel    context.CancelFunc
-	watchChan etcd_client.WatchChan
-	eventChan chan *registry.Event
-	client    *etcd_client.Client
-}
-
-func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (registry.Watcher, error) {
+func (r *_Registry) newWatcher(ctx context.Context, serviceName string) (registry.Watcher, error) {
 	watchPath := r.options.KeyPrefix
 	if serviceName != "" {
 		watchPath = getServicePath(r.options.KeyPrefix, serviceName)
@@ -33,15 +25,15 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 			}
 		}()
 
-		logger.Debugf(r.ctx, "start watch %q", watchPath)
+		log.Debugf(r.ctx, "start watch %q", watchPath)
 
 		for watchRsp := range watchChan {
 			if watchRsp.Canceled {
-				logger.Debugf(r.ctx, "stop watch %q", watchPath)
+				log.Debugf(r.ctx, "stop watch %q", watchPath)
 				return
 			}
 			if watchRsp.Err() != nil {
-				logger.Error(r.ctx, "interrupt watch %q, %s", watchPath, watchRsp.Err())
+				log.Errorf(r.ctx, "interrupt watch %q, %s", watchPath, watchRsp.Err())
 				return
 			}
 
@@ -67,31 +59,31 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 					event.Service, err = decodeService(etcdEvent.PrevKv.Value)
 
 				default:
-					logger.Errorf(r.ctx, "unknown event type %q", etcdEvent.Type)
+					log.Errorf(r.ctx, "unknown event type %q", etcdEvent.Type)
 					continue
 				}
 
 				if err != nil {
-					logger.Error(r.ctx, err)
+					log.Error(r.ctx, err)
 					continue
 				}
 
 				if len(event.Service.Nodes) <= 0 {
-					logger.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
+					log.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
 					continue
 				}
 
 				select {
 				case eventChan <- event:
 				case <-ctx.Done():
-					logger.Debugf(r.ctx, "stop watch %q", watchPath)
+					log.Debugf(r.ctx, "stop watch %q", watchPath)
 					return
 				}
 			}
 		}
 	}()
 
-	return &_EtcdWatcher{
+	return &_Watcher{
 		ctx:       r.ctx,
 		cancel:    cancel,
 		watchChan: watchChan,
@@ -100,8 +92,16 @@ func newEtcdWatcher(ctx context.Context, r *_EtcdRegistry, serviceName string) (
 	}, nil
 }
 
+type _Watcher struct {
+	ctx       service.Context
+	cancel    context.CancelFunc
+	watchChan etcd_client.WatchChan
+	eventChan chan *registry.Event
+	client    *etcd_client.Client
+}
+
 // Next is a blocking call
-func (w *_EtcdWatcher) Next() (*registry.Event, error) {
+func (w *_Watcher) Next() (*registry.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
@@ -109,6 +109,6 @@ func (w *_EtcdWatcher) Next() (*registry.Event, error) {
 }
 
 // Stop stop watching
-func (w *_EtcdWatcher) Stop() {
+func (w *_Watcher) Stop() {
 	w.cancel()
 }

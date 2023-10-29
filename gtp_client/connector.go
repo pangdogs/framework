@@ -20,8 +20,8 @@ type _Connector struct {
 	decoder *codec.Decoder
 }
 
-// Connect 连接服务端
-func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *Client, err error) {
+// connect 连接服务端
+func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *Client, err error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -56,8 +56,8 @@ func (ctor *_Connector) Connect(ctx context.Context, endpoint string) (client *C
 	return client, nil
 }
 
-// Reconnect 重连服务端
-func (ctor *_Connector) Reconnect(client *Client) (err error) {
+// reconnect 重连服务端
+func (ctor *_Connector) reconnect(client *Client) (err error) {
 	if client == nil {
 		return errors.New("client is nil")
 	}
@@ -102,18 +102,18 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	// 初始化消息事件分发器
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.Options.IORetryTimes
-	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.eventHandler}
+	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.handleEvent}
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.Options.IORetryTimes
-	client.trans.PayloadHandler = client.payloadHandler
+	client.trans.PayloadHandler = client.handlePayload
 
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver
 	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
-	client.ctrl.HeartbeatHandler = client.heartbeatHandler
-	client.ctrl.SyncTimeHandler = client.syncTimeHandler
+	client.ctrl.HeartbeatHandler = client.handleHeartbeat
+	client.ctrl.SyncTimeHandler = client.handleSyncTime
 
 	// 初始化异步模型Future控制器
 	client.futures.Ctx = client.Context

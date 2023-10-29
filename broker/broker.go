@@ -1,6 +1,17 @@
 package broker
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+)
+
+var (
+	// ErrBroker broker errors.
+	ErrBroker = errors.New("broker")
+	// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
+	ErrUnsubscribed = fmt.Errorf("%w: unsubscribed", ErrBroker)
+)
 
 // Broker is an interface used for asynchronous messaging.
 type Broker interface {

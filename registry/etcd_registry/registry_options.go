@@ -9,8 +9,10 @@ import (
 	"strings"
 )
 
+// Option 所有选项设置器
 type Option struct{}
 
+// RegistryOptions 所有选项
 type RegistryOptions struct {
 	EtcdClient    *clientv3.Client
 	EtcdConfig    *clientv3.Config
@@ -23,8 +25,10 @@ type RegistryOptions struct {
 	FastTLSConfig *tls.Config
 }
 
+// RegistryOption 选项设置器
 type RegistryOption func(options *RegistryOptions)
 
+// Default 默认值
 func (Option) Default() RegistryOption {
 	return func(options *RegistryOptions) {
 		Option{}.EtcdClient(nil)(options)
@@ -38,18 +42,21 @@ func (Option) Default() RegistryOption {
 	}
 }
 
+// EtcdClient etcd客户端，最优先使用
 func (Option) EtcdClient(cli *clientv3.Client) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.EtcdClient = cli
 	}
 }
 
+// EtcdConfig etcd配置，次优先使用
 func (Option) EtcdConfig(config *clientv3.Config) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.EtcdConfig = config
 	}
 }
 
+// KeyPrefix 所有key的前缀
 func (Option) KeyPrefix(prefix string) RegistryOption {
 	return func(options *RegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
@@ -59,6 +66,7 @@ func (Option) KeyPrefix(prefix string) RegistryOption {
 	}
 }
 
+// WatchChanSize 监控服务变化的channel大小
 func (Option) WatchChanSize(size int) RegistryOption {
 	return func(options *RegistryOptions) {
 		if size < 0 {
@@ -68,6 +76,7 @@ func (Option) WatchChanSize(size int) RegistryOption {
 	}
 }
 
+// FastAuth 快速设置etcd鉴权信息
 func (Option) FastAuth(username, password string) RegistryOption {
 	return func(options *RegistryOptions) {
 		options.FastUsername = username
@@ -75,6 +84,7 @@ func (Option) FastAuth(username, password string) RegistryOption {
 	}
 }
 
+// FastAddresses 快速设置etcd服务地址
 func (Option) FastAddresses(addrs ...string) RegistryOption {
 	return func(options *RegistryOptions) {
 		for _, addr := range addrs {
@@ -86,12 +96,14 @@ func (Option) FastAddresses(addrs ...string) RegistryOption {
 	}
 }
 
+// FastSecure 快速设置是否加密etcd连接
 func (Option) FastSecure(secure bool) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.FastSecure = secure
 	}
 }
 
+// FastTLSConfig 快速设置加密etcd连接的配置
 func (Option) FastTLSConfig(conf *tls.Config) RegistryOption {
 	return func(o *RegistryOptions) {
 		o.FastTLSConfig = conf

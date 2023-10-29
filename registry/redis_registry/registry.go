@@ -9,19 +9,16 @@ import (
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
-	"log"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
-// NewRegistry 导出newRedisRegistry，可以配合cache registry将数据缓存本地，提高查询效率
-var NewRegistry = newRedisRegistry
-
-func newRedisRegistry(options ...RegistryOption) registry.Registry {
+// NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
+func NewRegistry(options ...RegistryOption) registry.Registry {
 	opts := RegistryOptions{}
 	Option{}.Default()(&opts)
 
@@ -29,13 +26,13 @@ func newRedisRegistry(options ...RegistryOption) registry.Registry {
 		options[i](&opts)
 	}
 
-	return &_RedisRegistry{
+	return &_Registry{
 		options:  opts,
 		register: map[string]uint64{},
 	}
 }
 
-type _RedisRegistry struct {
+type _Registry struct {
 	options  RegistryOptions
 	ctx      service.Context
 	client   *redis.Client
@@ -44,8 +41,8 @@ type _RedisRegistry struct {
 }
 
 // InitSP 初始化服务插件
-func (r *_RedisRegistry) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.AnyFullName(*r))
+func (r *_Registry) InitSP(ctx service.Context) {
+	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*r))
 
 	r.ctx = ctx
 
@@ -57,18 +54,18 @@ func (r *_RedisRegistry) InitSP(ctx service.Context) {
 
 	_, err := r.client.Ping(ctx).Result()
 	if err != nil {
-		log.Panicf("ping redis %q failed, %v", r.client, err)
+		log.Panicf(ctx, "ping redis %q failed, %v", r.client, err)
 	}
 
 	_, err = r.client.ConfigSet(ctx, "notify-keyspace-events", "KEA").Result()
 	if err != nil {
-		log.Panicf("redis %q enable notify-keyspace-events failed, %v", r.client, err)
+		log.Panicf(ctx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
 }
 
 // ShutSP 关闭服务插件
-func (r *_RedisRegistry) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+func (r *_Registry) ShutSP(ctx service.Context) {
+	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 
 	if r.options.RedisClient == nil {
 		if r.client != nil {
@@ -78,49 +75,57 @@ func (r *_RedisRegistry) ShutSP(ctx service.Context) {
 }
 
 // Register 注册服务
-func (r *_RedisRegistry) Register(ctx context.Context, service registry.Service, ttl time.Duration) error {
+func (r *_Registry) Register(ctx context.Context, service registry.Service, ttl time.Duration) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(service.Nodes) <= 0 {
-		return errors.New("require at least one node")
+		return fmt.Errorf("%w: require at least one node", registry.ErrRegistry)
 	}
 
-	var errorList []error
+	var errs []error
 
 	for _, node := range service.Nodes {
 		if err := r.registerNode(ctx, service, node, ttl); err != nil {
-			errorList = append(errorList, fmt.Errorf("%s:%s", node.Id, err))
+			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
 	}
 
-	return errors.Join(errorList...)
+	if len(errs) > 0 {
+		return fmt.Errorf("%w: %w", registry.ErrRegistry, errors.Join(errs...))
+	}
+
+	return nil
 }
 
 // Deregister 取消注册服务
-func (r *_RedisRegistry) Deregister(ctx context.Context, service registry.Service) error {
+func (r *_Registry) Deregister(ctx context.Context, service registry.Service) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(service.Nodes) <= 0 {
-		return errors.New("require at least one node")
+		return fmt.Errorf("%w: require at least one node", registry.ErrRegistry)
 	}
 
-	var errorList []error
+	var errs []error
 
 	for _, node := range service.Nodes {
 		if err := r.deregisterNode(ctx, service, node); err != nil {
-			errorList = append(errorList, fmt.Errorf("%s:%s", node.Id, err))
+			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
 	}
 
-	return errors.Join(errorList...)
+	if len(errs) > 0 {
+		return fmt.Errorf("%w: %w", registry.ErrRegistry, errors.Join(errs...))
+	}
+
+	return nil
 }
 
 // GetServiceNode 查询服务节点
-func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -134,14 +139,14 @@ func (r *_RedisRegistry) GetServiceNode(ctx context.Context, serviceName, nodeId
 		if errors.Is(err, redis.Nil) {
 			return nil, registry.ErrNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	return decodeService(nodeVal)
 }
 
 // GetService 查询服务
-func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -152,7 +157,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 
 	nodeKeys, err := r.client.Keys(ctx, getServicePath(r.options.KeyPrefix, serviceName)).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	if len(nodeKeys) <= 0 {
@@ -161,7 +166,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 
 	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	serviceMap := map[string]*registry.Service{}
@@ -169,7 +174,7 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			logger.Error(r.ctx, err)
+			log.Errorf(r.ctx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
@@ -196,14 +201,14 @@ func (r *_RedisRegistry) GetService(ctx context.Context, serviceName string) ([]
 }
 
 // ListServices 查询所有服务
-func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, error) {
+func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	nodeKeys, err := r.client.Keys(ctx, r.options.KeyPrefix+"*").Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	if len(nodeKeys) <= 0 {
@@ -212,7 +217,7 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 
 	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	versions := make(map[string]*registry.Service)
@@ -220,7 +225,7 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			logger.Error(r.ctx, err)
+			log.Errorf(r.ctx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
@@ -253,14 +258,14 @@ func (r *_RedisRegistry) ListServices(ctx context.Context) ([]registry.Service, 
 }
 
 // Watch 获取服务监听器
-func (r *_RedisRegistry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
+func (r *_Registry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return newRedisWatcher(ctx, r, serviceName)
+	return r.newWatcher(ctx, serviceName)
 }
 
-func (r *_RedisRegistry) configure() *redis.Options {
+func (r *_Registry) configure() *redis.Options {
 	if r.options.RedisConfig != nil {
 		return r.options.RedisConfig
 	}
@@ -268,7 +273,7 @@ func (r *_RedisRegistry) configure() *redis.Options {
 	if r.options.RedisURL != "" {
 		conf, err := redis.ParseURL(r.options.RedisURL)
 		if err != nil {
-			logger.Panicf(r.ctx, "parse redis url %q failed, %s", r.options.RedisURL, err)
+			log.Panicf(r.ctx, "parse redis url %q failed, %s", r.options.RedisURL, err)
 		}
 		return conf
 	}
@@ -282,13 +287,13 @@ func (r *_RedisRegistry) configure() *redis.Options {
 	return conf
 }
 
-func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
+func (r *_Registry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
 	if service.Name == "" {
-		return errors.New("service name can't empty")
+		return fmt.Errorf("%w: service name can't empty", registry.ErrRegistry)
 	}
 
 	if node.Id == "" {
-		return errors.New("service node id can't empty")
+		return fmt.Errorf("%w: service node id can't empty", registry.ErrRegistry)
 	}
 
 	if ttl < 0 {
@@ -297,7 +302,7 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
@@ -306,10 +311,9 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	if ttl.Seconds() > 0 {
 		keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 		}
-
-		logger.Debugf(r.ctx, "renewing existing %q id %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
+		log.Debugf(r.ctx, "renewing existing %q id %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
 	}
 
 	r.mutex.RLock()
@@ -317,7 +321,7 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	r.mutex.RUnlock()
 
 	if ok && rhv == hv && keepAlive {
-		logger.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
+		log.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
 	}
 
@@ -325,11 +329,11 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	serviceNode.Nodes = []registry.Node{node}
 	serviceNodeData := encodeService(&serviceNode)
 
-	logger.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
+	log.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
 	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
 	r.mutex.Lock()
@@ -339,8 +343,8 @@ func (r *_RedisRegistry) registerNode(ctx context.Context, service registry.Serv
 	return nil
 }
 
-func (r *_RedisRegistry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
-	logger.Debugf(r.ctx, "deregistering %q id %q", service.Name, node.Id)
+func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
+	log.Debugf(r.ctx, "deregistering %q id %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
@@ -348,8 +352,11 @@ func (r *_RedisRegistry) deregisterNode(ctx context.Context, service registry.Se
 	delete(r.register, nodePath)
 	r.mutex.Unlock()
 
-	_, err := r.client.Del(ctx, nodePath).Result()
-	return err
+	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
+		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+	}
+
+	return nil
 }
 
 func encodeService(s *registry.Service) string {
@@ -357,8 +364,14 @@ func encodeService(s *registry.Service) string {
 	return string(b)
 }
 
-func decodeService(ds []byte) (s *registry.Service, err error) {
-	return s, json.Unmarshal(ds, &s)
+func decodeService(ds []byte) (*registry.Service, error) {
+	var s *registry.Service
+
+	if err := json.Unmarshal(ds, &s); err != nil {
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+	}
+
+	return s, nil
 }
 
 func getNodePath(prefix, s, id string) string {
