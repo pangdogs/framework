@@ -32,7 +32,7 @@ type Registry interface {
 	// ListServices 查询所有服务
 	ListServices(ctx context.Context) ([]Service, error)
 	// Watch 获取服务监听器
-	Watch(ctx context.Context, serviceName string) (Watcher, error)
+	Watch(ctx context.Context, pattern string) (Watcher, error)
 }
 
 // Service 服务配置

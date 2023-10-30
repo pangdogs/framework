@@ -258,11 +258,11 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 }
 
 // Watch 获取服务监听器
-func (r *_Registry) Watch(ctx context.Context, serviceName string) (registry.Watcher, error) {
+func (r *_Registry) Watch(ctx context.Context, pattern string) (registry.Watcher, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return r.newWatcher(ctx, serviceName)
+	return r.newWatcher(ctx, pattern)
 }
 
 func (r *_Registry) configure() *redis.Options {
@@ -313,7 +313,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		if err != nil {
 			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 		}
-		log.Debugf(r.ctx, "renewing existing %q id %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
+		log.Debugf(r.ctx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
 	}
 
 	r.mutex.RLock()
@@ -329,7 +329,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	serviceNode.Nodes = []registry.Node{node}
 	serviceNodeData := encodeService(&serviceNode)
 
-	log.Debugf(r.ctx, "registering %q id %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
+	log.Debugf(r.ctx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
 	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
@@ -340,11 +340,13 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	r.register[nodePath] = hv
 	r.mutex.Unlock()
 
+	log.Debugf(r.ctx, "register service %q node %q success", serviceNode.Name, node.Id)
+
 	return nil
 }
 
 func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
-	log.Debugf(r.ctx, "deregistering %q id %q", service.Name, node.Id)
+	log.Debugf(r.ctx, "deregistering service %q node %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
@@ -355,6 +357,8 @@ func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service
 	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
 		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
+
+	log.Debugf(r.ctx, "deregister service %q node %q success", service.Name, node.Id)
 
 	return nil
 }
