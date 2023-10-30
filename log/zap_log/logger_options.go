@@ -1,4 +1,4 @@
-package zap_logger
+package zap_log
 
 import (
 	"fmt"
