@@ -8,10 +8,12 @@ import (
 // Watcher is an interface that returns updates
 // about services within the registry.
 type Watcher interface {
+	// Pattern watching pattern
+	Pattern() string
 	// Next is a blocking call
 	Next() (*Event, error)
 	// Stop stop watching
-	Stop()
+	Stop() <-chan struct{}
 }
 
 // Event is returned by a call to Next on the watcher. Type can be create, update, delete

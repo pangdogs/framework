@@ -21,6 +21,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		broker:              b,
 		ctx:                 ctx,
 		cancel:              cancel,
+		stoppedChan:         make(chan struct{}, 1),
 		unsubscribedHandler: opts.UnsubscribedHandler,
 	}
 
@@ -66,6 +67,7 @@ type _Subscriber struct {
 	broker              *_Broker
 	ctx                 context.Context
 	cancel              context.CancelFunc
+	stoppedChan         chan struct{}
 	natsSub             *nats.Subscription
 	eventChan           chan broker.Event
 	eventHandler        broker.EventHandler
@@ -83,8 +85,9 @@ func (s *_Subscriber) QueueName() string {
 }
 
 // Unsubscribe unsubscribes the subscriber from the topic.
-func (s *_Subscriber) Unsubscribe() {
+func (s *_Subscriber) Unsubscribe() <-chan struct{} {
 	s.cancel()
+	return s.stoppedChan
 }
 
 // Next is a blocking call that waits for the next event to be received from the subscriber.
@@ -102,6 +105,7 @@ func (s *_Subscriber) EventChan() <-chan broker.Event {
 
 func (s *_Subscriber) run() {
 	<-s.ctx.Done()
+	defer func() { s.stoppedChan <- struct{}{} }()
 
 	if err := s.natsSub.Unsubscribe(); err != nil {
 		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.natsSub.Subject, s.natsSub.Queue, err)

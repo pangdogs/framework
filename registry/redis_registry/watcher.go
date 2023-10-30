@@ -5,38 +5,40 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"net"
 	"strings"
 )
 
-func (r *_Registry) newWatcher(ctx context.Context, serviceName string) (watcher registry.Watcher, err error) {
+func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_Watcher, err error) {
 	var keyPath string
-	if serviceName != "" {
-		keyPath = getServicePath(r.options.KeyPrefix, serviceName)
+	if pattern != "" {
+		keyPath = getServicePath(r.options.KeyPrefix, pattern)
 	} else {
 		keyPath = r.options.KeyPrefix + "*"
 	}
 
-	keyspacePrefix := fmt.Sprintf("__keyspace@%d__:", r.client.Options().DB)
-	keyeventPrefix := fmt.Sprintf("__keyevent@%d__:", r.client.Options().DB)
+	watchPathPrefixList := []string{
+		fmt.Sprintf("__keyspace@%d__:", r.client.Options().DB),
+		fmt.Sprintf("__keyevent@%d__:", r.client.Options().DB),
+	}
 
 	watchPathList := []string{
-		keyspacePrefix + keyPath,
-		keyeventPrefix + "expired",
+		watchPathPrefixList[0] + keyPath,
+		watchPathPrefixList[1] + "expired",
 	}
 
 	watch := r.client.PSubscribe(ctx)
-	if err := watch.PSubscribe(ctx, watchPathList...); err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
-	}
 	defer func() {
 		if err != nil {
 			watch.Close()
 		}
 	}()
+
+	if err := watch.PSubscribe(ctx, watchPathList...); err != nil {
+		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+	}
 
 	keys, err := r.client.Keys(ctx, keyPath).Result()
 	if err != nil {
@@ -61,129 +63,44 @@ func (r *_Registry) newWatcher(ctx context.Context, serviceName string) (watcher
 	ctx, cancel := context.WithCancel(ctx)
 	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
 
-	go func() {
-		<-ctx.Done()
-		if err := watch.Close(); err != nil {
-			log.Errorf(r.ctx, "watcher close %q failed, %s", watchPathList, err)
-		}
-	}()
+	watcher = &_Watcher{
+		registry:       r,
+		ctx:            ctx,
+		cancel:         cancel,
+		stoppedChan:    make(chan struct{}, 1),
+		pattern:        keyPath,
+		pathPrefixList: watchPathPrefixList,
+		pathList:       watchPathList,
+		keyCache:       keyCache,
+		pubSub:         watch,
+		eventChan:      eventChan,
+	}
 
-	go func() {
-		defer func() {
-			close(eventChan)
-			for range eventChan {
-			}
-		}()
+	go watcher.run()
 
-		log.Debugf(r.ctx, "start watch %q", watchPathList)
-
-		for {
-			msg, err := watch.ReceiveMessage(ctx)
-			if err != nil {
-				if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
-					log.Debugf(r.ctx, "stop watch %q, %s", watchPathList, err)
-					return
-				}
-				log.Errorf(r.ctx, "interrupt watch %q, %s", watchPathList, err)
-				return
-			}
-
-			var key, opt string
-
-			switch msg.Pattern {
-			case watchPathList[0]:
-				key = strings.TrimPrefix(msg.Channel, keyspacePrefix)
-				opt = msg.Payload
-			case watchPathList[1]:
-				key = msg.Payload
-				opt = strings.TrimPrefix(msg.Channel, keyeventPrefix)
-			default:
-				continue
-			}
-
-			if !strings.HasPrefix(key, keyPath[:len(keyPath)-1]) {
-				continue
-			}
-
-			event := &registry.Event{}
-
-			switch opt {
-			case "set":
-				val, err := r.client.Get(ctx, key).Result()
-				if err != nil {
-					if errors.Is(err, context.Canceled) {
-						continue
-					}
-					log.Errorf(r.ctx, "get service node %q data failed, %s", key, err)
-					continue
-				}
-
-				_, ok := keyCache[key]
-				if ok {
-					event.Type = registry.Update
-				} else {
-					event.Type = registry.Create
-				}
-
-				event.Service, err = decodeService([]byte(val))
-				if err != nil {
-					log.Errorf(r.ctx, "decode service %q data failed, %s", val, err)
-					continue
-				}
-
-				keyCache[key] = val
-
-			case "del", "expired":
-				v, ok := keyCache[key]
-				if !ok {
-					log.Errorf(r.ctx, "service node %q data not cached", key)
-					continue
-				}
-
-				delete(keyCache, key)
-
-				event.Type = registry.Delete
-				event.Service, err = decodeService([]byte(v))
-				if err != nil {
-					log.Errorf(r.ctx, "decode service %q data failed, %s", key, err)
-					continue
-				}
-
-			default:
-				continue
-			}
-
-			if len(event.Service.Nodes) <= 0 {
-				log.Debugf(r.ctx, "event service %q node is empty, discard it", event.Service.Name)
-				continue
-			}
-
-			select {
-			case eventChan <- event:
-			case <-ctx.Done():
-				log.Debugf(r.ctx, "stop watch %q", watchPathList)
-				return
-			}
-		}
-	}()
-
-	return &_RedisWatcher{
-		ctx:       r.ctx,
-		cancel:    cancel,
-		keyCache:  keyCache,
-		eventChan: eventChan,
-	}, nil
+	return watcher, nil
 }
 
-type _RedisWatcher struct {
-	ctx       service.Context
-	cancel    context.CancelFunc
-	keyCache  map[string]string
-	eventChan chan *registry.Event
+type _Watcher struct {
+	registry       *_Registry
+	ctx            context.Context
+	cancel         context.CancelFunc
+	stoppedChan    chan struct{}
+	pattern        string
+	pathPrefixList []string
+	pathList       []string
+	keyCache       map[string]string
+	pubSub         *redis.PubSub
+	eventChan      chan *registry.Event
+}
+
+// Pattern watching pattern
+func (w *_Watcher) Pattern() string {
+	return strings.TrimPrefix(w.pattern, w.registry.options.KeyPrefix)
 }
 
 // Next is a blocking call
-func (w *_RedisWatcher) Next() (*registry.Event, error) {
+func (w *_Watcher) Next() (*registry.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
@@ -191,6 +108,108 @@ func (w *_RedisWatcher) Next() (*registry.Event, error) {
 }
 
 // Stop stop watching
-func (w *_RedisWatcher) Stop() {
+func (w *_Watcher) Stop() <-chan struct{} {
 	w.cancel()
+	return w.stoppedChan
+}
+
+func (w *_Watcher) run() {
+	defer func() {
+		if err := w.pubSub.Close(); err != nil {
+			log.Errorf(w.registry.ctx, "close watch %q failed, %s", w.pathList, err)
+		}
+		close(w.eventChan)
+		w.stoppedChan <- struct{}{}
+	}()
+
+	log.Debugf(w.registry.ctx, "start watch %q", w.pathList)
+
+	for {
+		msg, err := w.pubSub.ReceiveMessage(w.ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
+				log.Debugf(w.registry.ctx, "stop watch %q, %s", w.pathList, err)
+				return
+			}
+			log.Errorf(w.registry.ctx, "interrupt watch %q, %s", w.pathList, err)
+			return
+		}
+
+		var key, opt string
+
+		switch msg.Pattern {
+		case w.pathList[0]:
+			key = strings.TrimPrefix(msg.Channel, w.pathPrefixList[0])
+			opt = msg.Payload
+		case w.pathList[1]:
+			key = msg.Payload
+			opt = strings.TrimPrefix(msg.Channel, w.pathPrefixList[1])
+		default:
+			continue
+		}
+
+		if !strings.HasPrefix(key, w.pattern[:len(w.pattern)-1]) {
+			continue
+		}
+
+		event := &registry.Event{}
+
+		switch opt {
+		case "set":
+			val, err := w.registry.client.Get(w.ctx, key).Result()
+			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					continue
+				}
+				log.Errorf(w.registry.ctx, "get service node %q data failed, %s", key, err)
+				continue
+			}
+
+			_, ok := w.keyCache[key]
+			if ok {
+				event.Type = registry.Update
+			} else {
+				event.Type = registry.Create
+			}
+
+			event.Service, err = decodeService([]byte(val))
+			if err != nil {
+				log.Errorf(w.registry.ctx, "decode service %q data failed, %s", val, err)
+				continue
+			}
+
+			w.keyCache[key] = val
+
+		case "del", "expired":
+			v, ok := w.keyCache[key]
+			if !ok {
+				log.Errorf(w.registry.ctx, "service node %q data not cached", key)
+				continue
+			}
+
+			delete(w.keyCache, key)
+
+			event.Type = registry.Delete
+			event.Service, err = decodeService([]byte(v))
+			if err != nil {
+				log.Errorf(w.registry.ctx, "decode service %q data failed, %s", v, err)
+				continue
+			}
+
+		default:
+			continue
+		}
+
+		if len(event.Service.Nodes) <= 0 {
+			log.Warnf(w.registry.ctx, "event service %q node is empty, discard it", event.Service.Name)
+			continue
+		}
+
+		select {
+		case w.eventChan <- event:
+		case <-w.ctx.Done():
+			log.Debugf(w.registry.ctx, "stop watch %q", w.pathList)
+			return
+		}
+	}
 }
