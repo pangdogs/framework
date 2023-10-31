@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"kit.golaxy.org/plugins/gtp"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 )
 
 var (
@@ -90,7 +91,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (gtp.MsgP
 		return gtp.MsgPacket{}, fmt.Errorf("%w: %d < %d", ErrBufferNotEnough, buff.Len(), mpl.Len)
 	}
 
-	buf := BytesPool.Get(int(mpl.Len))
+	buf := binaryutil.BytesPool.Get(int(mpl.Len))
 	d.gcList = append(d.gcList, buf)
 
 	// 读取消息包
@@ -190,7 +191,7 @@ func (d *Decoder) GetCompressionModule() ICompressionModule {
 // GC GC
 func (d *Decoder) GC() {
 	for i := range d.gcList {
-		BytesPool.Put(d.gcList[i])
+		binaryutil.BytesPool.Put(d.gcList[i])
 	}
 	d.gcList = d.gcList[:0]
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"sync/atomic"
 )
 
@@ -71,12 +71,12 @@ func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
 		s.reduce(len(p))
 	}
 
-	data := codec.BytesPool.Get(len(p))
+	data := binaryutil.BytesPool.Get(len(p))
 	copy(data, p)
 
 	head := gtp.MsgHead{}
 	if _, err = head.Write(data); err != nil {
-		codec.BytesPool.Put(data)
+		binaryutil.BytesPool.Put(data)
 		return 0, err
 	}
 
@@ -85,7 +85,7 @@ func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
 	head.Ack = s.getLocalAck()
 
 	if _, err = head.Read(data); err != nil {
-		codec.BytesPool.Put(data)
+		binaryutil.BytesPool.Put(data)
 		return 0, err
 	}
 
@@ -208,7 +208,7 @@ func (s *SequencedBuffer) Clean() {
 	s.cached = 0
 	s.sent = 0
 	for i := range s.frames {
-		codec.BytesPool.Put(s.frames[i].Data)
+		binaryutil.BytesPool.Put(s.frames[i].Data)
 	}
 	s.frames = nil
 }
@@ -231,7 +231,7 @@ func (s *SequencedBuffer) ack(seq uint32) {
 
 		if frame.Seq == seq {
 			for j := 0; j <= i; j++ {
-				codec.BytesPool.Put(s.frames[j].Data)
+				binaryutil.BytesPool.Put(s.frames[j].Data)
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)
@@ -258,7 +258,7 @@ func (s *SequencedBuffer) reduce(size int) {
 		size -= len(frame.Data)
 		if size <= 0 {
 			for j := 0; j <= i; j++ {
-				codec.BytesPool.Put(s.frames[j].Data)
+				binaryutil.BytesPool.Put(s.frames[j].Data)
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)

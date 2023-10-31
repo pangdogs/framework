@@ -1,4 +1,4 @@
-package codec
+package binaryutil
 
 import (
 	"github.com/fufuok/bytespool"

@@ -31,12 +31,12 @@ func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 		MAC:  m.Hash.Sum32(),
 	}
 
-	buf := BytesPool.Get(msgMAC.Size())
+	buf := binaryutil.BytesPool.Get(msgMAC.Size())
 	defer func() {
 		if err == nil {
 			m.gcList = append(m.gcList, buf)
 		} else {
-			BytesPool.Put(buf)
+			binaryutil.BytesPool.Put(buf)
 		}
 	}()
 
@@ -82,7 +82,7 @@ func (m *MAC32Module) SizeofMAC(msgLen int) int {
 // GC GC
 func (m *MAC32Module) GC() {
 	for i := range m.gcList {
-		BytesPool.Put(m.gcList[i])
+		binaryutil.BytesPool.Put(m.gcList[i])
 	}
 	m.gcList = m.gcList[:0]
 }
