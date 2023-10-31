@@ -23,19 +23,17 @@ func newRegistry(options ...RegistryOption) registry.Registry {
 	return &_Registry{
 		options:        opts,
 		serviceMap:     map[string]*[]registry.Service{},
-		serviceNodeMap: map[_ServiceNodeKey]*registry.Service{},
+		serviceNodeMap: map[[2]string]*registry.Service{},
 	}
-}
-
-type _ServiceNodeKey struct {
-	ServiceName, NodeId string
 }
 
 type _Registry struct {
 	registry.Registry
 	options        RegistryOptions
+	ctx            service.Context
+	watcher        registry.Watcher
 	serviceMap     map[string]*[]registry.Service
-	serviceNodeMap map[_ServiceNodeKey]*registry.Service
+	serviceNodeMap map[[2]string]*registry.Service
 	mutex          sync.RWMutex
 	wg             sync.WaitGroup
 }
@@ -43,19 +41,16 @@ type _Registry struct {
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
 	if r.options.Registry == nil {
-		log.Panic(ctx, "cached plugin is nil, must be set before init")
+		log.Panic(ctx, "wrap registry plugin is nil, must be set before init")
 	}
 	r.Registry = r.options.Registry
 
-	log.Infof(ctx, "init service plugin %q with %q, cached %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.options.Registry).Elem()))
+	r.ctx = ctx
 
-	if init, ok := r.options.Registry.(golaxy.LifecycleServicePluginInit); ok {
+	log.Infof(ctx, "init service plugin %q with %q, wrap %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+
+	if init, ok := r.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(ctx)
-	}
-
-	watcher, err := r.Registry.Watch(ctx, "")
-	if err != nil {
-		log.Panicf(ctx, "new service watcher failed, %s", err)
 	}
 
 	services, err := r.Registry.ListServices(ctx)
@@ -75,115 +70,17 @@ func (r *_Registry) InitSP(ctx service.Context) {
 			serviceNode := *service
 			serviceNode.Nodes = []registry.Node{*node}
 
-			r.serviceNodeMap[_ServiceNodeKey{
-				ServiceName: service.Name,
-				NodeId:      node.Id,
-			}] = &serviceNode
+			r.serviceNodeMap[[2]string{service.Name, node.Id}] = &serviceNode
 		}
 	}
 
+	r.watcher, err = r.Registry.Watch(ctx, "")
+	if err != nil {
+		log.Panicf(ctx, "watching service changes failed, %s", err)
+	}
+
 	r.wg.Add(1)
-
-	go func() {
-		defer r.wg.Done()
-
-		for {
-			event, err := watcher.Next()
-			if err != nil {
-				if errors.Is(err, registry.ErrStoppedWatching) {
-					log.Debugf(ctx, "watch service changes stopped")
-					return
-				}
-				log.Errorf(ctx, "an error occurred during watch service changes, %s", err)
-				return
-			}
-
-			func() {
-				r.mutex.Lock()
-				defer r.mutex.Unlock()
-
-				eventNode := event.Service.Nodes[0]
-
-				removeNode := func(versions *[]registry.Service, versionIdx int, service *registry.Service) {
-					for i := len(service.Nodes) - 1; i >= 0; i-- {
-						node := &service.Nodes[i]
-
-						if node.Id == eventNode.Id {
-							service.Nodes = append(service.Nodes[:i], service.Nodes[i+1:]...)
-						}
-					}
-
-					if len(service.Nodes) <= 0 {
-						*versions = append((*versions)[:versionIdx], (*versions)[versionIdx+1:]...)
-					}
-				}
-
-				switch event.Type {
-				case registry.Create, registry.Update:
-					r.serviceNodeMap[_ServiceNodeKey{
-						ServiceName: event.Service.Name,
-						NodeId:      eventNode.Id,
-					}] = event.Service
-
-					versions := r.getServiceVersions(event.Service.Name)
-
-					for i := len(*versions) - 1; i >= 0; i-- {
-						service := &(*versions)[i]
-
-						if service.Version == event.Service.Version {
-							continue
-						}
-
-						removeNode(versions, i, service)
-					}
-
-					for i := range *versions {
-						service := &(*versions)[i]
-
-						if service.Version != event.Service.Version {
-							continue
-						}
-
-						for j := range service.Nodes {
-							node := &service.Nodes[j]
-
-							if node.Id == eventNode.Id {
-								*node = eventNode
-								return
-							}
-						}
-
-						service.Nodes = append(service.Nodes, eventNode)
-						return
-					}
-
-					*versions = append(*versions, *event.Service)
-					return
-
-				case registry.Delete:
-					delete(r.serviceNodeMap, _ServiceNodeKey{
-						ServiceName: event.Service.Name,
-						NodeId:      eventNode.Id,
-					})
-
-					versions, ok := r.serviceMap[event.Service.Name]
-					if !ok {
-						return
-					}
-
-					for i := len(*versions) - 1; i >= 0; i-- {
-						service := &(*versions)[i]
-
-						if service.Version != event.Service.Version {
-							continue
-						}
-
-						removeNode(versions, i, service)
-					}
-				}
-			}()
-		}
-	}()
+	go r.run()
 }
 
 // ShutSP 关闭服务插件
@@ -192,7 +89,7 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 
 	r.wg.Wait()
 
-	if shut, ok := r.options.Registry.(golaxy.LifecycleServicePluginShut); ok {
+	if shut, ok := r.Registry.(golaxy.LifecycleServicePluginShut); ok {
 		shut.ShutSP(ctx)
 	}
 }
@@ -202,10 +99,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId stri
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	serviceNode, ok := r.serviceNodeMap[_ServiceNodeKey{
-		ServiceName: serviceName,
-		NodeId:      nodeId,
-	}]
+	serviceNode, ok := r.serviceNodeMap[[2]string{serviceName, nodeId}]
 	if !ok {
 		return nil, registry.ErrNotFound
 	}
@@ -255,4 +149,102 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 		r.serviceMap[serviceName] = services
 	}
 	return services
+}
+
+func (r *_Registry) run() {
+	defer r.wg.Done()
+
+loop:
+	for {
+		event, err := r.watcher.Next()
+		if err != nil {
+			if errors.Is(err, registry.ErrStoppedWatching) {
+				log.Debugf(r.ctx, "watching service changes stopped")
+				break loop
+			}
+			log.Errorf(r.ctx, "watching service changes stopped, %s", err)
+			break loop
+		}
+
+		func() {
+			r.mutex.Lock()
+			defer r.mutex.Unlock()
+
+			eventNode := event.Service.Nodes[0]
+
+			removeNode := func(versions *[]registry.Service, versionIdx int, service *registry.Service) {
+				for i := len(service.Nodes) - 1; i >= 0; i-- {
+					node := &service.Nodes[i]
+
+					if node.Id == eventNode.Id {
+						service.Nodes = append(service.Nodes[:i], service.Nodes[i+1:]...)
+					}
+				}
+
+				if len(service.Nodes) <= 0 {
+					*versions = append((*versions)[:versionIdx], (*versions)[versionIdx+1:]...)
+				}
+			}
+
+			switch event.Type {
+			case registry.Create, registry.Update:
+				r.serviceNodeMap[[2]string{event.Service.Name, eventNode.Id}] = event.Service
+
+				versions := r.getServiceVersions(event.Service.Name)
+
+				for i := len(*versions) - 1; i >= 0; i-- {
+					service := &(*versions)[i]
+
+					if service.Version == event.Service.Version {
+						continue
+					}
+
+					removeNode(versions, i, service)
+				}
+
+				for i := range *versions {
+					service := &(*versions)[i]
+
+					if service.Version != event.Service.Version {
+						continue
+					}
+
+					for j := range service.Nodes {
+						node := &service.Nodes[j]
+
+						if node.Id == eventNode.Id {
+							*node = eventNode
+							return
+						}
+					}
+
+					service.Nodes = append(service.Nodes, eventNode)
+					return
+				}
+
+				*versions = append(*versions, *event.Service)
+				return
+
+			case registry.Delete:
+				delete(r.serviceNodeMap, [2]string{event.Service.Name, eventNode.Id})
+
+				versions, ok := r.serviceMap[event.Service.Name]
+				if !ok {
+					return
+				}
+
+				for i := len(*versions) - 1; i >= 0; i-- {
+					service := &(*versions)[i]
+
+					if service.Version != event.Service.Version {
+						continue
+					}
+
+					removeNode(versions, i, service)
+				}
+			}
+		}()
+	}
+
+	<-r.watcher.Stop()
 }
