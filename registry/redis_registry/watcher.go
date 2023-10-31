@@ -115,24 +115,22 @@ func (w *_Watcher) Stop() <-chan struct{} {
 
 func (w *_Watcher) run() {
 	defer func() {
-		if err := w.pubSub.Close(); err != nil {
-			log.Errorf(w.registry.ctx, "close watch %q failed, %s", w.pathList, err)
-		}
 		close(w.eventChan)
 		w.stoppedChan <- struct{}{}
 	}()
 
 	log.Debugf(w.registry.ctx, "start watch %q", w.pathList)
 
+loop:
 	for {
 		msg, err := w.pubSub.ReceiveMessage(w.ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
 				log.Debugf(w.registry.ctx, "stop watch %q, %s", w.pathList, err)
-				return
+				break loop
 			}
 			log.Errorf(w.registry.ctx, "interrupt watch %q, %s", w.pathList, err)
-			return
+			break loop
 		}
 
 		var key, opt string
@@ -209,7 +207,11 @@ func (w *_Watcher) run() {
 		case w.eventChan <- event:
 		case <-w.ctx.Done():
 			log.Debugf(w.registry.ctx, "stop watch %q", w.pathList)
-			return
+			break loop
 		}
+	}
+
+	if err := w.pubSub.Close(); err != nil {
+		log.Errorf(w.registry.ctx, "close watch %q failed, %s", w.pathList, err)
 	}
 }
