@@ -36,8 +36,8 @@ func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, e
 		return src, false, nil
 	}
 
-	compressedBuf := BytesPool.Get(len(src))
-	defer BytesPool.Put(compressedBuf)
+	compressedBuf := binaryutil.BytesPool.Get(len(src))
+	defer binaryutil.BytesPool.Put(compressedBuf)
 
 	n, err := func() (n int, err error) {
 		bw := binaryutil.NewBytesWriter(compressedBuf)
@@ -74,12 +74,12 @@ func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, e
 		return src, false, nil
 	}
 
-	buf := BytesPool.Get(msgCompressed.Size())
+	buf := binaryutil.BytesPool.Get(msgCompressed.Size())
 	defer func() {
 		if compressed {
 			m.gcList = append(m.gcList, buf)
 		} else {
-			BytesPool.Put(buf)
+			binaryutil.BytesPool.Put(buf)
 		}
 	}()
 
@@ -111,12 +111,12 @@ func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
 		return nil, errors.New("OriginalSize too large")
 	}
 
-	rawBuf := BytesPool.Get(int(msgCompressed.OriginalSize))
+	rawBuf := binaryutil.BytesPool.Get(int(msgCompressed.OriginalSize))
 	defer func() {
 		if err == nil {
 			m.gcList = append(m.gcList, rawBuf)
 		} else {
-			BytesPool.Put(rawBuf)
+			binaryutil.BytesPool.Put(rawBuf)
 		}
 	}()
 
@@ -135,7 +135,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
 // GC GC
 func (m *CompressionModule) GC() {
 	for i := range m.gcList {
-		BytesPool.Put(m.gcList[i])
+		binaryutil.BytesPool.Put(m.gcList[i])
 	}
 	m.gcList = m.gcList[:0]
 }

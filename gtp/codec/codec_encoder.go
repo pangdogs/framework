@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"kit.golaxy.org/plugins/gtp"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 )
 
 // IEncoder 消息包编码器接口
@@ -101,8 +102,8 @@ func (e *Encoder) StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.Msg) error 
 		}
 	}
 
-	mpBuf := BytesPool.Get(head.Size() + msg.Size() + msgAddition)
-	defer BytesPool.Put(mpBuf)
+	mpBuf := binaryutil.BytesPool.Get(head.Size() + msg.Size() + msgAddition)
+	defer binaryutil.BytesPool.Put(mpBuf)
 
 	// 写入消息
 	mn, err := msg.Read(mpBuf[head.Size():])

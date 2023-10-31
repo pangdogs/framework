@@ -48,12 +48,12 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 		MAC:  m.Hash.Sum(nil),
 	}
 
-	buf := BytesPool.Get(msgMAC.Size())
+	buf := binaryutil.BytesPool.Get(msgMAC.Size())
 	defer func() {
 		if err == nil {
 			m.gcList = append(m.gcList, buf)
 		} else {
-			BytesPool.Put(buf)
+			binaryutil.BytesPool.Put(buf)
 		}
 	}()
 
@@ -99,7 +99,7 @@ func (m *MACModule) SizeofMAC(msgLen int) int {
 // GC GC
 func (m *MACModule) GC() {
 	for i := range m.gcList {
-		BytesPool.Put(m.gcList[i])
+		binaryutil.BytesPool.Put(m.gcList[i])
 	}
 	m.gcList = m.gcList[:0]
 }

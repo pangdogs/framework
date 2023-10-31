@@ -2,6 +2,7 @@ package codec
 
 import (
 	"errors"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/method"
 )
 
@@ -37,8 +38,8 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 
 	is := m.Cipher.InputSize(len(src))
 	if is > len(src) {
-		buf := BytesPool.Get(is)
-		defer BytesPool.Put(buf)
+		buf := binaryutil.BytesPool.Get(is)
+		defer binaryutil.BytesPool.Put(buf)
 
 		copy(buf, src)
 		in = buf
@@ -48,12 +49,12 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 
 	os := m.Cipher.OutputSize(len(src))
 	if os > len(dst) {
-		buf := BytesPool.Get(os)
+		buf := binaryutil.BytesPool.Get(os)
 		defer func() {
 			if err == nil {
 				m.gcList = append(m.gcList, buf)
 			} else {
-				BytesPool.Put(buf)
+				binaryutil.BytesPool.Put(buf)
 			}
 		}()
 
@@ -118,7 +119,7 @@ func (m *EncryptionModule) SizeOfAddition(msgLen int) (int, error) {
 // GC GC
 func (m *EncryptionModule) GC() {
 	for i := range m.gcList {
-		BytesPool.Put(m.gcList[i])
+		binaryutil.BytesPool.Put(m.gcList[i])
 	}
 	m.gcList = m.gcList[:0]
 }

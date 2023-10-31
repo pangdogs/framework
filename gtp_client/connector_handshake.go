@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/gtp"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/method"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -42,16 +43,16 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	defer func() {
 		if cliRandom != nil {
-			codec.BytesPool.Put(cliRandom)
+			binaryutil.BytesPool.Put(cliRandom)
 		}
 		if servRandom != nil {
-			codec.BytesPool.Put(servRandom)
+			binaryutil.BytesPool.Put(servRandom)
 		}
 		if cliHelloBytes != nil {
-			codec.BytesPool.Put(cliHelloBytes)
+			binaryutil.BytesPool.Put(cliHelloBytes)
 		}
 		if servHelloBytes != nil {
-			codec.BytesPool.Put(servHelloBytes)
+			binaryutil.BytesPool.Put(servHelloBytes)
 		}
 	}()
 
@@ -60,7 +61,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if err != nil {
 		return err
 	}
-	servRandom = codec.BytesPool.Get(n.BitLen() / 8)
+	servRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
 	n.FillBytes(servRandom)
 
 	cliHello := transport.Event[*gtp.MsgHello]{
@@ -100,16 +101,16 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 				if len(servHello.Msg.Random) < 0 {
 					return errors.New("server Hello 'random' is empty")
 				}
-				servRandom = codec.BytesPool.Get(len(servHello.Msg.Random))
+				servRandom = binaryutil.BytesPool.Get(len(servHello.Msg.Random))
 				copy(servRandom, servHello.Msg.Random)
 
 				// 记录双方hello数据，用于ecdh后加密验证
-				cliHelloBytes = codec.BytesPool.Get(cliHello.Msg.Size())
+				cliHelloBytes = binaryutil.BytesPool.Get(cliHello.Msg.Size())
 				if _, err := cliHello.Msg.Read(cliHelloBytes); err != nil {
 					return err
 				}
 
-				servHelloBytes = codec.BytesPool.Get(servHello.Msg.Size())
+				servHelloBytes = binaryutil.BytesPool.Get(servHello.Msg.Size())
 				if _, err := servHello.Msg.Read(servHelloBytes); err != nil {
 					return err
 				}

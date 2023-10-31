@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/gtp"
+	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/method"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -43,16 +44,16 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 	defer func() {
 		if cliRandom != nil {
-			codec.BytesPool.Put(cliRandom)
+			binaryutil.BytesPool.Put(cliRandom)
 		}
 		if servRandom != nil {
-			codec.BytesPool.Put(servRandom)
+			binaryutil.BytesPool.Put(servRandom)
 		}
 		if cliHelloBytes != nil {
-			codec.BytesPool.Put(cliHelloBytes)
+			binaryutil.BytesPool.Put(cliHelloBytes)
 		}
 		if servHelloBytes != nil {
-			codec.BytesPool.Put(servHelloBytes)
+			binaryutil.BytesPool.Put(servHelloBytes)
 		}
 	}()
 
@@ -114,7 +115,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 					Message: "client Hello 'random' is empty",
 				}
 			}
-			cliRandom = codec.BytesPool.Get(len(cliHello.Msg.Random))
+			cliRandom = binaryutil.BytesPool.Get(len(cliHello.Msg.Random))
 			copy(cliRandom, cliHello.Msg.Random)
 
 			// 生成服务端随机数
@@ -125,7 +126,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 					Message: err.Error(),
 				}
 			}
-			servRandom = codec.BytesPool.Get(n.BitLen() / 8)
+			servRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
 			n.FillBytes(servRandom)
 
 			encryptionFlow = true
@@ -154,7 +155,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 		// 开启加密时，记录双方hello数据，用于ecdh后加密验证
 		if encryptionFlow {
-			cliHelloBytes = codec.BytesPool.Get(cliHello.Msg.Size())
+			cliHelloBytes = binaryutil.BytesPool.Get(cliHello.Msg.Size())
 			if _, err := cliHello.Msg.Read(cliHelloBytes); err != nil {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
@@ -162,7 +163,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 				}
 			}
 
-			servHelloBytes = codec.BytesPool.Get(servHello.Msg.Size())
+			servHelloBytes = binaryutil.BytesPool.Get(servHello.Msg.Size())
 			if _, err := servHello.Msg.Read(servHelloBytes); err != nil {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
