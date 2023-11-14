@@ -12,7 +12,7 @@ func newTask[T Resp](fs *Futures, resp T) _ITask {
 	task := &_Task[T]{
 		future: Future{
 			Finish:  ctx,
-			Id:      fs.MakeId(),
+			Id:      fs.makeId(),
 			futures: fs,
 		},
 		resp: resp,
@@ -26,7 +26,7 @@ func newTask[T Resp](fs *Futures, resp T) _ITask {
 type _ITask interface {
 	Future() Future
 	Run(ctx context.Context, timeout time.Duration)
-	Reply(ret Ret[any]) error
+	Resolve(ret Ret[any]) error
 }
 
 type _Task[T Resp] struct {
@@ -45,17 +45,17 @@ func (t *_Task[T]) Run(ctx context.Context, timeout time.Duration) {
 
 	select {
 	case <-t.future.futures.Ctx.Done():
-		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFuturesClosed})
+		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFuturesClosed})
 	case <-ctx.Done():
-		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFutureCanceled})
+		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFutureCanceled})
 	case <-timer.C:
-		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFutureTimeout})
+		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFutureTimeout})
 	case <-t.future.Finish.Done():
 		return
 	}
 }
 
-func (t *_Task[T]) Reply(ret Ret[any]) (retErr error) {
+func (t *_Task[T]) Resolve(ret Ret[any]) (retErr error) {
 	t.stop()
 
 	defer func() {

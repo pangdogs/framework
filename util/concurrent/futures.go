@@ -44,12 +44,10 @@ func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...tim
 type IFutures interface {
 	// Make 创建Future
 	Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future
-	// MakeId 创建请求Id
-	MakeId() int64
-	// Request 异步请求
+	// Request 请求
 	Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) runtime.AsyncRet
-	// Dispatching 分发异步响应返回值
-	Dispatching(id int64, ret Ret[any]) error
+	// Resolve 解决
+	Resolve(id int64, ret Ret[any]) error
 
 	ptr() *Futures
 }
@@ -79,30 +77,29 @@ func (fs *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration
 	return task.Future()
 }
 
-// MakeId 创建请求Id
-func (fs *Futures) MakeId() int64 {
-	return atomic.AddInt64(&fs.Id, 1)
-}
-
-// Request 异步请求
+// Request 请求
 func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) runtime.AsyncRet {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	asyncRet := make(RespAsyncRet, 1)
-	handler.Exec(fs.Make(ctx, asyncRet, timeout...))
+	future, resp := MakeFutureRespAsyncRet(fs, ctx, timeout...)
+	handler.Exec(future)
 
-	return asyncRet.Cast()
+	return resp.Cast()
 }
 
-// Dispatching 分发异步响应返回值
-func (fs *Futures) Dispatching(id int64, ret Ret[any]) error {
+// Resolve 解决
+func (fs *Futures) Resolve(id int64, ret Ret[any]) error {
 	v, ok := fs.tasks.LoadAndDelete(id)
 	if !ok {
 		return ErrFutureNotFound
 	}
-	return v.(_ITask).Reply(ret)
+	return v.(_ITask).Resolve(ret)
+}
+
+func (fs *Futures) makeId() int64 {
+	return atomic.AddInt64(&fs.Id, 1)
 }
 
 func (fs *Futures) ptr() *Futures {
