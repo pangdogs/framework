@@ -9,17 +9,17 @@ import (
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
-func MakeWriteChan(serviceCtx service.Context, topic string, size int) chan<- []byte {
+func MakeWriteChan(servCtx service.Context, topic string, size int) chan<- []byte {
 	ch := make(chan []byte, size)
 
 	go func() {
 		defer func() {
 			if info := recover(); info != nil {
-				log.Errorf(serviceCtx, "%s: publish data to topic %q failed, %s", golaxy.ErrPanicked, topic, info)
+				log.Errorf(servCtx, "%s: publish data to topic %q failed, %s", golaxy.ErrPanicked, topic, info)
 			}
 		}()
 
-		broker := Using(serviceCtx)
+		broker := Using(servCtx)
 
 		for {
 			select {
@@ -27,10 +27,10 @@ func MakeWriteChan(serviceCtx service.Context, topic string, size int) chan<- []
 				if !ok {
 					return
 				}
-				if err := broker.Publish(serviceCtx, topic, data); err != nil {
-					log.Errorf(serviceCtx, "publish data to topic %q failed, %s", topic, err)
+				if err := broker.Publish(servCtx, topic, data); err != nil {
+					log.Errorf(servCtx, "publish data to topic %q failed, %s", topic, err)
 				}
-			case <-serviceCtx.Done():
+			case <-servCtx.Done():
 				return
 			}
 		}
@@ -40,10 +40,10 @@ func MakeWriteChan(serviceCtx service.Context, topic string, size int) chan<- []
 }
 
 // MakeReadChan creates a new channel for receiving data from a specific pattern.
-func MakeReadChan(serviceCtx service.Context, ctx context.Context, pattern, queue string, size int) (<-chan []byte, error) {
+func MakeReadChan(servCtx service.Context, ctx context.Context, pattern, queue string, size int) (<-chan []byte, error) {
 	ch := make(chan []byte, size)
 
-	_, err := Using(serviceCtx).Subscribe(ctx, pattern,
+	_, err := Using(servCtx).Subscribe(ctx, pattern,
 		Option{}.Queue(queue),
 		Option{}.EventHandler(generic.CastDelegateFunc1(func(e Event) error {
 			select {
@@ -53,7 +53,7 @@ func MakeReadChan(serviceCtx service.Context, ctx context.Context, pattern, queu
 				if e.Queue() != "" {
 					nakErr = e.Nak(context.Background())
 				}
-				log.Errorf(serviceCtx, "receive data from topic %q queue %q failed, output chan is full, nak: %s", e.Topic(), e.Queue(), nakErr)
+				log.Errorf(servCtx, "receive data from topic %q queue %q failed, output chan is full, nak: %s", e.Topic(), e.Queue(), nakErr)
 			}
 			return nil
 		})),

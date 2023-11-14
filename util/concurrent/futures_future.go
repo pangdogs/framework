@@ -4,7 +4,7 @@ import "golang.org/x/net/context"
 
 // Future 异步模型Future
 type Future struct {
-	Ctx     context.Context // 上下文
+	Finish  context.Context // 上下文
 	Id      int64           // Id
 	futures *Futures
 }
@@ -15,6 +15,13 @@ func (f Future) Cancel(err error) {
 }
 
 // Wait 等待
-func (f Future) Wait() {
-	<-f.Ctx.Done()
+func (f Future) Wait(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-f.Finish.Done():
+	}
 }

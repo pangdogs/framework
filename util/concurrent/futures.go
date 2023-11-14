@@ -11,18 +11,19 @@ import (
 )
 
 var (
-	ErrFuturesClosed           = errors.New("futures already closed")                   // 异步模型Future已关闭
+	ErrFuturesClosed           = errors.New("futures already closed")                   // Future控制器已关闭
 	ErrFutureNotFound          = errors.New("future not found")                         // Future未找到
-	ErrFutureCancelled         = errors.New("future cancelled")                         // Future被取消
+	ErrFutureCanceled          = errors.New("future canceled")                          // Future被取消
 	ErrFutureTimeout           = errors.New("future timeout")                           // Future超时
 	ErrFutureRespIncorrectType = errors.New("future response has incorrect value type") // Future响应的返回值类型错误
+	ErrFutureReplyClosed       = errors.New("future reply closed")                      // Future答复已关闭
 )
 
 type (
 	RequestHandler = generic.Action1[Future] // Future请求处理器
 )
 
-// MakeFuture 创建异步模型Future
+// MakeFuture 创建Future
 func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...time.Duration) Future {
 	if ctx == nil {
 		ctx = context.Background()
@@ -39,7 +40,7 @@ func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...tim
 	return task.Future()
 }
 
-// IFutures 异步模型Future控制器接口
+// IFutures Future控制器接口
 type IFutures interface {
 	// Make 创建Future
 	Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future
@@ -53,7 +54,7 @@ type IFutures interface {
 	ptr() *Futures
 }
 
-// Futures 异步模型Future控制器
+// Futures Future控制器
 type Futures struct {
 	Ctx     context.Context // 上下文
 	Id      int64           // 请求id生成器
@@ -102,4 +103,8 @@ func (fs *Futures) Dispatching(id int64, ret Ret[any]) error {
 		return ErrFutureNotFound
 	}
 	return v.(_ITask).Reply(ret)
+}
+
+func (fs *Futures) ptr() *Futures {
+	return fs
 }

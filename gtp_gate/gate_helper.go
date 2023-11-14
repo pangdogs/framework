@@ -5,16 +5,16 @@ import (
 )
 
 // GetSession 查询会话
-func GetSession(serviceCtx service.Context, sessionId string) (Session, bool) {
-	return Using(serviceCtx).GetSession(sessionId)
+func GetSession(servCtx service.Context, sessionId string) (Session, bool) {
+	return Using(servCtx).GetSession(sessionId)
 }
 
 // RangeSessions 遍历所有会话
-func RangeSessions(serviceCtx service.Context, fun func(session Session) bool) {
-	Using(serviceCtx).RangeSessions(fun)
+func RangeSessions(servCtx service.Context, fun func(session Session) bool) {
+	Using(servCtx).RangeSessions(fun)
 }
 
 // CountSessions 统计所有会话数量
-func CountSessions(serviceCtx service.Context) int {
-	return Using(serviceCtx).CountSessions()
+func CountSessions(servCtx service.Context) int {
+	return Using(servCtx).CountSessions()
 }

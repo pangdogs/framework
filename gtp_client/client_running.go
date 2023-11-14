@@ -322,9 +322,7 @@ func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) error {
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-		if err := c.futures.Dispatching(event.Msg.SeqId, concurrent.Ret[any]{Value: respTime, Error: nil}); err != nil {
-			c.logger.Errorf("client %q dispatching the response time failed, %s", c.GetSessionId(), err)
-		}
+		return c.futures.Dispatching(event.Msg.ReqId, concurrent.MakeRet[any](respTime, nil))
 	}
 	return nil
 }

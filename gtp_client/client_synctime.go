@@ -29,13 +29,10 @@ func (rt *ResponseTime) NowTime() time.Time {
 }
 
 // RequestTime 请求对端同步时间
-func (c *Client) RequestTime(ctx context.Context) <-chan concurrent.Ret[*ResponseTime] {
-	resp := make(concurrent.RespChan[*ResponseTime], 1)
-	future := c.futures.Make(ctx, resp)
-
+func (c *Client) RequestTime(ctx context.Context) concurrent.Reply[*ResponseTime] {
+	future, resp := concurrent.MakeFutureRespChan[*ResponseTime](c.GetFutures(), ctx)
 	if err := c.ctrl.RequestTime(future.Id); err != nil {
 		future.Cancel(err)
 	}
-
-	return resp
+	return resp.Cast()
 }
