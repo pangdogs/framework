@@ -322,7 +322,7 @@ func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) error {
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-		return c.futures.Dispatching(event.Msg.ReqId, concurrent.MakeRet[any](respTime, nil))
+		return c.futures.Resolve(event.Msg.ReqId, concurrent.MakeRet[any](respTime, nil))
 	}
 	return nil
 }

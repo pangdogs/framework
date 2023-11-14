@@ -11,7 +11,7 @@ type Future struct {
 
 // Cancel 取消
 func (f Future) Cancel(err error) {
-	f.futures.Dispatching(f.Id, Ret[any]{Error: err})
+	f.futures.Resolve(f.Id, Ret[any]{Error: err})
 }
 
 // Wait 等待
