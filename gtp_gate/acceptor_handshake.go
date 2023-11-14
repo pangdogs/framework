@@ -6,11 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/method"
 	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/internal"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"math/big"
 	"net"
 	"strings"
@@ -20,7 +19,7 @@ import (
 func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	// 编解码器
 	acc.encoder = &codec.Encoder{}
-	acc.decoder = &codec.Decoder{MsgCreator: acc.Options.DecoderMsgCreator}
+	acc.decoder = &codec.Decoder{MsgCreator: acc.options.DecoderMsgCreator}
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
@@ -28,10 +27,10 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 			Conn:    conn,
 			Encoder: acc.encoder,
 			Decoder: acc.decoder,
-			Timeout: acc.Options.IOTimeout,
+			Timeout: acc.options.IOTimeout,
 			Buffer:  &transport.UnsequencedBuffer{},
 		},
-		RetryTimes: acc.Options.IORetryTimes,
+		RetryTimes: acc.options.IORetryTimes,
 	}
 	defer handshake.Transceiver.Clean()
 
@@ -69,7 +68,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 		// 检查客户端要求的会话是否存在，已存在需要走断线重连流程
 		if cliHello.Msg.SessionId != "" {
-			v, ok := acc.Gate.loadSession(cliHello.Msg.SessionId)
+			v, ok := acc.gate.loadSession(cliHello.Msg.SessionId)
 			if !ok {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,
@@ -93,17 +92,17 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 		}
 
 		// 检查是否同意使用客户端建议的加密方案
-		if acc.Options.AgreeClientEncryptionProposal {
+		if acc.options.AgreeClientEncryptionProposal {
 			cs = cliHello.Msg.CipherSuite
 		} else {
-			cs = acc.Options.EncCipherSuite
+			cs = acc.options.EncCipherSuite
 		}
 
 		// 检查是否同意使用客户端建议的压缩方案
-		if acc.Options.AgreeClientCompressionProposal {
+		if acc.options.AgreeClientCompressionProposal {
 			cm = cliHello.Msg.Compression
 		} else {
-			cm = acc.Options.Compression
+			cm = acc.options.Compression
 		}
 
 		// 开启加密时，需要交换随机数
@@ -144,7 +143,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 			},
 		}
 
-		authFlow = len(acc.Options.ClientAuthHandlers) > 0
+		authFlow = len(acc.options.AuthClientHandler) > 0
 
 		// 标记是否开启加密
 		servHello.Flags.Set(gtp.Flag_Encryption, encryptionFlow)
@@ -207,17 +206,13 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 				}
 			}
 
-			for i := range acc.Options.ClientAuthHandlers {
-				handler := acc.Options.ClientAuthHandlers[i]
-				if handler == nil {
-					continue
-				}
-				err := internal.Call(func() error { return handler(acc.Gate.ctx, conn, e.Msg.Token, e.Msg.Extensions) })
-				if err != nil {
-					return &transport.RstError{
-						Code:    gtp.Code_AuthFailed,
-						Message: err.Error(),
-					}
+			err := acc.options.AuthClientHandler.Exec(func(err, _ error) bool {
+				return err != nil
+			}, acc.gate, conn, e.Msg.Token, e.Msg.Extensions)
+			if err != nil {
+				return &transport.RstError{
+					Code:    gtp.Code_AuthFailed,
+					Message: err.Error(),
 				}
 			}
 
@@ -240,6 +235,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	if continueFlow {
 		err = handshake.ServerContinue(func(e transport.Event[*gtp.MsgContinue]) error {
 			// 刷新会话
+			var err error
 			sendSeq, recvSeq, err = session.renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
 			if err != nil {
 				return &transport.RstError{
@@ -277,7 +273,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 	if continueFlow {
 		// 检测会话有效性
-		if !acc.Gate.validateSession(session) {
+		if !acc.gate.validateSession(session) {
 			err = &transport.RstError{
 				Code:    gtp.Code_ContinueFailed,
 				Message: fmt.Sprintf("session %q has expired", session.GetId()),
@@ -293,7 +289,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 		}
 	} else {
 		// 存储会话
-		acc.Gate.storeSession(session)
+		acc.gate.storeSession(session)
 
 		// 调整会话状态为已确认
 		session.setState(SessionState_Confirmed)
@@ -330,7 +326,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
 		// 创建曲线
-		curve, err := method.NewNamedCurve(acc.Options.EncECDHENamedCurve)
+		curve, err := method.NewNamedCurve(acc.options.EncECDHENamedCurve)
 		if err != nil {
 			return err
 		}
@@ -388,9 +384,9 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 
 		if nonce != nil {
 			nonceBytes = nonce.Bytes()
-			nonceStepBytes = acc.Options.EncNonceStep.Bytes()
-			encEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.Options.EncNonceStep)
-			decEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.Options.EncNonceStep)
+			nonceStepBytes = acc.options.EncNonceStep.Bytes()
+			encEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.options.EncNonceStep)
+			decEncryptionModule.FetchNonce = acc.makeFetchNonce(nonce, acc.options.EncNonceStep)
 		}
 
 		// 临时共享秘钥
@@ -401,18 +397,18 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 			transport.Event[*gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
 				Msg: &gtp.MsgECDHESecretKeyExchange{
-					NamedCurve:         acc.Options.EncECDHENamedCurve,
+					NamedCurve:         acc.options.EncECDHENamedCurve,
 					PublicKey:          servPubBytes,
 					IV:                 ivBytes,
 					Nonce:              nonceBytes,
 					NonceStep:          nonceStepBytes,
-					SignatureAlgorithm: acc.Options.EncSignatureAlgorithm,
+					SignatureAlgorithm: acc.options.EncSignatureAlgorithm,
 					Signature:          signature,
 				},
 			},
 			func(cliECDHE transport.Event[*gtp.MsgECDHESecretKeyExchange]) (transport.Event[*gtp.MsgChangeCipherSpec], error) {
 				// 检查客户端曲线类型
-				if cliECDHE.Msg.NamedCurve != acc.Options.EncECDHENamedCurve {
+				if cliECDHE.Msg.NamedCurve != acc.options.EncECDHENamedCurve {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve' %d is incorrect", cliECDHE.Msg.NamedCurve),
@@ -420,7 +416,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 				}
 
 				// 验证客户端签名
-				if acc.Options.EncVerifyClientSignature {
+				if acc.options.EncVerifyClientSignature {
 					if !cliECDHE.Flags.Is(gtp.Flag_Signature) {
 						return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
@@ -692,26 +688,26 @@ func (acc *_Acceptor) makeCompressionModule(compression gtp.Compression) (codec.
 		CompressionStream: compressionStream,
 	}
 
-	return compressionModule, acc.Options.CompressedSize, err
+	return compressionModule, acc.options.CompressedSize, err
 }
 
 // sign 签名
 func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) ([]byte, error) {
 	// 无需签名
-	if acc.Options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
+	if acc.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
 
 	// 必须设置私钥才能签名
-	if acc.Options.EncSignaturePrivateKey == nil {
+	if acc.options.EncSignaturePrivateKey == nil {
 		return nil, errors.New("option EncSignaturePrivateKey is nil, unable to perform the signing operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		acc.Options.EncSignatureAlgorithm.AsymmetricEncryption,
-		acc.Options.EncSignatureAlgorithm.PaddingMode,
-		acc.Options.EncSignatureAlgorithm.Hash)
+		acc.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		acc.options.EncSignatureAlgorithm.PaddingMode,
+		acc.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -726,7 +722,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 	signBuf.Write(servPubBytes)
 
 	// 生成签名
-	signature, err := signer.Sign(acc.Options.EncSignaturePrivateKey, signBuf.Bytes())
+	signature, err := signer.Sign(acc.options.EncSignaturePrivateKey, signBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -737,7 +733,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 // verify 验证签名
 func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
-	if acc.Options.EncVerifySignaturePublicKey == nil {
+	if acc.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
 	}
 
@@ -759,5 +755,5 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 	signBuf.WriteString(sessionId)
 	signBuf.Write(cliPubBytes)
 
-	return signer.Verify(acc.Options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
+	return signer.Verify(acc.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
 }

@@ -2,11 +2,12 @@ package transport
 
 import (
 	"errors"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp"
 )
 
 type (
-	PayloadHandler = func(Event[*gtp.MsgPayload]) error // Payload消息事件处理器
+	PayloadHandler = generic.DelegateFunc1[Event[*gtp.MsgPayload], error] // Payload消息事件处理器
 )
 
 // TransProtocol 传输协议
@@ -33,17 +34,13 @@ func (t *TransProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// EventHandler 消息事件处理器
-func (t *TransProtocol) EventHandler(e Event[gtp.Msg]) error {
+// HandleEvent 消息事件处理器
+func (t *TransProtocol) HandleEvent(e Event[gtp.Msg]) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
-		payload := UnpackEvent[*gtp.MsgPayload](e)
-
-		if t.PayloadHandler != nil {
-			return t.PayloadHandler(payload)
-		}
-
-		return nil
+		return t.PayloadHandler.Exec(func(err, _ error) bool {
+			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
+		}, UnpackEvent[*gtp.MsgPayload](e))
 	default:
 		return ErrUnexpectedMsg
 	}

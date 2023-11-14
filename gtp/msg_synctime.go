@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // SyncTime消息标志位
@@ -12,15 +12,15 @@ const (
 
 // MsgSyncTime 同步时间
 type MsgSyncTime struct {
-	ReqId           int64 // 请求Id
+	SeqId           int64 // 序号
 	LocalUnixMilli  int64 // 本地时间
 	RemoteUnixMilli int64 // 对端时间（响应时有效）
 }
 
 // Read implements io.Reader
 func (m *MsgSyncTime) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
-	if err := bs.WriteInt64(m.ReqId); err != nil {
+	bs := binaryutil.NewBigEndianStream(p)
+	if err := bs.WriteInt64(m.SeqId); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteInt64(m.LocalUnixMilli); err != nil {
@@ -34,7 +34,7 @@ func (m *MsgSyncTime) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgSyncTime) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	reqId, err := bs.ReadInt64()
 	if err != nil {
 		return 0, err
@@ -47,13 +47,13 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.ReqId = reqId
+	m.SeqId = reqId
 	m.LocalUnixMilli = localUnixMilli
 	m.RemoteUnixMilli = remoteUnixMilli
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgSyncTime) Size() int {
 	return binaryutil.SizeofInt64() + binaryutil.SizeofInt64() + binaryutil.SizeofInt64()
 }

@@ -3,6 +3,9 @@ package transport
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
 )
 
@@ -11,14 +14,22 @@ type UnsequencedBuffer struct {
 	bytes.Buffer
 }
 
+// WriteTo implements io.WriteTo
+func (s *UnsequencedBuffer) WriteTo(w io.Writer) (int64, error) {
+	if w == nil {
+		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
+	}
+	return s.Buffer.WriteTo(w)
+}
+
+// Validate 验证消息包
+func (s *UnsequencedBuffer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
+	return nil
+}
+
 // Synchronization 同步对端时序，对齐缓存序号
 func (s *UnsequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	return errors.New("not support")
-}
-
-// Validation 验证消息头
-func (s *UnsequencedBuffer) Validation(msgHead gtp.MsgHead) error {
-	return nil
 }
 
 // Ack 确认消息序号

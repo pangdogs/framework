@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // Finished消息标志位
@@ -19,7 +19,7 @@ type MsgFinished struct {
 
 // Read implements io.Reader
 func (m *MsgFinished) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
 		return 0, err
 	}
@@ -31,7 +31,7 @@ func (m *MsgFinished) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgFinished) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	sendSeq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
@@ -45,7 +45,7 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgFinished) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (s *_DSync) newMutex(name string, options dsync.DMutexOptions) dsync.DMutex {
+func (s *_DSync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
 	if s.options.KeyPrefix != "" {
 		name = s.options.KeyPrefix + name
 	}

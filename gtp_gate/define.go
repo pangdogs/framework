@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin[Gate, GateOption](newGate)
+	plugin    = define.DefineServicePlugin(newGate)
 	Name      = plugin.Name
 	Using     = plugin.Using
 	Install   = plugin.Install

@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"bytes"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"strings"
 )
 
@@ -25,7 +25,7 @@ type CipherSuite struct {
 
 // Read implements io.Reader
 func (cs *CipherSuite) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
 		return 0, err
 	}
@@ -46,7 +46,7 @@ func (cs *CipherSuite) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (cs *CipherSuite) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	secretKeyExchange, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
@@ -92,7 +92,7 @@ type MsgHello struct {
 
 // Read implements io.Reader
 func (m *MsgHello) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
 		return 0, err
 	}
@@ -113,7 +113,7 @@ func (m *MsgHello) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgHello) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	version, err := bs.ReadUint16()
 	if err != nil {
 		return 0, err
@@ -142,7 +142,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8()

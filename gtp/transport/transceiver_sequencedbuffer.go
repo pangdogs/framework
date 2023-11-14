@@ -3,8 +3,10 @@ package transport
 import (
 	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/gtp/codec"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"sync/atomic"
 )
 
@@ -12,10 +14,9 @@ import (
 type Buffer interface {
 	io.Writer
 	io.WriterTo
+	codec.IValidate
 	// Synchronization 同步对端时序，对齐缓存序号
 	Synchronization(remoteRecvSeq uint32) error
-	// Validation 验证消息头
-	Validation(msgHead gtp.MsgHead) error
 	// Ack 确认消息序号
 	Ack(ack uint32) error
 	// SendSeq 发送消息序号
@@ -34,9 +35,9 @@ type Buffer interface {
 
 // _SequencedFrame 时序帧
 type _SequencedFrame struct {
-	Seq    uint32 // 序号
-	Offset int    // 帧数据偏移位置
-	Data   []byte // 帧数据
+	seq    uint32 // 序号
+	offset int    // 帧数据偏移位置
+	data   []byte // 帧数据
 }
 
 // SequencedBuffer 时序缓存，主要用于断线重连时，同步对端时序，补发消息
@@ -90,7 +91,7 @@ func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
 	}
 
 	// 写入帧队列
-	s.frames = append(s.frames, _SequencedFrame{Seq: head.Seq, Data: data})
+	s.frames = append(s.frames, _SequencedFrame{seq: head.Seq, data: data})
 	s.cached += len(data)
 
 	// 自增序号
@@ -101,16 +102,20 @@ func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
 
 // WriteTo implements io.WriteTo
 func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
+	if w == nil {
+		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
+	}
+
 	var wn int64
 
 	// 读取帧队列，向输出流写入消息
 	for i := s.sent; i < len(s.frames); i++ {
 		frame := &s.frames[i]
 
-		if frame.Offset < len(frame.Data) {
-			n, err := w.Write(frame.Data[frame.Offset:])
+		if frame.offset < len(frame.data) {
+			n, err := w.Write(frame.data[frame.offset:])
 			if n > 0 {
-				frame.Offset += n
+				frame.offset += n
 				wn += int64(n)
 			}
 			if err != nil {
@@ -125,20 +130,32 @@ func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
 	return wn, nil
 }
 
+// Validate 验证消息包
+func (s *SequencedBuffer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
+	// 检测消息包序号
+	d := int32(msgHead.Seq - s.recvSeq)
+	if d > 0 {
+		return ErrUnexpectedSeq
+	} else if d < 0 {
+		return ErrDiscardSeq
+	}
+	return nil
+}
+
 // Synchronization 同步对端时序，对齐缓存序号
 func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	// 从时序帧中查询对端序号
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
 
-		d := int32(frame.Seq - remoteRecvSeq)
+		d := int32(frame.seq - remoteRecvSeq)
 		if d <= 0 {
 			for j := i; j < len(s.frames); j++ {
-				s.frames[j].Offset = 0
+				s.frames[j].offset = 0
 			}
 
 			s.sent = i
-			s.ackSeq = frame.Seq - 1
+			s.ackSeq = frame.seq - 1
 
 			return nil
 		}
@@ -150,18 +167,6 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 	}
 
 	return fmt.Errorf("frame %d not found", remoteRecvSeq)
-}
-
-// Validation 验证消息头
-func (s *SequencedBuffer) Validation(msgHead gtp.MsgHead) error {
-	// 检测消息包序号
-	d := int32(msgHead.Seq - s.recvSeq)
-	if d > 0 {
-		return ErrUnexpectedSeq
-	} else if d < 0 {
-		return ErrDiscardSeq
-	}
-	return nil
 }
 
 // Ack 确认消息序号
@@ -208,7 +213,7 @@ func (s *SequencedBuffer) Clean() {
 	s.cached = 0
 	s.sent = 0
 	for i := range s.frames {
-		binaryutil.BytesPool.Put(s.frames[i].Data)
+		binaryutil.BytesPool.Put(s.frames[i].data)
 	}
 	s.frames = nil
 }
@@ -227,11 +232,11 @@ func (s *SequencedBuffer) ack(seq uint32) {
 	for i := range s.frames {
 		frame := &s.frames[i]
 
-		cached -= len(frame.Data)
+		cached -= len(frame.data)
 
-		if frame.Seq == seq {
+		if frame.seq == seq {
 			for j := 0; j <= i; j++ {
-				binaryutil.BytesPool.Put(s.frames[j].Data)
+				binaryutil.BytesPool.Put(s.frames[j].data)
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)
@@ -253,12 +258,12 @@ func (s *SequencedBuffer) reduce(size int) {
 	for i := 0; i < s.sent; i++ {
 		frame := &s.frames[i]
 
-		cached -= len(frame.Data)
+		cached -= len(frame.data)
 
-		size -= len(frame.Data)
+		size -= len(frame.data)
 		if size <= 0 {
 			for j := 0; j <= i; j++ {
-				binaryutil.BytesPool.Put(s.frames[j].Data)
+				binaryutil.BytesPool.Put(s.frames[j].data)
 			}
 
 			s.frames = append(s.frames[:0], s.frames[i+1:]...)

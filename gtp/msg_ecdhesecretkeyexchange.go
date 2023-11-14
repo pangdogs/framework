@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"bytes"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // ECDHESecretKeyExchange消息标志位
@@ -19,7 +19,7 @@ type SignatureAlgorithm struct {
 
 // Read implements io.Reader
 func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(sa.AsymmetricEncryption)); err != nil {
 		return 0, err
 	}
@@ -34,7 +34,7 @@ func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	asymmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
@@ -72,7 +72,7 @@ type MsgECDHESecretKeyExchange struct {
 
 // Read implements io.Reader
 func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
 		return 0, err
 	}
@@ -99,7 +99,7 @@ func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	namedCurve, err := bs.ReadUint8()
 	if err != nil {
 		return 0, err
@@ -138,7 +138,7 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
 		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)

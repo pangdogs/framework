@@ -5,21 +5,15 @@ import (
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/log"
 )
 
-func newDSync(options ...DSyncOption) dsync.DSync {
-	opts := DSyncOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newDSync(settings ...option.Setting[DSyncOptions]) dsync.DSync {
 	return &_Dsync{
-		options: opts,
+		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 
@@ -62,15 +56,8 @@ func (s *_Dsync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_Dsync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
-	opts := dsync.DMutexOptions{}
-	dsync.Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
-	return s.newMutex(name, opts)
+func (s *_Dsync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.DMutex {
+	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 
 // Separator return name path separator.
@@ -95,7 +82,7 @@ func (s *_Dsync) configure() *redis.Options {
 	conf.Username = s.options.FastUsername
 	conf.Password = s.options.FastPassword
 	conf.Addr = s.options.FastAddress
-	conf.DB = s.options.FastDBIndex
+	conf.DB = s.options.FastDB
 
 	return conf
 }

@@ -9,7 +9,7 @@ import (
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/internal"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 	"time"
 )
@@ -74,16 +74,16 @@ func (c *Client) run() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			defer c.cancel()
-			c.logger.Errorf("client %q panicked, %s", c.GetSessionId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
+			c.logger.Errorf("client %q loop aborted, %s", c.GetSessionId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
 		}
 		c.transceiver.Clean()
-		c.logger.Debugf("client %q shutdown, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+		c.closedChan <- struct{}{}
 	}()
 
-	c.logger.Debugf("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+	c.logger.Infof("client %q loop started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
 	// 启动发送数据的线程
 	if c.options.SendDataChan != nil {
@@ -117,10 +117,6 @@ func (c *Client) run() {
 		}()
 	}
 
-	active := true
-	pinged := false
-	var timeout time.Time
-
 	// 启动自动重连线程
 	if c.options.AutoReconnect {
 		go func() {
@@ -135,6 +131,10 @@ func (c *Client) run() {
 		}()
 	}
 
+	active := true
+	pinged := false
+	var timeout time.Time
+
 	// 修改活跃状态
 	changeActive := func(b bool) {
 		active = b
@@ -147,6 +147,7 @@ func (c *Client) run() {
 		}
 	}
 
+loop:
 	for {
 		// 非活跃状态，未开启自动重连，检测超时时间
 		if !active && !c.options.AutoReconnect {
@@ -159,32 +160,33 @@ func (c *Client) run() {
 		// 检测连接是否已关闭
 		select {
 		case <-c.Done():
-			return
+			break loop
 		default:
 		}
 
 		// 分发消息事件
 		if err := c.eventDispatcher.Dispatching(); err != nil {
-			c.logger.Debugf("client %q dispatching event failed, %s", c.GetSessionId(), err)
+			c.logger.Errorf("client %q dispatching event failed, %s", c.GetSessionId(), err)
 
-			// 网络io超时，触发心跳检测，向对方发送ping
-			if errors.Is(err, transport.ErrTimeout) {
-				if !pinged {
-					c.logger.Debugf("client %q send ping", c.GetSessionId())
-
-					c.ctrl.SendPing()
-					pinged = true
-				} else {
-					c.logger.Debugf("client %q no pong received", c.GetSessionId())
-
-					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
-					changeActive(false)
-				}
-				continue
-			}
-
-			// 其他网络io类错误，调整连接状态不活跃
+			// 网络io错误
 			if errors.Is(err, transport.ErrNetIO) {
+				// 网络io超时，触发心跳检测，向对方发送ping
+				if errors.Is(err, transport.ErrTimeout) {
+					if !pinged {
+						c.logger.Debugf("client %q send ping", c.GetSessionId())
+
+						c.ctrl.SendPing()
+						pinged = true
+					} else {
+						c.logger.Debugf("client %q no pong received", c.GetSessionId())
+
+						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
+						changeActive(false)
+					}
+					continue
+				}
+
+				// 其他网络io类错误，调整连接状态不活跃
 				changeActive(false)
 
 				func() {
@@ -220,6 +222,8 @@ func (c *Client) run() {
 		// 调整连接状态活跃
 		changeActive(true)
 	}
+
+	c.logger.Infof("client %q loop shutdown, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 }
 
 // reconnect 重连
@@ -235,10 +239,13 @@ func (c *Client) reconnect() {
 		}
 	}()
 
+	c.logger.Infof("client %q auto reconnect started", c.GetSessionId())
+
 	// 尝试重连
 	for i := 0; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
 		select {
 		case <-c.Done():
+			c.logger.Errorf("client %q auto reconnect aborted, client is closed", c.GetSessionId())
 			return
 		default:
 		}
@@ -249,6 +256,7 @@ func (c *Client) reconnect() {
 			// 服务端返回rst拒绝连接，刷新链路失败，这两种情况下不再重试，关闭客户端
 			var rstErr *transport.RstError
 			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenewConn) {
+				c.logger.Errorf("client %q auto reconnect aborted, %s, close client", c.GetSessionId(), err)
 				c.cancel()
 				return
 			}
@@ -257,11 +265,12 @@ func (c *Client) reconnect() {
 			continue
 		}
 
-		c.logger.Debugf("client %q auto reconnect ok, retry %d times, conn %q -> %q", c.GetSessionId(), i+1, c.GetLocalAddr(), c.GetRemoteAddr())
+		c.logger.Infof("client %q auto reconnect success, retry %d times, conn %q -> %q", c.GetSessionId(), i+1, c.GetLocalAddr(), c.GetRemoteAddr())
 		return
 	}
 
 	// 多次重连失败，关闭连接
+	c.logger.Errorf("client %q auto reconnect shutdown, close client", c.GetSessionId())
 	c.cancel()
 }
 
@@ -275,18 +284,9 @@ func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
 		}
 	}
 
-	for i := range c.options.RecvEventHandlers {
-		handler := c.options.RecvEventHandlers[i]
-		if handler == nil {
-			continue
-		}
-		err := internal.Call(func() error { return handler(c, event) })
-		if err != nil {
-			c.logger.Errorf("client %q receive event handler error: %s", c.GetSessionId(), err)
-		}
-	}
-
-	return transport.ErrUnexpectedMsg
+	return c.options.RecvEventHandler.Exec(func(err, _ error) bool {
+		return err == nil || !errors.Is(err, transport.ErrUnexpectedMsg)
+	}, event)
 }
 
 // handlePayload Payload消息事件处理器
@@ -299,18 +299,9 @@ func (c *Client) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
 		}
 	}
 
-	for i := range c.options.RecvDataHandlers {
-		handler := c.options.RecvDataHandlers[i]
-		if handler == nil {
-			continue
-		}
-		err := internal.Call(func() error { return handler(c, event.Msg.Data) })
-		if err != nil {
-			c.logger.Errorf("client %q receive data event handler error: %s", c.GetSessionId(), err)
-		}
-	}
-
-	return nil
+	return c.options.RecvDataHandler.Exec(func(err, _ error) bool {
+		return err == nil || !errors.Is(err, transport.ErrUnexpectedMsg)
+	}, event.Msg.Data)
 }
 
 // handleHeartbeat Heartbeat消息事件处理器
@@ -331,8 +322,7 @@ func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) error {
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-		err := c.futures.Dispatching(event.Msg.ReqId, respTime, nil)
-		if err != nil {
+		if err := c.futures.Dispatching(event.Msg.SeqId, concurrent.Ret[any]{Value: respTime, Error: nil}); err != nil {
 			c.logger.Errorf("client %q dispatching the response time failed, %s", c.GetSessionId(), err)
 		}
 	}

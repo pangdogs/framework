@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"bytes"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgChangeCipherSpec消息标志位
@@ -17,7 +17,7 @@ type MsgChangeCipherSpec struct {
 
 // Read implements io.Reader
 func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
 		return 0, err
 	}
@@ -26,7 +26,7 @@ func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	encryptedHello, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
@@ -35,7 +35,7 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }

@@ -6,16 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp/codec"
-	"kit.golaxy.org/plugins/gtp/transport"
 	"math/rand"
 	"net"
 )
 
 // _Connector 网络连接器
 type _Connector struct {
-	Options ClientOptions
+	options ClientOptions
 	encoder *codec.Encoder
 	decoder *codec.Decoder
 }
@@ -26,13 +26,13 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		ctx = context.Background()
 	}
 
-	conn, err := newDialer(&ctor.Options).DialContext(ctx, "tcp", endpoint)
+	conn, err := newDialer(&ctor.options).DialContext(ctx, "tcp", endpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	if ctor.Options.TLSConfig != nil {
-		conn = tls.Client(conn, ctor.Options.TLSConfig)
+	if ctor.options.TLSConfig != nil {
+		conn = tls.Client(conn, ctor.options.TLSConfig)
 	}
 
 	defer func() {
@@ -62,13 +62,13 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 		return errors.New("client is nil")
 	}
 
-	conn, err := newDialer(&ctor.Options).DialContext(client, "tcp", client.GetEndpoint())
+	conn, err := newDialer(&ctor.options).DialContext(client, "tcp", client.GetEndpoint())
 	if err != nil {
 		return err
 	}
 
-	if ctor.Options.TLSConfig != nil {
-		conn = tls.Client(conn, ctor.Options.TLSConfig)
+	if ctor.options.TLSConfig != nil {
+		conn = tls.Client(conn, ctor.options.TLSConfig)
 	}
 
 	defer func() {
@@ -91,34 +91,35 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 // newClient 创建客户端
 func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint string) *Client {
 	client := &Client{
-		options:  ctor.Options,
+		options:  ctor.options,
 		endpoint: endpoint,
-		logger:   ctor.Options.ZapLogger.Sugar(),
+		logger:   ctor.options.ZapLogger.Sugar(),
 	}
 
 	client.Context, client.cancel = context.WithCancel(ctx)
+	client.closedChan = make(chan struct{}, 1)
 	client.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
 	client.eventDispatcher.Transceiver = &client.transceiver
-	client.eventDispatcher.RetryTimes = ctor.Options.IORetryTimes
-	client.eventDispatcher.EventHandlers = []transport.EventHandler{client.trans.EventHandler, client.ctrl.EventHandler, client.handleEvent}
+	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
+	client.eventDispatcher.EventHandler = generic.CastDelegateFunc1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.handleEvent)
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
-	client.trans.RetryTimes = ctor.Options.IORetryTimes
-	client.trans.PayloadHandler = client.handlePayload
+	client.trans.RetryTimes = ctor.options.IORetryTimes
+	client.trans.PayloadHandler = generic.CastDelegateFunc1(client.handlePayload)
 
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver
-	client.ctrl.RetryTimes = ctor.Options.IORetryTimes
-	client.ctrl.HeartbeatHandler = client.handleHeartbeat
-	client.ctrl.SyncTimeHandler = client.handleSyncTime
+	client.ctrl.RetryTimes = ctor.options.IORetryTimes
+	client.ctrl.HeartbeatHandler = generic.CastDelegateFunc1(client.handleHeartbeat)
+	client.ctrl.SyncTimeHandler = generic.CastDelegateFunc1(client.handleSyncTime)
 
 	// 初始化异步模型Future控制器
 	client.futures.Ctx = client.Context
 	client.futures.Id = rand.Int63()
-	client.futures.Timeout = ctor.Options.FutureTimeout
+	client.futures.Timeout = ctor.options.FutureTimeout
 
 	return client
 }

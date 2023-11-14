@@ -8,8 +8,8 @@ import (
 type Subscriber interface {
 	// Pattern returns the subscription pattern used to create the subscriber.
 	Pattern() string
-	// QueueName subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
-	QueueName() string
+	// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
+	Queue() string
 	// Unsubscribe unsubscribes the subscriber from the topic.
 	Unsubscribe() <-chan struct{}
 }
@@ -34,8 +34,8 @@ type Event interface {
 	Pattern() string
 	// Topic returns the topic the event was received on.
 	Topic() string
-	// QueueName subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
-	QueueName() string
+	// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
+	Queue() string
 	// Message returns the raw message payload of the event.
 	Message() []byte
 	// Ack acknowledges the successful processing of the event. It indicates that the event can be removed from the subscription queue.

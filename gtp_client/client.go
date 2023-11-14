@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 	"sync"
 )
@@ -14,6 +15,7 @@ import (
 type Client struct {
 	context.Context
 	cancel          context.CancelFunc
+	closedChan      chan struct{}
 	mutex           sync.Mutex
 	options         ClientOptions
 	sessionId       string
@@ -24,7 +26,7 @@ type Client struct {
 	ctrl            transport.CtrlProtocol
 	reconnectChan   chan struct{}
 	renewChan       chan struct{}
-	futures         transport.Futures
+	futures         concurrent.Futures
 	logger          *zap.SugaredLogger
 }
 
@@ -108,11 +110,12 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 }
 
 // GetFutures 获取异步模型Future控制器
-func (c *Client) GetFutures() transport.IFutures {
+func (c *Client) GetFutures() concurrent.IFutures {
 	return &c.futures
 }
 
 // Close 关闭
-func (c *Client) Close() {
+func (c *Client) Close() <-chan struct{} {
 	c.cancel()
+	return c.closedChan
 }

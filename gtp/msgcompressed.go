@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgCompressed 压缩消息
@@ -12,7 +12,7 @@ type MsgCompressed struct {
 
 // Read implements io.Reader
 func (m *MsgCompressed) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
@@ -24,7 +24,7 @@ func (m *MsgCompressed) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgCompressed) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err

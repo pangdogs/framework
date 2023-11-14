@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"bytes"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"strings"
 )
 
@@ -14,7 +14,7 @@ type MsgAuth struct {
 
 // Read implements io.Reader
 func (m *MsgAuth) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(m.Token); err != nil {
 		return 0, err
 	}
@@ -26,7 +26,7 @@ func (m *MsgAuth) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgAuth) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	token, err := bs.ReadStringRef()
 	if err != nil {
 		return 0, err
@@ -40,7 +40,7 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgAuth) Size() int {
 	return binaryutil.SizeofString(m.Token) + binaryutil.SizeofBytes(m.Extensions)
 }

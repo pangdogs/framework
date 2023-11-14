@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/log"
 	"math/rand"
 	"net"
@@ -223,27 +223,15 @@ func (s *_Session) setState(state SessionState) bool {
 
 	log.Debugf(s.gate.ctx, "session %q state %q => %q", s.GetId(), old, state)
 
-	for i := range s.gate.options.SessionStateChangedHandlers {
-		handler := s.gate.options.SessionStateChangedHandlers[i]
-		if handler == nil {
-			continue
+	interrupt := func(panicErr error) bool {
+		if panicErr != nil {
+			log.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), panicErr)
 		}
-		err := internal.CallVoid(func() { handler(s, old, state) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), err)
-		}
+		return false
 	}
 
-	for i := range s.options.StateChangedHandlers {
-		handler := s.options.StateChangedHandlers[i]
-		if handler == nil {
-			continue
-		}
-		err := internal.CallVoid(func() { handler(old, state) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), err)
-		}
-	}
+	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, old, state)
+	s.options.StateChangedHandler.Invoke(interrupt, old, state)
 
 	return true
 }
@@ -258,26 +246,22 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 		}
 	}
 
-	for i := range s.gate.options.SessionRecvEventHandlers {
-		handler := s.gate.options.SessionRecvEventHandlers[i]
-		if handler == nil {
-			continue
+	interrupt := func(err, panicErr error) bool {
+		err = generic.FuncError(err, panicErr)
+		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
+			if err != nil {
+				log.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
+			}
+			return true
 		}
-		err := internal.Call(func() error { return handler(s, event) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
-		}
+		return false
 	}
 
-	for i := range s.options.RecvEventHandlers {
-		handler := s.options.RecvEventHandlers[i]
-		if handler == nil {
-			continue
-		}
-		err := internal.Call(func() error { return handler(event) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
-		}
+	err1 := generic.FuncError(s.gate.options.SessionRecvEventHandler.Invoke(interrupt, s, event))
+	err2 := generic.FuncError(s.options.RecvEventHandler.Invoke(interrupt, event))
+
+	if errors.Is(err1, transport.ErrUnexpectedMsg) && errors.Is(err2, transport.ErrUnexpectedMsg) {
+		return transport.ErrUnexpectedMsg
 	}
 
 	return nil
@@ -293,26 +277,22 @@ func (s *_Session) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
 		}
 	}
 
-	for i := range s.gate.options.SessionRecvDataHandlers {
-		handler := s.gate.options.SessionRecvDataHandlers[i]
-		if handler == nil {
-			continue
+	interrupt := func(err, panicErr error) bool {
+		err = generic.FuncError(err, panicErr)
+		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
+			if err != nil {
+				log.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
+			}
+			return true
 		}
-		err := internal.Call(func() error { return handler(s, event.Msg.Data) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
-		}
+		return false
 	}
 
-	for i := range s.options.RecvDataHandlers {
-		handler := s.options.RecvDataHandlers[i]
-		if handler == nil {
-			continue
-		}
-		err := internal.Call(func() error { return handler(event.Msg.Data) })
-		if err != nil {
-			log.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
-		}
+	err1 := generic.FuncError(s.gate.options.SessionRecvDataHandler.Invoke(interrupt, s, event.Msg.Data))
+	err2 := generic.FuncError(s.options.RecvDataHandler.Invoke(interrupt, event.Msg.Data))
+
+	if errors.Is(err1, transport.ErrUnexpectedMsg) && errors.Is(err2, transport.ErrUnexpectedMsg) {
+		return transport.ErrUnexpectedMsg
 	}
 
 	return nil

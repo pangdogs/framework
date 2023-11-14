@@ -19,7 +19,7 @@ func (MsgHeartbeat) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
-// Size 消息大小
+// Size 大小
 func (MsgHeartbeat) Size() int {
 	return 0
 }

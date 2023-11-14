@@ -3,6 +3,7 @@ package dsync
 import (
 	"errors"
 	"fmt"
+	"kit.golaxy.org/golaxy/util/option"
 )
 
 var (
@@ -15,7 +16,7 @@ var (
 // DSync represents a distributed synchronization mechanism.
 type DSync interface {
 	// NewMutex returns a new distributed mutex with given name.
-	NewMutex(name string, options ...DMutexOption) DMutex
+	NewMutex(name string, settings ...option.Setting[DMutexOptions]) DMutex
 	// Separator return name path separator.
 	Separator() string
 }

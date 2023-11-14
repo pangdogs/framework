@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"fmt"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"math/rand"
@@ -72,27 +73,27 @@ func TestProtocol(t *testing.T) {
 
 				ctrl := &CtrlProtocol{
 					Transceiver: transceiver,
-					HeartbeatHandler: func(e Event[*gtp.MsgHeartbeat]) error {
+					HeartbeatHandler: generic.CastDelegateFunc1(func(e Event[*gtp.MsgHeartbeat]) error {
 						text := "ping"
 						if e.Flags.Is(gtp.Flag_Pong) {
 							text = "pong"
 						}
 						fmt.Printf("%s server <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 						return nil
-					},
+					}),
 				}
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
-					PayloadHandler: func(e Event[*gtp.MsgPayload]) error {
+					PayloadHandler: generic.CastDelegateFunc1(func(e Event[*gtp.MsgPayload]) error {
 						fmt.Printf("%s server <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
-					},
+					}),
 				}
 
 				dispatcher := EventDispatcher{
-					Transceiver:   transceiver,
-					EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
+					Transceiver:  transceiver,
+					EventHandler: generic.CastDelegateFunc1(ctrl.HandleEvent, trans.HandleEvent),
 				}
 
 				go func() {
@@ -125,9 +126,9 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				dispatcher.Run(context.Background(), func(err error) {
-					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err", err)
-				})
+				dispatcher.Run(context.Background(), generic.CastDelegateAction1(func(err error) {
+					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err:", err)
+				}))
 			}()
 		}
 	}()
@@ -174,31 +175,31 @@ func TestProtocol(t *testing.T) {
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,
-			HeartbeatHandler: func(e Event[*gtp.MsgHeartbeat]) error {
+			HeartbeatHandler: generic.CastDelegateFunc1(func(e Event[*gtp.MsgHeartbeat]) error {
 				text := "ping"
 				if e.Flags.Is(gtp.Flag_Pong) {
 					text = "pong"
 				}
 				fmt.Printf("%s client <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 				return nil
-			},
-			SyncTimeHandler: func(e Event[*gtp.MsgSyncTime]) error {
+			}),
+			SyncTimeHandler: generic.CastDelegateFunc1(func(e Event[*gtp.MsgSyncTime]) error {
 				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalUnixMilli, e.Msg.RemoteUnixMilli)
 				return nil
-			},
+			}),
 		}
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
-			PayloadHandler: func(e Event[*gtp.MsgPayload]) error {
+			PayloadHandler: generic.CastDelegateFunc1(func(e Event[*gtp.MsgPayload]) error {
 				fmt.Printf("%s client <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
-			},
+			}),
 		}
 
 		dispatcher := EventDispatcher{
-			Transceiver:   transceiver,
-			EventHandlers: []EventHandler{ctrl.EventHandler, trans.EventHandler},
+			Transceiver:  transceiver,
+			EventHandler: generic.CastDelegateFunc1(ctrl.HandleEvent, trans.HandleEvent),
 		}
 
 		go func() {
@@ -246,9 +247,9 @@ func TestProtocol(t *testing.T) {
 			}
 		}()
 
-		dispatcher.Run(context.Background(), func(err error) {
-			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err", err)
-		})
+		dispatcher.Run(context.Background(), generic.CastDelegateAction1(func(err error) {
+			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err:", err)
+		}))
 	}()
 
 	wg.Wait()

@@ -5,7 +5,9 @@ import (
 	"io"
 )
 
-var ErrLimitReached = errors.New("i/o limit reached")
+var (
+	ErrLimitReached = errors.New("i/o limit reached")
+)
 
 // LimitWriter will only write bytes to the underlying writer until the limit is reached.
 type LimitWriter struct {

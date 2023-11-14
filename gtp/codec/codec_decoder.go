@@ -5,18 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 var (
-	ErrBufferNotEnough  = errors.New("buffer data not enough") // 缓冲区数据不足
-	ErrMsgNotRegistered = errors.New("msg not registered")     // 消息未注册
+	ErrBufferNotEnough = errors.New("buffer data not enough") // 缓冲区数据不足
 )
 
-type (
-	Validation = func(msgHead gtp.MsgHead) error // 验证消息头
-)
+// IValidate 验证消息包接口
+type IValidate interface {
+	// Validate 验证消息包
+	Validate(msgHead gtp.MsgHead, msgBuff []byte) error
+}
 
 // IDecoder 消息包解码器接口
 type IDecoder interface {
@@ -25,9 +27,9 @@ type IDecoder interface {
 	// Reset 重置缓存
 	Reset()
 	// Fetch 取出消息包
-	Fetch(validation Validation) (gtp.MsgPacket, error)
+	Fetch(validate IValidate) (gtp.MsgPacket, error)
 	// FetchFrom 取出消息包
-	FetchFrom(buff *bytes.Buffer, validation Validation) (gtp.MsgPacket, error)
+	FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
 	// GetMsgCreator 获取消息对象构建器
 	GetMsgCreator() IMsgCreator
 	// GetEncryptionModule 获取加密模块
@@ -57,6 +59,10 @@ func (d *Decoder) Write(p []byte) (int, error) {
 
 // ReadFrom implements io.ReaderFrom
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
+	if r == nil {
+		return 0, fmt.Errorf("%w: r is nil", golaxy.ErrArgs)
+	}
+
 	var buff [bytes.MinRead]byte
 
 	n, err := r.Read(buff[:])
@@ -73,12 +79,16 @@ func (d *Decoder) Reset() {
 }
 
 // Fetch 取出消息包
-func (d *Decoder) Fetch(validation Validation) (gtp.MsgPacket, error) {
-	return d.FetchFrom(&d.buffer, validation)
+func (d *Decoder) Fetch(validate IValidate) (gtp.MsgPacket, error) {
+	return d.FetchFrom(&d.buffer, validate)
 }
 
 // FetchFrom 取出消息包
-func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (gtp.MsgPacket, error) {
+func (d *Decoder) FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error) {
+	if buff == nil {
+		return gtp.MsgPacket{}, fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
+	}
+
 	mpl := gtp.MsgPacketLen{}
 
 	// 读取消息包长度
@@ -88,7 +98,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (gtp.MsgP
 	}
 
 	if buff.Len() < int(mpl.Len) {
-		return gtp.MsgPacket{}, fmt.Errorf("%w: %d < %d", ErrBufferNotEnough, buff.Len(), mpl.Len)
+		return gtp.MsgPacket{}, fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, buff.Len(), mpl.Len)
 	}
 
 	buf := binaryutil.BytesPool.Get(int(mpl.Len))
@@ -108,21 +118,21 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validation Validation) (gtp.MsgP
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
 
-	// 验证消息头
-	if validation != nil {
-		err = validation(mp.Head)
+	msgBuf := buf[mp.Head.Size():]
+
+	// 验证消息包
+	if validate != nil {
+		err = validate.Validate(mp.Head, msgBuf)
 		if err != nil {
-			return gtp.MsgPacket{}, fmt.Errorf("validation msg-packet-head failed, %w", err)
+			return gtp.MsgPacket{}, fmt.Errorf("validate msg-packet-head failed, %w", err)
 		}
 	}
 
 	// 创建消息体
 	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("%w, %w", ErrMsgNotRegistered, err)
+		return gtp.MsgPacket{}, fmt.Errorf("%w (%d)", err, mp.Head.MsgId)
 	}
-
-	msgBuf := buf[mp.Head.Size():]
 
 	// 检查加密标记
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {

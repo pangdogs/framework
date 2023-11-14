@@ -39,15 +39,15 @@ func (t *Transceiver) Send(e Event[gtp.Msg]) error {
 	defer t.sendMutex.Unlock()
 
 	if t.Conn == nil {
-		return errors.New("conn is nil")
+		return errors.New("setting Conn is nil")
 	}
 
 	if t.Encoder == nil {
-		return errors.New("encoder is nil")
+		return errors.New("setting Encoder is nil")
 	}
 
 	if t.Buffer == nil {
-		return errors.New("buffer is nil")
+		return errors.New("setting Buffer is nil")
 	}
 
 	// 编码消息
@@ -88,15 +88,15 @@ func (t *Transceiver) Resend() error {
 	defer t.sendMutex.Unlock()
 
 	if t.Conn == nil {
-		return errors.New("conn is nil")
+		return errors.New("setting Conn is nil")
 	}
 
 	if t.Encoder == nil {
-		return errors.New("encoder is nil")
+		return errors.New("setting Encoder is nil")
 	}
 
 	if t.Buffer == nil {
-		return errors.New("buffer is nil")
+		return errors.New("setting Buffer is nil")
 	}
 
 	if t.Timeout > 0 {
@@ -119,17 +119,17 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 	defer t.recvMutex.Unlock()
 
 	if t.Conn == nil {
-		return Event[gtp.Msg]{}, errors.New("conn is nil")
+		return Event[gtp.Msg]{}, errors.New("setting Conn is nil")
 	}
 
 	if t.Decoder == nil {
-		return Event[gtp.Msg]{}, errors.New("decoder is nil")
+		return Event[gtp.Msg]{}, errors.New("setting Decoder is nil")
 	}
 
 	for {
 		// 解码消息
-		mp, fetchErr := t.Decoder.Fetch(t.Buffer.Validation)
-		if fetchErr == nil {
+		mp, err := t.Decoder.Fetch(t.Buffer)
+		if err == nil {
 			return Event[gtp.Msg]{
 				Flags: mp.Head.Flags,
 				Seq:   mp.Head.Seq,
@@ -138,19 +138,19 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 			}, t.Buffer.Ack(mp.Head.Ack)
 		}
 
-		if !errors.Is(fetchErr, codec.ErrBufferNotEnough) {
-			return Event[gtp.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", fetchErr)
+		if !errors.Is(err, codec.ErrBufferNotEnough) {
+			return Event[gtp.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
 		}
 
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
-				return Event[gtp.Msg]{}, fmt.Errorf("set conn recv timeout failed, %w", err)
+				return Event[gtp.Msg]{}, fmt.Errorf("set conn recv timeout failed, %w: %w", ErrNetIO, err)
 			}
 		}
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[gtp.Msg]{}, fmt.Errorf("recv msg-packet failed, %w, %w: %w", fetchErr, ErrNetIO, err)
+			return Event[gtp.Msg]{}, fmt.Errorf("recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
 		}
 	}
 }

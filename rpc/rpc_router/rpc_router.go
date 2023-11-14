@@ -2,9 +2,8 @@ package rpc_router
 
 import (
 	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util"
 	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/logger"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"kit.golaxy.org/plugins/rpc"
 )
@@ -32,7 +31,7 @@ type _RPCRouter struct {
 
 // InitSP 初始化服务插件
 func (r *_RPCRouter) InitSP(ctx service.Context) {
-	logger.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, util.TypeOfAnyFullName(*r))
+	log.Infof(ctx, "init service plugin %q with %q", definePlugin.Name, types.TypeOfAnyFullName(*r))
 
 	r.ctx = ctx
 
@@ -44,5 +43,5 @@ func (r *_RPCRouter) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_RPCRouter) ShutSP(ctx service.Context) {
-	logger.Infof(ctx, "shut service plugin %q", definePlugin.Name)
+	log.Infof(ctx, "shut service plugin %q", definePlugin.Name)
 }

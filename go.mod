@@ -18,7 +18,7 @@ require (
 	golang.org/x/crypto v0.13.0
 	golang.org/x/net v0.10.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.1.97
+	kit.golaxy.org/golaxy v0.2.3
 )
 
 require (
@@ -26,7 +26,6 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/elliotchance/pie/v2 v2.8.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // Flags 所有标志位
@@ -58,7 +58,7 @@ type MsgHead struct {
 
 // Read implements io.Reader
 func (m *MsgHead) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return 0, err
 	}
@@ -79,7 +79,7 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgHead) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	l, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
