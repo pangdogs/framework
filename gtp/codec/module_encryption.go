@@ -2,12 +2,13 @@ package codec
 
 import (
 	"errors"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp/method"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 type (
-	FetchNonce = func() ([]byte, error) // 获取nonce值
+	FetchNonce = generic.PairFunc0[[]byte, error] // 获取nonce值
 )
 
 // IEncryptionModule 加密模块接口
@@ -79,7 +80,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 		if m.FetchNonce == nil {
 			return nil, errors.New("setting FetchNonce is nil")
 		}
-		nonce, err = m.FetchNonce()
+		nonce, err = generic.PairFuncError(m.FetchNonce.Invoke())
 		if err != nil {
 			return nil, err
 		}

@@ -1,4 +1,4 @@
-package transport
+package concurrent
 
 import "golang.org/x/net/context"
 
@@ -11,7 +11,7 @@ type Future struct {
 
 // Cancel 取消
 func (f Future) Cancel(err error) {
-	f.futures.Dispatching(f.Id, nil, err)
+	f.futures.Dispatching(f.Id, Ret[any]{Error: err})
 }
 
 // Wait 等待

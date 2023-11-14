@@ -3,6 +3,7 @@ package etcd_dsync
 import (
 	"crypto/tls"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"kit.golaxy.org/golaxy/util/option"
 	"net"
 	"strings"
 )
@@ -23,11 +24,8 @@ type DSyncOptions struct {
 	FastTLSConfig *tls.Config
 }
 
-// DSyncOption is a function type for configuring DSyncOptions.
-type DSyncOption func(options *DSyncOptions)
-
 // Default sets default values for DSyncOptions.
-func (Option) Default() DSyncOption {
+func (Option) Default() option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		Option{}.EtcdClient(nil)(options)
 		Option{}.EtcdConfig(nil)(options)
@@ -40,21 +38,21 @@ func (Option) Default() DSyncOption {
 }
 
 // EtcdClient sets the etcd client for DSyncOptions.
-func (Option) EtcdClient(cli *clientv3.Client) DSyncOption {
+func (Option) EtcdClient(cli *clientv3.Client) option.Setting[DSyncOptions] {
 	return func(o *DSyncOptions) {
 		o.EtcdClient = cli
 	}
 }
 
 // EtcdConfig sets the etcd config for DSyncOptions.
-func (Option) EtcdConfig(config *clientv3.Config) DSyncOption {
+func (Option) EtcdConfig(config *clientv3.Config) option.Setting[DSyncOptions] {
 	return func(o *DSyncOptions) {
 		o.EtcdConfig = config
 	}
 }
 
 // KeyPrefix sets the key prefix for locking keys in DSyncOptions.
-func (Option) KeyPrefix(prefix string) DSyncOption {
+func (Option) KeyPrefix(prefix string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
@@ -64,7 +62,7 @@ func (Option) KeyPrefix(prefix string) DSyncOption {
 }
 
 // FastAuth sets the username and password for authentication in DSyncOptions.
-func (Option) FastAuth(username, password string) DSyncOption {
+func (Option) FastAuth(username, password string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
@@ -72,7 +70,7 @@ func (Option) FastAuth(username, password string) DSyncOption {
 }
 
 // FastAddresses sets the etcd server addresses in DSyncOptions.
-func (Option) FastAddresses(addrs ...string) DSyncOption {
+func (Option) FastAddresses(addrs ...string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -84,14 +82,14 @@ func (Option) FastAddresses(addrs ...string) DSyncOption {
 }
 
 // FastSecure sets whether to use a secure connection (HTTPS) in DSyncOptions.
-func (Option) FastSecure(secure bool) DSyncOption {
+func (Option) FastSecure(secure bool) option.Setting[DSyncOptions] {
 	return func(o *DSyncOptions) {
 		o.FastSecure = secure
 	}
 }
 
 // FastTLSConfig sets the TLS configuration for secure connections in DSyncOptions.
-func (Option) FastTLSConfig(conf *tls.Config) DSyncOption {
+func (Option) FastTLSConfig(conf *tls.Config) option.Setting[DSyncOptions] {
 	return func(o *DSyncOptions) {
 		o.FastTLSConfig = conf
 	}

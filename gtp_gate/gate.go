@@ -5,9 +5,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/gtp/transport"
 	"kit.golaxy.org/plugins/log"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"math/rand"
 	"net"
 	"sync"
@@ -24,16 +25,9 @@ type Gate interface {
 	CountSessions() int
 }
 
-func newGate(options ...GateOption) Gate {
-	opts := GateOptions{}
-	_GateOption{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newGate(settings ...option.Setting[GateOptions]) Gate {
 	return &_Gate{
-		options: opts,
+		options: option.Make(_GateOption{}.Default(), settings...),
 	}
 }
 
@@ -43,7 +37,7 @@ type _Gate struct {
 	listeners    []net.Listener
 	sessionMap   sync.Map
 	sessionCount int64
-	futures      transport.Futures
+	futures      concurrent.Futures
 }
 
 // InitSP 初始化服务插件

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/generic"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -15,8 +17,8 @@ import (
 type Option struct{}
 
 type (
-	RecvDataHandler  = func(client *Client, data []byte) error                    // 客户端接收的数据的处理器
-	RecvEventHandler = func(client *Client, event transport.Event[gtp.Msg]) error // 客户端接收的自定义事件的处理器
+	RecvDataHandler  = generic.DelegateFunc1[[]byte, error]
+	RecvEventHandler = transport.EventHandler
 )
 
 type ClientOptions struct {
@@ -45,17 +47,15 @@ type ClientOptions struct {
 	RecvDataChan                chan []byte                   // 接收数据的channel
 	SendEventChan               chan transport.Event[gtp.Msg] // 发送自定义事件的channel
 	RecvEventChan               chan transport.Event[gtp.Msg] // 接收自定义事件的channel
-	RecvDataHandlers            []RecvDataHandler             // 接收的数据的处理器列表
-	RecvEventHandlers           []RecvEventHandler            // 接收的自定义事件的处理器列表
+	RecvDataHandler             RecvDataHandler               // 接收的数据的处理器
+	RecvEventHandler            RecvEventHandler              // 接收的自定义事件的处理器
 	FutureTimeout               time.Duration                 // 异步模型Future超时时间
 	AuthToken                   string                        // 鉴权token
 	AuthExtensions              []byte                        // 鉴权extensions
 	ZapLogger                   *zap.Logger                   // zap日志
 }
 
-type ClientOption func(options *ClientOptions)
-
-func (Option) Default() ClientOption {
+func (Option) Default() option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		Option{}.TLSConfig(nil)(options)
 		Option{}.TCPNoDelay(nil)(options)
@@ -92,8 +92,8 @@ func (Option) Default() ClientOption {
 		Option{}.RecvDataChanSize(0)(options)
 		Option{}.SendEventSize(0)(options)
 		Option{}.RecvEventSize(0)(options)
-		Option{}.RecvDataHandlers(nil)(options)
-		Option{}.RecvEventHandlers(nil)(options)
+		Option{}.RecvDataHandler(nil)(options)
+		Option{}.RecvEventHandler(nil)(options)
 		Option{}.FutureTimeout(10 * time.Second)(options)
 		Option{}.AuthToken("")(options)
 		Option{}.AuthExtensions(nil)(options)
@@ -101,61 +101,61 @@ func (Option) Default() ClientOption {
 	}
 }
 
-func (Option) TLSConfig(tlsConfig *tls.Config) ClientOption {
+func (Option) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TLSConfig = tlsConfig
 	}
 }
 
-func (Option) TCPNoDelay(b *bool) ClientOption {
+func (Option) TCPNoDelay(b *bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPNoDelay = b
 	}
 }
 
-func (Option) TCPQuickAck(b *bool) ClientOption {
+func (Option) TCPQuickAck(b *bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPQuickAck = b
 	}
 }
 
-func (Option) TCPRecvBuf(size *int) ClientOption {
+func (Option) TCPRecvBuf(size *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPRecvBuf = size
 	}
 }
 
-func (Option) TCPSendBuf(size *int) ClientOption {
+func (Option) TCPSendBuf(size *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPSendBuf = size
 	}
 }
 
-func (Option) TCPLinger(sec *int) ClientOption {
+func (Option) TCPLinger(sec *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPLinger = sec
 	}
 }
 
-func (Option) IOTimeout(d time.Duration) ClientOption {
+func (Option) IOTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IOTimeout = d
 	}
 }
 
-func (Option) IORetryTimes(times int) ClientOption {
+func (Option) IORetryTimes(times int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IORetryTimes = times
 	}
 }
 
-func (Option) IOBufferCap(cap int) ClientOption {
+func (Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IOBufferCap = cap
 	}
 }
 
-func (Option) DecoderMsgCreator(mc codec.IMsgCreator) ClientOption {
+func (Option) DecoderMsgCreator(mc codec.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
 			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))
@@ -164,73 +164,73 @@ func (Option) DecoderMsgCreator(mc codec.IMsgCreator) ClientOption {
 	}
 }
 
-func (Option) EncCipherSuite(cs gtp.CipherSuite) ClientOption {
+func (Option) EncCipherSuite(cs gtp.CipherSuite) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncCipherSuite = cs
 	}
 }
 
-func (Option) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) ClientOption {
+func (Option) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncSignatureAlgorithm = sa
 	}
 }
 
-func (Option) EncSignaturePrivateKey(priv crypto.PrivateKey) ClientOption {
+func (Option) EncSignaturePrivateKey(priv crypto.PrivateKey) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncSignaturePrivateKey = priv
 	}
 }
 
-func (Option) EncVerifyServerSignature(b bool) ClientOption {
+func (Option) EncVerifyServerSignature(b bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncVerifyServerSignature = b
 	}
 }
 
-func (Option) EncVerifySignaturePublicKey(pub crypto.PublicKey) ClientOption {
+func (Option) EncVerifySignaturePublicKey(pub crypto.PublicKey) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncVerifySignaturePublicKey = pub
 	}
 }
 
-func (Option) Compression(c gtp.Compression) ClientOption {
+func (Option) Compression(c gtp.Compression) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.Compression = c
 	}
 }
 
-func (Option) CompressedSize(size int) ClientOption {
+func (Option) CompressedSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.CompressedSize = size
 	}
 }
 
-func (Option) AutoReconnect(b bool) ClientOption {
+func (Option) AutoReconnect(b bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnect = b
 	}
 }
 
-func (Option) AutoReconnectInterval(dur time.Duration) ClientOption {
+func (Option) AutoReconnectInterval(dur time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnectInterval = dur
 	}
 }
 
-func (Option) AutoReconnectRetryTimes(times int) ClientOption {
+func (Option) AutoReconnectRetryTimes(times int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnectRetryTimes = times
 	}
 }
 
-func (Option) InactiveTimeout(d time.Duration) ClientOption {
+func (Option) InactiveTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.InactiveTimeout = d
 	}
 }
 
-func (Option) SendDataChanSize(size int) ClientOption {
+func (Option) SendDataChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.SendDataChan = make(chan []byte, size)
@@ -240,7 +240,7 @@ func (Option) SendDataChanSize(size int) ClientOption {
 	}
 }
 
-func (Option) RecvDataChanSize(size int) ClientOption {
+func (Option) RecvDataChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.RecvDataChan = make(chan []byte, size)
@@ -250,7 +250,7 @@ func (Option) RecvDataChanSize(size int) ClientOption {
 	}
 }
 
-func (Option) SendEventSize(size int) ClientOption {
+func (Option) SendEventSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.SendEventChan = make(chan transport.Event[gtp.Msg], size)
@@ -260,7 +260,7 @@ func (Option) SendEventSize(size int) ClientOption {
 	}
 }
 
-func (Option) RecvEventSize(size int) ClientOption {
+func (Option) RecvEventSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.RecvEventChan = make(chan transport.Event[gtp.Msg], size)
@@ -270,37 +270,37 @@ func (Option) RecvEventSize(size int) ClientOption {
 	}
 }
 
-func (Option) RecvDataHandlers(handlers ...RecvDataHandler) ClientOption {
+func (Option) RecvDataHandler(handler RecvDataHandler) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.RecvDataHandlers = handlers
+		options.RecvDataHandler = handler
 	}
 }
 
-func (Option) RecvEventHandlers(handlers ...RecvEventHandler) ClientOption {
+func (Option) RecvEventHandler(handler RecvEventHandler) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.RecvEventHandlers = handlers
+		options.RecvEventHandler = handler
 	}
 }
 
-func (Option) FutureTimeout(d time.Duration) ClientOption {
+func (Option) FutureTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.FutureTimeout = d
 	}
 }
 
-func (Option) AuthToken(token string) ClientOption {
+func (Option) AuthToken(token string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AuthToken = token
 	}
 }
 
-func (Option) AuthExtensions(extensions []byte) ClientOption {
+func (Option) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AuthExtensions = extensions
 	}
 }
 
-func (Option) ZapLogger(logger *zap.Logger) ClientOption {
+func (Option) ZapLogger(logger *zap.Logger) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if logger == nil {
 			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", golaxy.ErrArgs))

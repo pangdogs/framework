@@ -3,20 +3,15 @@ package binaryutil
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util/types"
 )
 
 var (
-	// Endian 大小端
-	Endian = binary.BigEndian
-
 	// ErrInvalidSeekPos 调整的位置无效
 	ErrInvalidSeekPos = errors.New("invalid seek position")
-	// ErrInvalidReader 读取器无效
-	ErrInvalidReader = errors.New("invalid reader")
-	// ErrInvalidWriter 写入器无效
-	ErrInvalidWriter = errors.New("invalid writer")
 )
 
 type noCopy struct{}
@@ -25,22 +20,35 @@ func (*noCopy) Lock() {}
 
 func (*noCopy) Unlock() {}
 
-func NewByteStream(p []byte) ByteStream {
-	return ByteStream{
-		sp: p,
-		wp: p,
-		rp: p,
+func NewByteStream(p []byte, endian binary.ByteOrder) ByteStream {
+	if endian == nil {
+		panic(fmt.Errorf("%w: endian is nil", golaxy.ErrArgs))
 	}
+	return ByteStream{
+		sp:     p,
+		wp:     p,
+		rp:     p,
+		endian: endian,
+	}
+}
+
+func NewBigEndianStream(p []byte) ByteStream {
+	return NewByteStream(p, binary.BigEndian)
+}
+
+func NewLittleEndianStream(p []byte) ByteStream {
+	return NewByteStream(p, binary.LittleEndian)
 }
 
 type ByteStream struct {
 	noCopy     noCopy
 	sp, wp, rp []byte
+	endian     binary.ByteOrder
 }
 
 func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
 	if reader == nil {
-		return 0, ErrInvalidReader
+		return 0, fmt.Errorf("%w: reader is nil", golaxy.ErrArgs)
 	}
 	n, err := reader.Read(s.wp)
 	s.wp = s.wp[n:]
@@ -49,7 +57,7 @@ func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
 
 func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {
 	if writer == nil {
-		return 0, ErrInvalidWriter
+		return 0, fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}
 	n, err := writer.Write(s.rp)
 	s.rp = s.rp[n:]
@@ -109,7 +117,7 @@ func (s *ByteStream) WriteUint16(v uint16) error {
 	if len(s.wp) < SizeofUint16() {
 		return io.ErrShortWrite
 	}
-	Endian.PutUint16(s.wp, v)
+	s.endian.PutUint16(s.wp, v)
 	s.wp = s.wp[SizeofUint16():]
 	return nil
 }
@@ -118,7 +126,7 @@ func (s *ByteStream) WriteUint32(v uint32) error {
 	if len(s.wp) < SizeofUint32() {
 		return io.ErrShortWrite
 	}
-	Endian.PutUint32(s.wp, v)
+	s.endian.PutUint32(s.wp, v)
 	s.wp = s.wp[SizeofUint32():]
 	return nil
 }
@@ -127,7 +135,7 @@ func (s *ByteStream) WriteUint64(v uint64) error {
 	if len(s.wp) < SizeofUint64() {
 		return io.ErrShortWrite
 	}
-	Endian.PutUint64(s.wp, v)
+	s.endian.PutUint64(s.wp, v)
 	s.wp = s.wp[SizeofUint64():]
 	return nil
 }
@@ -363,7 +371,7 @@ func (s *ByteStream) ReadUint16() (uint16, error) {
 	if len(s.rp) < SizeofUint16() {
 		return 0, io.ErrUnexpectedEOF
 	}
-	v := Endian.Uint16(s.rp)
+	v := s.endian.Uint16(s.rp)
 	s.rp = s.rp[SizeofUint16():]
 	return v, nil
 }
@@ -372,7 +380,7 @@ func (s *ByteStream) ReadUint32() (uint32, error) {
 	if len(s.rp) < SizeofUint32() {
 		return 0, io.ErrUnexpectedEOF
 	}
-	v := Endian.Uint32(s.rp)
+	v := s.endian.Uint32(s.rp)
 	s.rp = s.rp[SizeofUint32():]
 	return v, nil
 }
@@ -381,7 +389,7 @@ func (s *ByteStream) ReadUint64() (uint64, error) {
 	if len(s.rp) < SizeofUint64() {
 		return 0, io.ErrUnexpectedEOF
 	}
-	v := Endian.Uint64(s.rp)
+	v := s.endian.Uint64(s.rp)
 	s.rp = s.rp[SizeofUint64():]
 	return v, nil
 }

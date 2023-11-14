@@ -5,22 +5,16 @@ import (
 	"fmt"
 	"github.com/nats-io/nats.go"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/log"
 	"strings"
 )
 
-func newBroker(options ...BrokerOption) broker.Broker {
-	opts := BrokerOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newBroker(settings ...option.Setting[BrokerOptions]) broker.Broker {
 	return &_Broker{
-		options: opts,
+		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 
@@ -78,33 +72,18 @@ func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error 
 }
 
 // Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-func (b *_Broker) Subscribe(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.Subscriber, error) {
-	return b.subscribe(ctx, _SubscribeMode_Handler, pattern, options...)
+func (b *_Broker) Subscribe(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.Subscriber, error) {
+	return b.newSubscriber(ctx, _SubscribeMode_Handler, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 
 // SubscribeSync will express interest in the given topic pattern.
-func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.SyncSubscriber, error) {
-	return b.subscribe(ctx, _SubscribeMode_Sync, pattern, options...)
+func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.SyncSubscriber, error) {
+	return b.newSubscriber(ctx, _SubscribeMode_Sync, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 
 // SubscribeChan will express interest in the given topic pattern.
-func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, options ...broker.SubscriberOption) (broker.ChanSubscriber, error) {
-	return b.subscribe(ctx, _SubscribeMode_Chan, pattern, options...)
-}
-
-func (b *_Broker) subscribe(ctx context.Context, mode _SubscribeMode, pattern string, options ...broker.SubscriberOption) (*_Subscriber, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	opts := broker.SubscriberOptions{}
-	broker.Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
-	return b.newSubscriber(ctx, mode, pattern, opts)
+func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.ChanSubscriber, error) {
+	return b.newSubscriber(ctx, _SubscribeMode_Chan, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.

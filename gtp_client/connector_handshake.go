@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/method"
 	"kit.golaxy.org/plugins/gtp/transport"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"math/big"
 	"net"
 	"strings"
@@ -19,7 +19,7 @@ import (
 func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	// 编解码器
 	ctor.encoder = &codec.Encoder{}
-	ctor.decoder = &codec.Decoder{MsgCreator: ctor.Options.DecoderMsgCreator}
+	ctor.decoder = &codec.Decoder{MsgCreator: ctor.options.DecoderMsgCreator}
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
@@ -27,16 +27,16 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			Conn:    conn,
 			Encoder: ctor.encoder,
 			Decoder: ctor.decoder,
-			Timeout: ctor.Options.IOTimeout,
+			Timeout: ctor.options.IOTimeout,
 			Buffer:  &transport.UnsequencedBuffer{},
 		},
-		RetryTimes: ctor.Options.IORetryTimes,
+		RetryTimes: ctor.options.IORetryTimes,
 	}
 	defer handshake.Transceiver.Clean()
 
 	var sessionId string
-	cs := ctor.Options.EncCipherSuite
-	cm := ctor.Options.Compression
+	cs := ctor.options.EncCipherSuite
+	cm := ctor.options.Compression
 	var cliRandom, servRandom []byte
 	var cliHelloBytes, servHelloBytes []byte
 	var continueFlow, encryptionFlow, authFlow bool
@@ -140,8 +140,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if authFlow {
 		err = handshake.ClientAuth(transport.Event[*gtp.MsgAuth]{
 			Msg: &gtp.MsgAuth{
-				Token:      ctor.Options.AuthToken,
-				Extensions: ctor.Options.AuthExtensions,
+				Token:      ctor.options.AuthToken,
+				Extensions: ctor.options.AuthExtensions,
 			},
 		})
 		if err != nil {
@@ -234,12 +234,12 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 			case gtp.MsgId_ECDHESecretKeyExchange:
 				break
 			default:
-				return transport.Event[gtp.Msg]{}, fmt.Errorf("%w: %d", transport.ErrUnexpectedMsg, e.Msg.MsgId())
+				return transport.Event[gtp.Msg]{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
 			}
 			servECDHE := transport.UnpackEvent[*gtp.MsgECDHESecretKeyExchange](e)
 
 			// 验证服务端签名
-			if ctor.Options.EncVerifyServerSignature {
+			if ctor.options.EncVerifyServerSignature {
 				if !servECDHE.Flags.Is(gtp.Flag_Signature) {
 					return transport.Event[gtp.Msg]{}, errors.New("no server signature")
 				}
@@ -313,7 +313,7 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 				Msg: &gtp.MsgECDHESecretKeyExchange{
 					NamedCurve:         servECDHE.Msg.NamedCurve,
 					PublicKey:          cliPubBytes,
-					SignatureAlgorithm: ctor.Options.EncSignatureAlgorithm,
+					SignatureAlgorithm: ctor.options.EncSignatureAlgorithm,
 					Signature:          signature,
 				},
 			}
@@ -496,25 +496,25 @@ func (ctor *_Connector) makeCompressionModule(compression gtp.Compression) (code
 		CompressionStream: compressionStream,
 	}
 
-	return compressionModule, ctor.Options.CompressedSize, err
+	return compressionModule, ctor.options.CompressedSize, err
 }
 
 // sign 签名
 func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) ([]byte, error) {
-	if ctor.Options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
+	if ctor.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
 
 	// 必须设置私钥才能签名
-	if ctor.Options.EncSignaturePrivateKey == nil {
+	if ctor.options.EncSignaturePrivateKey == nil {
 		return nil, errors.New("option EncSignaturePrivateKey is nil, unable to perform the signing operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		ctor.Options.EncSignatureAlgorithm.AsymmetricEncryption,
-		ctor.Options.EncSignatureAlgorithm.PaddingMode,
-		ctor.Options.EncSignatureAlgorithm.Hash)
+		ctor.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		ctor.options.EncSignatureAlgorithm.PaddingMode,
+		ctor.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +529,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 	signBuf.Write(cliPubBytes)
 
 	// 生成签名
-	signature, err := signer.Sign(ctor.Options.EncSignaturePrivateKey, signBuf.Bytes())
+	signature, err := signer.Sign(ctor.options.EncSignaturePrivateKey, signBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -540,7 +540,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 // verify 验证签名
 func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
-	if ctor.Options.EncVerifySignaturePublicKey == nil {
+	if ctor.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
 	}
 
@@ -562,5 +562,5 @@ func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signat
 	signBuf.WriteString(sessionId)
 	signBuf.Write(servPubBytes)
 
-	return signer.Verify(ctor.Options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
+	return signer.Verify(ctor.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
 }

@@ -2,14 +2,15 @@ package transport
 
 import (
 	"errors"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp"
 	"time"
 )
 
 type (
-	RstHandler       = func(Event[*gtp.MsgRst]) error       // Rst消息事件处理器
-	SyncTimeHandler  = func(Event[*gtp.MsgSyncTime]) error  // SyncTime消息事件处理器
-	HeartbeatHandler = func(Event[*gtp.MsgHeartbeat]) error // Heartbeat消息事件处理器
+	RstHandler       = generic.DelegateFunc1[Event[*gtp.MsgRst], error]       // Rst消息事件处理器
+	SyncTimeHandler  = generic.DelegateFunc1[Event[*gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
+	HeartbeatHandler = generic.DelegateFunc1[Event[*gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
 )
 
 // CtrlProtocol 控制协议
@@ -38,7 +39,7 @@ func (c *CtrlProtocol) RequestTime(reqId int64) error {
 	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 		Flags: gtp.Flags(gtp.Flag_ReqTime),
 		Msg: &gtp.MsgSyncTime{
-			ReqId:          reqId,
+			SeqId:          reqId,
 			LocalUnixMilli: time.Now().UnixMilli(),
 		}},
 	)))
@@ -62,14 +63,14 @@ func (c *CtrlProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// EventHandler 消息事件处理器
-func (c *CtrlProtocol) EventHandler(e Event[gtp.Msg]) error {
+// HandleEvent 消息事件处理器
+func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:
-		if c.RstHandler != nil {
-			return c.RstHandler(UnpackEvent[*gtp.MsgRst](e))
-		}
-		return nil
+		return c.RstHandler.Exec(func(err, _ error) bool {
+			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
+		}, UnpackEvent[*gtp.MsgRst](e))
+
 	case gtp.MsgId_SyncTime:
 		syncTime := UnpackEvent[*gtp.MsgSyncTime](e)
 
@@ -80,7 +81,7 @@ func (c *CtrlProtocol) EventHandler(e Event[gtp.Msg]) error {
 			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 				Flags: gtp.Flags(gtp.Flag_RespTime),
 				Msg: &gtp.MsgSyncTime{
-					ReqId:           syncTime.Msg.ReqId,
+					SeqId:           syncTime.Msg.SeqId,
 					LocalUnixMilli:  time.Now().UnixMilli(),
 					RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
 				},
@@ -90,11 +91,10 @@ func (c *CtrlProtocol) EventHandler(e Event[gtp.Msg]) error {
 			}
 		}
 
-		if c.SyncTimeHandler != nil {
-			return c.SyncTimeHandler(syncTime)
-		}
+		return c.SyncTimeHandler.Exec(func(err, _ error) bool {
+			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
+		}, syncTime)
 
-		return nil
 	case gtp.MsgId_Heartbeat:
 		heartbeat := UnpackEvent[*gtp.MsgHeartbeat](e)
 
@@ -111,11 +111,10 @@ func (c *CtrlProtocol) EventHandler(e Event[gtp.Msg]) error {
 			}
 		}
 
-		if c.HeartbeatHandler != nil {
-			return c.HeartbeatHandler(heartbeat)
-		}
+		return c.HeartbeatHandler.Exec(func(err, _ error) bool {
+			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
+		}, heartbeat)
 
-		return nil
 	default:
 		return ErrUnexpectedMsg
 	}

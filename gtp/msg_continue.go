@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgContinue 重连
@@ -12,7 +12,7 @@ type MsgContinue struct {
 
 // Read implements io.Reader
 func (m *MsgContinue) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
 		return 0, err
 	}
@@ -24,7 +24,7 @@ func (m *MsgContinue) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgContinue) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	sendSeq, err := bs.ReadUint32()
 	if err != nil {
 		return 0, err
@@ -38,7 +38,7 @@ func (m *MsgContinue) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgContinue) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }

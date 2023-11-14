@@ -1,14 +1,15 @@
-package transport
+package concurrent
 
 import (
 	"kit.golaxy.org/golaxy/runtime"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/types"
 )
 
 // Resp 响应接口
 type Resp interface {
 	// Push 填入返回结果
-	Push(v any, err error) error
+	Push(ret Ret[any]) error
 }
 
 // Ret 返回结果
@@ -17,11 +18,11 @@ type Ret[T any] struct {
 	Error error // 返回错误
 }
 
-func newRet[T any](rv any, err error) (ret Ret[T]) {
+func MakeRet[T any](v any, err error) (ret Ret[T]) {
 	if err != nil {
 		ret.Error = err
 	} else {
-		value, ok := rv.(T)
+		value, ok := v.(T)
 		if ok {
 			ret.Value = value
 		} else {
@@ -35,47 +36,39 @@ func newRet[T any](rv any, err error) (ret Ret[T]) {
 type RespChan[T any] chan Ret[T]
 
 // Push 填入返回结果
-func (resp RespChan[T]) Push(rv any, err error) (retErr error) {
+func (resp RespChan[T]) Push(ret Ret[any]) (retErr error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
 		}
 	}()
 
-	resp <- newRet[T](rv, err)
+	resp <- MakeRet[T](ret.Value, ret.Error)
 	close(resp)
 
 	return nil
 }
 
 // RespHandler 接收响应返回值的处理器
-type RespHandler[T any] func(ret Ret[T])
+type RespHandler[T any] generic.Action1[Ret[T]]
 
 // Push 填入返回结果
-func (resp RespHandler[T]) Push(rv any, err error) (retErr error) {
-	defer func() {
-		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			retErr = panicErr
-		}
-	}()
-
-	resp(newRet[T](rv, err))
-
-	return nil
+func (resp RespHandler[T]) Push(ret Ret[any]) (retErr error) {
+	return generic.CastAction1(resp).Invoke(MakeRet[T](ret.Value, ret.Error))
 }
 
 // RespAsyncRet 接收响应返回值的异步调用结果
 type RespAsyncRet chan runtime.Ret
 
 // Push 填入返回结果
-func (resp RespAsyncRet) Push(rv any, err error) (retErr error) {
+func (resp RespAsyncRet) Push(ret Ret[any]) (retErr error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			retErr = panicErr
 		}
 	}()
 
-	resp <- runtime.NewRet(rv, err)
+	resp <- runtime.MakeRet(ret.Value, ret.Error)
 	close(resp)
 
 	return nil

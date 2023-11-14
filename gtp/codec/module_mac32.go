@@ -4,7 +4,7 @@ import (
 	"errors"
 	"hash"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MAC32Module MAC32模块

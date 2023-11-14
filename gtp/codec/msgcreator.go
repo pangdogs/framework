@@ -1,13 +1,22 @@
 package codec
 
 import (
-	"fmt"
+	"errors"
 	"kit.golaxy.org/plugins/gtp"
 	"reflect"
+	"sync"
+)
+
+var (
+	ErrMsgNotRegistered = errors.New("msg not registered") // 消息未注册
 )
 
 // IMsgCreator 消息对象构建器接口
 type IMsgCreator interface {
+	// Register 注册消息
+	Register(msg gtp.Msg)
+	// Deregister 取消注册消息
+	Deregister(msgId gtp.MsgId)
 	// Spawn 构建消息
 	Spawn(msgId gtp.MsgId) (gtp.Msg, error)
 }
@@ -17,7 +26,7 @@ func DefaultMsgCreator() IMsgCreator {
 	return &msgCreator
 }
 
-var msgCreator = MsgCreator{}
+var msgCreator = _MsgCreator{}
 
 func init() {
 	msgCreator.Register(&gtp.MsgHello{})
@@ -32,35 +41,49 @@ func init() {
 	msgCreator.Register(&gtp.MsgPayload{})
 }
 
-// MsgCreator 消息对象构建器
-type MsgCreator struct {
+// _MsgCreator 消息对象构建器
+type _MsgCreator struct {
 	msgTypeMap map[gtp.MsgId]reflect.Type
+	mutex      sync.RWMutex
 }
 
 // Register 注册消息
-func (c *MsgCreator) Register(msg gtp.Msg) {
+func (c *_MsgCreator) Register(msg gtp.Msg) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	if c.msgTypeMap == nil {
 		c.msgTypeMap = map[gtp.MsgId]reflect.Type{}
 	}
+
 	c.msgTypeMap[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 }
 
 // Deregister 取消注册消息
-func (c *MsgCreator) Deregister(msgId gtp.MsgId) {
+func (c *_MsgCreator) Deregister(msgId gtp.MsgId) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	if c.msgTypeMap == nil {
 		return
 	}
+
 	delete(c.msgTypeMap, msgId)
 }
 
 // Spawn 构建消息
-func (c *MsgCreator) Spawn(msgId gtp.MsgId) (gtp.Msg, error) {
+func (c *_MsgCreator) Spawn(msgId gtp.MsgId) (gtp.Msg, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
 	if c.msgTypeMap == nil {
-		return nil, fmt.Errorf("msg %d not registered", msgId)
+		return nil, ErrMsgNotRegistered
 	}
+
 	rtype, ok := c.msgTypeMap[msgId]
 	if !ok {
-		return nil, fmt.Errorf("msg %d not registered", msgId)
+		return nil, ErrMsgNotRegistered
 	}
+
 	return reflect.New(rtype).Interface().(gtp.Msg), nil
 }

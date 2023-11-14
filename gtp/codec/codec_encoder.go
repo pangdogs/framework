@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // IEncoder 消息包编码器接口
@@ -51,6 +52,9 @@ func (e *Encoder) Read(p []byte) (int, error) {
 
 // WriteTo implements io.WriterTo
 func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
+	if w == nil {
+		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
+	}
 	return e.buffer.WriteTo(w)
 }
 
@@ -67,11 +71,11 @@ func (e *Encoder) Stuff(flags gtp.Flags, msg gtp.Msg) error {
 // StuffTo 填充消息
 func (e *Encoder) StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.Msg) error {
 	if writer == nil {
-		return errors.New("writer is nil")
+		return fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}
 
 	if msg == nil {
-		return errors.New("msg is nil")
+		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
 
 	head := gtp.MsgHead{}

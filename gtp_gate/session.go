@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"kit.golaxy.org/plugins/log"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 	"sync"
 )
@@ -30,7 +32,7 @@ type Session interface {
 	context.Context
 	fmt.Stringer
 	// Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
-	Options(options ...SessionOption) error
+	Options(settings ...option.Setting[SessionOptions]) error
 	// GetContext 获取服务上下文
 	GetContext() service.Context
 	// GetId 获取会话Id
@@ -56,7 +58,7 @@ type Session interface {
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
 	// GetFutures 获取异步模型Future控制器
-	GetFutures() transport.IFutures
+	GetFutures() concurrent.IFutures
 	// Close 关闭
 	Close(err error)
 }
@@ -83,7 +85,7 @@ func (s *_Session) String() string {
 }
 
 // Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
-func (s *_Session) Options(options ...SessionOption) error {
+func (s *_Session) Options(settings ...option.Setting[SessionOptions]) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -94,9 +96,7 @@ func (s *_Session) Options(options ...SessionOption) error {
 		return errors.New("incorrect session state")
 	}
 
-	for i := range options {
-		options[i](&s.options)
-	}
+	option.Change(&s.options, settings...)
 
 	return nil
 }
@@ -183,7 +183,7 @@ func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 }
 
 // GetFutures 获取异步模型Future控制器
-func (s *_Session) GetFutures() transport.IFutures {
+func (s *_Session) GetFutures() concurrent.IFutures {
 	return &s.gate.futures
 }
 

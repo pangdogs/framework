@@ -4,21 +4,15 @@ import (
 	"crypto/tls"
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/log"
 )
 
-func newDSync(options ...DSyncOption) dsync.DSync {
-	opts := DSyncOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newDSync(settings ...option.Setting[DSyncOptions]) dsync.DSync {
 	return &_DSync{
-		options: opts,
+		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 
@@ -63,15 +57,8 @@ func (s *_DSync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_DSync) NewMutex(name string, options ...dsync.DMutexOption) dsync.DMutex {
-	opts := dsync.DMutexOptions{}
-	dsync.Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
-	return s.newMutex(name, opts)
+func (s *_DSync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.DMutex {
+	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 
 // Separator return name path separator.

@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"strings"
 )
 
@@ -28,7 +28,7 @@ type MsgRst struct {
 
 // Read implements io.Reader
 func (m *MsgRst) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt32(int32(m.Code)); err != nil {
 		return 0, err
 	}
@@ -40,7 +40,7 @@ func (m *MsgRst) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgRst) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	code, err := bs.ReadInt32()
 	if err != nil {
 		return 0, err
@@ -54,7 +54,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgRst) Size() int {
 	return binaryutil.SizeofInt32() + binaryutil.SizeofString(m.Message)
 }

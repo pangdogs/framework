@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/nats-io/nats.go"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/internal"
 	"kit.golaxy.org/plugins/log"
 	"strings"
 )
@@ -27,12 +27,12 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	var err error
 
-	if opts.QueueName != "" {
-		queueName := opts.QueueName
+	if opts.Queue != "" {
+		queue := opts.Queue
 		if b.options.QueuePrefix != "" {
-			queueName = b.options.QueuePrefix + queueName
+			queue = b.options.QueuePrefix + queue
 		}
-		sub.natsSub, err = b.client.QueueSubscribe(pattern, queueName, sub.handleMsg)
+		sub.natsSub, err = b.client.QueueSubscribe(pattern, queue, sub.handleMsg)
 	} else {
 		sub.natsSub, err = b.client.Subscribe(pattern, sub.handleMsg)
 	}
@@ -50,7 +50,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	go sub.run()
 
-	log.Infof(b.ctx, "subscribe topic pattern %q with queue %q", pattern, sub.natsSub.Queue)
+	log.Infof(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
 
 	return sub, nil
 }
@@ -79,8 +79,8 @@ func (s *_Subscriber) Pattern() string {
 	return strings.TrimPrefix(s.natsSub.Subject, s.broker.options.TopicPrefix)
 }
 
-// QueueName subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
-func (s *_Subscriber) QueueName() string {
+// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
+func (s *_Subscriber) Queue() string {
 	return strings.TrimPrefix(s.natsSub.Queue, s.broker.options.QueuePrefix)
 }
 
@@ -105,40 +105,47 @@ func (s *_Subscriber) EventChan() <-chan broker.Event {
 
 func (s *_Subscriber) run() {
 	<-s.ctx.Done()
+
 	defer func() { s.stoppedChan <- struct{}{} }()
 
 	if err := s.natsSub.Unsubscribe(); err != nil {
-		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.natsSub.Subject, s.natsSub.Queue, err)
+		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
 	} else {
-		log.Infof(s.broker.ctx, "unsubscribe topic pattern %q with %q success", s.natsSub.Subject, s.natsSub.Queue)
+		log.Infof(s.broker.ctx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
 	}
 
 	if s.eventChan != nil {
 		close(s.eventChan)
 	}
 
-	if s.unsubscribedHandler != nil {
-		s.unsubscribedHandler(s)
+	if err := s.unsubscribedHandler.Invoke(nil, s); err != nil {
+		log.Errorf(s.broker.ctx, "handle unsubscribed from topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), err)
 	}
 }
 
 func (s *_Subscriber) handleMsg(msg *nats.Msg) {
-	e := &_NatsEvent{
+	e := &_Event{
 		msg: msg,
 		ns:  s,
 	}
 
-	if s.eventHandler != nil {
-		if err := internal.Call(func() error { return s.eventHandler(e) }); err != nil {
-			log.Errorf(s.broker.ctx, "handle msg event failed, %s, nak: %s", err, e.Nak(context.Background()))
+	if err := generic.FuncError(s.eventHandler.Invoke(nil, e)); err != nil {
+		var nakErr error
+		if e.Queue() != "" {
+			nakErr = e.Nak(context.Background())
 		}
+		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s, nak: %s", e.Topic(), e.Queue(), err, nakErr)
 	}
 
 	if s.eventChan != nil {
 		select {
 		case s.eventChan <- e:
 		default:
-			log.Errorf(s.broker.ctx, "handle msg event failed, event chan is full, nak: %s", e.Nak(context.Background()))
+			var nakErr error
+			if e.Queue() != "" {
+				nakErr = e.Nak(context.Background())
+			}
+			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %s", e.Topic(), e.Queue(), nakErr)
 		}
 	}
 }

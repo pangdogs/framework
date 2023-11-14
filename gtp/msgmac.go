@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgMAC32 包含MAC(32bit)消息
@@ -12,7 +12,7 @@ type MsgMAC32 struct {
 
 // Read implements io.Reader
 func (m *MsgMAC32) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
@@ -24,7 +24,7 @@ func (m *MsgMAC32) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgMAC32) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
@@ -51,7 +51,7 @@ type MsgMAC64 struct {
 
 // Read implements io.Reader
 func (m *MsgMAC64) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
@@ -63,7 +63,7 @@ func (m *MsgMAC64) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgMAC64) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
@@ -90,7 +90,7 @@ type MsgMAC struct {
 
 // Read implements io.Reader
 func (m *MsgMAC) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
@@ -102,7 +102,7 @@ func (m *MsgMAC) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgMAC) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err

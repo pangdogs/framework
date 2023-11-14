@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	definePlugin = define.DefineServicePlugin[rpc.RPCResolver]()
+	definePlugin = define.DefineServicePlugin[rpc.RPCResolver](newRPCResolver)
 	// Install 安装插件
 	Install = definePlugin.Install
 	// Uninstall 卸载插件

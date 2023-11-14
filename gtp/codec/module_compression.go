@@ -3,10 +3,12 @@ package codec
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
 	"kit.golaxy.org/plugins/gtp/method"
+	"kit.golaxy.org/plugins/util/binaryutil"
 	"math"
 )
 
@@ -97,7 +99,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
 	}
 
 	if len(src) <= 0 {
-		return nil, errors.New("src too small")
+		return nil, fmt.Errorf("%w: src too small", golaxy.ErrArgs)
 	}
 
 	msgCompressed := gtp.MsgCompressed{}

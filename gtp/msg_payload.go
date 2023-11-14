@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"bytes"
-	"kit.golaxy.org/plugins/gtp/binaryutil"
+	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgPayload 数据传输（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
@@ -12,7 +12,7 @@ type MsgPayload struct {
 
 // Read implements io.Reader
 func (m *MsgPayload) Read(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
 	}
@@ -21,7 +21,7 @@ func (m *MsgPayload) Read(p []byte) (int, error) {
 
 // Write implements io.Writer
 func (m *MsgPayload) Write(p []byte) (int, error) {
-	bs := binaryutil.NewByteStream(p)
+	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
 		return 0, err
@@ -30,7 +30,7 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 消息大小
+// Size 大小
 func (m *MsgPayload) Size() int {
 	return binaryutil.SizeofBytes(m.Data)
 }

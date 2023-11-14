@@ -3,6 +3,8 @@ package dsync
 import (
 	"fmt"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/generic"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/uid"
 	"math/rand"
 	"time"
@@ -13,9 +15,9 @@ type Option struct{}
 
 type (
 	// A DelayFunc is used to decide the amount of time to wait between retries.
-	DelayFunc = func(tries int) time.Duration
+	DelayFunc = generic.Func1[int, time.Duration]
 	// GenValueFunc is used to generate a random value.
-	GenValueFunc = func() (string, error)
+	GenValueFunc = generic.PairFunc0[string, error]
 )
 
 // DMutexOptions represents the options for acquiring a distributed mutex.
@@ -29,11 +31,8 @@ type DMutexOptions struct {
 	Value         string
 }
 
-// DMutexOption represents a configuration option for acquiring a distributed mutex.
-type DMutexOption func(options *DMutexOptions)
-
 // Default sets the default options for acquiring a distributed mutex.
-func (Option) Default() DMutexOption {
+func (Option) Default() option.Setting[DMutexOptions] {
 	defaultRetryDelayFunc := func(tries int) time.Duration {
 		const (
 			minRetryDelayMilliSec = 50
@@ -58,21 +57,21 @@ func (Option) Default() DMutexOption {
 }
 
 // Expiry can be used to set the expiry of a mutex to the given value.
-func (Option) Expiry(expiry time.Duration) DMutexOption {
+func (Option) Expiry(expiry time.Duration) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.Expiry = expiry
 	}
 }
 
 // Tries can be used to set the number of times lock acquire is attempted.
-func (Option) Tries(tries int) DMutexOption {
+func (Option) Tries(tries int) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.Tries = tries
 	}
 }
 
 // RetryDelay can be used to set the amount of time to wait between retries.
-func (Option) RetryDelay(delay time.Duration) DMutexOption {
+func (Option) RetryDelay(delay time.Duration) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.DelayFunc = func(tries int) time.Duration {
 			return delay
@@ -81,7 +80,7 @@ func (Option) RetryDelay(delay time.Duration) DMutexOption {
 }
 
 // RetryDelayFunc can be used to override default delay behavior.
-func (Option) RetryDelayFunc(fn DelayFunc) DMutexOption {
+func (Option) RetryDelayFunc(fn DelayFunc) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		if fn == nil {
 			panic(fmt.Errorf("%w: option DelayFunc can't be assigned to nil", golaxy.ErrArgs))
@@ -91,21 +90,21 @@ func (Option) RetryDelayFunc(fn DelayFunc) DMutexOption {
 }
 
 // DriftFactor can be used to set the clock drift factor.
-func (Option) DriftFactor(factor float64) DMutexOption {
+func (Option) DriftFactor(factor float64) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.DriftFactor = factor
 	}
 }
 
 // TimeoutFactor can be used to set the timeout factor.
-func (Option) TimeoutFactor(factor float64) DMutexOption {
+func (Option) TimeoutFactor(factor float64) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.TimeoutFactor = factor
 	}
 }
 
 // GenValueFunc can be used to set the custom value generator.
-func (Option) GenValueFunc(fn GenValueFunc) DMutexOption {
+func (Option) GenValueFunc(fn GenValueFunc) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		if fn == nil {
 			panic(fmt.Errorf("%w: option GenValueFunc can't be assigned to nil", golaxy.ErrArgs))
@@ -116,7 +115,7 @@ func (Option) GenValueFunc(fn GenValueFunc) DMutexOption {
 
 // Value can be used to assign the random value without having to call lock.
 // This allows the ownership of a lock to be "transferred" and allows the lock to be unlocked from elsewhere.
-func (Option) Value(v string) DMutexOption {
+func (Option) Value(v string) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		options.Value = v
 	}

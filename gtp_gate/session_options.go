@@ -1,6 +1,8 @@
 package gtp_gate
 
 import (
+	"kit.golaxy.org/golaxy/util/generic"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/transport"
 )
@@ -8,28 +10,26 @@ import (
 type _SessionOption struct{}
 
 type (
-	StateChangedHandler = func(old, new SessionState)                // 会话状态变化的处理器
-	RecvDataHandler     = func(data []byte) error                    // 会话接收的数据的处理器
-	RecvEventHandler    = func(event transport.Event[gtp.Msg]) error // 会话接收的自定义事件的处理器
+	StateChangedHandler = generic.DelegateAction2[SessionState, SessionState]    // 会话状态变化的处理器
+	RecvDataHandler     = generic.DelegateFunc1[[]byte, error]                   // 会话接收的数据的处理器
+	RecvEventHandler    = generic.DelegateFunc1[transport.Event[gtp.Msg], error] // 会话接收的自定义事件的处理器
 )
 
 type SessionOptions struct {
-	StateChangedHandlers []StateChangedHandler         // 接收会话状态变化的处理器
-	RecvDataHandlers     []RecvDataHandler             // 接收数据的处理器
-	RecvEventHandlers    []RecvEventHandler            // 接收自定义事件的处理器
-	SendDataChan         chan []byte                   // 发送数据的channel
-	RecvDataChan         chan []byte                   // 接收数据的channel
-	SendEventChan        chan transport.Event[gtp.Msg] // 发送自定义事件的channel
-	RecvEventChan        chan transport.Event[gtp.Msg] // 接收自定义事件的channel
+	StateChangedHandler StateChangedHandler           // 接收会话状态变化的处理器
+	RecvDataHandler     RecvDataHandler               // 接收数据的处理器
+	RecvEventHandler    RecvEventHandler              // 接收自定义事件的处理器
+	SendDataChan        chan []byte                   // 发送数据的channel
+	RecvDataChan        chan []byte                   // 接收数据的channel
+	SendEventChan       chan transport.Event[gtp.Msg] // 发送自定义事件的channel
+	RecvEventChan       chan transport.Event[gtp.Msg] // 接收自定义事件的channel
 }
 
-type SessionOption func(options *SessionOptions)
-
-func (_SessionOption) Default() SessionOption {
+func (_SessionOption) Default() option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
-		_SessionOption{}.StateChangedHandlers(nil)(options)
-		_SessionOption{}.RecvDataHandlers(nil)(options)
-		_SessionOption{}.RecvEventHandlers(nil)(options)
+		_SessionOption{}.StateChangedHandler(nil)(options)
+		_SessionOption{}.RecvDataHandler(nil)(options)
+		_SessionOption{}.RecvEventHandler(nil)(options)
 		_SessionOption{}.SendDataChanSize(0)(options)
 		_SessionOption{}.RecvDataChanSize(0)(options)
 		_SessionOption{}.SendEventChanSize(0)(options)
@@ -37,25 +37,25 @@ func (_SessionOption) Default() SessionOption {
 	}
 }
 
-func (_SessionOption) StateChangedHandlers(handlers ...StateChangedHandler) SessionOption {
+func (_SessionOption) StateChangedHandler(handler StateChangedHandler) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
-		options.StateChangedHandlers = handlers
+		options.StateChangedHandler = handler
 	}
 }
 
-func (_SessionOption) RecvDataHandlers(handlers ...RecvDataHandler) SessionOption {
+func (_SessionOption) RecvDataHandler(handler RecvDataHandler) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
-		options.RecvDataHandlers = handlers
+		options.RecvDataHandler = handler
 	}
 }
 
-func (_SessionOption) RecvEventHandlers(handlers ...RecvEventHandler) SessionOption {
+func (_SessionOption) RecvEventHandler(handler RecvEventHandler) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
-		options.RecvEventHandlers = handlers
+		options.RecvEventHandler = handler
 	}
 }
 
-func (_SessionOption) SendDataChanSize(size int) SessionOption {
+func (_SessionOption) SendDataChanSize(size int) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
 		if size > 0 {
 			options.SendDataChan = make(chan []byte, size)
@@ -65,7 +65,7 @@ func (_SessionOption) SendDataChanSize(size int) SessionOption {
 	}
 }
 
-func (_SessionOption) RecvDataChanSize(size int) SessionOption {
+func (_SessionOption) RecvDataChanSize(size int) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
 		if size > 0 {
 			options.RecvDataChan = make(chan []byte, size)
@@ -75,7 +75,7 @@ func (_SessionOption) RecvDataChanSize(size int) SessionOption {
 	}
 }
 
-func (_SessionOption) SendEventChanSize(size int) SessionOption {
+func (_SessionOption) SendEventChanSize(size int) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
 		if size > 0 {
 			options.SendEventChan = make(chan transport.Event[gtp.Msg], size)
@@ -85,7 +85,7 @@ func (_SessionOption) SendEventChanSize(size int) SessionOption {
 	}
 }
 
-func (_SessionOption) RecvEventChanSize(size int) SessionOption {
+func (_SessionOption) RecvEventChanSize(size int) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
 		if size > 0 {
 			options.RecvEventChan = make(chan transport.Event[gtp.Msg], size)

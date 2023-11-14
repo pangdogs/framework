@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) dsync.DMutex {
+func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
 	if s.options.KeyPrefix != "" {
 		name = s.options.KeyPrefix + name
 	}
@@ -17,7 +17,7 @@ func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) dsync.DMutex
 	mutex := s.redSync.NewMutex(name,
 		redsync.WithExpiry(options.Expiry),
 		redsync.WithTries(options.Tries),
-		redsync.WithRetryDelayFunc(options.DelayFunc),
+		redsync.WithRetryDelayFunc(redsync.DelayFunc(options.DelayFunc)),
 		redsync.WithDriftFactor(options.DriftFactor),
 		redsync.WithTimeoutFactor(options.TimeoutFactor),
 		redsync.WithGenValueFunc(options.GenValueFunc),

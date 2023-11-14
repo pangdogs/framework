@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nats-io/nats.go"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/option"
 	"net"
 	"strings"
 )
@@ -21,11 +22,8 @@ type BrokerOptions struct {
 	FastPassword  string
 }
 
-// BrokerOption is a function type for configuring BrokerOptions.
-type BrokerOption func(options *BrokerOptions)
-
 // Default sets default values for BrokerOptions.
-func (Option) Default() BrokerOption {
+func (Option) Default() option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		Option{}.NatsClient(nil)(options)
 		Option{}.TopicPrefix("")(options)
@@ -36,14 +34,14 @@ func (Option) Default() BrokerOption {
 }
 
 // NatsClient sets the NATS client in BrokerOptions.
-func (Option) NatsClient(cli *nats.Conn) BrokerOption {
+func (Option) NatsClient(cli *nats.Conn) option.Setting[BrokerOptions] {
 	return func(o *BrokerOptions) {
 		o.NatsClient = cli
 	}
 }
 
 // TopicPrefix sets the topic prefix in BrokerOptions.
-func (Option) TopicPrefix(prefix string) BrokerOption {
+func (Option) TopicPrefix(prefix string) option.Setting[BrokerOptions] {
 	return func(o *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
@@ -53,7 +51,7 @@ func (Option) TopicPrefix(prefix string) BrokerOption {
 }
 
 // QueuePrefix sets the queue prefix in BrokerOptions.
-func (Option) QueuePrefix(prefix string) BrokerOption {
+func (Option) QueuePrefix(prefix string) option.Setting[BrokerOptions] {
 	return func(o *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
@@ -63,7 +61,7 @@ func (Option) QueuePrefix(prefix string) BrokerOption {
 }
 
 // FastAuth sets the authentication credentials in BrokerOptions. If NatsClient is nil, these credentials are used for authentication.
-func (Option) FastAuth(username, password string) BrokerOption {
+func (Option) FastAuth(username, password string) option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
@@ -71,7 +69,7 @@ func (Option) FastAuth(username, password string) BrokerOption {
 }
 
 // FastAddresses sets the addresses in BrokerOptions. If NatsClient is nil, these addresses are used as the connection addresses.
-func (Option) FastAddresses(addrs ...string) BrokerOption {
+func (Option) FastAddresses(addrs ...string) option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
