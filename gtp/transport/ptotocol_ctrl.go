@@ -39,7 +39,7 @@ func (c *CtrlProtocol) RequestTime(reqId int64) error {
 	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 		Flags: gtp.Flags(gtp.Flag_ReqTime),
 		Msg: &gtp.MsgSyncTime{
-			SeqId:          reqId,
+			ReqId:          reqId,
 			LocalUnixMilli: time.Now().UnixMilli(),
 		}},
 	)))
@@ -81,7 +81,7 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 				Flags: gtp.Flags(gtp.Flag_RespTime),
 				Msg: &gtp.MsgSyncTime{
-					SeqId:           syncTime.Msg.SeqId,
+					ReqId:           syncTime.Msg.ReqId,
 					LocalUnixMilli:  time.Now().UnixMilli(),
 					RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
 				},

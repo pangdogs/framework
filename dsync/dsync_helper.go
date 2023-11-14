@@ -6,11 +6,11 @@ import (
 )
 
 // NewMutex returns a new distributed mutex with given name.
-func NewMutex(serviceCtx service.Context, name string, settings ...option.Setting[DMutexOptions]) DMutex {
-	return Using(serviceCtx).NewMutex(name, settings...)
+func NewMutex(servCtx service.Context, name string, settings ...option.Setting[DMutexOptions]) DMutex {
+	return Using(servCtx).NewMutex(name, settings...)
 }
 
 // Separator return topic path separator.
-func Separator(serviceCtx service.Context) string {
-	return Using(serviceCtx).Separator()
+func Separator(servCtx service.Context) string {
+	return Using(servCtx).Separator()
 }

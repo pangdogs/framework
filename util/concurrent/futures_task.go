@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"golang.org/x/net/context"
+	"kit.golaxy.org/golaxy/util/types"
 	"time"
 )
 
@@ -10,12 +11,12 @@ func newTask[T Resp](fs *Futures, resp T) _ITask {
 
 	task := &_Task[T]{
 		future: Future{
-			Ctx:     ctx,
+			Finish:  ctx,
 			Id:      fs.MakeId(),
 			futures: fs,
 		},
-		resp:   resp,
-		cancel: cancel,
+		resp: resp,
+		stop: cancel,
 	}
 	fs.tasks.Store(task.future.Id, task)
 
@@ -31,7 +32,7 @@ type _ITask interface {
 type _Task[T Resp] struct {
 	future Future
 	resp   T
-	cancel context.CancelFunc
+	stop   context.CancelFunc
 }
 
 func (t *_Task[T]) Future() Future {
@@ -46,15 +47,22 @@ func (t *_Task[T]) Run(ctx context.Context, timeout time.Duration) {
 	case <-t.future.futures.Ctx.Done():
 		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFuturesClosed})
 	case <-ctx.Done():
-		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFutureCancelled})
+		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFutureCanceled})
 	case <-timer.C:
 		t.future.futures.Dispatching(t.future.Id, Ret[any]{Error: ErrFutureTimeout})
-	case <-t.future.Ctx.Done():
+	case <-t.future.Finish.Done():
 		return
 	}
 }
 
-func (t *_Task[T]) Reply(ret Ret[any]) error {
-	t.cancel()
+func (t *_Task[T]) Reply(ret Ret[any]) (retErr error) {
+	t.stop()
+
+	defer func() {
+		if err := types.Panic2Err(recover()); err != nil {
+			retErr = err
+		}
+	}()
+
 	return t.resp.Push(ret)
 }
