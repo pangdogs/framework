@@ -12,7 +12,7 @@ const (
 
 // MsgSyncTime 同步时间
 type MsgSyncTime struct {
-	ReqId           int64 // 请求Id
+	CorrId          int64 // 关联Id
 	LocalUnixMilli  int64 // 本地时间
 	RemoteUnixMilli int64 // 对端时间（响应时有效）
 }
@@ -20,7 +20,7 @@ type MsgSyncTime struct {
 // Read implements io.Reader
 func (m *MsgSyncTime) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteInt64(m.ReqId); err != nil {
+	if err := bs.WriteInt64(m.CorrId); err != nil {
 		return 0, err
 	}
 	if err := bs.WriteInt64(m.LocalUnixMilli); err != nil {
@@ -35,7 +35,7 @@ func (m *MsgSyncTime) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	reqId, err := bs.ReadInt64()
+	corrId, err := bs.ReadInt64()
 	if err != nil {
 		return 0, err
 	}
@@ -47,7 +47,7 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	m.ReqId = reqId
+	m.CorrId = corrId
 	m.LocalUnixMilli = localUnixMilli
 	m.RemoteUnixMilli = remoteUnixMilli
 	return bs.BytesRead(), nil

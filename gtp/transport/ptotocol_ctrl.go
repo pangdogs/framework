@@ -32,14 +32,14 @@ func (c *CtrlProtocol) SendRst(err error) error {
 }
 
 // RequestTime 请求同步时间
-func (c *CtrlProtocol) RequestTime(reqId int64) error {
+func (c *CtrlProtocol) RequestTime(corrId int64) error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 		Flags: gtp.Flags(gtp.Flag_ReqTime),
 		Msg: &gtp.MsgSyncTime{
-			ReqId:          reqId,
+			CorrId:         corrId,
 			LocalUnixMilli: time.Now().UnixMilli(),
 		}},
 	)))
@@ -81,7 +81,7 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
 				Flags: gtp.Flags(gtp.Flag_RespTime),
 				Msg: &gtp.MsgSyncTime{
-					ReqId:           syncTime.Msg.ReqId,
+					CorrId:          syncTime.Msg.CorrId,
 					LocalUnixMilli:  time.Now().UnixMilli(),
 					RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
 				},
