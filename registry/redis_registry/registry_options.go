@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/golaxy/util/option"
 	"net"
 	"strings"
 )
@@ -24,11 +25,8 @@ type RegistryOptions struct {
 	FastDBIndex   int
 }
 
-// RegistryOption 选项设置器
-type RegistryOption func(options *RegistryOptions)
-
 // Default 默认值
-func (Option) Default() RegistryOption {
+func (Option) Default() option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		Option{}.RedisClient(nil)(options)
 		Option{}.RedisConfig(nil)(options)
@@ -42,28 +40,28 @@ func (Option) Default() RegistryOption {
 }
 
 // RedisClient redis客户端，1st优先使用
-func (Option) RedisClient(cli *redis.Client) RegistryOption {
+func (Option) RedisClient(cli *redis.Client) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		o.RedisClient = cli
 	}
 }
 
 // RedisConfig redis配置，2nd优先使用
-func (Option) RedisConfig(conf *redis.Options) RegistryOption {
+func (Option) RedisConfig(conf *redis.Options) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		o.RedisConfig = conf
 	}
 }
 
 // RedisURL redis连接url，3rd优先使用
-func (Option) RedisURL(url string) RegistryOption {
+func (Option) RedisURL(url string) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		o.RedisURL = url
 	}
 }
 
 // KeyPrefix 所有key的前缀
-func (Option) KeyPrefix(prefix string) RegistryOption {
+func (Option) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
@@ -73,7 +71,7 @@ func (Option) KeyPrefix(prefix string) RegistryOption {
 }
 
 // WatchChanSize 监控服务变化的channel大小
-func (Option) WatchChanSize(size int) RegistryOption {
+func (Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		if size < 0 {
 			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", golaxy.ErrArgs))
@@ -83,7 +81,7 @@ func (Option) WatchChanSize(size int) RegistryOption {
 }
 
 // FastAuth 快速设置redis鉴权信息
-func (Option) FastAuth(username, password string) RegistryOption {
+func (Option) FastAuth(username, password string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		options.FastUsername = username
 		options.FastPassword = password
@@ -91,7 +89,7 @@ func (Option) FastAuth(username, password string) RegistryOption {
 }
 
 // FastAddress 快速设置redis服务地址
-func (Option) FastAddress(addr string) RegistryOption {
+func (Option) FastAddress(addr string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(fmt.Errorf("%w: %w", golaxy.ErrArgs, err))
@@ -101,7 +99,7 @@ func (Option) FastAddress(addr string) RegistryOption {
 }
 
 // FastDBIndex 快速设置redis db下标
-func (Option) FastDBIndex(idx int) RegistryOption {
+func (Option) FastDBIndex(idx int) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		options.FastDBIndex = idx
 	}

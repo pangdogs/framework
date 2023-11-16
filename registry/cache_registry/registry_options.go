@@ -1,6 +1,7 @@
 package cache_registry
 
 import (
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/registry"
 )
 
@@ -12,18 +13,15 @@ type RegistryOptions struct {
 	Registry registry.Registry
 }
 
-// RegistryOption 选项设置器
-type RegistryOption func(options *RegistryOptions)
-
 // Default 默认值
-func (Option) Default() RegistryOption {
+func (Option) Default() option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		Option{}.Wrap(nil)(options)
 	}
 }
 
 // Wrap 包装其他registry插件
-func (Option) Wrap(r registry.Registry) RegistryOption {
+func (Option) Wrap(r registry.Registry) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		o.Registry = r
 	}

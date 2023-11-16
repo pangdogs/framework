@@ -2,11 +2,10 @@ package console_log
 
 import (
 	"kit.golaxy.org/golaxy/define"
-	"kit.golaxy.org/plugins/log"
 )
 
 var (
-	plugin    = define.DefinePlugin[log.Logger, LoggerOption](newLogger)
+	plugin    = define.DefinePlugin(newLogger)
 	Install   = plugin.Install
 	Uninstall = plugin.Uninstall
 )
