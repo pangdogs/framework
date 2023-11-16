@@ -5,6 +5,7 @@ import (
 	"errors"
 	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
@@ -12,16 +13,9 @@ import (
 	"sync"
 )
 
-func newRegistry(options ...RegistryOption) registry.Registry {
-	opts := RegistryOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry {
 	return &_Registry{
-		options:        opts,
+		options:        option.Make(Option{}.Default(), settings...),
 		serviceMap:     map[string]*[]registry.Service{},
 		serviceNodeMap: map[[2]string]*registry.Service{},
 	}

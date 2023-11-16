@@ -5,6 +5,7 @@ import (
 	"io"
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
 	"os"
@@ -14,16 +15,9 @@ import (
 	"time"
 )
 
-func newLogger(options ...LoggerOption) log.Logger {
-	opts := LoggerOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func newLogger(settings ...option.Setting[LoggerOptions]) log.Logger {
 	return &_Logger{
-		options: opts,
+		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
@@ -18,16 +19,9 @@ import (
 )
 
 // NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
-func NewRegistry(options ...RegistryOption) registry.Registry {
-	opts := RegistryOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
-	}
-
+func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry {
 	return &_Registry{
-		options:  opts,
+		options:  option.Make(Option{}.Default(), settings...),
 		register: map[string]uint64{},
 	}
 }
