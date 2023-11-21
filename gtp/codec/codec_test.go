@@ -74,7 +74,7 @@ func TestCodec(t *testing.T) {
 	}
 
 	decoder := Decoder{
-		MsgCreator: DefaultMsgCreator(),
+		MsgCreator: gtp.DefaultMsgCreator(),
 		EncryptionModule: &EncryptionModule{
 			Cipher: decrypter,
 			//Padding:      padding,

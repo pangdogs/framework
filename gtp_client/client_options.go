@@ -9,7 +9,6 @@ import (
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"time"
 )
@@ -31,7 +30,7 @@ type ClientOptions struct {
 	IOTimeout                   time.Duration                 // 网络io超时时间
 	IORetryTimes                int                           // 网络io超时后的重试次数
 	IOBufferCap                 int                           // 网络io缓存容量（字节）
-	DecoderMsgCreator           codec.IMsgCreator             // 消息包解码器的消息构建器
+	DecoderMsgCreator           gtp.IMsgCreator               // 消息包解码器的消息构建器
 	EncCipherSuite              gtp.CipherSuite               // 加密通信中的密码学套件
 	EncSignatureAlgorithm       gtp.SignatureAlgorithm        // 加密通信中的签名算法
 	EncSignaturePrivateKey      crypto.PrivateKey             // 加密通信中，签名用的私钥
@@ -66,7 +65,7 @@ func (Option) Default() option.Setting[ClientOptions] {
 		Option{}.IOTimeout(3 * time.Second)(options)
 		Option{}.IORetryTimes(3)(options)
 		Option{}.IOBufferCap(1024 * 128)(options)
-		Option{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
+		Option{}.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
 		Option{}.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: gtp.SymmetricEncryption_AES,
@@ -155,7 +154,7 @@ func (Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
 	}
 }
 
-func (Option) DecoderMsgCreator(mc codec.IMsgCreator) option.Setting[ClientOptions] {
+func (Option) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
 			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))

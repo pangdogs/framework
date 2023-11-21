@@ -8,7 +8,6 @@ import (
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
 	"math/big"
 	"net"
@@ -35,7 +34,7 @@ type GateOptions struct {
 	IOTimeout                      time.Duration              // 网络io超时时间
 	IORetryTimes                   int                        // 网络io超时后的重试次数
 	IOBufferCap                    int                        // 网络io缓存容量（字节）
-	DecoderMsgCreator              codec.IMsgCreator          // 消息包解码器的消息构建器
+	DecoderMsgCreator              gtp.IMsgCreator            // 消息包解码器的消息构建器
 	AgreeClientEncryptionProposal  bool                       // 是否同意使用客户端建议的加密方案
 	EncCipherSuite                 gtp.CipherSuite            // 加密通信中的密码学套件
 	EncNonceStep                   *big.Int                   // 加密通信中，使用需要nonce的加密算法时，每次加解密自增值
@@ -71,7 +70,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		_GateOption{}.IOTimeout(3 * time.Second)(options)
 		_GateOption{}.IORetryTimes(3)(options)
 		_GateOption{}.IOBufferCap(1024 * 128)(options)
-		_GateOption{}.DecoderMsgCreator(codec.DefaultMsgCreator())(options)
+		_GateOption{}.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
 		_GateOption{}.AgreeClientEncryptionProposal(false)(options)
 		_GateOption{}.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
@@ -171,7 +170,7 @@ func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 	}
 }
 
-func (_GateOption) DecoderMsgCreator(mc codec.IMsgCreator) option.Setting[GateOptions] {
+func (_GateOption) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if mc == nil {
 			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))

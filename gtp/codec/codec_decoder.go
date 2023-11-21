@@ -31,7 +31,7 @@ type IDecoder interface {
 	// FetchFrom 取出消息包
 	FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
 	// GetMsgCreator 获取消息对象构建器
-	GetMsgCreator() IMsgCreator
+	GetMsgCreator() gtp.IMsgCreator
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
 	// GetMACModule 获取MAC模块
@@ -44,7 +44,7 @@ type IDecoder interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator        IMsgCreator        // 消息对象构建器
+	MsgCreator        gtp.IMsgCreator    // 消息对象构建器
 	EncryptionModule  IEncryptionModule  // 加密模块
 	MACModule         IMACModule         // MAC模块
 	CompressionModule ICompressionModule // 压缩模块
@@ -179,7 +179,7 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPack
 }
 
 // GetMsgCreator 获取消息对象构建器
-func (d *Decoder) GetMsgCreator() IMsgCreator {
+func (d *Decoder) GetMsgCreator() gtp.IMsgCreator {
 	return d.MsgCreator
 }
 
