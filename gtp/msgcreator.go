@@ -2,6 +2,8 @@ package gtp
 
 import (
 	"errors"
+	"fmt"
+	"kit.golaxy.org/golaxy"
 	"reflect"
 	"sync"
 )
@@ -57,6 +59,10 @@ type _MsgCreator struct {
 func (c *_MsgCreator) Register(msg Msg) {
 	c.Lock()
 	defer c.Unlock()
+
+	if msg == nil {
+		panic(fmt.Errorf("%w: msg is nil", golaxy.ErrArgs))
+	}
 
 	c.msgTypeMap[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 }
