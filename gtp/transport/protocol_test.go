@@ -44,7 +44,7 @@ func TestProtocol(t *testing.T) {
 					Conn:    conn,
 					Encoder: &codec.Encoder{},
 					Decoder: &codec.Decoder{
-						MsgCreator: codec.DefaultMsgCreator(),
+						MsgCreator: gtp.DefaultMsgCreator(),
 					},
 					Buffer: &UnsequencedBuffer{},
 				}
@@ -148,7 +148,7 @@ func TestProtocol(t *testing.T) {
 			Conn:    conn,
 			Encoder: &codec.Encoder{},
 			Decoder: &codec.Decoder{
-				MsgCreator: codec.DefaultMsgCreator(),
+				MsgCreator: gtp.DefaultMsgCreator(),
 			},
 			Buffer: &UnsequencedBuffer{},
 		}
