@@ -32,6 +32,14 @@ func SizeofUint64() int {
 	return 8
 }
 
+func SizeofFloat() int {
+	return SizeofUint32()
+}
+
+func SizeofDouble() int {
+	return SizeofUint64()
+}
+
 func SizeofByte() int {
 	return 1
 }

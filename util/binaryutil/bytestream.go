@@ -7,6 +7,7 @@ import (
 	"io"
 	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util/types"
+	"math"
 )
 
 var (
@@ -137,6 +138,24 @@ func (s *ByteStream) WriteUint64(v uint64) error {
 	}
 	s.endian.PutUint64(s.wp, v)
 	s.wp = s.wp[SizeofUint64():]
+	return nil
+}
+
+func (s *ByteStream) WriteFloat(v float32) error {
+	if len(s.wp) < SizeofFloat() {
+		return io.ErrShortWrite
+	}
+	s.endian.PutUint32(s.wp, math.Float32bits(v))
+	s.wp = s.wp[SizeofFloat():]
+	return nil
+}
+
+func (s *ByteStream) WriteDouble(v float64) error {
+	if len(s.wp) < SizeofDouble() {
+		return io.ErrShortWrite
+	}
+	s.endian.PutUint64(s.wp, math.Float64bits(v))
+	s.wp = s.wp[SizeofDouble():]
 	return nil
 }
 
@@ -391,6 +410,24 @@ func (s *ByteStream) ReadUint64() (uint64, error) {
 	}
 	v := s.endian.Uint64(s.rp)
 	s.rp = s.rp[SizeofUint64():]
+	return v, nil
+}
+
+func (s *ByteStream) ReadFloat() (float32, error) {
+	if len(s.rp) < SizeofFloat() {
+		return 0, io.ErrUnexpectedEOF
+	}
+	v := math.Float32frombits(s.endian.Uint32(s.rp))
+	s.rp = s.rp[SizeofFloat():]
+	return v, nil
+}
+
+func (s *ByteStream) ReadDouble() (float64, error) {
+	if len(s.rp) < SizeofDouble() {
+		return 0, io.ErrUnexpectedEOF
+	}
+	v := math.Float64frombits(s.endian.Uint64(s.rp))
+	s.rp = s.rp[SizeofDouble():]
 	return v, nil
 }
 
