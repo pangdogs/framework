@@ -21,64 +21,59 @@ type IMsgCreator interface {
 	Spawn(msgId gtp.MsgId) (gtp.Msg, error)
 }
 
+var msgCreator = NewMsgCreator()
+
 // DefaultMsgCreator 默认消息对象构建器
 func DefaultMsgCreator() IMsgCreator {
-	return &msgCreator
+	return msgCreator
 }
 
-var msgCreator = _MsgCreator{}
-
 func init() {
-	msgCreator.Register(&gtp.MsgHello{})
-	msgCreator.Register(&gtp.MsgECDHESecretKeyExchange{})
-	msgCreator.Register(&gtp.MsgChangeCipherSpec{})
-	msgCreator.Register(&gtp.MsgAuth{})
-	msgCreator.Register(&gtp.MsgContinue{})
-	msgCreator.Register(&gtp.MsgFinished{})
-	msgCreator.Register(&gtp.MsgRst{})
-	msgCreator.Register(&gtp.MsgHeartbeat{})
-	msgCreator.Register(&gtp.MsgSyncTime{})
-	msgCreator.Register(&gtp.MsgPayload{})
+	DefaultMsgCreator().Register(&gtp.MsgHello{})
+	DefaultMsgCreator().Register(&gtp.MsgECDHESecretKeyExchange{})
+	DefaultMsgCreator().Register(&gtp.MsgChangeCipherSpec{})
+	DefaultMsgCreator().Register(&gtp.MsgAuth{})
+	DefaultMsgCreator().Register(&gtp.MsgContinue{})
+	DefaultMsgCreator().Register(&gtp.MsgFinished{})
+	DefaultMsgCreator().Register(&gtp.MsgRst{})
+	DefaultMsgCreator().Register(&gtp.MsgHeartbeat{})
+	DefaultMsgCreator().Register(&gtp.MsgSyncTime{})
+	DefaultMsgCreator().Register(&gtp.MsgPayload{})
+}
+
+// NewMsgCreator 创建消息对象构建器
+func NewMsgCreator() IMsgCreator {
+	return &_MsgCreator{
+		msgTypeMap: make(map[gtp.MsgId]reflect.Type),
+	}
 }
 
 // _MsgCreator 消息对象构建器
 type _MsgCreator struct {
+	sync.RWMutex
 	msgTypeMap map[gtp.MsgId]reflect.Type
-	mutex      sync.RWMutex
 }
 
 // Register 注册消息
 func (c *_MsgCreator) Register(msg gtp.Msg) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if c.msgTypeMap == nil {
-		c.msgTypeMap = map[gtp.MsgId]reflect.Type{}
-	}
+	c.Lock()
+	defer c.Unlock()
 
 	c.msgTypeMap[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 }
 
 // Deregister 取消注册消息
 func (c *_MsgCreator) Deregister(msgId gtp.MsgId) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if c.msgTypeMap == nil {
-		return
-	}
+	c.Lock()
+	defer c.Unlock()
 
 	delete(c.msgTypeMap, msgId)
 }
 
 // Spawn 构建消息
 func (c *_MsgCreator) Spawn(msgId gtp.MsgId) (gtp.Msg, error) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	if c.msgTypeMap == nil {
-		return nil, ErrMsgNotRegistered
-	}
+	c.RLock()
+	defer c.RUnlock()
 
 	rtype, ok := c.msgTypeMap[msgId]
 	if !ok {

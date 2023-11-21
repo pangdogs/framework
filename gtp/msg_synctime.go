@@ -12,7 +12,7 @@ const (
 
 // MsgSyncTime 同步时间
 type MsgSyncTime struct {
-	CorrId          int64 // 关联Id
+	CorrId          int64 // 关联Id，用于支持Future等异步模型
 	LocalUnixMilli  int64 // 本地时间
 	RemoteUnixMilli int64 // 对端时间（响应时有效）
 }
