@@ -49,6 +49,7 @@ type ClientOptions struct {
 	RecvDataHandler             RecvDataHandler               // 接收的数据的处理器
 	RecvEventHandler            RecvEventHandler              // 接收的自定义事件的处理器
 	FutureTimeout               time.Duration                 // 异步模型Future超时时间
+	AuthUserId                  string                        // 鉴权userid
 	AuthToken                   string                        // 鉴权token
 	AuthExtensions              []byte                        // 鉴权extensions
 	ZapLogger                   *zap.Logger                   // zap日志
@@ -94,6 +95,7 @@ func (Option) Default() option.Setting[ClientOptions] {
 		Option{}.RecvDataHandler(nil)(options)
 		Option{}.RecvEventHandler(nil)(options)
 		Option{}.FutureTimeout(10 * time.Second)(options)
+		Option{}.AuthUserId("")(options)
 		Option{}.AuthToken("")(options)
 		Option{}.AuthExtensions(nil)(options)
 		Option{}.ZapLogger(zap.NewExample())(options)
@@ -284,6 +286,12 @@ func (Option) RecvEventHandler(handler RecvEventHandler) option.Setting[ClientOp
 func (Option) FutureTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.FutureTimeout = d
+	}
+}
+
+func (Option) AuthUserId(userId string) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.AuthUserId = userId
 	}
 }
 
