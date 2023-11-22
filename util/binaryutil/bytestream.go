@@ -86,7 +86,7 @@ func (s *ByteStream) BytesUnwritten() int {
 }
 
 func (s *ByteStream) BuffUnwritten() []byte {
-	return s.sp
+	return s.wp
 }
 
 func (s *ByteStream) WriteInt8(v int8) error {
