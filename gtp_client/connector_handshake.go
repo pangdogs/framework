@@ -140,6 +140,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if authFlow {
 		err = handshake.ClientAuth(transport.Event[*gtp.MsgAuth]{
 			Msg: &gtp.MsgAuth{
+				UserId:     ctor.options.AuthUserId,
 				Token:      ctor.options.AuthToken,
 				Extensions: ctor.options.AuthExtensions,
 			},

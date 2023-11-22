@@ -208,7 +208,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 			err := acc.options.AuthClientHandler.Exec(func(err, _ error) bool {
 				return err != nil
-			}, acc.gate, conn, e.Msg.Token, e.Msg.Extensions)
+			}, acc.gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_AuthFailed,
