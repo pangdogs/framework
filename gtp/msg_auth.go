@@ -14,7 +14,7 @@ type MsgAuth struct {
 }
 
 // Read implements io.Reader
-func (m *MsgAuth) Read(p []byte) (int, error) {
+func (m MsgAuth) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(m.UserId); err != nil {
 		return 0, err
@@ -50,7 +50,7 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgAuth) Size() int {
+func (m MsgAuth) Size() int {
 	return binaryutil.SizeofString(m.UserId) + binaryutil.SizeofString(m.Token) + binaryutil.SizeofBytes(m.Extensions)
 }
 

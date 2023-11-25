@@ -8,9 +8,9 @@ import (
 )
 
 type (
-	RstHandler       = generic.DelegateFunc1[Event[*gtp.MsgRst], error]       // Rst消息事件处理器
-	SyncTimeHandler  = generic.DelegateFunc1[Event[*gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
-	HeartbeatHandler = generic.DelegateFunc1[Event[*gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
+	RstHandler       = generic.DelegateFunc1[Event[gtp.MsgRst], error]       // Rst消息事件处理器
+	SyncTimeHandler  = generic.DelegateFunc1[Event[gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
+	HeartbeatHandler = generic.DelegateFunc1[Event[gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
 )
 
 // CtrlProtocol 控制协议
@@ -36,13 +36,15 @@ func (c *CtrlProtocol) RequestTime(corrId int64) error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
-		Flags: gtp.Flags(gtp.Flag_ReqTime),
-		Msg: &gtp.MsgSyncTime{
-			CorrId:         corrId,
-			LocalUnixMilli: time.Now().UnixMilli(),
-		}},
-	)))
+	return c.retrySend(c.Transceiver.Send(
+		Event[gtp.MsgSyncTime]{
+			Flags: gtp.Flags(gtp.Flag_ReqTime),
+			Msg: gtp.MsgSyncTime{
+				CorrId:         corrId,
+				LocalUnixMilli: time.Now().UnixMilli(),
+			},
+		}.Pack(),
+	))
 }
 
 // SendPing 发送ping
@@ -50,10 +52,11 @@ func (c *CtrlProtocol) SendPing() error {
 	if c.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
-	return c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgHeartbeat]{
-		Flags: gtp.Flags(gtp.Flag_Ping),
-		Msg:   &gtp.MsgHeartbeat{},
-	})))
+	return c.retrySend(c.Transceiver.Send(
+		Event[gtp.MsgHeartbeat]{
+			Flags: gtp.Flags(gtp.Flag_Ping),
+		}.Pack(),
+	))
 }
 
 func (c *CtrlProtocol) retrySend(err error) error {
@@ -69,23 +72,25 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 	case gtp.MsgId_Rst:
 		return c.RstHandler.Exec(func(err, _ error) bool {
 			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
-		}, UnpackEvent[*gtp.MsgRst](e))
+		}, UnpackEvent[gtp.MsgRst](e))
 
 	case gtp.MsgId_SyncTime:
-		syncTime := UnpackEvent[*gtp.MsgSyncTime](e)
+		syncTime := UnpackEvent[gtp.MsgSyncTime](e)
 
 		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
 			if c.Transceiver == nil {
 				return errors.New("setting Transceiver is nil")
 			}
-			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgSyncTime]{
-				Flags: gtp.Flags(gtp.Flag_RespTime),
-				Msg: &gtp.MsgSyncTime{
-					CorrId:          syncTime.Msg.CorrId,
-					LocalUnixMilli:  time.Now().UnixMilli(),
-					RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
-				},
-			})))
+			err := c.retrySend(c.Transceiver.Send(
+				Event[gtp.MsgSyncTime]{
+					Flags: gtp.Flags(gtp.Flag_RespTime),
+					Msg: gtp.MsgSyncTime{
+						CorrId:          syncTime.Msg.CorrId,
+						LocalUnixMilli:  time.Now().UnixMilli(),
+						RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
+					},
+				}.Pack(),
+			))
 			if err != nil {
 				return err
 			}
@@ -96,16 +101,17 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 		}, syncTime)
 
 	case gtp.MsgId_Heartbeat:
-		heartbeat := UnpackEvent[*gtp.MsgHeartbeat](e)
+		heartbeat := UnpackEvent[gtp.MsgHeartbeat](e)
 
 		if heartbeat.Flags.Is(gtp.Flag_Ping) {
 			if c.Transceiver == nil {
 				return errors.New("setting Transceiver is nil")
 			}
-			err := c.retrySend(c.Transceiver.Send(PackEvent(Event[*gtp.MsgHeartbeat]{
-				Flags: gtp.Flags(gtp.Flag_Pong),
-				Msg:   &gtp.MsgHeartbeat{},
-			})))
+			err := c.retrySend(c.Transceiver.Send(
+				Event[gtp.MsgHeartbeat]{
+					Flags: gtp.Flags(gtp.Flag_Pong),
+				}.Pack(),
+			))
 			if err != nil {
 				return err
 			}

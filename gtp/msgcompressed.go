@@ -11,7 +11,7 @@ type MsgCompressed struct {
 }
 
 // Read implements io.Reader
-func (m *MsgCompressed) Read(p []byte) (int, error) {
+func (m MsgCompressed) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
@@ -39,6 +39,6 @@ func (m *MsgCompressed) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgCompressed) Size() int {
+func (m MsgCompressed) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofVarint(m.OriginalSize)
 }

@@ -11,7 +11,7 @@ type MsgMAC32 struct {
 }
 
 // Read implements io.Reader
-func (m *MsgMAC32) Read(p []byte) (int, error) {
+func (m MsgMAC32) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
@@ -39,7 +39,7 @@ func (m *MsgMAC32) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgMAC32) Size() int {
+func (m MsgMAC32) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofUint32()
 }
 
@@ -50,7 +50,7 @@ type MsgMAC64 struct {
 }
 
 // Read implements io.Reader
-func (m *MsgMAC64) Read(p []byte) (int, error) {
+func (m MsgMAC64) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
@@ -78,7 +78,7 @@ func (m *MsgMAC64) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgMAC64) Size() int {
+func (m MsgMAC64) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofUint64()
 }
 
@@ -89,7 +89,7 @@ type MsgMAC struct {
 }
 
 // Read implements io.Reader
-func (m *MsgMAC) Read(p []byte) (int, error) {
+func (m MsgMAC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
@@ -117,6 +117,6 @@ func (m *MsgMAC) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgMAC) Size() int {
+func (m MsgMAC) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofBytes(m.MAC)
 }

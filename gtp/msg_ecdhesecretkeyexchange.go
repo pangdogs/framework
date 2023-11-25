@@ -18,7 +18,7 @@ type SignatureAlgorithm struct {
 }
 
 // Read implements io.Reader
-func (sa *SignatureAlgorithm) Read(p []byte) (int, error) {
+func (sa SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(sa.AsymmetricEncryption)); err != nil {
 		return 0, err
@@ -54,7 +54,7 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (sa *SignatureAlgorithm) Size() int {
+func (SignatureAlgorithm) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
 
@@ -71,7 +71,7 @@ type MsgECDHESecretKeyExchange struct {
 }
 
 // Read implements io.Reader
-func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
+func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
 		return 0, err
@@ -139,7 +139,7 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgECDHESecretKeyExchange) Size() int {
+func (m MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
 		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
 }

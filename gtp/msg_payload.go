@@ -11,7 +11,7 @@ type MsgPayload struct {
 }
 
 // Read implements io.Reader
-func (m *MsgPayload) Read(p []byte) (int, error) {
+func (m MsgPayload) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return 0, err
@@ -31,7 +31,7 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgPayload) Size() int {
+func (m MsgPayload) Size() int {
 	return binaryutil.SizeofBytes(m.Data)
 }
 

@@ -16,13 +16,13 @@ type (
 )
 
 type SessionOptions struct {
-	StateChangedHandler StateChangedHandler           // 接收会话状态变化的处理器
-	RecvDataHandler     RecvDataHandler               // 接收数据的处理器
-	RecvEventHandler    RecvEventHandler              // 接收自定义事件的处理器
-	SendDataChan        chan []byte                   // 发送数据的channel
-	RecvDataChan        chan []byte                   // 接收数据的channel
-	SendEventChan       chan transport.Event[gtp.Msg] // 发送自定义事件的channel
-	RecvEventChan       chan transport.Event[gtp.Msg] // 接收自定义事件的channel
+	StateChangedHandler StateChangedHandler                 // 接收会话状态变化的处理器
+	RecvDataHandler     RecvDataHandler                     // 接收数据的处理器
+	RecvEventHandler    RecvEventHandler                    // 接收自定义事件的处理器
+	SendDataChan        chan []byte                         // 发送数据的channel
+	RecvDataChan        chan []byte                         // 接收数据的channel
+	SendEventChan       chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
+	RecvEventChan       chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
 }
 
 func (_SessionOption) Default() option.Setting[SessionOptions] {
@@ -78,7 +78,7 @@ func (_SessionOption) RecvDataChanSize(size int) option.Setting[SessionOptions] 
 func (_SessionOption) SendEventChanSize(size int) option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
 		if size > 0 {
-			options.SendEventChan = make(chan transport.Event[gtp.Msg], size)
+			options.SendEventChan = make(chan transport.Event[gtp.MsgReader], size)
 		} else {
 			options.SendEventChan = nil
 		}

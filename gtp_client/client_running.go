@@ -277,8 +277,11 @@ func (c *Client) reconnect() {
 // handleEvent 接收自定义事件的处理器
 func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
 	if c.options.RecvEventChan != nil {
+		eventCopy := event
+		eventCopy.Msg = event.Msg.Clone()
+
 		select {
-		case c.options.RecvEventChan <- event.Clone():
+		case c.options.RecvEventChan <- eventCopy:
 		default:
 			c.logger.Errorf("client %q receive event channel is full", c.GetSessionId())
 		}
@@ -290,7 +293,7 @@ func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
 }
 
 // handlePayload Payload消息事件处理器
-func (c *Client) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
+func (c *Client) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 	if c.options.RecvDataChan != nil {
 		select {
 		case c.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
@@ -305,7 +308,7 @@ func (c *Client) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
 }
 
 // handleHeartbeat Heartbeat消息事件处理器
-func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) error {
+func (c *Client) handleHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		c.logger.Debugf("client %q receive ping", c.GetSessionId())
 	} else {
@@ -315,7 +318,7 @@ func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) error
 }
 
 // handleSyncTime SyncTime消息事件处理器
-func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) error {
+func (c *Client) handleSyncTime(event transport.Event[gtp.MsgSyncTime]) error {
 	if event.Flags.Is(gtp.Flag_RespTime) {
 		respTime := &ResponseTime{
 			RequestTime: time.UnixMilli(event.Msg.RemoteUnixMilli),

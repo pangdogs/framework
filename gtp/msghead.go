@@ -57,7 +57,7 @@ type MsgHead struct {
 }
 
 // Read implements io.Reader
-func (m *MsgHead) Read(p []byte) (int, error) {
+func (m MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return 0, err
@@ -109,7 +109,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgHead) Size() int {
+func (MsgHead) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
 		binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }

@@ -17,9 +17,9 @@ type IEncoder interface {
 	// Reset 重置缓存
 	Reset()
 	// Stuff 填充消息
-	Stuff(flags gtp.Flags, msg gtp.Msg) error
+	Stuff(flags gtp.Flags, msg gtp.MsgReader) error
 	// StuffTo 填充消息
-	StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.Msg) error
+	StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
 	// GetMACModule 获取MAC模块
@@ -64,12 +64,12 @@ func (e *Encoder) Reset() {
 }
 
 // Stuff 填充消息
-func (e *Encoder) Stuff(flags gtp.Flags, msg gtp.Msg) error {
+func (e *Encoder) Stuff(flags gtp.Flags, msg gtp.MsgReader) error {
 	return e.StuffTo(&e.buffer, flags, msg)
 }
 
 // StuffTo 填充消息
-func (e *Encoder) StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.Msg) error {
+func (e *Encoder) StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
 	if writer == nil {
 		return fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}
