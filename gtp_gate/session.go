@@ -48,13 +48,13 @@ type Session interface {
 	// SendData 发送数据
 	SendData(data []byte) error
 	// SendEvent 发送自定义事件
-	SendEvent(event transport.Event[gtp.Msg]) error
+	SendEvent(event transport.Event[gtp.MsgReader]) error
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- []byte
 	// RecvDataChan 接收数据的channel
 	RecvDataChan() <-chan []byte
 	// SendEventChan 发送自定义事件的channel
-	SendEventChan() chan<- transport.Event[gtp.Msg]
+	SendEventChan() chan<- transport.Event[gtp.MsgReader]
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
 	// GetFutures 获取异步模型Future控制器
@@ -143,7 +143,7 @@ func (s *_Session) SendData(data []byte) error {
 }
 
 // SendEvent 发送自定义事件
-func (s *_Session) SendEvent(event transport.Event[gtp.Msg]) error {
+func (s *_Session) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	return transport.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
@@ -167,7 +167,7 @@ func (s *_Session) RecvDataChan() <-chan []byte {
 }
 
 // SendEventChan 发送自定义事件的channel
-func (s *_Session) SendEventChan() chan<- transport.Event[gtp.Msg] {
+func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 	if s.options.SendEventChan == nil {
 		log.Panicf(s.gate.ctx, "send event channel size less equal 0, can't be used")
 	}

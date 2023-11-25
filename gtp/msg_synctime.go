@@ -18,7 +18,7 @@ type MsgSyncTime struct {
 }
 
 // Read implements io.Reader
-func (m *MsgSyncTime) Read(p []byte) (int, error) {
+func (m MsgSyncTime) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt64(m.CorrId); err != nil {
 		return 0, err
@@ -54,7 +54,7 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgSyncTime) Size() int {
+func (MsgSyncTime) Size() int {
 	return binaryutil.SizeofInt64() + binaryutil.SizeofInt64() + binaryutil.SizeofInt64()
 }
 

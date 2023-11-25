@@ -70,11 +70,11 @@ func (c *Client) SendData(data []byte) error {
 }
 
 // SendEvent 发送自定义事件
-func (c *Client) SendEvent(event transport.Event[gtp.Msg]) error {
+func (c *Client) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	return transport.Retry{
 		Transceiver: &c.transceiver,
 		Times:       c.options.IORetryTimes,
-	}.Send(c.transceiver.Send(event))
+	}.Send(c.transceiver.Send(event.Pack()))
 }
 
 // SendDataChan 发送数据的channel
@@ -94,7 +94,7 @@ func (c *Client) RecvDataChan() <-chan []byte {
 }
 
 // SendEventChan 发送自定义事件的channel
-func (c *Client) SendEventChan() chan<- transport.Event[gtp.Msg] {
+func (c *Client) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 	if c.options.SendEventChan == nil {
 		c.logger.Panic("send event channel size less equal 0, can't be used")
 	}

@@ -22,11 +22,26 @@ const (
 
 // Msg 消息接口
 type Msg interface {
-	io.ReadWriter
+	MsgReader
+	MsgWriter
+	// Clone 克隆消息对象
+	Clone() Msg
+}
+
+// MsgReader 消息读取
+type MsgReader interface {
+	io.Reader
 	// Size 大小
 	Size() int
 	// MsgId 消息Id
 	MsgId() MsgId
-	// Clone 克隆消息对象
-	Clone() Msg
+}
+
+// MsgWriter 消息写入
+type MsgWriter interface {
+	io.Writer
+	// Size 大小
+	Size() int
+	// MsgId 消息Id
+	MsgId() MsgId
 }

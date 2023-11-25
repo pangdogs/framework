@@ -64,8 +64,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	servRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
 	n.FillBytes(servRandom)
 
-	cliHello := transport.Event[*gtp.MsgHello]{
-		Msg: &gtp.MsgHello{
+	cliHello := transport.Event[gtp.MsgHello]{
+		Msg: gtp.MsgHello{
 			Version:     gtp.Version_V1_0,
 			SessionId:   client.GetSessionId(),
 			Random:      cliRandom,
@@ -76,7 +76,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 与服务端互相hello
 	err = handshake.ClientHello(cliHello,
-		func(servHello transport.Event[*gtp.MsgHello]) error {
+		func(servHello transport.Event[gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
 				return fmt.Errorf("the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
@@ -138,8 +138,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 开启鉴权时，向服务端发起鉴权
 	if authFlow {
-		err = handshake.ClientAuth(transport.Event[*gtp.MsgAuth]{
-			Msg: &gtp.MsgAuth{
+		err = handshake.ClientAuth(transport.Event[gtp.MsgAuth]{
+			Msg: gtp.MsgAuth{
 				UserId:     ctor.options.AuthUserId,
 				Token:      ctor.options.AuthToken,
 				Extensions: ctor.options.AuthExtensions,
@@ -156,8 +156,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		err = handshake.ClientContinue(transport.Event[*gtp.MsgContinue]{
-			Msg: &gtp.MsgContinue{
+		err = handshake.ClientContinue(transport.Event[gtp.MsgContinue]{
+			Msg: gtp.MsgContinue{
 				SendSeq: client.transceiver.Buffer.SendSeq(),
 				RecvSeq: client.transceiver.Buffer.RecvSeq(),
 			},
@@ -170,7 +170,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	var remoteSendSeq, remoteRecvSeq uint32
 
 	// 等待服务端通知握手结束
-	err = handshake.ClientFinished(func(finished transport.Event[*gtp.MsgFinished]) error {
+	err = handshake.ClientFinished(func(finished transport.Event[gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
 			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
 		}
@@ -229,37 +229,37 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 		}()
 
 		// 与服务端交换秘钥
-		err := handshake.ClientSecretKeyExchange(func(e transport.Event[gtp.Msg]) (transport.Event[gtp.Msg], error) {
+		err := handshake.ClientSecretKeyExchange(func(e transport.Event[gtp.Msg]) (transport.Event[gtp.MsgReader], error) {
 			// 解包ECDHESecretKeyExchange消息事件
 			switch e.Msg.MsgId() {
 			case gtp.MsgId_ECDHESecretKeyExchange:
 				break
 			default:
-				return transport.Event[gtp.Msg]{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
+				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
 			}
-			servECDHE := transport.UnpackEvent[*gtp.MsgECDHESecretKeyExchange](e)
+			servECDHE := transport.UnpackEvent[gtp.MsgECDHESecretKeyExchange](e)
 
 			// 验证服务端签名
 			if ctor.options.EncVerifyServerSignature {
 				if !servECDHE.Flags.Is(gtp.Flag_Signature) {
-					return transport.Event[gtp.Msg]{}, errors.New("no server signature")
+					return transport.Event[gtp.MsgReader]{}, errors.New("no server signature")
 				}
 
 				if err := ctor.verify(servECDHE.Msg.SignatureAlgorithm, servECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionId, servECDHE.Msg.PublicKey); err != nil {
-					return transport.Event[gtp.Msg]{}, err
+					return transport.Event[gtp.MsgReader]{}, err
 				}
 			}
 
 			// 创建曲线
 			curve, err := method.NewNamedCurve(servECDHE.Msg.NamedCurve)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, err
+				return transport.Event[gtp.MsgReader]{}, err
 			}
 
 			// 生成客户端临时私钥
 			cliPriv, err := curve.GenerateKey(rand.Reader)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, err
+				return transport.Event[gtp.MsgReader]{}, err
 			}
 
 			// 生成客户端临时公钥
@@ -269,27 +269,27 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 			// 服务端临时公钥
 			servPub, err := curve.NewPublicKey(servECDHE.Msg.PublicKey)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, fmt.Errorf("server ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err)
+				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("server ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err)
 			}
 
 			// 临时共享秘钥
 			sharedKeyBytes, err = cliPriv.ECDH(servPub)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, fmt.Errorf("ECDH failed, %s", err)
+				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("ECDH failed, %s", err)
 			}
 
 			// 签名数据
 			signature, err := ctor.sign(cs, cm, cliRandom, servRandom, sessionId, cliPubBytes)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, err
+				return transport.Event[gtp.MsgReader]{}, err
 			}
 
 			// 设置分组对齐填充方案
 			if encEncryptionModule.Padding, err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
-				return transport.Event[gtp.Msg]{}, err
+				return transport.Event[gtp.MsgReader]{}, err
 			}
 			if decEncryptionModule.Padding, err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
-				return transport.Event[gtp.Msg]{}, err
+				return transport.Event[gtp.MsgReader]{}, err
 			}
 
 			// 设置nonce值
@@ -304,14 +304,14 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 			// 创建并设置加解密流
 			encryptor, decrypter, err := method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV)
 			if err != nil {
-				return transport.Event[gtp.Msg]{}, fmt.Errorf("new cipher stream failed, %s", err)
+				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("new cipher stream failed, %s", err)
 			}
 			encEncryptionModule.Cipher = encryptor
 			decEncryptionModule.Cipher = decrypter
 
-			cliECDHE := transport.Event[*gtp.MsgECDHESecretKeyExchange]{
+			cliECDHE := transport.Event[gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
-				Msg: &gtp.MsgECDHESecretKeyExchange{
+				Msg: gtp.MsgECDHESecretKeyExchange{
 					NamedCurve:         servECDHE.Msg.NamedCurve,
 					PublicKey:          cliPubBytes,
 					SignatureAlgorithm: ctor.options.EncSignatureAlgorithm,
@@ -319,33 +319,32 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 				},
 			}
 
-			return transport.PackEvent(cliECDHE), nil
+			return cliECDHE.Pack(), nil
 
-		}, func(servChangeCipherSpec transport.Event[*gtp.MsgChangeCipherSpec]) (transport.Event[*gtp.MsgChangeCipherSpec], error) {
+		}, func(servChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) (transport.Event[gtp.MsgChangeCipherSpec], error) {
 			verifyEncryption := servChangeCipherSpec.Flags.Is(gtp.Flag_VerifyEncryption)
 
 			// 验证加密是否正确
 			if verifyEncryption {
 				decryptedHello, err := decEncryptionModule.Transforming(nil, servChangeCipherSpec.Msg.EncryptedHello)
 				if err != nil {
-					return transport.Event[*gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
+					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
 				}
 
 				if bytes.Compare(decryptedHello, servHelloBytes) != 0 {
-					return transport.Event[*gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
+					return transport.Event[gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
 				}
 			}
 
-			cliChangeCipherSpec := transport.Event[*gtp.MsgChangeCipherSpec]{
+			cliChangeCipherSpec := transport.Event[gtp.MsgChangeCipherSpec]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_VerifyEncryption, verifyEncryption),
-				Msg:   &gtp.MsgChangeCipherSpec{},
 			}
 
 			// 加密hello消息
 			if verifyEncryption {
 				encryptedHello, err := encEncryptionModule.Transforming(nil, cliHelloBytes)
 				if err != nil {
-					return transport.Event[*gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
+					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
 				}
 				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello
 			}

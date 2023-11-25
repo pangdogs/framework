@@ -10,15 +10,15 @@ import (
 )
 
 type (
-	HelloAccept               = generic.PairFunc1[Event[*gtp.MsgHello], Event[*gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
-	HelloFin                  = generic.Func1[Event[*gtp.MsgHello], error]                                                       // 客户端获取服务端Hello响应
-	SecretKeyExchangeAccept   = generic.PairFunc1[Event[gtp.Msg], Event[gtp.Msg], error]                                         // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
-	ECDHESecretKeyExchangeFin = generic.PairFunc1[Event[*gtp.MsgECDHESecretKeyExchange], Event[*gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
-	ChangeCipherSpecAccept    = generic.PairFunc1[Event[*gtp.MsgChangeCipherSpec], Event[*gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
-	ChangeCipherSpecFin       = generic.Func1[Event[*gtp.MsgChangeCipherSpec], error]                                            // 服务端获取客户端ChangeCipherSpec响应
-	AuthAccept                = generic.Func1[Event[*gtp.MsgAuth], error]                                                        // 服务端确认客户端Auth请求
-	ContinueAccept            = generic.Func1[Event[*gtp.MsgContinue], error]                                                    // 服务端确认客户端Continue请求
-	FinishedAccept            = generic.Func1[Event[*gtp.MsgFinished], error]                                                    // 客户端确认服务端Finished请求
+	HelloAccept               = generic.PairFunc1[Event[gtp.MsgHello], Event[gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
+	HelloFin                  = generic.Func1[Event[gtp.MsgHello], error]                                                      // 客户端获取服务端Hello响应
+	SecretKeyExchangeAccept   = generic.PairFunc1[Event[gtp.Msg], Event[gtp.MsgReader], error]                                 // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
+	ECDHESecretKeyExchangeFin = generic.PairFunc1[Event[gtp.MsgECDHESecretKeyExchange], Event[gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
+	ChangeCipherSpecAccept    = generic.PairFunc1[Event[gtp.MsgChangeCipherSpec], Event[gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
+	ChangeCipherSpecFin       = generic.Func1[Event[gtp.MsgChangeCipherSpec], error]                                           // 服务端获取客户端ChangeCipherSpec响应
+	AuthAccept                = generic.Func1[Event[gtp.MsgAuth], error]                                                       // 服务端确认客户端Auth请求
+	ContinueAccept            = generic.Func1[Event[gtp.MsgContinue], error]                                                   // 服务端确认客户端Continue请求
+	FinishedAccept            = generic.Func1[Event[gtp.MsgFinished], error]                                                   // 客户端确认服务端Finished请求
 )
 
 // HandshakeProtocol 握手协议
@@ -28,7 +28,7 @@ type HandshakeProtocol struct {
 }
 
 // ClientHello 客户端Hello
-func (h *HandshakeProtocol) ClientHello(hello Event[*gtp.MsgHello], helloFin HelloFin) (err error) {
+func (h *HandshakeProtocol) ClientHello(hello Event[gtp.MsgHello], helloFin HelloFin) (err error) {
 	if helloFin == nil {
 		return fmt.Errorf("%w: helloFin is nil", golaxy.ErrArgs)
 	}
@@ -45,7 +45,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*gtp.MsgHello], helloFin Hel
 		trans.GC()
 	}()
 
-	err = h.retrySend(trans.Send(PackEvent(hello)))
+	err = h.retrySend(trans.Send(hello.Pack()))
 	if err != nil {
 		return err
 	}
@@ -59,12 +59,12 @@ func (h *HandshakeProtocol) ClientHello(hello Event[*gtp.MsgHello], helloFin Hel
 	case gtp.MsgId_Hello:
 		break
 	case gtp.MsgId_Rst:
-		return EventToRstErr(UnpackEvent[*gtp.MsgRst](recv))
+		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = helloFin.Exec(UnpackEvent[*gtp.MsgHello](recv))
+	err = helloFin.Exec(UnpackEvent[gtp.MsgHello](recv))
 	if err != nil {
 		return err
 	}
@@ -105,12 +105,12 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	reply, err := helloAccept.Exec(UnpackEvent[*gtp.MsgHello](recv))
+	reply, err := helloAccept.Exec(UnpackEvent[gtp.MsgHello](recv))
 	if err != nil {
 		return err
 	}
 
-	err = h.retrySend(trans.Send(PackEvent(reply)))
+	err = h.retrySend(trans.Send(reply.Pack()))
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case gtp.MsgId_ECDHESecretKeyExchange:
 		break
 	case gtp.MsgId_Rst:
-		return EventToRstErr(UnpackEvent[*gtp.MsgRst](recv))
+		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -159,7 +159,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	err = h.retrySend(trans.Send(PackEvent(secretKeyExchangeReply)))
+	err = h.retrySend(trans.Send(secretKeyExchangeReply.Pack()))
 	if err != nil {
 		return err
 	}
@@ -173,17 +173,17 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case gtp.MsgId_ChangeCipherSpec:
 		break
 	case gtp.MsgId_Rst:
-		return EventToRstErr(UnpackEvent[*gtp.MsgRst](recv))
+		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecReply, err := changeCipherSpecAccept.Exec(UnpackEvent[*gtp.MsgChangeCipherSpec](recv))
+	changeCipherSpecReply, err := changeCipherSpecAccept.Exec(UnpackEvent[gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return err
 	}
 
-	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecReply)))
+	err = h.retrySend(trans.Send(changeCipherSpecReply.Pack()))
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 }
 
 // ServerECDHESecretKeyExchange 服务端交换秘钥（ECDHE）
-func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event[*gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
+func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event[gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
 	if secretKeyExchangeFin == nil {
 		return fmt.Errorf("%w: secretKeyExchangeFin is nil", golaxy.ErrArgs)
 	}
@@ -216,7 +216,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		trans.GC()
 	}()
 
-	err = h.retrySend(trans.Send(PackEvent(secretKeyExchange)))
+	err = h.retrySend(trans.Send(secretKeyExchange.Pack()))
 	if err != nil {
 		return err
 	}
@@ -233,12 +233,12 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecMsg, err := secretKeyExchangeFin.Exec(UnpackEvent[*gtp.MsgECDHESecretKeyExchange](recv))
+	changeCipherSpecMsg, err := secretKeyExchangeFin.Exec(UnpackEvent[gtp.MsgECDHESecretKeyExchange](recv))
 	if err != nil {
 		return err
 	}
 
-	err = h.retrySend(trans.Send(PackEvent(changeCipherSpecMsg)))
+	err = h.retrySend(trans.Send(changeCipherSpecMsg.Pack()))
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = changeCipherSpecFin.Exec(UnpackEvent[*gtp.MsgChangeCipherSpec](recv))
+	err = changeCipherSpecFin.Exec(UnpackEvent[gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 }
 
 // ClientAuth 客户端发起鉴权
-func (h *HandshakeProtocol) ClientAuth(auth Event[*gtp.MsgAuth]) (err error) {
+func (h *HandshakeProtocol) ClientAuth(auth Event[gtp.MsgAuth]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -276,7 +276,7 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[*gtp.MsgAuth]) (err error) {
 		}
 	}()
 
-	err = h.retrySend(trans.Send(PackEvent(auth)))
+	err = h.retrySend(trans.Send(auth.Pack()))
 	if err != nil {
 		return err
 	}
@@ -317,7 +317,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = authAccept.Exec(UnpackEvent[*gtp.MsgAuth](recv))
+	err = authAccept.Exec(UnpackEvent[gtp.MsgAuth](recv))
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 }
 
 // ClientContinue 客户端发起重连
-func (h *HandshakeProtocol) ClientContinue(cont Event[*gtp.MsgContinue]) (err error) {
+func (h *HandshakeProtocol) ClientContinue(cont Event[gtp.MsgContinue]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -338,7 +338,7 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[*gtp.MsgContinue]) (err er
 		}
 	}()
 
-	err = h.retrySend(trans.Send(PackEvent(cont)))
+	err = h.retrySend(trans.Send(cont.Pack()))
 	if err != nil {
 		return err
 	}
@@ -379,7 +379,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = continueAccept.Exec(UnpackEvent[*gtp.MsgContinue](recv))
+	err = continueAccept.Exec(UnpackEvent[gtp.MsgContinue](recv))
 	if err != nil {
 		return err
 	}
@@ -414,12 +414,12 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 	case gtp.MsgId_Finished:
 		break
 	case gtp.MsgId_Rst:
-		return EventToRstErr(UnpackEvent[*gtp.MsgRst](recv))
+		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = finishedAccept.Exec(UnpackEvent[*gtp.MsgFinished](recv))
+	err = finishedAccept.Exec(UnpackEvent[gtp.MsgFinished](recv))
 	if err != nil {
 		return err
 	}
@@ -428,7 +428,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 }
 
 // ServerFinished 服务端握手结束
-func (h *HandshakeProtocol) ServerFinished(finished Event[*gtp.MsgFinished]) (err error) {
+func (h *HandshakeProtocol) ServerFinished(finished Event[gtp.MsgFinished]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -443,7 +443,7 @@ func (h *HandshakeProtocol) ServerFinished(finished Event[*gtp.MsgFinished]) (er
 		}
 	}()
 
-	err = h.retrySend(trans.Send(PackEvent(finished)))
+	err = h.retrySend(trans.Send(finished.Pack()))
 	if err != nil {
 		return err
 	}

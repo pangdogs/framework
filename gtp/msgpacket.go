@@ -11,37 +11,54 @@ type MsgPacket struct {
 }
 
 // Read implements io.Reader
-func (mp *MsgPacket) Read(p []byte) (int, error) {
-	hn, err := mp.Head.Read(p)
+func (mp MsgPacket) Read(p []byte) (int, error) {
+	rn := 0
+
+	n, err := mp.Head.Read(p)
+	rn += n
 	if err != nil {
-		return hn, err
+		return rn, err
 	}
+
 	if mp.Msg == nil {
-		return hn, nil
+		return rn, nil
 	}
-	mn, err := mp.Msg.Read(p[hn:])
-	return mn + hn, err
+
+	n, err = mp.Msg.Read(p[rn:])
+	rn += n
+
+	return rn, err
 }
 
 // Write implements io.Writer
 func (mp *MsgPacket) Write(p []byte) (int, error) {
-	hn, err := mp.Head.Write(p)
+	wn := 0
+
+	n, err := mp.Head.Write(p)
+	wn += n
 	if err != nil {
-		return hn, err
+		return wn, err
 	}
+
 	if mp.Msg == nil {
-		return hn, nil
+		return wn, nil
 	}
-	mn, err := mp.Msg.Write(p[hn:])
-	return mn + hn, err
+
+	n, err = mp.Msg.Write(p[wn:])
+	wn += n
+
+	return wn, err
 }
 
 // Size 大小
-func (mp *MsgPacket) Size() int {
-	if mp.Msg == nil {
-		return mp.Head.Size()
+func (mp MsgPacket) Size() int {
+	n := mp.Head.Size()
+
+	if mp.Msg != nil {
+		n += mp.Msg.Size()
 	}
-	return mp.Head.Size() + mp.Msg.Size()
+
+	return n
 }
 
 // MsgPacketLen 消息包长度
@@ -50,7 +67,7 @@ type MsgPacketLen struct {
 }
 
 // Read implements io.Reader
-func (m *MsgPacketLen) Read(p []byte) (int, error) {
+func (m MsgPacketLen) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return 0, err

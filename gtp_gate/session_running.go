@@ -239,8 +239,11 @@ func (s *_Session) setState(state SessionState) bool {
 // handleEvent 接收自定义事件的处理器
 func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 	if s.options.RecvEventChan != nil {
+		eventCopy := event
+		eventCopy.Msg = eventCopy.Msg.Clone()
+
 		select {
-		case s.options.RecvEventChan <- event.Clone():
+		case s.options.RecvEventChan <- eventCopy:
 		default:
 			log.Errorf(s.gate.ctx, "session %q receive event channel is full", s.GetId())
 		}
@@ -268,7 +271,7 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 }
 
 // handlePayload Payload消息事件处理器
-func (s *_Session) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
+func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 	if s.options.RecvDataChan != nil {
 		select {
 		case s.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
@@ -299,7 +302,7 @@ func (s *_Session) handlePayload(event transport.Event[*gtp.MsgPayload]) error {
 }
 
 // handleHeartbeat Heartbeat消息事件处理器
-func (s *_Session) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) error {
+func (s *_Session) handleHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		log.Debugf(s.gate.ctx, "session %q receive ping", s.GetId())
 	} else {

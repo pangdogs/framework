@@ -24,7 +24,7 @@ type CipherSuite struct {
 }
 
 // Read implements io.Reader
-func (cs *CipherSuite) Read(p []byte) (int, error) {
+func (cs CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
 		return 0, err
@@ -76,7 +76,7 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (cs *CipherSuite) Size() int {
+func (CipherSuite) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
 		binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
 }
@@ -91,7 +91,7 @@ type MsgHello struct {
 }
 
 // Read implements io.Reader
-func (m *MsgHello) Read(p []byte) (int, error) {
+func (m MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
 		return 0, err
@@ -143,7 +143,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgHello) Size() int {
+func (m MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8()
 }

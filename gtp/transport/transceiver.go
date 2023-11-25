@@ -33,8 +33,8 @@ type Transceiver struct {
 	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
 }
 
-// Send 发送消息事件
-func (t *Transceiver) Send(e Event[gtp.Msg]) error {
+// Send 发送消息
+func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	t.sendMutex.Lock()
 	defer t.sendMutex.Unlock()
 
@@ -51,7 +51,7 @@ func (t *Transceiver) Send(e Event[gtp.Msg]) error {
 	}
 
 	// 编码消息
-	if err := t.Encoder.StuffTo(t.Buffer, e.Flags, e.Msg); err != nil {
+	if err := t.Encoder.StuffTo(t.Buffer, me.Flags, me.Msg); err != nil {
 		return fmt.Errorf("stuff msg failed, %w", err)
 	}
 
@@ -79,7 +79,7 @@ func (t *Transceiver) SendRst(err error) error {
 			rstErr.Message = err.Error()
 		}
 	}
-	return t.Send(PackEvent(RstErrToEvent(rstErr)))
+	return t.Send(rstErr.Event().Pack())
 }
 
 // Resend 重新发送未完整发送的消息事件

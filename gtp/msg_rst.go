@@ -27,7 +27,7 @@ type MsgRst struct {
 }
 
 // Read implements io.Reader
-func (m *MsgRst) Read(p []byte) (int, error) {
+func (m MsgRst) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt32(int32(m.Code)); err != nil {
 		return 0, err
@@ -55,7 +55,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgRst) Size() int {
+func (m MsgRst) Size() int {
 	return binaryutil.SizeofInt32() + binaryutil.SizeofString(m.Message)
 }
 
