@@ -27,19 +27,19 @@ type CipherSuite struct {
 func (cs CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(cs.SymmetricEncryption)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(cs.BlockCipherMode)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(cs.PaddingMode)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(cs.MACHash)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -49,23 +49,23 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	secretKeyExchange, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	symmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	blockCipherMode, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	paddingMode, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	macHash, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	cs.SecretKeyExchange = SecretKeyExchange(secretKeyExchange)
 	cs.SymmetricEncryption = SymmetricEncryption(symmetricEncryption)
@@ -94,19 +94,19 @@ type MsgHello struct {
 func (m MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.SessionId); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Random); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -116,23 +116,23 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	version, err := bs.ReadUint16()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	sessionId, err := bs.ReadStringRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	random, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	cipherSuite := CipherSuite{}
 	if _, err := bs.WriteTo(&cipherSuite); err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	compression, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Version = Version(version)
 	m.SessionId = sessionId

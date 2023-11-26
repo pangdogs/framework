@@ -70,7 +70,7 @@ type MsgPacketLen struct {
 func (m MsgPacketLen) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -80,7 +80,7 @@ func (m *MsgPacketLen) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	l, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Len = l
 	return bs.BytesRead(), nil

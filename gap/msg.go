@@ -6,11 +6,11 @@ import "io"
 type MsgId = uint32
 
 const (
-	MsgId_None        MsgId  = iota // 未设置
-	MsgId_RPC_Request               // RPC请求
-	MsgId_RPC_Reply                 // RPC响应
-	MsgId_Notify                    // 通知
-	MsgId_Customize   = 1024        // 自定义消息起点
+	MsgId_None        MsgId = iota // 未设置
+	MsgId_RPC_Request              // RPC请求
+	MsgId_RPC_Reply                // RPC答复
+	MsgId_OneWayRPC                // 单程RPC请求
+	MsgId_Customize   = 128        // 自定义消息起点
 )
 
 // Msg 消息接口

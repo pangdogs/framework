@@ -19,7 +19,7 @@ type MsgChangeCipherSpec struct {
 func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -29,7 +29,7 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	encryptedHello, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.EncryptedHello = encryptedHello
 	return bs.BytesRead(), nil

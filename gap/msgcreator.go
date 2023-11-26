@@ -1,4 +1,4 @@
-package gtp
+package gap
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrNotRegistered = errors.New("gtp.msg not registered") // 消息未注册
+	ErrNotRegistered = errors.New("gap.msg not registered") // 消息未注册
 )
 
 // IMsgCreator 消息对象构建器接口
@@ -30,16 +30,9 @@ func DefaultMsgCreator() IMsgCreator {
 }
 
 func init() {
-	DefaultMsgCreator().Register(&MsgHello{})
-	DefaultMsgCreator().Register(&MsgECDHESecretKeyExchange{})
-	DefaultMsgCreator().Register(&MsgChangeCipherSpec{})
-	DefaultMsgCreator().Register(&MsgAuth{})
-	DefaultMsgCreator().Register(&MsgContinue{})
-	DefaultMsgCreator().Register(&MsgFinished{})
-	DefaultMsgCreator().Register(&MsgRst{})
-	DefaultMsgCreator().Register(&MsgHeartbeat{})
-	DefaultMsgCreator().Register(&MsgSyncTime{})
-	DefaultMsgCreator().Register(&MsgPayload{})
+	DefaultMsgCreator().Register(&MsgRPCRequest{})
+	DefaultMsgCreator().Register(&MsgRPCReply{})
+	DefaultMsgCreator().Register(&MsgOneWayRPC{})
 }
 
 // NewMsgCreator 创建消息对象构建器

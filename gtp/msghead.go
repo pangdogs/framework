@@ -60,19 +60,19 @@ type MsgHead struct {
 func (m MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(m.MsgId); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(m.Flags)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint32(m.Seq); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint32(m.Ack); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -82,23 +82,23 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	l, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	msgId, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	flags, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	seq, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	ack, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Len = l
 	m.MsgId = msgId
