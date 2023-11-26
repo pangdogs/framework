@@ -26,10 +26,10 @@ type IDecoder interface {
 	io.ReaderFrom
 	// Reset 重置缓存
 	Reset()
-	// Fetch 取出消息包
-	Fetch(validate IValidate) (gtp.MsgPacket, error)
-	// FetchFrom 取出消息包
-	FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
+	// Decode 解码消息包
+	Decode(validate IValidate) (gtp.MsgPacket, error)
+	// DecodeFrom 从指定源，解码消息包
+	DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
 	// GetMsgCreator 获取消息对象构建器
 	GetMsgCreator() gtp.IMsgCreator
 	// GetEncryptionModule 获取加密模块
@@ -78,15 +78,19 @@ func (d *Decoder) Reset() {
 	d.buffer.Reset()
 }
 
-// Fetch 取出消息包
-func (d *Decoder) Fetch(validate IValidate) (gtp.MsgPacket, error) {
-	return d.FetchFrom(&d.buffer, validate)
+// Decode 解码消息包
+func (d *Decoder) Decode(validate IValidate) (gtp.MsgPacket, error) {
+	return d.DecodeFrom(&d.buffer, validate)
 }
 
-// FetchFrom 取出消息包
-func (d *Decoder) FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error) {
+// DecodeFrom 从指定源，解码消息包
+func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error) {
 	if buff == nil {
 		return gtp.MsgPacket{}, fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
+	}
+
+	if d.MsgCreator == nil {
+		return gtp.MsgPacket{}, errors.New("setting MsgCreator is nil")
 	}
 
 	mpl := gtp.MsgPacketLen{}
@@ -128,12 +132,6 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPack
 		}
 	}
 
-	// 创建消息体
-	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
-	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("%w (%d)", err, mp.Head.MsgId)
-	}
-
 	// 检查加密标记
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {
 		// 解密消息体
@@ -167,6 +165,12 @@ func (d *Decoder) FetchFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPack
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("uncompress msg failed, %w", err)
 		}
+	}
+
+	// 创建消息体
+	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
+	if err != nil {
+		return gtp.MsgPacket{}, fmt.Errorf("%w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息
