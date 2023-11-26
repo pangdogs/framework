@@ -57,7 +57,7 @@ func TestCodec(t *testing.T) {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
 		random, _ := rand.Prime(rand.Reader, 1024)
 
-		err = encoder.Stuff(gtp.Flags_None(), &gtp.MsgHello{
+		err = encoder.Encode(gtp.Flags_None(), &gtp.MsgHello{
 			Version:   gtp.Version(i),
 			SessionId: sessionId.String(),
 			Random:    random.Bytes(),
@@ -102,7 +102,7 @@ func TestCodec(t *testing.T) {
 	}
 
 	for {
-		mp, err := decoder.Fetch(nil)
+		mp, err := decoder.Decode(nil)
 		if err != nil {
 			if errors.Is(err, ErrBufferNotEnough) {
 				return

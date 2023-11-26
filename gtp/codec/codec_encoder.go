@@ -16,10 +16,10 @@ type IEncoder interface {
 	io.WriterTo
 	// Reset 重置缓存
 	Reset()
-	// Stuff 填充消息
-	Stuff(flags gtp.Flags, msg gtp.MsgReader) error
-	// StuffTo 填充消息
-	StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
+	// Encode 编码消息包
+	Encode(flags gtp.Flags, msg gtp.MsgReader) error
+	// EncodeTo 编码消息包，写入指定目标
+	EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
 	// GetEncryptionModule 获取加密模块
 	GetEncryptionModule() IEncryptionModule
 	// GetMACModule 获取MAC模块
@@ -63,13 +63,13 @@ func (e *Encoder) Reset() {
 	e.buffer.Reset()
 }
 
-// Stuff 填充消息
-func (e *Encoder) Stuff(flags gtp.Flags, msg gtp.MsgReader) error {
-	return e.StuffTo(&e.buffer, flags, msg)
+// Encode 编码消息包
+func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) error {
+	return e.EncodeTo(&e.buffer, flags, msg)
 }
 
-// StuffTo 填充消息
-func (e *Encoder) StuffTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
+// EncodeTo 编码消息包，写入指定目标
+func (e *Encoder) EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
 	if writer == nil {
 		return fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}

@@ -51,7 +51,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	}
 
 	// 编码消息
-	if err := t.Encoder.StuffTo(t.Buffer, me.Flags, me.Msg); err != nil {
+	if err := t.Encoder.EncodeTo(t.Buffer, me.Flags, me.Msg); err != nil {
 		return fmt.Errorf("stuff msg failed, %w", err)
 	}
 
@@ -128,7 +128,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 
 	for {
 		// 解码消息
-		mp, err := t.Decoder.Fetch(t.Buffer)
+		mp, err := t.Decoder.Decode(t.Buffer)
 		if err == nil {
 			return Event[gtp.Msg]{
 				Flags: mp.Head.Flags,
