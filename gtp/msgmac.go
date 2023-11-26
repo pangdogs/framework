@@ -14,10 +14,10 @@ type MsgMAC32 struct {
 func (m MsgMAC32) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint32(m.MAC); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -27,11 +27,11 @@ func (m *MsgMAC32) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	mac, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Data = data
 	m.MAC = mac
@@ -53,10 +53,10 @@ type MsgMAC64 struct {
 func (m MsgMAC64) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint64(m.MAC); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -66,11 +66,11 @@ func (m *MsgMAC64) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	mac, err := bs.ReadUint64()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Data = data
 	m.MAC = mac
@@ -92,10 +92,10 @@ type MsgMAC struct {
 func (m MsgMAC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.MAC); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -105,11 +105,11 @@ func (m *MsgMAC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	mac, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Data = data
 	m.MAC = mac

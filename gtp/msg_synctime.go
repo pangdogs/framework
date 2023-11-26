@@ -21,13 +21,13 @@ type MsgSyncTime struct {
 func (m MsgSyncTime) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt64(m.CorrId); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteInt64(m.LocalUnixMilli); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteInt64(m.RemoteUnixMilli); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -37,15 +37,15 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	corrId, err := bs.ReadInt64()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	localUnixMilli, err := bs.ReadInt64()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	remoteUnixMilli, err := bs.ReadInt64()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.CorrId = corrId
 	m.LocalUnixMilli = localUnixMilli

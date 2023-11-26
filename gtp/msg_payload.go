@@ -14,7 +14,7 @@ type MsgPayload struct {
 func (m MsgPayload) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -24,7 +24,7 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Data = data
 	return bs.BytesRead(), nil

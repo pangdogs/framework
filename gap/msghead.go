@@ -6,22 +6,22 @@ import (
 
 // MsgHead 消息头
 type MsgHead struct {
-	MsgId   MsgId  // 消息Id
-	SeqId   int64  // 序号
-	Address string // 服务节点地址
+	Len   uint32 // 消息长度
+	MsgId MsgId  // 消息Id
+	Seq   int64  // 序号
 }
 
 // Read implements io.Reader
-func (m *MsgHead) Read(p []byte) (int, error) {
+func (m MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteVarint(int64(m.MsgId)); err != nil {
-		return 0, err
+	if err := bs.WriteUint32(m.Len); err != nil {
+		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteVarint(m.SeqId); err != nil {
-		return 0, err
+	if err := bs.WriteUint32(m.MsgId); err != nil {
+		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.Address); err != nil {
-		return 0, err
+	if err := bs.WriteInt64(m.Seq); err != nil {
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -29,25 +29,25 @@ func (m *MsgHead) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	msgId, err := bs.ReadVarint()
+	l, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
-	seqId, err := bs.ReadVarint()
+	msgId, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
-	address, err := bs.ReadString()
+	seq, err := bs.ReadInt64()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
-	m.MsgId = MsgId(msgId)
-	m.SeqId = seqId
-	m.Address = address
+	m.Len = l
+	m.MsgId = msgId
+	m.Seq = seq
 	return bs.BytesRead(), nil
 }
 
 // Size 大小
-func (m *MsgHead) Size() int {
-	return binaryutil.SizeofVarint(int64(m.MsgId)) + binaryutil.SizeofVarint(m.SeqId) + binaryutil.SizeofString(m.Address)
+func (MsgHead) Size() int {
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofInt64()
 }

@@ -30,10 +30,10 @@ type MsgRst struct {
 func (m MsgRst) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt32(int32(m.Code)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.Message); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -43,11 +43,11 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	code, err := bs.ReadInt32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	msg, err := bs.ReadStringRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Code = Code(code)
 	m.Message = msg

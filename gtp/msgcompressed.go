@@ -14,10 +14,10 @@ type MsgCompressed struct {
 func (m MsgCompressed) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteVarint(m.OriginalSize); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -27,11 +27,11 @@ func (m *MsgCompressed) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	data, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	originalSize, err := bs.ReadVarint()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.Data = data
 	m.OriginalSize = originalSize

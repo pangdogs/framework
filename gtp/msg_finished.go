@@ -21,10 +21,10 @@ type MsgFinished struct {
 func (m MsgFinished) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint32(m.RecvSeq); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -34,11 +34,11 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	sendSeq, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	recvSeq, err := bs.ReadUint32()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.SendSeq = sendSeq
 	m.RecvSeq = recvSeq

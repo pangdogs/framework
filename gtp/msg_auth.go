@@ -17,13 +17,13 @@ type MsgAuth struct {
 func (m MsgAuth) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(m.UserId); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.Token); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Extensions); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -33,15 +33,15 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	userId, err := bs.ReadStringRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	token, err := bs.ReadStringRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	extensions, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.UserId = userId
 	m.Token = token

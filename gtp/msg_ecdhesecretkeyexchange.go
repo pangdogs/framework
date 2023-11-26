@@ -21,13 +21,13 @@ type SignatureAlgorithm struct {
 func (sa SignatureAlgorithm) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(sa.AsymmetricEncryption)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(sa.PaddingMode)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(sa.Hash)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -37,15 +37,15 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	asymmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	paddingMode, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	hash, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	sa.AsymmetricEncryption = AsymmetricEncryption(asymmetricEncryption)
 	sa.PaddingMode = PaddingMode(paddingMode)
@@ -74,25 +74,25 @@ type MsgECDHESecretKeyExchange struct {
 func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.PublicKey); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.IV); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Nonce); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.NonceStep); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if _, err := bs.ReadFrom(&m.SignatureAlgorithm); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Signature); err != nil {
-		return 0, err
+		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), nil
 }
@@ -102,31 +102,31 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	namedCurve, err := bs.ReadUint8()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	publicKey, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	iv, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	nonce, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	nonceStep, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	signatureAlgorithm := SignatureAlgorithm{}
 	if _, err := bs.WriteTo(&signatureAlgorithm); err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	signature, err := bs.ReadBytesRef()
 	if err != nil {
-		return 0, err
+		return bs.BytesRead(), err
 	}
 	m.NamedCurve = NamedCurve(namedCurve)
 	m.PublicKey = publicKey
