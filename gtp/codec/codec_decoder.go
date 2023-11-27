@@ -170,7 +170,7 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	// 创建消息体
 	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("%w (%d)", err, mp.Head.MsgId)
+		return gtp.MsgPacket{}, fmt.Errorf("spawn msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息
