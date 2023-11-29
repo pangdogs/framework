@@ -14,11 +14,9 @@ type (
 // IEncryptionModule 加密模块接口
 type IEncryptionModule interface {
 	// Transforming 变换数据
-	Transforming(dst, src []byte) ([]byte, error)
+	Transforming(dst, src []byte) (binaryutil.RecycleBytes, error)
 	// SizeOfAddition 附加数据大小
 	SizeOfAddition(msgLen int) (int, error)
-	// GC GC
-	GC()
 }
 
 // EncryptionModule 加密模块
@@ -26,51 +24,48 @@ type EncryptionModule struct {
 	Cipher     method.Cipher  // 对称密码算法
 	Padding    method.Padding // 填充方案
 	FetchNonce FetchNonce     // 获取nonce值
-	gcList     [][]byte       // GC列表
 }
 
 // Transforming 变换数据
-func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error) {
+func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.RecycleBytes, err error) {
 	if m.Cipher == nil {
-		return nil, errors.New("setting Cipher is nil")
+		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Cipher is nil")
 	}
 
 	var in []byte
 
 	is := m.Cipher.InputSize(len(src))
 	if is > len(src) {
-		buf := binaryutil.BytesPool.Get(is)
-		defer binaryutil.BytesPool.Put(buf)
+		buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(is))
+		defer buf.Release()
 
-		copy(buf, src)
-		in = buf
+		copy(buf.Data(), src)
+		in = buf.Data()
 	} else {
 		in = src
 	}
 
 	os := m.Cipher.OutputSize(len(src))
 	if os > len(dst) {
-		buf := binaryutil.BytesPool.Get(os)
+		buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(os))
 		defer func() {
-			if err == nil {
-				m.gcList = append(m.gcList, buf)
-			} else {
-				binaryutil.BytesPool.Put(buf)
+			if err != nil {
+				buf.Release()
 			}
 		}()
 
 		ret = buf
 	} else {
-		ret = dst
+		ret = binaryutil.MakeNonRecycleBytes(dst)
 	}
 
 	if m.Cipher.Pad() {
 		if m.Padding == nil {
-			return nil, errors.New("setting Padding is nil")
+			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Padding is nil")
 		}
 		err = m.Padding.Pad(in, len(src))
 		if err != nil {
-			return nil, err
+			return binaryutil.MakeNonRecycleBytes(nil), err
 		}
 	}
 
@@ -78,28 +73,29 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret []byte, err error)
 
 	if m.Cipher.NonceSize() > 0 {
 		if m.FetchNonce == nil {
-			return nil, errors.New("setting FetchNonce is nil")
+			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting FetchNonce is nil")
 		}
 		nonce, err = generic.PairFuncError(m.FetchNonce.Invoke())
 		if err != nil {
-			return nil, err
+			return binaryutil.MakeNonRecycleBytes(nil), err
 		}
 	}
 
-	ts, err := m.Cipher.Transforming(ret, in, nonce)
+	ts, err := m.Cipher.Transforming(ret.Data(), in, nonce)
 	if err != nil {
-		return nil, err
+		return binaryutil.MakeNonRecycleBytes(nil), err
 	}
-	ret = ret[:ts]
+	ret = binaryutil.SliceRecycleBytes(ret, 0, ts)
 
 	if m.Cipher.Unpad() {
 		if m.Padding == nil {
-			return nil, errors.New("setting Padding is nil")
+			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Padding is nil")
 		}
-		ret, err = m.Padding.Unpad(ret)
+		buf, err := m.Padding.Unpad(ret.Data())
 		if err != nil {
-			return nil, err
+			return binaryutil.MakeNonRecycleBytes(nil), err
 		}
+		ret = binaryutil.SliceRecycleBytes(ret, 0, len(buf))
 	}
 
 	return ret, nil
@@ -115,12 +111,4 @@ func (m *EncryptionModule) SizeOfAddition(msgLen int) (int, error) {
 		return 0, nil
 	}
 	return size, nil
-}
-
-// GC GC
-func (m *EncryptionModule) GC() {
-	for i := range m.gcList {
-		binaryutil.BytesPool.Put(m.gcList[i])
-	}
-	m.gcList = m.gcList[:0]
 }

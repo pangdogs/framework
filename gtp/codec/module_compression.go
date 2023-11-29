@@ -15,34 +15,31 @@ import (
 // ICompressionModule 压缩模块接口
 type ICompressionModule interface {
 	// Compress 压缩数据
-	Compress(src []byte) (dst []byte, compressed bool, err error)
+	Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error)
 	// Uncompress 解压缩数据
-	Uncompress(src []byte) (dst []byte, err error)
-	// GC GC
-	GC()
+	Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error)
 }
 
 // CompressionModule 压缩模块
 type CompressionModule struct {
 	CompressionStream method.CompressionStream // 压缩流
-	gcList            [][]byte                 // GC列表
 }
 
 // Compress 压缩数据
-func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, err error) {
-	if m.CompressionStream == nil {
-		return nil, false, errors.New("setting CompressionStream is nil")
-	}
-
+func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error) {
 	if len(src) <= 0 {
-		return src, false, nil
+		return binaryutil.MakeNonRecycleBytes(src), false, nil
 	}
 
-	compressedBuf := binaryutil.BytesPool.Get(len(src))
-	defer binaryutil.BytesPool.Put(compressedBuf)
+	if m.CompressionStream == nil {
+		return binaryutil.MakeNonRecycleBytes(nil), false, errors.New("setting CompressionStream is nil")
+	}
+
+	compressedBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(len(src)))
+	defer compressedBuf.Release()
 
 	n, err := func() (n int, err error) {
-		bw := binaryutil.NewBytesWriter(compressedBuf)
+		bw := binaryutil.NewBytesWriter(compressedBuf.Data())
 		w, err := m.CompressionStream.WrapWriter(bw)
 		if err != nil {
 			return 0, err
@@ -62,82 +59,70 @@ func (m *CompressionModule) Compress(src []byte) (dst []byte, compressed bool, e
 	}()
 	if err != nil {
 		if errors.Is(err, binaryutil.ErrLimitReached) {
-			return src, false, nil
+			return binaryutil.MakeNonRecycleBytes(src), false, nil
 		}
-		return nil, false, err
+		return binaryutil.MakeNonRecycleBytes(nil), false, err
 	}
 
 	msgCompressed := gtp.MsgCompressed{
-		Data:         compressedBuf[:n],
+		Data:         compressedBuf.Data()[:n],
 		OriginalSize: int64(len(src)),
 	}
 
 	if msgCompressed.Size() >= len(src) {
-		return src, false, nil
+		return binaryutil.MakeNonRecycleBytes(src), false, nil
 	}
 
-	buf := binaryutil.BytesPool.Get(msgCompressed.Size())
+	buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msgCompressed.Size()))
 	defer func() {
-		if compressed {
-			m.gcList = append(m.gcList, buf)
-		} else {
-			binaryutil.BytesPool.Put(buf)
+		if err != nil {
+			buf.Release()
 		}
 	}()
 
-	if _, err = msgCompressed.Read(buf); err != nil {
-		return nil, false, err
+	if _, err = msgCompressed.Read(buf.Data()); err != nil {
+		return binaryutil.MakeNonRecycleBytes(nil), false, err
 	}
 
 	return buf, true, nil
 }
 
 // Uncompress 解压缩数据
-func (m *CompressionModule) Uncompress(src []byte) (dst []byte, err error) {
-	if m.CompressionStream == nil {
-		return nil, errors.New("setting CompressionStream is nil")
+func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
+	if len(src) <= 0 {
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: src too small", golaxy.ErrArgs)
 	}
 
-	if len(src) <= 0 {
-		return nil, fmt.Errorf("%w: src too small", golaxy.ErrArgs)
+	if m.CompressionStream == nil {
+		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting CompressionStream is nil")
 	}
 
 	msgCompressed := gtp.MsgCompressed{}
 
 	_, err = msgCompressed.Write(src)
 	if err != nil {
-		return nil, err
+		return binaryutil.MakeNonRecycleBytes(nil), err
 	}
 
 	if msgCompressed.OriginalSize >= math.MaxInt32 {
-		return nil, errors.New("OriginalSize too large")
+		return binaryutil.MakeNonRecycleBytes(nil), errors.New("OriginalSize too large")
 	}
 
-	rawBuf := binaryutil.BytesPool.Get(int(msgCompressed.OriginalSize))
+	rawBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(msgCompressed.OriginalSize)))
 	defer func() {
-		if err == nil {
-			m.gcList = append(m.gcList, rawBuf)
-		} else {
-			binaryutil.BytesPool.Put(rawBuf)
+		if err != nil {
+			rawBuf.Release()
 		}
 	}()
 
 	r, err := m.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
 	if err != nil {
-		return nil, err
+		return binaryutil.MakeNonRecycleBytes(nil), err
 	}
 
-	if _, err = r.Read(rawBuf); err != nil && !errors.Is(err, io.EOF) {
-		return nil, err
+	if _, err = r.Read(rawBuf.Data()); err != nil && !errors.Is(err, io.EOF) {
+		return binaryutil.MakeNonRecycleBytes(nil), err
 	}
 
 	return rawBuf, nil
-}
-
-// GC GC
-func (m *CompressionModule) GC() {
-	for i := range m.gcList {
-		binaryutil.BytesPool.Put(m.gcList[i])
-	}
-	m.gcList = m.gcList[:0]
 }
