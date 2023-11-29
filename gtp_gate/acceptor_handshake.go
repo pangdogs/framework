@@ -351,11 +351,6 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 		encEncryptionModule := &codec.EncryptionModule{}
 		decEncryptionModule := &codec.EncryptionModule{}
 
-		defer func() {
-			encEncryptionModule.GC()
-			decEncryptionModule.GC()
-		}()
-
 		// 设置分组对齐填充方案
 		if encEncryptionModule.Padding, err = acc.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
 			return err
@@ -391,6 +386,10 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 
 		// 临时共享秘钥
 		var sharedKeyBytes []byte
+
+		// 加密后的hello消息
+		var encryptedHello binaryutil.RecycleBytes
+		defer encryptedHello.Release()
 
 		// 与客户端交换秘钥
 		err = handshake.ServerECDHESecretKeyExchange(
@@ -462,7 +461,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 				decEncryptionModule.Cipher = decrypter
 
 				// 加密hello消息
-				encryptedHello, err := encEncryptionModule.Transforming(nil, servHelloBytes)
+				encryptedHello, err = encEncryptionModule.Transforming(nil, servHelloBytes)
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
@@ -473,7 +472,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 				return transport.Event[gtp.MsgChangeCipherSpec]{
 					Flags: gtp.Flags(gtp.Flag_VerifyEncryption),
 					Msg: gtp.MsgChangeCipherSpec{
-						EncryptedHello: encryptedHello,
+						EncryptedHello: encryptedHello.Data(),
 					},
 				}, nil
 			}, func(cliChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) error {
@@ -490,8 +489,9 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 						Message: fmt.Sprintf("decrypt hello failed, %s", err),
 					}
 				}
+				defer decryptedHello.Release()
 
-				if bytes.Compare(decryptedHello, cliHelloBytes) != 0 {
+				if bytes.Compare(decryptedHello.Data(), cliHelloBytes) != 0 {
 					return &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: "verify hello failed",

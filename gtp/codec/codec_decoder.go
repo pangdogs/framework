@@ -44,12 +44,12 @@ type IDecoder interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator        gtp.IMsgCreator    // 消息对象构建器
-	EncryptionModule  IEncryptionModule  // 加密模块
-	MACModule         IMACModule         // MAC模块
-	CompressionModule ICompressionModule // 压缩模块
-	buffer            bytes.Buffer       // buffer
-	gcList            [][]byte           // GC列表
+	MsgCreator        gtp.IMsgCreator           // 消息对象构建器
+	EncryptionModule  IEncryptionModule         // 加密模块
+	MACModule         IMACModule                // MAC模块
+	CompressionModule ICompressionModule        // 压缩模块
+	buffer            bytes.Buffer              // buffer
+	gcList            []binaryutil.RecycleBytes // GC列表
 }
 
 // Write implements io.Writer
@@ -105,11 +105,11 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 		return gtp.MsgPacket{}, fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, buff.Len(), mpl.Len)
 	}
 
-	buf := binaryutil.BytesPool.Get(int(mpl.Len))
+	buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(mpl.Len)))
 	d.gcList = append(d.gcList, buf)
 
 	// 读取消息包
-	_, err = buff.Read(buf)
+	_, err = buff.Read(buf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-bytes failed, %w", err)
 	}
@@ -117,12 +117,12 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err = mp.Head.Write(buf)
+	_, err = mp.Head.Write(buf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
 
-	msgBuf := buf[mp.Head.Size():]
+	msgBuf := buf.Data()[mp.Head.Size():]
 
 	// 验证消息包
 	if validate != nil {
@@ -138,10 +138,14 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 		if d.EncryptionModule == nil {
 			return gtp.MsgPacket{}, errors.New("setting EncryptionModule is nil, msg can't be decrypted")
 		}
-		msgBuf, err = d.EncryptionModule.Transforming(msgBuf, msgBuf)
+		dencryptBuf, err := d.EncryptionModule.Transforming(msgBuf, msgBuf)
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("dencrypt msg failed, %w", err)
 		}
+		if dencryptBuf.Recyclable() {
+			d.gcList = append(d.gcList, dencryptBuf)
+		}
+		msgBuf = dencryptBuf.Data()
 
 		// 检查MAC标记
 		if mp.Head.Flags.Is(gtp.Flag_MAC) {
@@ -161,10 +165,14 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 		if d.CompressionModule == nil {
 			return gtp.MsgPacket{}, errors.New("setting CompressionModule is nil, msg can't be uncompress")
 		}
-		msgBuf, err = d.CompressionModule.Uncompress(msgBuf)
+		uncompressedBuf, err := d.CompressionModule.Uncompress(msgBuf)
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("uncompress msg failed, %w", err)
 		}
+		if uncompressedBuf.Recyclable() {
+			d.gcList = append(d.gcList, uncompressedBuf)
+		}
+		msgBuf = uncompressedBuf.Data()
 	}
 
 	// 创建消息体
@@ -205,19 +213,7 @@ func (d *Decoder) GetCompressionModule() ICompressionModule {
 // GC GC
 func (d *Decoder) GC() {
 	for i := range d.gcList {
-		binaryutil.BytesPool.Put(d.gcList[i])
+		d.gcList[i].Release()
 	}
 	d.gcList = d.gcList[:0]
-
-	if d.EncryptionModule != nil {
-		d.EncryptionModule.GC()
-	}
-
-	if d.MACModule != nil {
-		d.MACModule.GC()
-	}
-
-	if d.CompressionModule != nil {
-		d.CompressionModule.GC()
-	}
 }

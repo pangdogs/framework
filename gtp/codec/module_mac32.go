@@ -11,13 +11,12 @@ import (
 type MAC32Module struct {
 	Hash       hash.Hash32 // hash(32bit)函数
 	PrivateKey []byte      // 秘钥
-	gcList     [][]byte    // GC列表
 }
 
 // PatchMAC 补充MAC
-func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
-		return nil, errors.New("setting Hash is nil")
+		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Hash is nil")
 	}
 
 	m.Hash.Reset()
@@ -31,18 +30,16 @@ func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 		MAC:  m.Hash.Sum32(),
 	}
 
-	buf := binaryutil.BytesPool.Get(msgMAC.Size())
+	buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msgMAC.Size()))
 	defer func() {
-		if err == nil {
-			m.gcList = append(m.gcList, buf)
-		} else {
-			binaryutil.BytesPool.Put(buf)
+		if err != nil {
+			buf.Release()
 		}
 	}()
 
-	_, err = msgMAC.Read(buf)
+	_, err = msgMAC.Read(buf.Data())
 	if err != nil {
-		return nil, err
+		return binaryutil.MakeNonRecycleBytes(nil), err
 	}
 
 	return buf, nil
@@ -77,12 +74,4 @@ func (m *MAC32Module) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte)
 // SizeofMAC MAC大小
 func (m *MAC32Module) SizeofMAC(msgLen int) int {
 	return binaryutil.SizeofVarint(int64(msgLen)) + binaryutil.SizeofUint32()
-}
-
-// GC GC
-func (m *MAC32Module) GC() {
-	for i := range m.gcList {
-		binaryutil.BytesPool.Put(m.gcList[i])
-	}
-	m.gcList = m.gcList[:0]
 }

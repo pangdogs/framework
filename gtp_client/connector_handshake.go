@@ -223,10 +223,9 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 		encEncryptionModule := &codec.EncryptionModule{}
 		decEncryptionModule := &codec.EncryptionModule{}
 
-		defer func() {
-			encEncryptionModule.GC()
-			decEncryptionModule.GC()
-		}()
+		// 加密后的hello消息
+		var encryptedHello binaryutil.RecycleBytes
+		defer encryptedHello.Release()
 
 		// 与服务端交换秘钥
 		err := handshake.ClientSecretKeyExchange(func(e transport.Event[gtp.Msg]) (transport.Event[gtp.MsgReader], error) {
@@ -330,8 +329,9 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
 				}
+				defer decryptedHello.Release()
 
-				if bytes.Compare(decryptedHello, servHelloBytes) != 0 {
+				if bytes.Compare(decryptedHello.Data(), servHelloBytes) != 0 {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
 				}
 			}
@@ -342,11 +342,13 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 
 			// 加密hello消息
 			if verifyEncryption {
-				encryptedHello, err := encEncryptionModule.Transforming(nil, cliHelloBytes)
+				var err error
+				encryptedHello, err = encEncryptionModule.Transforming(nil, cliHelloBytes)
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
 				}
-				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello
+
+				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello.Data()
 			}
 
 			return cliChangeCipherSpec, nil
