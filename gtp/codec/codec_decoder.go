@@ -105,11 +105,11 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 		return gtp.MsgPacket{}, fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, buff.Len(), mpl.Len)
 	}
 
-	buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(mpl.Len)))
-	d.gcList = append(d.gcList, buf)
+	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(mpl.Len)))
+	d.gcList = append(d.gcList, mpBuf)
 
 	// 读取消息包
-	_, err = buff.Read(buf.Data())
+	_, err = buff.Read(mpBuf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-bytes failed, %w", err)
 	}
@@ -117,12 +117,12 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err = mp.Head.Write(buf.Data())
+	_, err = mp.Head.Write(mpBuf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
 
-	msgBuf := buf.Data()[mp.Head.Size():]
+	msgBuf := mpBuf.Data()[mp.Head.Size():]
 
 	// 验证消息包
 	if validate != nil {
