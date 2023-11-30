@@ -20,18 +20,6 @@ type IEncoder interface {
 	Encode(flags gtp.Flags, msg gtp.MsgReader) error
 	// EncodeTo 编码消息包，写入指定目标
 	EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
-	// GetEncryptionModule 获取加密模块
-	GetEncryptionModule() IEncryptionModule
-	// GetMACModule 获取MAC模块
-	GetMACModule() IMACModule
-	// GetCompressionModule 获取压缩模块
-	GetCompressionModule() ICompressionModule
-	// GetEncryption 获取开启加密
-	GetEncryption() bool
-	// GetPatchMAC 获取开启MAC
-	GetPatchMAC() bool
-	// GetCompressedSize 获取启用压缩阀值（字节），<=0表示不开启
-	GetCompressedSize() int
 }
 
 // Encoder 消息包编码器
@@ -178,34 +166,4 @@ func (e *Encoder) EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader)
 	}
 
 	return nil
-}
-
-// GetEncryptionModule 获取加密模块
-func (e *Encoder) GetEncryptionModule() IEncryptionModule {
-	return e.EncryptionModule
-}
-
-// GetMACModule 获取MAC模块
-func (e *Encoder) GetMACModule() IMACModule {
-	return e.MACModule
-}
-
-// GetCompressionModule 获取压缩模块
-func (e *Encoder) GetCompressionModule() ICompressionModule {
-	return e.CompressionModule
-}
-
-// GetEncryption 获取开启加密
-func (e *Encoder) GetEncryption() bool {
-	return e.Encryption
-}
-
-// GetPatchMAC 获取开启MAC
-func (e *Encoder) GetPatchMAC() bool {
-	return e.PatchMAC
-}
-
-// GetCompressedSize 获取启用压缩阀值（字节），<=0表示不开启
-func (e *Encoder) GetCompressedSize() int {
-	return e.CompressedSize
 }

@@ -30,14 +30,6 @@ type IDecoder interface {
 	Decode(validate IValidate) (gtp.MsgPacket, error)
 	// DecodeFrom 从指定源，解码消息包
 	DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
-	// GetMsgCreator 获取消息对象构建器
-	GetMsgCreator() gtp.IMsgCreator
-	// GetEncryptionModule 获取加密模块
-	GetEncryptionModule() IEncryptionModule
-	// GetMACModule 获取MAC模块
-	GetMACModule() IMACModule
-	// GetCompressionModule 获取压缩模块
-	GetCompressionModule() ICompressionModule
 	// GC GC
 	GC()
 }
@@ -188,26 +180,6 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	}
 
 	return mp, nil
-}
-
-// GetMsgCreator 获取消息对象构建器
-func (d *Decoder) GetMsgCreator() gtp.IMsgCreator {
-	return d.MsgCreator
-}
-
-// GetEncryptionModule 获取加密模块
-func (d *Decoder) GetEncryptionModule() IEncryptionModule {
-	return d.EncryptionModule
-}
-
-// GetMACModule 获取MAC模块
-func (d *Decoder) GetMACModule() IMACModule {
-	return d.MACModule
-}
-
-// GetCompressionModule 获取压缩模块
-func (d *Decoder) GetCompressionModule() ICompressionModule {
-	return d.CompressionModule
 }
 
 // GC GC
