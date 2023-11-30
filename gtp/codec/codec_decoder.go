@@ -109,7 +109,7 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err = mp.Head.Write(mpBuf.Data())
+	_, err = mp.Write(mpBuf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
