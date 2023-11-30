@@ -26,10 +26,12 @@ type IDecoder interface {
 	io.ReaderFrom
 	// Reset 重置缓存
 	Reset()
-	// Decode 解码消息包
-	Decode(validate IValidate) (gtp.MsgPacket, error)
-	// DecodeFrom 从指定源，解码消息包
-	DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error)
+	// Decode 从缓存，解码消息包
+	Decode(validate ...IValidate) (gtp.MsgPacket, error)
+	// DecodeBuff 从指定buff，解码消息包
+	DecodeBuff(buff *bytes.Buffer, validate ...IValidate) (gtp.MsgPacket, error)
+	// DecodeBytes 从指定bytes，解码消息包
+	DecodeBytes(data []byte, validate ...IValidate) (gtp.MsgPacket, error)
 	// GC GC
 	GC()
 }
@@ -70,46 +72,86 @@ func (d *Decoder) Reset() {
 	d.buffer.Reset()
 }
 
-// Decode 解码消息包
-func (d *Decoder) Decode(validate IValidate) (gtp.MsgPacket, error) {
-	return d.DecodeFrom(&d.buffer, validate)
+// Decode 从缓存，解码消息包
+func (d *Decoder) Decode(validate ...IValidate) (gtp.MsgPacket, error) {
+	return d.DecodeBuff(&d.buffer, validate...)
 }
 
-// DecodeFrom 从指定源，解码消息包
-func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPacket, error) {
+// DecodeBuff 从指定buff，解码消息包
+func (d *Decoder) DecodeBuff(buff *bytes.Buffer, validate ...IValidate) (gtp.MsgPacket, error) {
 	if buff == nil {
 		return gtp.MsgPacket{}, fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
 	}
 
+	// 探测消息包长度
+	length, err := d.lengthDetection(buff.Bytes())
+	if err != nil {
+		return gtp.MsgPacket{}, err
+	}
+
+	// 解码消息包
+	mp, err := d.decode(buff.Bytes(), length, validate...)
+
+	// 丢弃消息包数据
+	buff.Next(length)
+
+	return mp, err
+}
+
+// DecodeBytes 从指定bytes，解码消息包
+func (d *Decoder) DecodeBytes(data []byte, validate ...IValidate) (gtp.MsgPacket, error) {
+	// 探测消息包长度
+	length, err := d.lengthDetection(data)
+	if err != nil {
+		return gtp.MsgPacket{}, err
+	}
+
+	// 解码消息包
+	return d.decode(data, length, validate...)
+}
+
+// GC GC
+func (d *Decoder) GC() {
+	for i := range d.gcList {
+		d.gcList[i].Release()
+	}
+	d.gcList = d.gcList[:0]
+}
+
+// lengthDetection 消息包长度探针
+func (d *Decoder) lengthDetection(data []byte) (int, error) {
+	mpl := gtp.MsgPacketLen{}
+
+	// 读取消息包长度
+	_, err := mpl.Write(data)
+	if err != nil {
+		return 0, ErrBufferNotEnough
+	}
+
+	if len(data) < int(mpl.Len) {
+		return int(mpl.Len), fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, len(data), mpl.Len)
+	}
+
+	return int(mpl.Len), nil
+}
+
+// decode 解码消息包
+func (d *Decoder) decode(data []byte, length int, validate ...IValidate) (gtp.MsgPacket, error) {
 	if d.MsgCreator == nil {
 		return gtp.MsgPacket{}, errors.New("setting MsgCreator is nil")
 	}
 
-	mpl := gtp.MsgPacketLen{}
-
-	// 读取消息包长度
-	_, err := mpl.Write(buff.Bytes())
-	if err != nil {
-		return gtp.MsgPacket{}, ErrBufferNotEnough
-	}
-
-	if buff.Len() < int(mpl.Len) {
-		return gtp.MsgPacket{}, fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, buff.Len(), mpl.Len)
-	}
-
-	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(mpl.Len)))
+	// 消息包数据缓存
+	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(length))
 	d.gcList = append(d.gcList, mpBuf)
 
-	// 读取消息包
-	_, err = buff.Read(mpBuf.Data())
-	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-bytes failed, %w", err)
-	}
+	// 拷贝消息包
+	copy(mpBuf.Data(), data[:length])
 
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err = mp.Write(mpBuf.Data())
+	_, err := mp.Write(mpBuf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
 	}
@@ -117,8 +159,8 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	msgBuf := mpBuf.Data()[mp.Head.Size():]
 
 	// 验证消息包
-	if validate != nil {
-		err = validate.Validate(mp.Head, msgBuf)
+	if len(validate) > 0 {
+		err = validate[0].Validate(mp.Head, msgBuf)
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("validate msg-packet-head failed, %w", err)
 		}
@@ -180,12 +222,4 @@ func (d *Decoder) DecodeFrom(buff *bytes.Buffer, validate IValidate) (gtp.MsgPac
 	}
 
 	return mp, nil
-}
-
-// GC GC
-func (d *Decoder) GC() {
-	for i := range d.gcList {
-		d.gcList[i].Release()
-	}
-	d.gcList = d.gcList[:0]
 }

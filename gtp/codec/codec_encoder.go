@@ -16,10 +16,14 @@ type IEncoder interface {
 	io.WriterTo
 	// Reset 重置缓存
 	Reset()
-	// Encode 编码消息包
+	// Encode 编码消息包，写入缓存
 	Encode(flags gtp.Flags, msg gtp.MsgReader) error
-	// EncodeTo 编码消息包，写入指定目标
-	EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
+	// EncodeWriter 编码消息包，写入指定writer
+	EncodeWriter(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error
+	// EncodeBuff 编码消息包，写入指定buffer
+	EncodeBuff(buff *bytes.Buffer, flags gtp.Flags, msg gtp.MsgReader) error
+	// EncodeBytes 编码消息包，返回可回收bytes
+	EncodeBytes(flags gtp.Flags, msg gtp.MsgReader) (binaryutil.RecycleBytes, error)
 }
 
 // Encoder 消息包编码器
@@ -51,19 +55,48 @@ func (e *Encoder) Reset() {
 	e.buffer.Reset()
 }
 
-// Encode 编码消息包
+// Encode 编码消息包，写入缓存
 func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) error {
-	return e.EncodeTo(&e.buffer, flags, msg)
+	return e.EncodeWriter(&e.buffer, flags, msg)
 }
 
-// EncodeTo 编码消息包，写入指定目标
-func (e *Encoder) EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
+// EncodeWriter 编码消息包，写入指定writer
+func (e *Encoder) EncodeWriter(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
 	if writer == nil {
 		return fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}
 
+	mpBuf, err := e.encode(flags, msg)
+	if err != nil {
+		return err
+	}
+	defer mpBuf.Release()
+
+	_, err = writer.Write(mpBuf.Data())
+	if err != nil {
+		return fmt.Errorf("write msg-packet-bytes failed, %w", err)
+	}
+
+	return nil
+}
+
+// EncodeBuff 编码消息包，写入指定buffer
+func (e *Encoder) EncodeBuff(buff *bytes.Buffer, flags gtp.Flags, msg gtp.MsgReader) error {
+	if buff == nil {
+		return fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
+	}
+	return e.EncodeWriter(buff, flags, msg)
+}
+
+// EncodeBytes 编码消息包，返回可回收bytes
+func (e *Encoder) EncodeBytes(flags gtp.Flags, msg gtp.MsgReader) (binaryutil.RecycleBytes, error) {
+	return e.encode(flags, msg)
+}
+
+// encode 编码消息包
+func (e *Encoder) encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
-		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
 
 	head := gtp.MsgHead{}
@@ -78,47 +111,51 @@ func (e *Encoder) EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader)
 
 	if e.Encryption {
 		if e.EncryptionModule == nil {
-			return errors.New("setting EncryptionModule is nil, msg can't be encrypted")
+			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting EncryptionModule is nil, msg can't be encrypted")
 		}
 		encAddition, err := e.EncryptionModule.SizeOfAddition(msg.Size())
 		if err != nil {
-			return fmt.Errorf("encrypt SizeOfAddition failed, %w", err)
+			return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("encrypt SizeOfAddition failed, %w", err)
 		}
 		msgAddition += encAddition
 
 		if e.PatchMAC {
 			if e.MACModule == nil {
-				return errors.New("setting MACModule is nil, msg can't be patch MAC")
+				return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting MACModule is nil, msg can't be patch MAC")
 			}
 			msgAddition += e.MACModule.SizeofMAC(msg.Size() + encAddition)
 		}
 	}
 
 	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(head.Size() + msg.Size() + msgAddition))
-	defer mpBuf.Release()
+	defer func() {
+		if err != nil {
+			mpBuf.Release()
+		}
+	}()
 
 	// 写入消息
 	mn, err := msg.Read(mpBuf.Data()[head.Size():])
 	if err != nil {
-		return fmt.Errorf("write msg failed, %w", err)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("write msg failed, %w", err)
 	}
 	end := head.Size() + mn
 
 	// 消息长度达到阀值，需要压缩消息
 	if e.CompressedSize > 0 && msg.Size() >= e.CompressedSize {
 		if e.CompressionModule == nil {
-			return errors.New("setting CompressionModule is nil, msg can't be compress")
+			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting CompressionModule is nil, msg can't be compress")
 		}
-		buf, compressed, err := e.CompressionModule.Compress(mpBuf.Data()[head.Size():end])
+		compressedBuf, compressed, err := e.CompressionModule.Compress(mpBuf.Data()[head.Size():end])
 		if err != nil {
-			return fmt.Errorf("compress msg failed, %w", err)
+			return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("compress msg failed, %w", err)
 		}
-		defer buf.Release()
+		defer compressedBuf.Release()
 		if compressed {
 			head.Flags.Set(gtp.Flag_Compressed, true)
 
-			copy(mpBuf.Data()[head.Size():], buf.Data())
-			end = head.Size() + len(buf.Data())
+			copy(mpBuf.Data()[head.Size():], compressedBuf.Data())
+			end = head.Size() + len(compressedBuf.Data())
 		}
 	}
 
@@ -131,39 +168,38 @@ func (e *Encoder) EncodeTo(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader)
 			head.Flags.Set(gtp.Flag_MAC, true)
 
 			if _, err = head.Read(mpBuf.Data()); err != nil {
-				return fmt.Errorf("failed to write msg-packet-head for patch msg-mac, %w", err)
+				return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("failed to write msg-packet-head for patch msg-mac, %w", err)
 			}
 
-			buf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
+			macBuf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
 			if err != nil {
-				return fmt.Errorf("patch msg-mac failed, %w", err)
+				return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("patch msg-mac failed, %w", err)
 			}
-			defer buf.Release()
+			defer macBuf.Release()
 
-			copy(mpBuf.Data()[head.Size():], buf.Data())
-			end = head.Size() + len(buf.Data())
+			copy(mpBuf.Data()[head.Size():], macBuf.Data())
+			end = head.Size() + len(macBuf.Data())
 		}
 
-		buf, err := e.EncryptionModule.Transforming(mpBuf.Data()[head.Size():end], mpBuf.Data()[head.Size():end])
+		// 加密消息体
+		encryptBuf, err := e.EncryptionModule.Transforming(mpBuf.Data()[head.Size():end], mpBuf.Data()[head.Size():end])
 		if err != nil {
-			return fmt.Errorf("encrypt msg failed, %w", err)
+			return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("encrypt msg failed, %w", err)
 		}
-		defer buf.Release()
+		defer encryptBuf.Release()
 
-		copy(mpBuf.Data()[head.Size():], buf.Data())
-		end = head.Size() + len(buf.Data())
+		copy(mpBuf.Data()[head.Size():], encryptBuf.Data())
+		end = head.Size() + len(encryptBuf.Data())
 	}
+
+	// 调整消息大小
+	mpBuf = binaryutil.SliceRecycleBytes(mpBuf, 0, end)
 
 	// 写入消息头
-	head.Len = uint32(end)
+	head.Len = uint32(len(mpBuf.Data()))
 	if _, err = head.Read(mpBuf.Data()); err != nil {
-		return fmt.Errorf("write msg-packet-head failed, %w", err)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("write msg-packet-head failed, %w", err)
 	}
 
-	_, err = writer.Write(mpBuf.Data()[:end])
-	if err != nil {
-		return fmt.Errorf("write msg-packet-bytes failed, %w", err)
-	}
-
-	return nil
+	return mpBuf, nil
 }

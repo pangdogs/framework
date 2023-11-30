@@ -51,7 +51,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	}
 
 	// 编码消息
-	if err := t.Encoder.EncodeTo(t.Buffer, me.Flags, me.Msg); err != nil {
+	if err := t.Encoder.EncodeWriter(t.Buffer, me.Flags, me.Msg); err != nil {
 		return fmt.Errorf("stuff msg failed, %w", err)
 	}
 
