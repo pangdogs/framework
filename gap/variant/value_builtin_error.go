@@ -5,6 +5,18 @@ import (
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
+// MakeError 创建可变类型error
+func MakeError(err error) Error {
+	if err == nil {
+		return Error{}
+	} else {
+		return Error{
+			Code:    -1,
+			Message: err.Error(),
+		}
+	}
+}
+
 // Error builtin error
 type Error struct {
 	Code    int32

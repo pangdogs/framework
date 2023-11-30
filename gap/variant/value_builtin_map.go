@@ -4,13 +4,13 @@ import (
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
-// MakeMap 创建Map
+// MakeMap 创建可变类型map
 func MakeMap[K comparable, V any](m map[K]V) (Map, error) {
-	var varMap Map
-	var err error
+	varMap := make(Map, 0, len(m))
 
 	for k, v := range m {
 		var kv KV
+		var err error
 
 		kv.K, err = CastVariant(k)
 		if err != nil {

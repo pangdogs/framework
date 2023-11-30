@@ -18,7 +18,7 @@ type IVariantCreator interface {
 	// Deregister 取消注册类型
 	Deregister(typeId TypeId)
 	// Spawn 构建对象
-	Spawn(typeId TypeId) (Variant, error)
+	Spawn(typeId TypeId) (Value, error)
 }
 
 var variantCreator = _NewVariantCreator()
@@ -45,7 +45,7 @@ func init() {
 	VariantCreator().Register(new(Bool))
 	VariantCreator().Register(new(Bytes))
 	VariantCreator().Register(new(String))
-	VariantCreator().Register(&Null{})
+	VariantCreator().Register(Null{})
 	VariantCreator().Register(&Map{})
 	VariantCreator().Register(&Array{})
 	VariantCreator().Register(&Error{})
@@ -81,17 +81,14 @@ func (c *_VariantCreator) Deregister(typeId TypeId) {
 }
 
 // Spawn 构建对象
-func (c *_VariantCreator) Spawn(typeId TypeId) (Variant, error) {
+func (c *_VariantCreator) Spawn(typeId TypeId) (Value, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	rtype, ok := c.variantTypeMap[typeId]
 	if !ok {
-		return Variant{}, ErrNotRegistered
+		return nil, ErrNotRegistered
 	}
 
-	return Variant{
-		TypeId: typeId,
-		Value:  reflect.New(rtype).Interface().(Value),
-	}, nil
+	return reflect.New(rtype).Interface().(Value), nil
 }

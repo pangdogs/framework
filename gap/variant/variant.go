@@ -42,18 +42,19 @@ func (v *Variant) Write(p []byte) (int, error) {
 		return wn, err
 	}
 
-	variant, err := VariantCreator().Spawn(typeId)
+	value, err := typeId.New()
 	if err != nil {
 		return wn, err
 	}
 
-	n, err = variant.Value.Write(p[wn:])
+	n, err = value.Write(p[wn:])
 	wn += n
 	if err != nil {
 		return wn, err
 	}
 
-	*v = variant
+	v.TypeId = typeId
+	v.Value = value
 
 	return wn, nil
 }
@@ -144,10 +145,8 @@ func CastVariant(a any) (Variant, error) {
 	case *Error:
 		return MakeVariant(v)
 	case error:
-		return MakeVariant(&Error{
-			Code:    -1,
-			Message: v.Error(),
-		})
+		value := MakeError(v)
+		return MakeVariant(&value)
 	default:
 		value, ok := a.(Value)
 		if !ok {

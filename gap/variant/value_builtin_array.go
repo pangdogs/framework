@@ -4,9 +4,9 @@ import (
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
-// MakeArray 创建Array
+// MakeArray 创建可变类型array
 func MakeArray[T any](arr []T) (Array, error) {
-	var varArr Array
+	varArr := make(Array, 0, len(arr))
 
 	for i := range arr {
 		variant, err := CastVariant(arr[i])
