@@ -2,7 +2,9 @@ package distributed
 
 import (
 	"golang.org/x/net/context"
+	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/broker"
+	"kit.golaxy.org/plugins/gap/codec"
 	"kit.golaxy.org/plugins/log"
 	"time"
 )
@@ -20,8 +22,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			err := d.registry.Register(d.ctx, d.service, d.Options.RefreshInterval*2)
-			if err != nil {
+			if err := d.registry.Register(d.ctx, d.service, d.Options.RefreshInterval*2); err != nil {
 				log.Errorf(d.ctx, "refresh service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 				continue
 			}
@@ -34,8 +35,7 @@ loop:
 	}
 
 	// 取消注册服务节点
-	err := d.registry.Deregister(context.Background(), d.service)
-	if err != nil {
+	if err := d.registry.Deregister(context.Background(), d.service); err != nil {
 		log.Errorf(d.ctx, "deregister service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 
@@ -49,9 +49,9 @@ loop:
 
 // handleEvent 处理事件
 func (d *_Distributed) handleEvent(e broker.Event) error {
-	e.Message()
-
-	e.Topic()
-
-	return nil
+	mp, err := codec.DefaultDecoder().DecodeBytes(e.Message())
+	if err != nil {
+		return err
+	}
+	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp.Msg))
 }

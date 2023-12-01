@@ -4,34 +4,36 @@ import (
 	"errors"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/generic"
+	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/dsync"
+	"kit.golaxy.org/plugins/gap"
+	"kit.golaxy.org/plugins/gap/codec"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"kit.golaxy.org/plugins/util/concurrent"
 	"math/rand"
-	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // Distributed 分布式服务支持
 type Distributed interface {
+	// SendMsg 发送消息
+	SendMsg(dst string, msg gap.Msg) error
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
 	// GetAddress 获取服务节点地址
 	GetAddress() string
 }
 
-func newDistributed(options ...DistributedOption) Distributed {
-	opts := DistributedOptions{}
-	Option{}.Default()(&opts)
-
-	for i := range options {
-		options[i](&opts)
+func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
+	return &_Distributed{
+		Options: option.Make(Option{}.Default(), setting...),
 	}
-
-	return &_Distributed{}
 }
 
 type _Distributed struct {
@@ -42,8 +44,10 @@ type _Distributed struct {
 	dsync    dsync.DSync
 	service  registry.Service
 	subs     []broker.Subscriber
-	wg       sync.WaitGroup
 	futures  concurrent.Futures
+	sendSeq  int64
+	recvSeq  map[string]int64
+	wg       sync.WaitGroup
 }
 
 // InitSP 初始化服务插件
@@ -62,8 +66,12 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.futures.Id = rand.Int63()
 	d.futures.Timeout = d.Options.FutureTimeout
 
+	// 初始化序号
+	d.sendSeq = time.Now().UnixMicro()
+	d.recvSeq = map[string]int64{}
+
 	// 加分布式锁
-	mutex := d.dsync.NewMutex(strings.Join([]string{"service", d.ctx.GetName(), d.ctx.GetId().String()}, d.dsync.Separator()))
+	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))
 	if err := mutex.Lock(d.ctx); err != nil {
 		log.Panicf(d.ctx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
@@ -84,7 +92,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		Nodes: []registry.Node{
 			{
 				Id:      d.ctx.GetId().String(),
-				Address: strings.Join([]string{"service", d.ctx.GetName(), d.ctx.GetId().String()}, d.broker.Separator()),
+				Address: broker.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()),
 			},
 		},
 	}
@@ -93,12 +101,10 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.subs = append(d.subs,
 		// 订阅全服topic
 		d.subscribe("service", ""),
-		d.subscribe(strings.Join([]string{"service", "balance"}, d.broker.Separator()), "balance"),
-
+		d.subscribe(broker.Path(d.ctx, "service", "balance"), "balance"),
 		// 订阅服务类型topic
-		d.subscribe(strings.Join([]string{"service", d.ctx.GetName()}, d.broker.Separator()), ""),
-		d.subscribe(strings.Join([]string{"service", "balance", d.ctx.GetName()}, d.broker.Separator()), "balance"),
-
+		d.subscribe(broker.Path(d.ctx, "service", d.ctx.GetName()), ""),
+		d.subscribe(broker.Path(d.ctx, "service", "balance", d.ctx.GetName()), "balance"),
 		// 订阅服务节点topic
 		d.subscribe(d.GetAddress(), ""),
 	)
@@ -110,6 +116,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 	log.Infof(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
 
+	// 开始运行
 	d.wg.Add(1)
 	go d.run()
 }
@@ -119,6 +126,19 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin %q", Name)
 
 	d.wg.Wait()
+}
+
+// SendMsg 发送消息
+func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
+	seq := atomic.AddInt64(&d.sendSeq, 1)
+
+	mpBuf, err := codec.DefaultEncoder().EncodeBytes(seq, msg)
+	if err != nil {
+		return err
+	}
+	defer mpBuf.Release()
+
+	return d.broker.Publish(context.Background(), dst, mpBuf.Data())
 }
 
 // GetFutures 获取异步模型Future控制器
@@ -132,7 +152,9 @@ func (d *_Distributed) GetAddress() string {
 }
 
 func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {
-	sub, err := d.broker.Subscribe(d.ctx, topic, broker.Option{}.EventHandler(d.handleEvent), broker.Option{}.Queue(queue))
+	sub, err := d.broker.Subscribe(d.ctx, topic,
+		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
+		broker.Option{}.Queue(queue))
 	if err != nil {
 		log.Panicf(d.ctx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
 	}

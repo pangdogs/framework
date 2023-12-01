@@ -7,6 +7,7 @@ import (
 
 // MsgRPCRequest RPC请求
 type MsgRPCRequest struct {
+	Src       string        // 来源地址
 	CorrId    int64         // 关联Id，用于支持Future等异步模型
 	EntityId  string        // 实体Id
 	Component string        // 组件名
@@ -17,6 +18,9 @@ type MsgRPCRequest struct {
 // Read implements io.Reader
 func (m MsgRPCRequest) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+	if err := bs.WriteString(m.Src); err != nil {
+		return bs.BytesWritten(), err
+	}
 	if err := bs.WriteVarint(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
@@ -39,6 +43,10 @@ func (m MsgRPCRequest) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+	src, err := bs.ReadString()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
 	corrId, err := bs.ReadVarint()
 	if err != nil {
 		return bs.BytesRead(), err
@@ -60,6 +68,7 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 	if err != nil {
 		return bs.BytesRead() + n, err
 	}
+	m.Src = src
 	m.CorrId = corrId
 	m.EntityId = entityId
 	m.Component = component
@@ -70,7 +79,8 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgRPCRequest) Size() int {
-	return binaryutil.SizeofVarint(m.CorrId) +
+	return binaryutil.SizeofString(m.Src) +
+		binaryutil.SizeofVarint(m.CorrId) +
 		binaryutil.SizeofString(m.EntityId) +
 		binaryutil.SizeofString(m.Component) +
 		binaryutil.SizeofString(m.Method) +
