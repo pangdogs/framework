@@ -22,8 +22,8 @@ type LoggerOptions struct {
 func (Option) Default() option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		Option{}.ZapLogger(zap.NewExample())(options)
-		Option{}.ServiceInfo(true)(options)
-		Option{}.RuntimeInfo(true)(options)
+		Option{}.ServiceInfo(false)(options)
+		Option{}.RuntimeInfo(false)(options)
 		Option{}.CallerSkip(2)(options)
 	}
 }
