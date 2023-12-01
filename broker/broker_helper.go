@@ -4,6 +4,7 @@ import (
 	"context"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/option"
+	"strings"
 )
 
 // Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
@@ -39,4 +40,9 @@ func MaxPayload(servCtx service.Context) int64 {
 // Separator return topic path separator.
 func Separator(servCtx service.Context) string {
 	return Using(servCtx).Separator()
+}
+
+// Path return topic path.
+func Path(servCtx service.Context, elems ...string) string {
+	return strings.Join(elems, Separator(servCtx))
 }
