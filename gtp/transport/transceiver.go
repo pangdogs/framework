@@ -138,7 +138,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 			}, t.Buffer.Ack(mp.Head.Ack)
 		}
 
-		if !errors.Is(err, codec.ErrBufferNotEnough) {
+		if !errors.Is(err, codec.ErrDataNotEnough) {
 			return Event[gtp.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
 		}
 
