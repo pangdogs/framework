@@ -376,5 +376,5 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
-kit.golaxy.org/golaxy v0.2.7 h1:arJogd+n70jHBvqQVq4qme+qdA4qCsy5rqSSMeuBClc=
-kit.golaxy.org/golaxy v0.2.7/go.mod h1:ZR+lJ8u7T5mlwcv9/xqvPlj3vqm3TCdTQTikJlx6MNU=
+kit.golaxy.org/golaxy v0.2.8 h1:pyjNIxd/j9Dvn/A5AbjvoLzRzqvcJCiGAoMQGir/sB4=
+kit.golaxy.org/golaxy v0.2.8/go.mod h1:3TYBUhFRpSf0kmn2pOX/vyyW2pwUzbXnzQL3nBYoqXc=
