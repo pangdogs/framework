@@ -24,7 +24,7 @@ func (Option) Default() option.Setting[LoggerOptions] {
 		Option{}.ZapLogger(zap.NewExample())(options)
 		Option{}.ServiceInfo(true)(options)
 		Option{}.RuntimeInfo(true)(options)
-		Option{}.CallerSkip(3)(options)
+		Option{}.CallerSkip(2)(options)
 	}
 }
 
