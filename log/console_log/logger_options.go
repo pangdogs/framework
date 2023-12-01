@@ -28,12 +28,12 @@ func (Option) Default() option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		Option{}.Level(log.InfoLevel)(options)
 		Option{}.Development(false)
-		Option{}.ServiceInfo(true)(options)
-		Option{}.RuntimeInfo(true)(options)
+		Option{}.ServiceInfo(false)(options)
+		Option{}.RuntimeInfo(false)(options)
 		Option{}.Separator(`|`)(options)
 		Option{}.TimestampLayout(time.RFC3339Nano)(options)
 		Option{}.CallerFullName(false)(options)
-		Option{}.CallerSkip(2)(options)
+		Option{}.CallerSkip(3)(options)
 	}
 }
 
