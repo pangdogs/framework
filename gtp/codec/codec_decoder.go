@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrBufferNotEnough = errors.New("buffer data not enough") // 缓冲区数据不足
+	ErrDataNotEnough = errors.New("data not enough") // 数据不足
 )
 
 // IValidate 验证消息包接口
@@ -89,13 +89,11 @@ func (d *Decoder) DecodeBuff(buff *bytes.Buffer, validate ...IValidate) (gtp.Msg
 		return gtp.MsgPacket{}, err
 	}
 
+	// 解码后，丢弃消息包数据
+	defer buff.Next(length)
+
 	// 解码消息包
-	mp, err := d.decode(buff.Bytes(), length, validate...)
-
-	// 丢弃消息包数据
-	buff.Next(length)
-
-	return mp, err
+	return d.decode(buff.Bytes()[:length], validate...)
 }
 
 // DecodeBytes 从指定bytes，解码消息包
@@ -107,7 +105,7 @@ func (d *Decoder) DecodeBytes(data []byte, validate ...IValidate) (gtp.MsgPacket
 	}
 
 	// 解码消息包
-	return d.decode(data, length, validate...)
+	return d.decode(data[:length], validate...)
 }
 
 // GC GC
@@ -125,28 +123,28 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 	// 读取消息包长度
 	_, err := mpl.Write(data)
 	if err != nil {
-		return 0, ErrBufferNotEnough
+		return 0, ErrDataNotEnough
 	}
 
 	if len(data) < int(mpl.Len) {
-		return int(mpl.Len), fmt.Errorf("%w (%d < %d)", ErrBufferNotEnough, len(data), mpl.Len)
+		return int(mpl.Len), fmt.Errorf("%w (%d < %d)", ErrDataNotEnough, len(data), mpl.Len)
 	}
 
 	return int(mpl.Len), nil
 }
 
 // decode 解码消息包
-func (d *Decoder) decode(data []byte, length int, validate ...IValidate) (gtp.MsgPacket, error) {
+func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, error) {
 	if d.MsgCreator == nil {
 		return gtp.MsgPacket{}, errors.New("setting MsgCreator is nil")
 	}
 
 	// 消息包数据缓存
-	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(length))
+	mpBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(len(data)))
 	d.gcList = append(d.gcList, mpBuf)
 
 	// 拷贝消息包
-	copy(mpBuf.Data(), data[:length])
+	copy(mpBuf.Data(), data)
 
 	mp := gtp.MsgPacket{}
 

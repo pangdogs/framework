@@ -104,7 +104,7 @@ func TestCodec(t *testing.T) {
 	for {
 		mp, err := decoder.Decode()
 		if err != nil {
-			if errors.Is(err, ErrBufferNotEnough) {
+			if errors.Is(err, ErrDataNotEnough) {
 				return
 			}
 			panic(err)
