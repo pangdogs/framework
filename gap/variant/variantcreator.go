@@ -45,7 +45,7 @@ func init() {
 	VariantCreator().Register(new(Bool))
 	VariantCreator().Register(new(Bytes))
 	VariantCreator().Register(new(String))
-	VariantCreator().Register(Null{})
+	VariantCreator().Register(&Null{})
 	VariantCreator().Register(&Map{})
 	VariantCreator().Register(&Array{})
 	VariantCreator().Register(&Error{})
