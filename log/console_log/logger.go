@@ -6,10 +6,8 @@ import (
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
 	"os"
-	"reflect"
 	goruntime "runtime"
 	"strings"
 	"time"
@@ -30,26 +28,12 @@ type _Logger struct {
 // InitSP init service plugin
 func (l *_Logger) InitSP(ctx service.Context) {
 	l.serviceInfo = ctx.String()
-
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*l))
-}
-
-// ShutSP shut service plugin
-func (l *_Logger) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 }
 
 // InitRP init runtime plugin
 func (l *_Logger) InitRP(ctx runtime.Context) {
 	l.serviceInfo = service.Current(ctx).String()
 	l.runtimeInfo = ctx.String()
-
-	log.Infof(ctx, "init runtime plugin %q with %q", plugin.Name, reflect.TypeOf(_Logger{}))
-}
-
-// ShutRP shut runtime plugin
-func (l *_Logger) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut runtime plugin %q", plugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.

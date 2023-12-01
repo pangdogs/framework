@@ -5,9 +5,7 @@ import (
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
-	"reflect"
 )
 
 func newLogger(settings ...option.Setting[LoggerOptions]) log.Logger {
@@ -28,13 +26,6 @@ func (l *_Logger) InitSP(ctx service.Context) {
 		options = append(options, zap.Fields(zap.String("service", ctx.String())))
 	}
 	l.sugaredLogger = l.options.ZapLogger.WithOptions(options...).Sugar()
-
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*l))
-}
-
-// ShutSP 关闭服务插件
-func (l *_Logger) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
 }
 
 // InitRP 初始化运行时插件
@@ -47,13 +38,6 @@ func (l *_Logger) InitRP(ctx runtime.Context) {
 		options = append(options, zap.Fields(zap.String("runtime", ctx.String())))
 	}
 	l.sugaredLogger = l.options.ZapLogger.WithOptions(options...).Sugar()
-
-	log.Infof(ctx, "init runtime plugin %q with %q", plugin.Name, reflect.TypeOf(_Logger{}))
-}
-
-// ShutRP 关闭运行时插件
-func (l *_Logger) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut runtime plugin %q", plugin.Name)
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended
