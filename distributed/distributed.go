@@ -2,7 +2,9 @@ package distributed
 
 import (
 	"errors"
+	"fmt"
 	"golang.org/x/net/context"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/option"
@@ -11,13 +13,12 @@ import (
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/gap"
 	"kit.golaxy.org/plugins/gap/codec"
+	"kit.golaxy.org/plugins/gap/transport"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"kit.golaxy.org/plugins/util/concurrent"
 	"math/rand"
 	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // Distributed 分布式服务支持
@@ -37,17 +38,18 @@ func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
 }
 
 type _Distributed struct {
-	ctx      service.Context
-	Options  DistributedOptions
-	registry registry.Registry
-	broker   broker.Broker
-	dsync    dsync.DSync
-	service  registry.Service
-	subs     []broker.Subscriber
-	futures  concurrent.Futures
-	sendSeq  int64
-	recvSeq  map[string]int64
-	wg       sync.WaitGroup
+	ctx           service.Context
+	Options       DistributedOptions
+	registry      registry.Registry
+	broker        broker.Broker
+	dsync         dsync.DSync
+	service       registry.Service
+	subs          []broker.Subscriber
+	futures       concurrent.Futures
+	encoder       codec.Encoder
+	decoder       codec.Decoder
+	deduplication transport.Deduplication
+	wg            sync.WaitGroup
 }
 
 // InitSP 初始化服务插件
@@ -66,9 +68,11 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.futures.Id = rand.Int63()
 	d.futures.Timeout = d.Options.FutureTimeout
 
-	// 初始化序号
-	d.sendSeq = time.Now().UnixMicro()
-	d.recvSeq = map[string]int64{}
+	// 初始化消息包编解码器
+	d.decoder.MsgCreator = d.Options.DecoderMsgCreator
+
+	// 初始消息去重器
+	d.deduplication = transport.MakeDeduplication()
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))
@@ -130,9 +134,11 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 
 // SendMsg 发送消息
 func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
-	seq := atomic.AddInt64(&d.sendSeq, 1)
+	if msg == nil {
+		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
+	}
 
-	mpBuf, err := codec.DefaultEncoder().EncodeBytes(seq, msg)
+	mpBuf, err := d.encoder.EncodeBytes(d.GetAddress(), d.deduplication.MakeSeq(), msg)
 	if err != nil {
 		return err
 	}
