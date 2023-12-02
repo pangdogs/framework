@@ -27,7 +27,7 @@ func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDe
 	s.transceiver.Decoder = decoder
 	s.transceiver.Timeout = s.gate.options.IOTimeout
 
-	buff := &transport.SequencedBuffer{}
+	buff := &transport.SequencedSynchronizer{}
 	buff.Reset(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
 
 	s.transceiver.Buffer = buff

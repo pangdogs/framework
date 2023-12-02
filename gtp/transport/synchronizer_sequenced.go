@@ -16,8 +16,8 @@ type _SequencedFrame struct {
 	data   []byte // 帧数据
 }
 
-// SequencedBuffer 时序缓存，主要用于断线重连时，同步对端时序，补发消息
-type SequencedBuffer struct {
+// SequencedSynchronizer 有时序同步器缓存，主要用于断线重连时，同步对端时序，补发消息
+type SequencedSynchronizer struct {
 	sendSeq uint32            // 发送消息序号
 	recvSeq uint32            // 接收消息序号
 	ackSeq  uint32            // 当前ack序号
@@ -28,7 +28,7 @@ type SequencedBuffer struct {
 }
 
 // Reset 重置缓存
-func (s *SequencedBuffer) Reset(sendSeq, recvSeq uint32, cap int) {
+func (s *SequencedSynchronizer) Reset(sendSeq, recvSeq uint32, cap int) {
 	s.sendSeq = sendSeq
 	s.recvSeq = recvSeq
 	s.ackSeq = sendSeq - 1
@@ -39,7 +39,7 @@ func (s *SequencedBuffer) Reset(sendSeq, recvSeq uint32, cap int) {
 }
 
 // Write implements io.Writer
-func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
+func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 	// ack消息序号
 	s.ack(s.getRemoteAck())
 
@@ -77,7 +77,7 @@ func (s *SequencedBuffer) Write(p []byte) (n int, err error) {
 }
 
 // WriteTo implements io.WriteTo
-func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
+func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
 		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
 	}
@@ -107,7 +107,7 @@ func (s *SequencedBuffer) WriteTo(w io.Writer) (int64, error) {
 }
 
 // Validate 验证消息包
-func (s *SequencedBuffer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
+func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
 	// 检测消息包序号
 	d := int32(msgHead.Seq - s.recvSeq)
 	if d > 0 {
@@ -119,7 +119,7 @@ func (s *SequencedBuffer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
 }
 
 // Synchronization 同步对端时序，对齐缓存序号
-func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
+func (s *SequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
 	// 从时序帧中查询对端序号
 	for i := len(s.frames) - 1; i >= 0; i-- {
 		frame := &s.frames[i]
@@ -146,7 +146,7 @@ func (s *SequencedBuffer) Synchronization(remoteRecvSeq uint32) error {
 }
 
 // Ack 确认消息序号
-func (s *SequencedBuffer) Ack(ack uint32) error {
+func (s *SequencedSynchronizer) Ack(ack uint32) error {
 	// 自增接收消息序号
 	atomic.AddUint32(&s.recvSeq, 1)
 	// 记录ack序号
@@ -156,32 +156,32 @@ func (s *SequencedBuffer) Ack(ack uint32) error {
 }
 
 // SendSeq 发送消息序号
-func (s *SequencedBuffer) SendSeq() uint32 {
+func (s *SequencedSynchronizer) SendSeq() uint32 {
 	return s.sendSeq
 }
 
 // RecvSeq 接收消息序号
-func (s *SequencedBuffer) RecvSeq() uint32 {
+func (s *SequencedSynchronizer) RecvSeq() uint32 {
 	return s.recvSeq
 }
 
 // AckSeq 当前ack序号
-func (s *SequencedBuffer) AckSeq() uint32 {
+func (s *SequencedSynchronizer) AckSeq() uint32 {
 	return s.ackSeq
 }
 
 // Cap 缓存区容量
-func (s *SequencedBuffer) Cap() int {
+func (s *SequencedSynchronizer) Cap() int {
 	return s.cap
 }
 
 // Cached 已缓存大小
-func (s *SequencedBuffer) Cached() int {
+func (s *SequencedSynchronizer) Cached() int {
 	return s.cached
 }
 
 // Clean 清理
-func (s *SequencedBuffer) Clean() {
+func (s *SequencedSynchronizer) Clean() {
 	s.sendSeq = 0
 	s.recvSeq = 0
 	s.ackSeq = 0
@@ -194,15 +194,15 @@ func (s *SequencedBuffer) Clean() {
 	s.frames = nil
 }
 
-func (s *SequencedBuffer) getLocalAck() uint32 {
+func (s *SequencedSynchronizer) getLocalAck() uint32 {
 	return atomic.LoadUint32(&s.recvSeq)
 }
 
-func (s *SequencedBuffer) getRemoteAck() uint32 {
+func (s *SequencedSynchronizer) getRemoteAck() uint32 {
 	return atomic.LoadUint32(&s.ackSeq)
 }
 
-func (s *SequencedBuffer) ack(seq uint32) {
+func (s *SequencedSynchronizer) ack(seq uint32) {
 	cached := s.cached
 
 	for i := range s.frames {
@@ -228,7 +228,7 @@ func (s *SequencedBuffer) ack(seq uint32) {
 	}
 }
 
-func (s *SequencedBuffer) reduce(size int) {
+func (s *SequencedSynchronizer) reduce(size int) {
 	cached := s.cached
 
 	for i := 0; i < s.sent; i++ {

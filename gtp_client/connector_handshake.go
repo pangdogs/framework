@@ -24,11 +24,11 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
-			Conn:    conn,
-			Encoder: ctor.encoder,
-			Decoder: ctor.decoder,
-			Timeout: ctor.options.IOTimeout,
-			Buffer:  &transport.UnsequencedBuffer{},
+			Conn:         conn,
+			Encoder:      ctor.encoder,
+			Decoder:      ctor.decoder,
+			Timeout:      ctor.options.IOTimeout,
+			Synchronizer: &transport.UnsequencedSynchronizer{},
 		},
 		RetryTimes: ctor.options.IORetryTimes,
 	}
@@ -158,8 +158,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if continueFlow {
 		err = handshake.ClientContinue(transport.Event[gtp.MsgContinue]{
 			Msg: gtp.MsgContinue{
-				SendSeq: client.transceiver.Buffer.SendSeq(),
-				RecvSeq: client.transceiver.Buffer.RecvSeq(),
+				SendSeq: client.transceiver.Synchronizer.SendSeq(),
+				RecvSeq: client.transceiver.Synchronizer.RecvSeq(),
 			},
 		})
 		if err != nil {

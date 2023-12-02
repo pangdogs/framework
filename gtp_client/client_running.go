@@ -25,10 +25,10 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 	c.transceiver.Decoder = decoder
 	c.transceiver.Timeout = c.options.IOTimeout
 
-	buff := &transport.SequencedBuffer{}
-	buff.Reset(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
+	synchronizer := &transport.SequencedSynchronizer{}
+	synchronizer.Reset(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
 
-	c.transceiver.Buffer = buff
+	c.transceiver.Synchronizer = synchronizer
 
 	// 初始化刷新通知channel
 	c.renewChan = make(chan struct{}, 1)

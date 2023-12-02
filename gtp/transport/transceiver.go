@@ -29,7 +29,7 @@ type Transceiver struct {
 	Encoder              codec.IEncoder // 消息包编码器
 	Decoder              codec.IDecoder // 消息包解码器
 	Timeout              time.Duration  // 网络io超时时间
-	Buffer               Buffer         // 缓存
+	Synchronizer         ISynchronizer  // 同步器缓存
 	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
 }
 
@@ -46,24 +46,25 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 		return errors.New("setting Encoder is nil")
 	}
 
-	if t.Buffer == nil {
-		return errors.New("setting Buffer is nil")
+	if t.Synchronizer == nil {
+		return errors.New("setting Synchronizer is nil")
 	}
 
 	// 编码消息
-	if err := t.Encoder.EncodeWriter(t.Buffer, me.Flags, me.Msg); err != nil {
-		return fmt.Errorf("stuff msg failed, %w", err)
+	if err := t.Encoder.EncodeWriter(t.Synchronizer, me.Flags, me.Msg); err != nil {
+		return fmt.Errorf("encode msg failed, %w", err)
 	}
 
+	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
 	// 数据写入链路
-	if _, err := t.Buffer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
+	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
+		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -95,19 +96,20 @@ func (t *Transceiver) Resend() error {
 		return errors.New("setting Encoder is nil")
 	}
 
-	if t.Buffer == nil {
-		return errors.New("setting Buffer is nil")
+	if t.Synchronizer == nil {
+		return errors.New("setting Synchronizer is nil")
 	}
 
+	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
 	// 数据写入链路
-	if _, err := t.Buffer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.Buffer.Cached(), ErrNetIO, err)
+	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
+		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -128,20 +130,21 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 
 	for {
 		// 解码消息
-		mp, err := t.Decoder.Decode(t.Buffer)
+		mp, err := t.Decoder.Decode(t.Synchronizer)
 		if err == nil {
 			return Event[gtp.Msg]{
 				Flags: mp.Head.Flags,
 				Seq:   mp.Head.Seq,
 				Ack:   mp.Head.Ack,
 				Msg:   mp.Msg,
-			}, t.Buffer.Ack(mp.Head.Ack)
+			}, t.Synchronizer.Ack(mp.Head.Ack)
 		}
 
 		if !errors.Is(err, codec.ErrDataNotEnough) {
 			return Event[gtp.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
 		}
 
+		// 设置链路超时时间
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
 				return Event[gtp.Msg]{}, fmt.Errorf("set conn recv timeout failed, %w: %w", ErrNetIO, err)
@@ -162,7 +165,7 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 	}
 
 	// 同步对端时序
-	if err = t.Buffer.Synchronization(remoteRecvSeq); err != nil {
+	if err = t.Synchronizer.Synchronization(remoteRecvSeq); err != nil {
 		return 0, 0, fmt.Errorf("%w, synchronize sequence failed, %s", ErrRenewConn, err)
 	}
 
@@ -172,7 +175,7 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 	}
 	t.Conn = conn
 
-	return t.Buffer.SendSeq(), t.Buffer.RecvSeq(), nil
+	return t.Synchronizer.SendSeq(), t.Synchronizer.RecvSeq(), nil
 }
 
 // Pause 暂停收发消息
@@ -197,7 +200,7 @@ func (t *Transceiver) GC() {
 // Clean 清理
 func (t *Transceiver) Clean() {
 	t.GC()
-	if t.Buffer != nil {
-		t.Buffer.Clean()
+	if t.Synchronizer != nil {
+		t.Synchronizer.Clean()
 	}
 }

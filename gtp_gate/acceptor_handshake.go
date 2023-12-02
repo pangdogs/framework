@@ -28,7 +28,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 			Encoder: acc.encoder,
 			Decoder: acc.decoder,
 			Timeout: acc.options.IOTimeout,
-			Buffer:  &transport.UnsequencedBuffer{},
+			Buffer:  &transport.UnsequencedSynchronizer{},
 		},
 		RetryTimes: acc.options.IORetryTimes,
 	}
