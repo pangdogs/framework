@@ -46,7 +46,7 @@ func TestProtocol(t *testing.T) {
 					Decoder: &codec.Decoder{
 						MsgCreator: gtp.DefaultMsgCreator(),
 					},
-					Buffer: &UnsequencedBuffer{},
+					Synchronizer: &UnsequencedSynchronizer{},
 				}
 
 				handshake := &HandshakeProtocol{
@@ -63,8 +63,8 @@ func TestProtocol(t *testing.T) {
 
 				err = handshake.ServerFinished(Event[gtp.MsgFinished]{
 					Msg: gtp.MsgFinished{
-						SendSeq: transceiver.Buffer.SendSeq(),
-						RecvSeq: transceiver.Buffer.RecvSeq(),
+						SendSeq: transceiver.Synchronizer.SendSeq(),
+						RecvSeq: transceiver.Synchronizer.RecvSeq(),
 					},
 				})
 				if err != nil {
@@ -150,7 +150,7 @@ func TestProtocol(t *testing.T) {
 			Decoder: &codec.Decoder{
 				MsgCreator: gtp.DefaultMsgCreator(),
 			},
-			Buffer: &UnsequencedBuffer{},
+			Synchronizer: &UnsequencedSynchronizer{},
 		}
 
 		handshake := &HandshakeProtocol{

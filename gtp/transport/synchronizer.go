@@ -5,8 +5,8 @@ import (
 	"kit.golaxy.org/plugins/gtp/codec"
 )
 
-// Buffer 缓存
-type Buffer interface {
+// ISynchronizer 同步器缓存
+type ISynchronizer interface {
 	io.Writer
 	io.WriterTo
 	codec.IValidate
