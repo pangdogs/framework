@@ -38,17 +38,17 @@ func (e *Encoder) Reset() {
 }
 
 // Encode 编码消息包，写入缓存
-func (e *Encoder) Encode(seq int64, msg gap.Msg) error {
-	return e.EncodeWriter(&e.buffer, seq, msg)
+func (e *Encoder) Encode(src string, seq int64, msg gap.Msg) error {
+	return e.EncodeWriter(&e.buffer, src, seq, msg)
 }
 
 // EncodeWriter 编码消息包，写入指定writer
-func (e Encoder) EncodeWriter(writer io.Writer, seq int64, msg gap.Msg) error {
+func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.Msg) error {
 	if writer == nil {
 		return fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
 	}
 
-	mpBuf, err := e.encode(seq, msg)
+	mpBuf, err := e.encode(src, seq, msg)
 	if err != nil {
 		return err
 	}
@@ -63,20 +63,20 @@ func (e Encoder) EncodeWriter(writer io.Writer, seq int64, msg gap.Msg) error {
 }
 
 // EncodeBuff 编码消息包，写入指定buffer
-func (e Encoder) EncodeBuff(buff *bytes.Buffer, seq int64, msg gap.Msg) error {
+func (e Encoder) EncodeBuff(buff *bytes.Buffer, src string, seq int64, msg gap.Msg) error {
 	if buff == nil {
 		return fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
 	}
-	return e.EncodeWriter(buff, seq, msg)
+	return e.EncodeWriter(buff, src, seq, msg)
 }
 
 // EncodeBytes 编码消息包，返回可回收bytes
-func (e Encoder) EncodeBytes(seq int64, msg gap.Msg) (binaryutil.RecycleBytes, error) {
-	return e.encode(seq, msg)
+func (e Encoder) EncodeBytes(src string, seq int64, msg gap.Msg) (binaryutil.RecycleBytes, error) {
+	return e.encode(src, seq, msg)
 }
 
 // encode 编码消息包
-func (Encoder) encode(seq int64, msg gap.Msg) (ret binaryutil.RecycleBytes, err error) {
+func (Encoder) encode(src string, seq int64, msg gap.Msg) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
@@ -84,6 +84,7 @@ func (Encoder) encode(seq int64, msg gap.Msg) (ret binaryutil.RecycleBytes, err 
 	mp := gap.MsgPacket{
 		Head: gap.MsgHead{
 			MsgId: msg.MsgId(),
+			Src:   src,
 			Seq:   seq,
 		},
 		Msg: msg,

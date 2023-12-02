@@ -4,7 +4,6 @@ import (
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/gap/codec"
 	"kit.golaxy.org/plugins/log"
 	"time"
 )
@@ -49,9 +48,15 @@ loop:
 
 // handleEvent 处理事件
 func (d *_Distributed) handleEvent(e broker.Event) error {
-	mp, err := codec.DefaultDecoder().DecodeBytes(e.Message())
+	mp, err := d.decoder.DecodeBytes(e.Message())
 	if err != nil {
 		return err
 	}
+
+	err = d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq)
+	if err != nil {
+		return err
+	}
+
 	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp.Msg))
 }
