@@ -27,10 +27,10 @@ func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDe
 	s.transceiver.Decoder = decoder
 	s.transceiver.Timeout = s.gate.options.IOTimeout
 
-	buff := &transport.SequencedSynchronizer{}
-	buff.Reset(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
+	synchronizer := &transport.SequencedSynchronizer{}
+	synchronizer.Reset(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
 
-	s.transceiver.Buffer = buff
+	s.transceiver.Synchronizer = synchronizer
 
 	// 初始化刷新通知channel
 	s.renewChan = make(chan struct{}, 1)
@@ -38,7 +38,7 @@ func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDe
 	// 初始化token
 	s.token = token
 
-	return buff.SendSeq(), buff.RecvSeq()
+	return synchronizer.SendSeq(), synchronizer.RecvSeq()
 }
 
 // renew 刷新
