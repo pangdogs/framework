@@ -276,7 +276,7 @@ func (r *_Registry) configure() *redis.Options {
 	conf.Username = r.options.FastUsername
 	conf.Password = r.options.FastPassword
 	conf.Addr = r.options.FastAddress
-	conf.DB = r.options.FastDBIndex
+	conf.DB = r.options.FastDB
 
 	return conf
 }
