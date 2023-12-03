@@ -22,7 +22,7 @@ type RegistryOptions struct {
 	FastUsername  string
 	FastPassword  string
 	FastAddress   string
-	FastDBIndex   int
+	FastDB        int
 }
 
 // Default 默认值
@@ -35,7 +35,7 @@ func (Option) Default() option.Setting[RegistryOptions] {
 		Option{}.WatchChanSize(128)(options)
 		Option{}.FastAuth("", "")(options)
 		Option{}.FastAddress("127.0.0.1:6379")(options)
-		Option{}.FastDBIndex(0)(options)
+		Option{}.FastDB(0)(options)
 	}
 }
 
@@ -98,9 +98,9 @@ func (Option) FastAddress(addr string) option.Setting[RegistryOptions] {
 	}
 }
 
-// FastDBIndex 快速设置redis db下标
-func (Option) FastDBIndex(idx int) option.Setting[RegistryOptions] {
+// FastDB 快速设置redis db
+func (Option) FastDB(db int) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
-		options.FastDBIndex = idx
+		options.FastDB = db
 	}
 }
