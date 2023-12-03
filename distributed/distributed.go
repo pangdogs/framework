@@ -23,12 +23,12 @@ import (
 
 // Distributed 分布式服务支持
 type Distributed interface {
+	// GetAddress 获取服务节点地址
+	GetAddress() string
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
-	// GetAddress 获取服务节点地址
-	GetAddress() string
 }
 
 func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
@@ -108,7 +108,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		d.subscribe(broker.Path(d.ctx, "service", "balance"), "balance"),
 		// 订阅服务类型topic
 		d.subscribe(broker.Path(d.ctx, "service", d.ctx.GetName()), ""),
-		d.subscribe(broker.Path(d.ctx, "service", "balance", d.ctx.GetName()), "balance"),
+		d.subscribe(broker.Path(d.ctx, "service", d.ctx.GetName(), "balance"), "balance"),
 		// 订阅服务节点topic
 		d.subscribe(d.GetAddress(), ""),
 	)
@@ -132,6 +132,11 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 	d.wg.Wait()
 }
 
+// GetAddress 获取服务节点地址
+func (d *_Distributed) GetAddress() string {
+	return d.service.Nodes[0].Address
+}
+
 // SendMsg 发送消息
 func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	if msg == nil {
@@ -150,11 +155,6 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 // GetFutures 获取异步模型Future控制器
 func (d *_Distributed) GetFutures() concurrent.IFutures {
 	return &d.futures
-}
-
-// GetAddress 获取服务节点地址
-func (d *_Distributed) GetAddress() string {
-	return d.service.Nodes[0].Address
 }
 
 func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {

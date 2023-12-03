@@ -58,5 +58,5 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 		return err
 	}
 
-	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp.Msg))
+	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp))
 }
