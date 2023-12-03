@@ -18,7 +18,7 @@ require (
 	golang.org/x/crypto v0.13.0
 	golang.org/x/net v0.10.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.2.11
+	kit.golaxy.org/golaxy v0.2.12
 )
 
 require (
