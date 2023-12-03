@@ -24,11 +24,11 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
-			Conn:    conn,
-			Encoder: acc.encoder,
-			Decoder: acc.decoder,
-			Timeout: acc.options.IOTimeout,
-			Buffer:  &transport.UnsequencedSynchronizer{},
+			Conn:         conn,
+			Encoder:      acc.encoder,
+			Decoder:      acc.decoder,
+			Timeout:      acc.options.IOTimeout,
+			Synchronizer: &transport.UnsequencedSynchronizer{},
 		},
 		RetryTimes: acc.options.IORetryTimes,
 	}
