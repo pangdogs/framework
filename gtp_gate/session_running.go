@@ -148,28 +148,27 @@ func (s *_Session) run() {
 
 		// 分发消息事件
 		if err := s.eventDispatcher.Dispatching(); err != nil {
-			log.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
-
-			// 网络io超时，触发心跳检测，向对方发送ping
-			if errors.Is(err, transport.ErrTimeout) {
-				if !pinged {
-					log.Debugf(s.gate.ctx, "session %q send ping", s.GetId())
-
-					s.ctrl.SendPing()
-					pinged = true
-				} else {
-					log.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
-
-					// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-					if s.setState(SessionState_Inactive) {
-						timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
-					}
-				}
-				continue
-			}
-
-			// 其他网络io类错误，调整会话状态不活跃
+			// 网络io错误
 			if errors.Is(err, transport.ErrNetIO) {
+				// 网络io超时，触发心跳检测，向对方发送ping
+				if errors.Is(err, transport.ErrTimeout) {
+					if !pinged {
+						log.Debugf(s.gate.ctx, "session %q send ping", s.GetId())
+
+						s.ctrl.SendPing()
+						pinged = true
+					} else {
+						log.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
+
+						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
+						if s.setState(SessionState_Inactive) {
+							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+						}
+					}
+					continue
+				}
+
+				// 其他网络io类错误，调整会话状态不活跃
 				if s.setState(SessionState_Inactive) {
 					timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 				}
@@ -199,6 +198,7 @@ func (s *_Session) run() {
 				continue
 			}
 
+			log.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
 			continue
 		}
 

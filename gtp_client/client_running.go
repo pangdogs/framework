@@ -166,8 +166,6 @@ loop:
 
 		// 分发消息事件
 		if err := c.eventDispatcher.Dispatching(); err != nil {
-			c.logger.Errorf("client %q dispatching event failed, %s", c.GetSessionId(), err)
-
 			// 网络io错误
 			if errors.Is(err, transport.ErrNetIO) {
 				// 网络io超时，触发心跳检测，向对方发送ping
@@ -214,6 +212,7 @@ loop:
 				continue
 			}
 
+			c.logger.Errorf("client %q dispatching event failed, %s", c.GetSessionId(), err)
 			continue
 		}
 
