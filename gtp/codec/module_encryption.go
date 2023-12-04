@@ -2,13 +2,11 @@ package codec
 
 import (
 	"errors"
+	"fmt"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp/method"
 	"kit.golaxy.org/plugins/util/binaryutil"
-)
-
-type (
-	FetchNonce = generic.PairFunc0[[]byte, error] // 获取nonce值
 )
 
 // IEncryptionModule 加密模块接口
@@ -17,6 +15,29 @@ type IEncryptionModule interface {
 	Transforming(dst, src []byte) (binaryutil.RecycleBytes, error)
 	// SizeOfAddition 附加数据大小
 	SizeOfAddition(msgLen int) (int, error)
+}
+
+type (
+	FetchNonce = generic.PairFunc0[[]byte, error] // 获取nonce值
+)
+
+// NewEncryptionModule 创建加密模块
+func NewEncryptionModule(cipher method.Cipher, padding method.Padding, fetchNonce FetchNonce) IEncryptionModule {
+	if cipher == nil {
+		panic(fmt.Errorf("%w: cipher is nil", golaxy.ErrArgs))
+	}
+
+	if cipher.NonceSize() > 0 {
+		if fetchNonce == nil {
+			panic(fmt.Errorf("%w: fetchNonce is nil", golaxy.ErrArgs))
+		}
+	}
+
+	return &EncryptionModule{
+		Cipher:     cipher,
+		Padding:    padding,
+		FetchNonce: fetchNonce,
+	}
 }
 
 // EncryptionModule 加密模块

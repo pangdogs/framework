@@ -2,10 +2,28 @@ package codec
 
 import (
 	"errors"
+	"fmt"
 	"hash"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
+
+// NewMAC32Module 创建MAC32模块
+func NewMAC32Module(h hash.Hash32, pk []byte) IMACModule {
+	if h == nil {
+		panic(fmt.Errorf("%w: h is nil", golaxy.ErrArgs))
+	}
+
+	if len(pk) <= 0 {
+		panic(fmt.Errorf("%w: len(pk) <= 0", golaxy.ErrArgs))
+	}
+
+	return &MAC32Module{
+		Hash:       h,
+		PrivateKey: pk,
+	}
+}
 
 // MAC32Module MAC32模块
 type MAC32Module struct {

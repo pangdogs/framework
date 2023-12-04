@@ -20,6 +20,17 @@ type ICompressionModule interface {
 	Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error)
 }
 
+// NewCompressionModule 创建压缩模块
+func NewCompressionModule(cs method.CompressionStream) ICompressionModule {
+	if cs == nil {
+		panic(fmt.Errorf("%w: cs is nil", golaxy.ErrArgs))
+	}
+
+	return &CompressionModule{
+		CompressionStream: cs,
+	}
+}
+
 // CompressionModule 压缩模块
 type CompressionModule struct {
 	CompressionStream method.CompressionStream // 压缩流
