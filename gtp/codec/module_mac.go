@@ -3,7 +3,9 @@ package codec
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"hash"
+	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
@@ -20,6 +22,22 @@ type IMACModule interface {
 	VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error)
 	// SizeofMAC MAC大小
 	SizeofMAC(msgLen int) int
+}
+
+// NewMACModule 创建MAC模块
+func NewMACModule(h hash.Hash, pk []byte) IMACModule {
+	if h == nil {
+		panic(fmt.Errorf("%w: h is nil", golaxy.ErrArgs))
+	}
+
+	if len(pk) <= 0 {
+		panic(fmt.Errorf("%w: len(pk) <= 0", golaxy.ErrArgs))
+	}
+
+	return &MACModule{
+		Hash:       h,
+		PrivateKey: pk,
+	}
 }
 
 // MACModule MAC模块
