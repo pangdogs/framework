@@ -19,14 +19,23 @@ import (
 	"sync"
 )
 
+// Address 地址信息
+type Address struct {
+	GlobalBroadcastAddr  string // 全局广播地址
+	GlobalBalanceAddr    string // 全局负载均衡地址
+	ServiceBroadcastAddr string // 服务广播地址
+	ServiceBalanceAddr   string // 服务负载均衡地址
+	LocalAddr            string // 本服务节点地址
+}
+
 // Distributed 分布式服务支持
 type Distributed interface {
-	// GetAddress 获取服务节点地址
-	GetAddress() string
-	// SendMsg 发送消息
-	SendMsg(dst string, msg gap.Msg) error
+	// GetAddress 获取地址
+	GetAddress() Address
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
+	// SendMsg 发送消息
+	SendMsg(dst string, msg gap.Msg) error
 }
 
 func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
@@ -41,7 +50,8 @@ type _Distributed struct {
 	registry      registry.Registry
 	broker        broker.Broker
 	dsync         dsync.DSync
-	service       registry.Service
+	address       Address
+	serviceNode   registry.Service
 	subs          []broker.Subscriber
 	encoder       codec.Encoder
 	decoder       codec.Decoder
@@ -71,6 +81,15 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	// 初始化消息去重器
 	d.deduplication = concurrent.MakeDeduplication()
 
+	// 初始化地址信息
+	d.address = Address{
+		GlobalBroadcastAddr:  "service",
+		GlobalBalanceAddr:    broker.Path(d.ctx, "service", "balance"),
+		ServiceBroadcastAddr: broker.Path(d.ctx, "service", d.ctx.GetName()),
+		ServiceBalanceAddr:   broker.Path(d.ctx, "service", d.ctx.GetName(), "balance"),
+		LocalAddr:            broker.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()),
+	}
+
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))
 	if err := mutex.Lock(d.ctx); err != nil {
@@ -87,13 +106,16 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		log.Panicf(d.ctx, "check service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 
-	// 服务信息
-	d.service = registry.Service{
-		Name: d.ctx.GetName(),
+	// 服务节点信息
+	d.serviceNode = registry.Service{
+		Name:      d.ctx.GetName(),
+		Version:   d.Options.Version,
+		Metadata:  d.Options.Metadata,
+		Endpoints: d.Options.Endpoints,
 		Nodes: []registry.Node{
 			{
 				Id:      d.ctx.GetId().String(),
-				Address: broker.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()),
+				Address: d.address.LocalAddr,
 			},
 		},
 	}
@@ -101,21 +123,48 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	// 订阅topic
 	d.subs = append(d.subs,
 		// 订阅全服topic
-		d.subscribe("service", ""),
-		d.subscribe(broker.Path(d.ctx, "service", "balance"), "balance"),
+		d.subscribe(d.address.GlobalBroadcastAddr, ""),
+		d.subscribe(d.address.GlobalBalanceAddr, "balance"),
 		// 订阅服务类型topic
-		d.subscribe(broker.Path(d.ctx, "service", d.ctx.GetName()), ""),
-		d.subscribe(broker.Path(d.ctx, "service", d.ctx.GetName(), "balance"), "balance"),
+		d.subscribe(d.address.ServiceBroadcastAddr, ""),
+		d.subscribe(d.address.ServiceBalanceAddr, "balance"),
 		// 订阅服务节点topic
-		d.subscribe(d.GetAddress(), ""),
+		d.subscribe(d.address.LocalAddr, ""),
 	)
 
 	// 注册服务
-	err = d.registry.Register(d.ctx, d.service, d.Options.RefreshInterval*2)
+	err = d.registry.Register(d.ctx, d.serviceNode, d.Options.RefreshInterval*2)
 	if err != nil {
 		log.Panicf(d.ctx, "register service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 	log.Infof(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
+
+	// 监控服务节点变化
+	watch, err := d.registry.Watch(d.ctx, "")
+	if err != nil {
+		log.Panicf(d.ctx, "watching service changes failed, %s", err)
+	}
+
+	go func() {
+		for {
+			e, err := watch.Next()
+			if err != nil {
+				if errors.Is(err, registry.ErrStoppedWatching) {
+					log.Debugf(d.ctx, "watching service changes stopped")
+					return
+				}
+				log.Errorf(d.ctx, "watching service changes stopped, %s", err)
+				return
+			}
+
+			switch e.Type {
+			case registry.Delete:
+				for _, node := range e.Service.Nodes {
+					d.deduplication.Remove(node.Address)
+				}
+			}
+		}
+	}()
 
 	// 开始运行
 	d.wg.Add(1)
@@ -129,9 +178,14 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 	d.wg.Wait()
 }
 
-// GetAddress 获取服务节点地址
-func (d *_Distributed) GetAddress() string {
-	return d.service.Nodes[0].Address
+// GetAddress 获取地址
+func (d *_Distributed) GetAddress() Address {
+	return d.address
+}
+
+// GetFutures 获取异步模型Future控制器
+func (d *_Distributed) GetFutures() concurrent.IFutures {
+	return &d.futures
 }
 
 // SendMsg 发送消息
@@ -140,18 +194,13 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(d.GetAddress(), d.deduplication.MakeSeq(), msg)
+	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, d.deduplication.MakeSeq(), msg)
 	if err != nil {
 		return err
 	}
 	defer mpBuf.Release()
 
 	return d.broker.Publish(context.Background(), dst, mpBuf.Data())
-}
-
-// GetFutures 获取异步模型Future控制器
-func (d *_Distributed) GetFutures() concurrent.IFutures {
-	return &d.futures
 }
 
 func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {

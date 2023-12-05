@@ -6,6 +6,7 @@ import (
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/plugins/gap"
+	"kit.golaxy.org/plugins/registry"
 	"time"
 )
 
@@ -18,6 +19,9 @@ type (
 
 // DistributedOptions 所有选项
 type DistributedOptions struct {
+	Version              string               // 服务版本号
+	Metadata             map[string]string    // 服务元数据，以键值对的形式保存附加信息
+	Endpoints            []registry.Endpoint  // 服务端点列表
 	RefreshInterval      time.Duration        // 服务信息刷新间隔
 	FutureTimeout        time.Duration        // 异步模型Future超时时间
 	DecoderMsgCreator    gap.IMsgCreator      // 消息包解码器的消息构建器
@@ -27,10 +31,34 @@ type DistributedOptions struct {
 // Default 默认值
 func (Option) Default() option.Setting[DistributedOptions] {
 	return func(options *DistributedOptions) {
+		Option{}.Version("")(options)
+		Option{}.Metadata(nil)(options)
+		Option{}.Endpoints(nil)(options)
 		Option{}.RefreshInterval(3 * time.Second)(options)
 		Option{}.FutureTimeout(5 * time.Second)(options)
 		Option{}.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
 		Option{}.RecvMsgPacketHandler(nil)(options)
+	}
+}
+
+// Version 服务版本号
+func (Option) Version(version string) option.Setting[DistributedOptions] {
+	return func(o *DistributedOptions) {
+		o.Version = version
+	}
+}
+
+// Metadata 服务元数据，以键值对的形式保存附加信息
+func (Option) Metadata(meta map[string]string) option.Setting[DistributedOptions] {
+	return func(o *DistributedOptions) {
+		o.Metadata = meta
+	}
+}
+
+// Endpoints 服务端点列表
+func (Option) Endpoints(endpoints []registry.Endpoint) option.Setting[DistributedOptions] {
+	return func(o *DistributedOptions) {
+		o.Endpoints = endpoints
 	}
 }
 

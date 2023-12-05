@@ -21,7 +21,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, d.service, d.Options.RefreshInterval*2); err != nil {
+			if err := d.registry.Register(d.ctx, d.serviceNode, d.Options.RefreshInterval*2); err != nil {
 				log.Errorf(d.ctx, "refresh service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 				continue
 			}
@@ -34,7 +34,7 @@ loop:
 	}
 
 	// 取消注册服务节点
-	if err := d.registry.Deregister(context.Background(), d.service); err != nil {
+	if err := d.registry.Deregister(context.Background(), d.serviceNode); err != nil {
 		log.Errorf(d.ctx, "deregister service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 

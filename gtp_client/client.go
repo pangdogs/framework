@@ -64,6 +64,11 @@ func (c *Client) GetRemoteAddr() net.Addr {
 	return c.transceiver.Conn.RemoteAddr()
 }
 
+// GetFutures 获取异步模型Future控制器
+func (c *Client) GetFutures() concurrent.IFutures {
+	return &c.futures
+}
+
 // SendData 发送数据
 func (c *Client) SendData(data []byte) error {
 	return c.trans.SendData(data)
@@ -107,11 +112,6 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 		c.logger.Panic("receive event channel size less equal 0, can't be used")
 	}
 	return c.options.RecvEventChan
-}
-
-// GetFutures 获取异步模型Future控制器
-func (c *Client) GetFutures() concurrent.IFutures {
-	return &c.futures
 }
 
 // Close 关闭
