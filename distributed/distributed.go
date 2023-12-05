@@ -13,11 +13,9 @@ import (
 	"kit.golaxy.org/plugins/dsync"
 	"kit.golaxy.org/plugins/gap"
 	"kit.golaxy.org/plugins/gap/codec"
-	"kit.golaxy.org/plugins/gap/transport"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/registry"
 	"kit.golaxy.org/plugins/util/concurrent"
-	"math/rand"
 	"sync"
 )
 
@@ -45,10 +43,10 @@ type _Distributed struct {
 	dsync         dsync.DSync
 	service       registry.Service
 	subs          []broker.Subscriber
-	futures       concurrent.Futures
 	encoder       codec.Encoder
 	decoder       codec.Decoder
-	deduplication transport.Deduplication
+	futures       concurrent.Futures
+	deduplication concurrent.Deduplication
 	wg            sync.WaitGroup
 }
 
@@ -63,16 +61,15 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.broker = broker.Using(ctx)
 	d.dsync = dsync.Using(ctx)
 
-	// 异步模型Future
-	d.futures.Ctx = d.ctx
-	d.futures.Id = rand.Int63()
-	d.futures.Timeout = d.Options.FutureTimeout
-
 	// 初始化消息包编解码器
-	d.decoder.MsgCreator = d.Options.DecoderMsgCreator
+	d.decoder = codec.MakeDecoder(d.Options.DecoderMsgCreator)
+	d.encoder = codec.MakeEncoder()
 
-	// 初始消息去重器
-	d.deduplication = transport.MakeDeduplication()
+	// 初始化异步模型Future
+	d.futures = concurrent.MakeFutures(d.ctx, d.Options.FutureTimeout)
+
+	// 初始化消息去重器
+	d.deduplication = concurrent.MakeDeduplication()
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))

@@ -1,6 +1,26 @@
 package concurrent
 
-import "golang.org/x/net/context"
+import (
+	"golang.org/x/net/context"
+	"time"
+)
+
+// MakeFuture 创建Future
+func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...time.Duration) Future {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	_timeout := fs.ptr().Timeout
+	if len(timeout) > 0 {
+		_timeout = timeout[0]
+	}
+
+	task := newTask(fs.ptr(), resp)
+	go task.Run(ctx, _timeout)
+
+	return task.Future()
+}
 
 // Future 异步模型Future
 type Future struct {

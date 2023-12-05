@@ -9,7 +9,6 @@ import (
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/util/concurrent"
-	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -45,10 +44,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*g))
 
 	g.ctx = ctx
-
-	g.futures.Ctx = ctx
-	g.futures.Id = rand.Int63()
-	g.futures.Timeout = g.options.FutureTimeout
+	g.futures = concurrent.MakeFutures(ctx, g.options.FutureTimeout)
 
 	if len(g.options.Endpoints) <= 0 {
 		log.Panic(ctx, "no endpoints need to listen")

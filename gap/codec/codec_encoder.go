@@ -11,6 +11,11 @@ import (
 
 // DefaultEncoder 默认消息包编码器
 func DefaultEncoder() Encoder {
+	return MakeEncoder()
+}
+
+// MakeEncoder 创建消息包编码器
+func MakeEncoder() Encoder {
 	return Encoder{}
 }
 

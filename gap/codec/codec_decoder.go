@@ -15,7 +15,17 @@ var (
 
 // DefaultDecoder 默认消息包解码器
 func DefaultDecoder() Decoder {
-	return Decoder{MsgCreator: gap.DefaultMsgCreator()}
+	return MakeDecoder(gap.DefaultMsgCreator())
+}
+
+// MakeDecoder 创建消息包解码器
+func MakeDecoder(mc gap.IMsgCreator) Decoder {
+	if mc == nil {
+		panic(fmt.Errorf("%w: mc is nil", golaxy.ErrArgs))
+	}
+	return Decoder{
+		MsgCreator: mc,
+	}
 }
 
 // Decoder 消息包解码器
