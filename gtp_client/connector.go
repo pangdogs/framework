@@ -9,7 +9,7 @@ import (
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp/codec"
-	"math/rand"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 )
 
@@ -117,9 +117,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.SyncTimeHandler = generic.CastDelegateFunc1(client.handleSyncTime)
 
 	// 初始化异步模型Future控制器
-	client.futures.Ctx = client.Context
-	client.futures.Id = rand.Int63()
-	client.futures.Timeout = ctor.options.FutureTimeout
+	client.futures = concurrent.MakeFutures(client.Context, ctor.options.FutureTimeout)
 
 	return client
 }

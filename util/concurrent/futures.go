@@ -5,6 +5,7 @@ import (
 	"errors"
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/util/generic"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,23 +24,6 @@ type (
 	RequestHandler = generic.Action1[Future] // Future请求处理器
 )
 
-// MakeFuture 创建Future
-func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...time.Duration) Future {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	_timeout := fs.ptr().Timeout
-	if len(timeout) > 0 {
-		_timeout = timeout[0]
-	}
-
-	task := newTask(fs.ptr(), resp)
-	go task.Run(ctx, _timeout)
-
-	return task.Future()
-}
-
 // IFutures Future控制器接口
 type IFutures interface {
 	// Make 创建Future
@@ -50,6 +34,18 @@ type IFutures interface {
 	Resolve(id int64, ret Ret[any]) error
 
 	ptr() *Futures
+}
+
+// MakeFutures 创建Future控制器
+func MakeFutures(ctx context.Context, timeout time.Duration) Futures {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return Futures{
+		Ctx:     ctx,
+		Id:      rand.Int63(),
+		Timeout: timeout,
+	}
 }
 
 // Futures Future控制器
