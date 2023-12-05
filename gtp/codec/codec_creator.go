@@ -7,74 +7,95 @@ import (
 )
 
 // CreateDecoder 创建消息包解码器
-func CreateDecoder(msgCreator gtp.IMsgCreator) _DecoderCreator {
+func CreateDecoder(msgCreator gtp.IMsgCreator) DecoderCreator {
 	if msgCreator == nil {
 		panic(fmt.Errorf("%w: msgCreator is nil", golaxy.ErrArgs))
 	}
 
-	return _DecoderCreator{
+	return DecoderCreator{
 		decoder: &Decoder{
 			MsgCreator: msgCreator,
 		},
 	}
 }
 
-// _DecoderCreator 消息包解码器构建器
-type _DecoderCreator struct {
+// DecoderCreator 消息包解码器构建器
+type DecoderCreator struct {
 	decoder *Decoder
 }
 
 // SetupEncryptionModule 安装加密模块
-func (dc _DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) _DecoderCreator {
+func (dc DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) DecoderCreator {
+	if dc.decoder == nil {
+		panic("must invoke CreateDecoder() first")
+	}
 	dc.decoder.EncryptionModule = encryptionModule
 	return dc
 }
 
 // SetupMACModule 安装MAC模块
-func (dc _DecoderCreator) SetupMACModule(macModule IMACModule) _DecoderCreator {
+func (dc DecoderCreator) SetupMACModule(macModule IMACModule) DecoderCreator {
+	if dc.decoder == nil {
+		panic("must invoke CreateDecoder() first")
+	}
 	dc.decoder.MACModule = macModule
 	return dc
 }
 
 // SetupCompressionModule 安装压缩模块
-func (dc _DecoderCreator) SetupCompressionModule(compressionModule ICompressionModule) _DecoderCreator {
+func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionModule) DecoderCreator {
+	if dc.decoder == nil {
+		panic("must invoke CreateDecoder() first")
+	}
 	dc.decoder.CompressionModule = compressionModule
 	return dc
 }
 
 // Spawn 获取消息包解码器
-func (dc _DecoderCreator) Spawn() IDecoder {
+func (dc DecoderCreator) Spawn() IDecoder {
+	if dc.decoder == nil {
+		panic("must invoke CreateDecoder() first")
+	}
 	return dc.decoder
 }
 
 // CreateEncoder 创建消息包编码器
-func CreateEncoder() _EncoderCreator {
-	return _EncoderCreator{
+func CreateEncoder() EncoderCreator {
+	return EncoderCreator{
 		encoder: &Encoder{},
 	}
 }
 
-// _EncoderCreator 消息包编码器构建器
-type _EncoderCreator struct {
+// EncoderCreator 消息包编码器构建器
+type EncoderCreator struct {
 	encoder *Encoder
 }
 
 // SetupEncryptionModule 安装加密模块
-func (ec _EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) _EncoderCreator {
+func (ec EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) EncoderCreator {
+	if ec.encoder == nil {
+		panic("must invoke CreateEncoder() first")
+	}
 	ec.encoder.EncryptionModule = encryptionModule
 	ec.encoder.Encryption = encryptionModule != nil
 	return ec
 }
 
 // SetupMACModule 安装MAC模块
-func (ec _EncoderCreator) SetupMACModule(macModule IMACModule) _EncoderCreator {
+func (ec EncoderCreator) SetupMACModule(macModule IMACModule) EncoderCreator {
+	if ec.encoder == nil {
+		panic("must invoke CreateEncoder() first")
+	}
 	ec.encoder.MACModule = macModule
 	ec.encoder.PatchMAC = macModule != nil
 	return ec
 }
 
 // SetupCompressionModule 安装压缩模块
-func (ec _EncoderCreator) SetupCompressionModule(compressionModule ICompressionModule, compressedSize int) _EncoderCreator {
+func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionModule, compressedSize int) EncoderCreator {
+	if ec.encoder == nil {
+		panic("must invoke CreateEncoder() first")
+	}
 	ec.encoder.CompressionModule = compressionModule
 	if compressionModule != nil {
 		ec.encoder.CompressedSize = compressedSize
@@ -85,6 +106,9 @@ func (ec _EncoderCreator) SetupCompressionModule(compressionModule ICompressionM
 }
 
 // Spawn 获取消息包编码器
-func (ec _EncoderCreator) Spawn() IEncoder {
+func (ec EncoderCreator) Spawn() IEncoder {
+	if ec.encoder == nil {
+		panic("must invoke CreateEncoder() first")
+	}
 	return ec.encoder
 }

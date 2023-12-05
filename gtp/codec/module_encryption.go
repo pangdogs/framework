@@ -27,6 +27,12 @@ func NewEncryptionModule(cipher method.Cipher, padding method.Padding, fetchNonc
 		panic(fmt.Errorf("%w: cipher is nil", golaxy.ErrArgs))
 	}
 
+	if cipher.Pad() || cipher.Unpad() {
+		if padding == nil {
+			panic(fmt.Errorf("%w: padding is nil", golaxy.ErrArgs))
+		}
+	}
+
 	if cipher.NonceSize() > 0 {
 		if fetchNonce == nil {
 			panic(fmt.Errorf("%w: fetchNonce is nil", golaxy.ErrArgs))

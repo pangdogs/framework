@@ -33,25 +33,11 @@ func TestCodec(t *testing.T) {
 	//	panic(err)
 	//}
 
-	encoder := Encoder{
-		EncryptionModule: &EncryptionModule{
-			Cipher: encrypter,
-			//Padding:      padding,
-			FetchNonce: func() ([]byte, error) {
-				return nonce.Bytes(), nil
-			},
-		},
-		MACModule: &MAC64Module{
-			Hash:       fnv.New64a(),
-			PrivateKey: key.Bytes(),
-		},
-		CompressionModule: &CompressionModule{
-			CompressionStream: compressionStream,
-		},
-		Encryption:     true,
-		PatchMAC:       true,
-		CompressedSize: 1,
-	}
+	encoder := CreateEncoder().
+		SetupEncryptionModule(NewEncryptionModule(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
+		SetupCompressionModule(NewCompressionModule(compressionStream), 1).
+		Spawn()
 
 	for i := 0; i < 5; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
@@ -73,26 +59,13 @@ func TestCodec(t *testing.T) {
 		}
 	}
 
-	decoder := Decoder{
-		MsgCreator: gtp.DefaultMsgCreator(),
-		EncryptionModule: &EncryptionModule{
-			Cipher: decrypter,
-			//Padding:      padding,
-			FetchNonce: func() ([]byte, error) {
-				return nonce.Bytes(), nil
-			},
-		},
-		MACModule: &MAC64Module{
-			Hash:       fnv.New64a(),
-			PrivateKey: key.Bytes(),
-		},
-		CompressionModule: &CompressionModule{
-			CompressionStream: compressionStream,
-		},
-	}
+	decoder := CreateDecoder(gtp.DefaultMsgCreator()).
+		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
+		SetupCompressionModule(NewCompressionModule(compressionStream)).Spawn()
 
 	for {
-		_, err = decoder.ReadFrom(&encoder)
+		_, err = decoder.ReadFrom(encoder)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break

@@ -41,12 +41,10 @@ func TestProtocol(t *testing.T) {
 				}()
 
 				transceiver := &Transceiver{
-					Conn:    conn,
-					Encoder: &codec.Encoder{},
-					Decoder: &codec.Decoder{
-						MsgCreator: gtp.DefaultMsgCreator(),
-					},
-					Synchronizer: &UnsequencedSynchronizer{},
+					Conn:         conn,
+					Encoder:      codec.CreateEncoder().Spawn(),
+					Decoder:      codec.CreateDecoder(gtp.DefaultMsgCreator()).Spawn(),
+					Synchronizer: NewUnsequencedSynchronizer(),
 				}
 
 				handshake := &HandshakeProtocol{
@@ -145,12 +143,10 @@ func TestProtocol(t *testing.T) {
 		defer conn.Close()
 
 		transceiver := &Transceiver{
-			Conn:    conn,
-			Encoder: &codec.Encoder{},
-			Decoder: &codec.Decoder{
-				MsgCreator: gtp.DefaultMsgCreator(),
-			},
-			Synchronizer: &UnsequencedSynchronizer{},
+			Conn:         conn,
+			Encoder:      codec.CreateEncoder().Spawn(),
+			Decoder:      codec.CreateDecoder(gtp.DefaultMsgCreator()).Spawn(),
+			Synchronizer: NewUnsequencedSynchronizer(),
 		}
 
 		handshake := &HandshakeProtocol{

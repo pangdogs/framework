@@ -9,6 +9,11 @@ import (
 	"kit.golaxy.org/plugins/gtp"
 )
 
+// NewUnsequencedSynchronizer 创建无时序同步器缓存
+func NewUnsequencedSynchronizer() ISynchronizer {
+	return &UnsequencedSynchronizer{}
+}
+
 // UnsequencedSynchronizer 无时序同步器缓存
 type UnsequencedSynchronizer struct {
 	bytes.Buffer

@@ -15,9 +15,9 @@ import (
 
 // _Connector 网络连接器
 type _Connector struct {
-	options ClientOptions
-	encoder *codec.Encoder
-	decoder *codec.Decoder
+	options        ClientOptions
+	encoderCreator codec.EncoderCreator
+	decoderCreator codec.DecoderCreator
 }
 
 // connect 连接服务端
