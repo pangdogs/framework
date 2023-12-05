@@ -62,7 +62,8 @@ func TestCodec(t *testing.T) {
 	decoder := CreateDecoder(gtp.DefaultMsgCreator()).
 		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
-		SetupCompressionModule(NewCompressionModule(compressionStream)).Spawn()
+		SetupCompressionModule(NewCompressionModule(compressionStream)).
+		Spawn()
 
 	for {
 		_, err = decoder.ReadFrom(encoder)
