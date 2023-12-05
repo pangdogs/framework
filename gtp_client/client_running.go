@@ -24,11 +24,7 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 	c.transceiver.Encoder = encoder
 	c.transceiver.Decoder = decoder
 	c.transceiver.Timeout = c.options.IOTimeout
-
-	synchronizer := &transport.SequencedSynchronizer{}
-	synchronizer.Reset(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
-
-	c.transceiver.Synchronizer = synchronizer
+	c.transceiver.Synchronizer = transport.NewSequencedSynchronizer(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
 
 	// 初始化刷新通知channel
 	c.renewChan = make(chan struct{}, 1)

@@ -9,6 +9,13 @@ import (
 	"sync/atomic"
 )
 
+// NewSequencedSynchronizer 创建有时序同步器缓存
+func NewSequencedSynchronizer(sendSeq, recvSeq uint32, cap int) ISynchronizer {
+	s := &SequencedSynchronizer{}
+	s.Reset(sendSeq, recvSeq, cap)
+	return s
+}
+
 // _SequencedFrame 时序帧
 type _SequencedFrame struct {
 	seq    uint32 // 序号

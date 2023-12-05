@@ -11,10 +11,10 @@ import (
 
 // _Acceptor 网络连接接受器
 type _Acceptor struct {
-	gate    *_Gate
-	options *GateOptions
-	encoder *codec.Encoder
-	decoder *codec.Decoder
+	gate           *_Gate
+	options        *GateOptions
+	encoderCreator codec.EncoderCreator
+	decoderCreator codec.DecoderCreator
 }
 
 // accept 接受网络连接

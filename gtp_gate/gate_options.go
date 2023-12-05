@@ -79,7 +79,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 			PaddingMode:         gtp.PaddingMode_None,
 			MACHash:             gtp.Hash_Fnv1a32,
 		})(options)
-		_GateOption{}.EncNonceStep(new(big.Int).SetInt64(1))(options)
+		_GateOption{}.EncNonceStep(big.NewInt(1))(options)
 		_GateOption{}.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
 		_GateOption{}.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
 			AsymmetricEncryption: gtp.AsymmetricEncryption_None,
