@@ -45,6 +45,8 @@ type Session interface {
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
+	// GetFutures 获取异步模型Future控制器
+	GetFutures() concurrent.IFutures
 	// SendData 发送数据
 	SendData(data []byte) error
 	// SendEvent 发送自定义事件
@@ -57,8 +59,6 @@ type Session interface {
 	SendEventChan() chan<- transport.Event[gtp.MsgReader]
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
-	// GetFutures 获取异步模型Future控制器
-	GetFutures() concurrent.IFutures
 	// Close 关闭
 	Close(err error)
 }
@@ -137,6 +137,11 @@ func (s *_Session) GetRemoteAddr() net.Addr {
 	return s.transceiver.Conn.RemoteAddr()
 }
 
+// GetFutures 获取异步模型Future控制器
+func (s *_Session) GetFutures() concurrent.IFutures {
+	return &s.gate.futures
+}
+
 // SendData 发送数据
 func (s *_Session) SendData(data []byte) error {
 	return s.trans.SendData(data)
@@ -180,11 +185,6 @@ func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 		log.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.options.RecvEventChan
-}
-
-// GetFutures 获取异步模型Future控制器
-func (s *_Session) GetFutures() concurrent.IFutures {
-	return &s.gate.futures
 }
 
 // Close 关闭
