@@ -295,7 +295,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 		session.setState(SessionState_Confirmed)
 
 		// 运行会话
-		go session.run()
+		go session.mainLoop()
 	}
 
 	return session, nil

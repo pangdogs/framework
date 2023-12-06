@@ -76,7 +76,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		eventChan:      eventChan,
 	}
 
-	go watcher.run()
+	go watcher.mainLoop()
 
 	return watcher, nil
 }
@@ -113,7 +113,7 @@ func (w *_Watcher) Stop() <-chan struct{} {
 	return w.stoppedChan
 }
 
-func (w *_Watcher) run() {
+func (w *_Watcher) mainLoop() {
 	defer func() {
 		close(w.eventChan)
 		w.stoppedChan <- struct{}{}

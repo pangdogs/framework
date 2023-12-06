@@ -48,7 +48,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		sub.eventHandler = opts.EventHandler
 	}
 
-	go sub.run()
+	go sub.mainLoop()
 
 	log.Infof(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
 
@@ -103,7 +103,7 @@ func (s *_Subscriber) EventChan() <-chan broker.Event {
 	return s.eventChan
 }
 
-func (s *_Subscriber) run() {
+func (s *_Subscriber) mainLoop() {
 	<-s.ctx.Done()
 
 	defer func() { s.stoppedChan <- struct{}{} }()

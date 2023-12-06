@@ -51,7 +51,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		return nil, err
 	}
 
-	go client.run()
+	go client.mainLoop()
 
 	return client, nil
 }

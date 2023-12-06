@@ -52,6 +52,7 @@ type _Distributed struct {
 	dsync         dsync.DSync
 	address       Address
 	serviceNode   registry.Service
+	watcher       registry.Watcher
 	subs          []broker.Subscriber
 	encoder       codec.Encoder
 	decoder       codec.Decoder
@@ -140,35 +141,18 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	log.Infof(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
 
 	// 监控服务节点变化
-	watch, err := d.registry.Watch(d.ctx, "")
+	d.watcher, err = d.registry.Watch(d.ctx, "")
 	if err != nil {
 		log.Panicf(d.ctx, "watching service changes failed, %s", err)
 	}
 
-	go func() {
-		for {
-			e, err := watch.Next()
-			if err != nil {
-				if errors.Is(err, registry.ErrStoppedWatching) {
-					log.Debugf(d.ctx, "watching service changes stopped")
-					return
-				}
-				log.Errorf(d.ctx, "watching service changes stopped, %s", err)
-				return
-			}
-
-			switch e.Type {
-			case registry.Delete:
-				for _, node := range e.Service.Nodes {
-					d.deduplication.Remove(node.Address)
-				}
-			}
-		}
-	}()
-
-	// 开始运行
+	// 运行服务节点监控线程
 	d.wg.Add(1)
-	go d.run()
+	go d.watching()
+
+	// 运行主线程
+	d.wg.Add(1)
+	go d.mainLoop()
 }
 
 // ShutSP 关闭服务插件

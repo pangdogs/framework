@@ -64,8 +64,8 @@ func (s *_Session) continueIO() {
 	s.transceiver.Continue()
 }
 
-// run 运行（会话的主线程）
-func (s *_Session) run() {
+// mainLoop 主线程
+func (s *_Session) mainLoop() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			defer s.cancel()
