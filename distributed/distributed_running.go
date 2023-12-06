@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (d *_Distributed) mainLoop(serviceNode registry.Service) {
+func (d *_Distributed) mainLoop(serviceNode registry.Service, subs []broker.Subscriber) {
 	defer d.wg.Done()
 
 	log.Infof(d.ctx, "start service %q node %q", d.ctx.GetName(), d.ctx.GetId())
@@ -41,7 +41,7 @@ loop:
 	}
 
 	// 取消订阅topic
-	for _, sub := range d.subs {
+	for _, sub := range subs {
 		<-sub.Unsubscribe()
 	}
 

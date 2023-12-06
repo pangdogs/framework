@@ -51,7 +51,6 @@ type _Distributed struct {
 	broker        broker.Broker
 	dsync         dsync.DSync
 	address       Address
-	subs          []broker.Subscriber
 	encoder       codec.Encoder
 	decoder       codec.Decoder
 	futures       concurrent.Futures
@@ -106,7 +105,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 
 	// 订阅topic
-	d.subs = append(d.subs,
+	subs := []broker.Subscriber{
 		// 订阅全服topic
 		d.subscribe(d.address.GlobalBroadcastAddr, ""),
 		d.subscribe(d.address.GlobalBalanceAddr, "balance"),
@@ -115,7 +114,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		d.subscribe(d.address.ServiceBalanceAddr, "balance"),
 		// 订阅服务节点topic
 		d.subscribe(d.address.LocalAddr, ""),
-	)
+	}
 
 	// 服务节点信息
 	serviceNode := registry.Service{
@@ -150,7 +149,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 	// 运行主线程
 	d.wg.Add(1)
-	go d.mainLoop(serviceNode)
+	go d.mainLoop(serviceNode, subs)
 }
 
 // ShutSP 关闭服务插件
