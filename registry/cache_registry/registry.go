@@ -74,7 +74,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 
 	r.wg.Add(1)
-	go r.run()
+	go r.mainLoop()
 }
 
 // ShutSP 关闭服务插件
@@ -145,7 +145,7 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 	return services
 }
 
-func (r *_Registry) run() {
+func (r *_Registry) mainLoop() {
 	defer r.wg.Done()
 
 loop:

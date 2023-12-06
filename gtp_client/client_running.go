@@ -65,8 +65,8 @@ func (c *Client) continueIO() {
 	c.transceiver.Continue()
 }
 
-// run 运行
-func (c *Client) run() {
+// mainLoop 主线程
+func (c *Client) mainLoop() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			defer c.cancel()

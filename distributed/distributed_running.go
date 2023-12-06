@@ -1,14 +1,16 @@
 package distributed
 
 import (
+	"errors"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/log"
+	"kit.golaxy.org/plugins/registry"
 	"time"
 )
 
-func (d *_Distributed) run() {
+func (d *_Distributed) mainLoop() {
 	defer d.wg.Done()
 
 	log.Infof(d.ctx, "start service %q node %q", d.ctx.GetName(), d.ctx.GetId())
@@ -46,7 +48,6 @@ loop:
 	log.Infof(d.ctx, "stop service %q node %q", d.ctx.GetName(), d.ctx.GetId())
 }
 
-// handleEvent 处理事件
 func (d *_Distributed) handleEvent(e broker.Event) error {
 	mp, err := d.decoder.DecodeBytes(e.Message())
 	if err != nil {
@@ -59,4 +60,27 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 	}
 
 	return generic.FuncError(d.Options.RecvMsgPacketHandler.Invoke(nil, e.Topic(), mp))
+}
+
+func (d *_Distributed) watching() {
+	defer d.wg.Done()
+
+	for {
+		e, err := d.watcher.Next()
+		if err != nil {
+			if errors.Is(err, registry.ErrStoppedWatching) {
+				log.Debugf(d.ctx, "watching service changes stopped")
+				return
+			}
+			log.Errorf(d.ctx, "watching service changes stopped, %s", err)
+			return
+		}
+
+		switch e.Type {
+		case registry.Delete:
+			for _, node := range e.Service.Nodes {
+				d.deduplication.Remove(node.Address)
+			}
+		}
+	}
 }
