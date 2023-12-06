@@ -69,7 +69,8 @@ func (s *_Session) mainLoop() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			defer s.cancel()
-			log.Errorf(s.gate.ctx, "session %q panicked, %s", s.GetId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
+			log.Errorf(s.gate.ctx, "session %q main loop abort, conn %q -> %q, %s", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr(),
+				fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
 
 		// 调整会话状态为已过期
@@ -83,8 +84,6 @@ func (s *_Session) mainLoop() {
 
 		// 删除会话
 		s.gate.deleteSession(s.GetId())
-
-		log.Debugf(s.gate.ctx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 	}()
 
 	log.Debugf(s.gate.ctx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
@@ -203,6 +202,8 @@ func (s *_Session) mainLoop() {
 		// 调整会话状态活跃
 		s.setState(SessionState_Active)
 	}
+
+	log.Debugf(s.gate.ctx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
 
 // setState 调整会话状态
