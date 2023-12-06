@@ -24,16 +24,20 @@ type IDeduplication interface {
 // MakeDeduplication 创建去重器
 func MakeDeduplication() Deduplication {
 	return Deduplication{
-		localSeq:     time.Now().UnixMicro(),
-		remoteSeqMap: make(map[string]*int64),
+		localSeq: time.Now().UnixMicro(),
 	}
+}
+
+type _RemoteSeq struct {
+	sync.Mutex
+	Seq int64
 }
 
 // Deduplication 去重器，用于保持幂等性
 type Deduplication struct {
-	localSeq     int64
-	remoteSeqMap map[string]*int64
-	remoteMutex  sync.Mutex
+	localSeq       int64
+	remoteSeqMap   map[string]*_RemoteSeq
+	remoteSeqMutex sync.RWMutex
 }
 
 // MakeSeq 创建序号
@@ -43,27 +47,34 @@ func (d *Deduplication) MakeSeq() int64 {
 
 // ValidateSeq 验证序号
 func (d *Deduplication) ValidateSeq(remote string, seq int64) error {
-	d.remoteMutex.Lock()
-	defer d.remoteMutex.Unlock()
-
+	d.remoteSeqMutex.RLock()
 	remoteSeq, ok := d.remoteSeqMap[remote]
+	d.remoteSeqMutex.RUnlock()
 	if !ok {
-		d.remoteSeqMap[remote] = &seq
-		return nil
+		d.remoteSeqMutex.Lock()
+		remoteSeq, ok = d.remoteSeqMap[remote]
+		if !ok {
+			remoteSeq = &_RemoteSeq{
+				Seq: seq,
+			}
+			d.remoteSeqMap[remote] = remoteSeq
+		}
+		d.remoteSeqMutex.Unlock()
 	}
 
-	if seq <= *remoteSeq {
+	remoteSeq.Lock()
+	if seq <= remoteSeq.Seq {
 		return ErrDiscardSeq
 	}
+	remoteSeq.Seq = seq
+	remoteSeq.Unlock()
 
-	*remoteSeq = seq
 	return nil
 }
 
 // Remove 删除对端
 func (d *Deduplication) Remove(remote string) {
-	d.remoteMutex.Lock()
-	defer d.remoteMutex.Unlock()
-
+	d.remoteSeqMutex.Lock()
 	delete(d.remoteSeqMap, remote)
+	d.remoteSeqMutex.Unlock()
 }
