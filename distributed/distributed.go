@@ -51,8 +51,6 @@ type _Distributed struct {
 	broker        broker.Broker
 	dsync         dsync.DSync
 	address       Address
-	serviceNode   registry.Service
-	watcher       registry.Watcher
 	subs          []broker.Subscriber
 	encoder       codec.Encoder
 	decoder       codec.Decoder
@@ -107,20 +105,6 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		log.Panicf(d.ctx, "check service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 
-	// 服务节点信息
-	d.serviceNode = registry.Service{
-		Name:      d.ctx.GetName(),
-		Version:   d.Options.Version,
-		Metadata:  d.Options.Metadata,
-		Endpoints: d.Options.Endpoints,
-		Nodes: []registry.Node{
-			{
-				Id:      d.ctx.GetId().String(),
-				Address: d.address.LocalAddr,
-			},
-		},
-	}
-
 	// 订阅topic
 	d.subs = append(d.subs,
 		// 订阅全服topic
@@ -133,26 +117,40 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		d.subscribe(d.address.LocalAddr, ""),
 	)
 
+	// 服务节点信息
+	serviceNode := registry.Service{
+		Name:      d.ctx.GetName(),
+		Version:   d.Options.Version,
+		Metadata:  d.Options.Metadata,
+		Endpoints: d.Options.Endpoints,
+		Nodes: []registry.Node{
+			{
+				Id:      d.ctx.GetId().String(),
+				Address: d.address.LocalAddr,
+			},
+		},
+	}
+
 	// 注册服务
-	err = d.registry.Register(d.ctx, d.serviceNode, d.Options.RefreshInterval*2)
+	err = d.registry.Register(d.ctx, serviceNode, d.Options.RefreshInterval*2)
 	if err != nil {
 		log.Panicf(d.ctx, "register service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 	log.Infof(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
 
 	// 监控服务节点变化
-	d.watcher, err = d.registry.Watch(d.ctx, "")
+	watcher, err := d.registry.Watch(d.ctx, "")
 	if err != nil {
 		log.Panicf(d.ctx, "watching service changes failed, %s", err)
 	}
 
 	// 运行服务节点监控线程
 	d.wg.Add(1)
-	go d.watching()
+	go d.watching(watcher)
 
 	// 运行主线程
 	d.wg.Add(1)
-	go d.mainLoop()
+	go d.mainLoop(serviceNode)
 }
 
 // ShutSP 关闭服务插件

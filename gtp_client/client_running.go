@@ -70,12 +70,15 @@ func (c *Client) mainLoop() {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			defer c.cancel()
-			c.logger.Errorf("client %q loop aborted, %s", c.GetSessionId(), fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
+			c.logger.Errorf("client %q main loop aborted, conn %q -> %q, %s", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr(),
+				fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
 		}
+
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
 		}
 		c.transceiver.Clean()
+
 		c.closedChan <- struct{}{}
 	}()
 

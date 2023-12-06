@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (d *_Distributed) mainLoop() {
+func (d *_Distributed) mainLoop(serviceNode registry.Service) {
 	defer d.wg.Done()
 
 	log.Infof(d.ctx, "start service %q node %q", d.ctx.GetName(), d.ctx.GetId())
@@ -23,7 +23,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, d.serviceNode, d.Options.RefreshInterval*2); err != nil {
+			if err := d.registry.Register(d.ctx, serviceNode, d.Options.RefreshInterval*2); err != nil {
 				log.Errorf(d.ctx, "refresh service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 				continue
 			}
@@ -36,7 +36,7 @@ loop:
 	}
 
 	// 取消注册服务节点
-	if err := d.registry.Deregister(context.Background(), d.serviceNode); err != nil {
+	if err := d.registry.Deregister(context.Background(), serviceNode); err != nil {
 		log.Errorf(d.ctx, "deregister service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
 
@@ -62,18 +62,19 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 	return generic.FuncError(d.Options.RecvMsgPacketHandler.Invoke(nil, e.Topic(), mp))
 }
 
-func (d *_Distributed) watching() {
+func (d *_Distributed) watching(watcher registry.Watcher) {
 	defer d.wg.Done()
 
+loop:
 	for {
-		e, err := d.watcher.Next()
+		e, err := watcher.Next()
 		if err != nil {
 			if errors.Is(err, registry.ErrStoppedWatching) {
 				log.Debugf(d.ctx, "watching service changes stopped")
-				return
+				break loop
 			}
-			log.Errorf(d.ctx, "watching service changes stopped, %s", err)
-			return
+			log.Errorf(d.ctx, "watching service changes aborted, %s", err)
+			break loop
 		}
 
 		switch e.Type {
@@ -83,4 +84,6 @@ func (d *_Distributed) watching() {
 			}
 		}
 	}
+
+	<-watcher.Stop()
 }

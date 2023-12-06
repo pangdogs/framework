@@ -25,7 +25,6 @@ type _Registry struct {
 	registry.Registry
 	options        RegistryOptions
 	ctx            service.Context
-	watcher        registry.Watcher
 	serviceMap     map[string]*[]registry.Service
 	serviceNodeMap map[[2]string]*registry.Service
 	mutex          sync.RWMutex
@@ -68,13 +67,13 @@ func (r *_Registry) InitSP(ctx service.Context) {
 		}
 	}
 
-	r.watcher, err = r.Registry.Watch(ctx, "")
+	watcher, err := r.Registry.Watch(ctx, "")
 	if err != nil {
 		log.Panicf(ctx, "watching service changes failed, %s", err)
 	}
 
 	r.wg.Add(1)
-	go r.mainLoop()
+	go r.mainLoop(watcher)
 }
 
 // ShutSP 关闭服务插件
@@ -145,18 +144,18 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 	return services
 }
 
-func (r *_Registry) mainLoop() {
+func (r *_Registry) mainLoop(watcher registry.Watcher) {
 	defer r.wg.Done()
 
 loop:
 	for {
-		event, err := r.watcher.Next()
+		event, err := watcher.Next()
 		if err != nil {
 			if errors.Is(err, registry.ErrStoppedWatching) {
 				log.Debugf(r.ctx, "watching service changes stopped")
 				break loop
 			}
-			log.Errorf(r.ctx, "watching service changes stopped, %s", err)
+			log.Errorf(r.ctx, "watching service changes aborted, %s", err)
 			break loop
 		}
 
@@ -240,5 +239,5 @@ loop:
 		}()
 	}
 
-	<-r.watcher.Stop()
+	<-watcher.Stop()
 }
