@@ -14,7 +14,7 @@ import (
 type Option struct{}
 
 type (
-	RecvMsgPacketHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息的处理器
+	RecvMsgPacketHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息包的处理器
 )
 
 // DistributedOptions 所有选项
