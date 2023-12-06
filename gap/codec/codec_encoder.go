@@ -61,7 +61,7 @@ func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.M
 
 	_, err = writer.Write(mpBuf.Data())
 	if err != nil {
-		return fmt.Errorf("write msg-packet-bytes failed, %w", err)
+		return fmt.Errorf("write gap.msg-packet failed, %w", err)
 	}
 
 	return nil

@@ -74,7 +74,7 @@ func (e *Encoder) EncodeWriter(writer io.Writer, flags gtp.Flags, msg gtp.MsgRea
 
 	_, err = writer.Write(mpBuf.Data())
 	if err != nil {
-		return fmt.Errorf("write msg-packet-bytes failed, %w", err)
+		return fmt.Errorf("write gtp.msg-packet failed, %w", err)
 	}
 
 	return nil
@@ -168,7 +168,7 @@ func (e *Encoder) encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 			head.Flags.Set(gtp.Flag_MAC, true)
 
 			if _, err = head.Read(mpBuf.Data()); err != nil {
-				return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("failed to write msg-packet-head for patch msg-mac, %w", err)
+				return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("failed to write gtp.msg-packet-head for patch msg-mac, %w", err)
 			}
 
 			macBuf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
@@ -198,7 +198,7 @@ func (e *Encoder) encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 	// 写入消息头
 	head.Len = uint32(len(mpBuf.Data()))
 	if _, err = head.Read(mpBuf.Data()); err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("write msg-packet-head failed, %w", err)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("write gtp.msg-packet-head failed, %w", err)
 	}
 
 	return mpBuf, nil

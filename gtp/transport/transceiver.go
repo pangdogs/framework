@@ -52,7 +52,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 
 	// 编码消息
 	if err := t.Encoder.EncodeWriter(t.Synchronizer, me.Flags, me.Msg); err != nil {
-		return fmt.Errorf("encode msg failed, %w", err)
+		return fmt.Errorf("encode gtp.msg failed, %w", err)
 	}
 
 	// 设置链路超时时间
@@ -64,7 +64,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("send gtp.msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (t *Transceiver) Resend() error {
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("resend msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("resend gtp.msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 		}
 
 		if !errors.Is(err, codec.ErrDataNotEnough) {
-			return Event[gtp.Msg]{}, fmt.Errorf("fetch msg-packet failed, %w", err)
+			return Event[gtp.Msg]{}, fmt.Errorf("decode gtp.msg-packet failed, %w", err)
 		}
 
 		// 设置链路超时时间
@@ -153,7 +153,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[gtp.Msg]{}, fmt.Errorf("recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
+			return Event[gtp.Msg]{}, fmt.Errorf("recv gtp.msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
 		}
 	}
 }

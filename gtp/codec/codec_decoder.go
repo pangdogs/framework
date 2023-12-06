@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrDataNotEnough = errors.New("data not enough") // 数据不足
+	ErrDataNotEnough = io.ErrShortBuffer // 数据不足
 )
 
 // IValidate 验证消息包接口
@@ -151,7 +151,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	// 读取消息头
 	_, err := mp.Write(mpBuf.Data())
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("read msg-packet-head failed, %w", err)
+		return gtp.MsgPacket{}, fmt.Errorf("read gtp.msg-packet-head failed, %w", err)
 	}
 
 	msgBuf := mpBuf.Data()[mp.Head.Size():]
@@ -160,7 +160,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	if len(validate) > 0 {
 		err = validate[0].Validate(mp.Head, msgBuf)
 		if err != nil {
-			return gtp.MsgPacket{}, fmt.Errorf("validate msg-packet-head failed, %w", err)
+			return gtp.MsgPacket{}, fmt.Errorf("validate gtp.msg-packet-head failed, %w", err)
 		}
 	}
 
@@ -168,7 +168,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {
 		// 解密消息体
 		if d.EncryptionModule == nil {
-			return gtp.MsgPacket{}, errors.New("setting EncryptionModule is nil, msg can't be decrypted")
+			return gtp.MsgPacket{}, errors.New("setting EncryptionModule is nil, gtp.msg can't be decrypted")
 		}
 		dencryptBuf, err := d.EncryptionModule.Transforming(msgBuf, msgBuf)
 		if err != nil {
