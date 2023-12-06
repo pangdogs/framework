@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrMsgNotProcessed = errors.New("msg not processed") // 消息事件未处理
-	ErrUnexpectedMsg   = errors.New("unexpected msg")    // 收到非预期的消息事件
+	ErrMsgNotProcessed = errors.New("gtp.msg not processed") // 消息事件未处理
+	ErrUnexpectedMsg   = errors.New("unexpected gtp.msg")    // 收到非预期的消息事件
 )
 
 type (

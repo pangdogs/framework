@@ -1,14 +1,9 @@
 package concurrent
 
 import (
-	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
-)
-
-var (
-	ErrDiscardSeq = errors.New("discard sequence") // 丢弃的序号
 )
 
 // IDeduplication 去重器接口
@@ -16,7 +11,7 @@ type IDeduplication interface {
 	// MakeSeq 创建序号
 	MakeSeq() int64
 	// ValidateSeq 验证序号
-	ValidateSeq(remote string, seq int64) error
+	ValidateSeq(remote string, seq int64) bool
 	// Remove 删除对端
 	Remove(remote string)
 }
@@ -46,7 +41,7 @@ func (d *Deduplication) MakeSeq() int64 {
 }
 
 // ValidateSeq 验证序号
-func (d *Deduplication) ValidateSeq(remote string, seq int64) error {
+func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
 	d.remoteSeqMutex.RLock()
 	remoteSeq, ok := d.remoteSeqMap[remote]
 	d.remoteSeqMutex.RUnlock()
@@ -63,13 +58,14 @@ func (d *Deduplication) ValidateSeq(remote string, seq int64) error {
 	}
 
 	remoteSeq.Lock()
+	defer remoteSeq.Unlock()
+
 	if seq <= remoteSeq.Seq {
-		return ErrDiscardSeq
+		return false
 	}
 	remoteSeq.Seq = seq
-	remoteSeq.Unlock()
 
-	return nil
+	return true
 }
 
 // Remove 删除对端

@@ -2,6 +2,7 @@ package distributed
 
 import (
 	"errors"
+	"fmt"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/broker"
@@ -54,9 +55,8 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 		return err
 	}
 
-	err = d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq)
-	if err != nil {
-		return err
+	if !d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq) {
+		return fmt.Errorf("discard duplicate gap.msg-packet, head:%+v", mp.Head)
 	}
 
 	return generic.FuncError(d.Options.RecvMsgPacketHandler.Invoke(nil, e.Topic(), mp))

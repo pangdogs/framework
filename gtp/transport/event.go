@@ -36,7 +36,7 @@ func UnpackEvent[T gtp.MsgReader](me Event[gtp.Msg]) Event[T] {
 
 	msg, ok := any(me.Msg).(*T)
 	if !ok {
-		panic("incorrect msg type")
+		panic("incorrect gtp.msg type")
 	}
 	e.Msg = *msg
 
