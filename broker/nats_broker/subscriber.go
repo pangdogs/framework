@@ -134,7 +134,7 @@ func (s *_Subscriber) handleMsg(msg *nats.Msg) {
 		if e.Queue() != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s, nak: %s", e.Topic(), e.Queue(), err, nakErr)
+		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s, nak: %v", e.Topic(), e.Queue(), err, nakErr)
 	}
 
 	if s.eventChan != nil {
@@ -145,7 +145,7 @@ func (s *_Subscriber) handleMsg(msg *nats.Msg) {
 			if e.Queue() != "" {
 				nakErr = e.Nak(context.Background())
 			}
-			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %s", e.Topic(), e.Queue(), nakErr)
+			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
 		}
 	}
 }

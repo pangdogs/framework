@@ -53,7 +53,7 @@ func MakeReadChan(servCtx service.Context, ctx context.Context, pattern, queue s
 				if e.Queue() != "" {
 					nakErr = e.Nak(context.Background())
 				}
-				log.Errorf(servCtx, "receive data from topic %q queue %q failed, output chan is full, nak: %s", e.Topic(), e.Queue(), nakErr)
+				log.Errorf(servCtx, "receive data from topic %q queue %q failed, output chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
 			}
 			return nil
 		})),
