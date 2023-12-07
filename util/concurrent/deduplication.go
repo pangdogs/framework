@@ -54,18 +54,21 @@ func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
 				Seq: seq,
 			}
 			d.remoteSeqMap[remote] = remoteSeq
+			d.remoteSeqMutex.Unlock()
+			return true
 		}
 		d.remoteSeqMutex.Unlock()
 	}
 
 	remoteSeq.Lock()
-	defer remoteSeq.Unlock()
 
 	if seq <= remoteSeq.Seq {
+		remoteSeq.Unlock()
 		return false
 	}
 	remoteSeq.Seq = seq
 
+	remoteSeq.Unlock()
 	return true
 }
 
