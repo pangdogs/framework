@@ -19,7 +19,8 @@ type IDeduplication interface {
 // MakeDeduplication 创建去重器
 func MakeDeduplication() Deduplication {
 	return Deduplication{
-		localSeq: time.Now().UnixMicro(),
+		localSeq:     time.Now().UnixMicro(),
+		remoteSeqMap: map[string]*_RemoteSeq{},
 	}
 }
 
