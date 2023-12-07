@@ -61,13 +61,11 @@ func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
 	}
 
 	remoteSeq.Lock()
-
 	if seq <= remoteSeq.Seq {
 		remoteSeq.Unlock()
 		return false
 	}
 	remoteSeq.Seq = seq
-
 	remoteSeq.Unlock()
 	return true
 }
