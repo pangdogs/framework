@@ -6,7 +6,7 @@ import (
 	"kit.golaxy.org/plugins/util/concurrent"
 )
 
-// GetAddress 获取地址
+// GetAddress 获取地址信息
 func GetAddress(servCtx service.Context) Address {
 	return Using(servCtx).GetAddress()
 }
