@@ -14,18 +14,18 @@ import (
 type Option struct{}
 
 type (
-	RecvMsgPacketHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息包的处理器
+	RecvMsgHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息的处理器
 )
 
 // DistributedOptions 所有选项
 type DistributedOptions struct {
-	Version              string               // 服务版本号
-	Metadata             map[string]string    // 服务元数据，以键值对的形式保存附加信息
-	Endpoints            []registry.Endpoint  // 服务端点列表
-	RefreshInterval      time.Duration        // 服务信息刷新间隔
-	FutureTimeout        time.Duration        // 异步模型Future超时时间
-	DecoderMsgCreator    gap.IMsgCreator      // 消息包解码器的消息构建器
-	RecvMsgPacketHandler RecvMsgPacketHandler // 接收消息包的处理器
+	Version           string              // 服务版本号
+	Metadata          map[string]string   // 服务元数据，以键值对的形式保存附加信息
+	Endpoints         []registry.Endpoint // 服务端点列表
+	RefreshInterval   time.Duration       // 服务信息刷新间隔
+	FutureTimeout     time.Duration       // 异步模型Future超时时间
+	DecoderMsgCreator gap.IMsgCreator     // 消息包解码器的消息构建器
+	RecvMsgHandler    RecvMsgHandler      // 接收消息的处理器
 }
 
 // Default 默认值
@@ -37,7 +37,7 @@ func (Option) Default() option.Setting[DistributedOptions] {
 		Option{}.RefreshInterval(3 * time.Second)(options)
 		Option{}.FutureTimeout(5 * time.Second)(options)
 		Option{}.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
-		Option{}.RecvMsgPacketHandler(nil)(options)
+		Option{}.RecvMsgHandler(nil)(options)
 	}
 }
 
@@ -92,9 +92,9 @@ func (Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistributedOp
 	}
 }
 
-// RecvMsgPacketHandler 接收消息的处理器
-func (Option) RecvMsgPacketHandler(handler RecvMsgPacketHandler) option.Setting[DistributedOptions] {
+// RecvMsgHandler 接收消息的处理器
+func (Option) RecvMsgHandler(handler RecvMsgHandler) option.Setting[DistributedOptions] {
 	return func(options *DistributedOptions) {
-		options.RecvMsgPacketHandler = handler
+		options.RecvMsgHandler = handler
 	}
 }

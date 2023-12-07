@@ -59,7 +59,7 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 		return fmt.Errorf("discard duplicate gap.msg-packet, head:%+v", mp.Head)
 	}
 
-	return generic.FuncError(d.Options.RecvMsgPacketHandler.Invoke(nil, e.Topic(), mp))
+	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp))
 }
 
 func (d *_Distributed) watching(watcher registry.Watcher) {
