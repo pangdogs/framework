@@ -32,7 +32,7 @@ func (d *EventDispatcher) Dispatching() error {
 		return errors.New("setting Transceiver is nil")
 	}
 
-	d.Transceiver.GC()
+	defer d.Transceiver.GC()
 
 	e, err := d.retryRecv(d.Transceiver.Recv())
 	if err != nil {
@@ -65,7 +65,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 		return
 	}
 
-	defer d.Transceiver.GC()
+	defer d.Transceiver.Clean()
 
 	for {
 		select {
