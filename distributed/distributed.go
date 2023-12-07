@@ -30,10 +30,16 @@ type Address struct {
 
 // Distributed 分布式服务支持
 type Distributed interface {
-	// GetAddress 获取地址
+	// GetAddress 获取地址信息
 	GetAddress() Address
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
+	// MakeServiceBroadcastAddr 创建服务广播地址
+	MakeServiceBroadcastAddr(serviceName string) string
+	// MakeServiceBalanceAddr 创建服务负载均衡地址
+	MakeServiceBalanceAddr(serviceName string) string
+	// MakeServiceNodeAddr 创建服务节点地址
+	MakeServiceNodeAddr(serviceName, nodeId string) string
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 }
@@ -83,9 +89,9 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.address = Address{
 		GlobalBroadcastAddr:  "service",
 		GlobalBalanceAddr:    broker.Path(d.ctx, "service", "balance"),
-		ServiceBroadcastAddr: broker.Path(d.ctx, "service", d.ctx.GetName()),
-		ServiceBalanceAddr:   broker.Path(d.ctx, "service", d.ctx.GetName(), "balance"),
-		LocalAddr:            broker.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()),
+		ServiceBroadcastAddr: d.MakeServiceBroadcastAddr(d.ctx.GetName()),
+		ServiceBalanceAddr:   d.MakeServiceBalanceAddr(d.ctx.GetName()),
+		LocalAddr:            d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String()),
 	}
 
 	// 加分布式锁
@@ -159,7 +165,7 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 	d.wg.Wait()
 }
 
-// GetAddress 获取地址
+// GetAddress 获取地址信息
 func (d *_Distributed) GetAddress() Address {
 	return d.address
 }
@@ -167,6 +173,21 @@ func (d *_Distributed) GetAddress() Address {
 // GetFutures 获取异步模型Future控制器
 func (d *_Distributed) GetFutures() concurrent.IFutures {
 	return &d.futures
+}
+
+// MakeServiceBroadcastAddr 创建服务广播地址
+func (d *_Distributed) MakeServiceBroadcastAddr(serviceName string) string {
+	return broker.Path(d.ctx, "service", serviceName)
+}
+
+// MakeServiceBalanceAddr 创建服务负载均衡地址
+func (d *_Distributed) MakeServiceBalanceAddr(serviceName string) string {
+	return broker.Path(d.ctx, "service", serviceName, "balance")
+}
+
+// MakeServiceNodeAddr 创建服务节点地址
+func (d *_Distributed) MakeServiceNodeAddr(serviceName, nodeId string) string {
+	return broker.Path(d.ctx, "service", serviceName, nodeId)
 }
 
 // SendMsg 发送消息
