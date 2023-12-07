@@ -50,7 +50,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	go sub.mainLoop()
 
-	log.Infof(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
+	log.Debugf(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
 
 	return sub, nil
 }
@@ -111,7 +111,7 @@ func (s *_Subscriber) mainLoop() {
 	if err := s.natsSub.Unsubscribe(); err != nil {
 		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
 	} else {
-		log.Infof(s.broker.ctx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
+		log.Debugf(s.broker.ctx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
 	}
 
 	if s.eventChan != nil {
