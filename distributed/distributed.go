@@ -35,24 +35,24 @@ type Distributed interface {
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
 	// MakeServiceBroadcastAddr 创建服务广播地址
-	MakeServiceBroadcastAddr(serviceName string) string
+	MakeServiceBroadcastAddr(service string) string
 	// MakeServiceBalanceAddr 创建服务负载均衡地址
-	MakeServiceBalanceAddr(serviceName string) string
+	MakeServiceBalanceAddr(service string) string
 	// MakeServiceNodeAddr 创建服务节点地址
-	MakeServiceNodeAddr(serviceName, nodeId string) string
+	MakeServiceNodeAddr(service, node string) string
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 }
 
 func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
 	return &_Distributed{
-		Options: option.Make(Option{}.Default(), setting...),
+		options: option.Make(Option{}.Default(), setting...),
 	}
 }
 
 type _Distributed struct {
+	options       DistributedOptions
 	ctx           service.Context
-	Options       DistributedOptions
 	registry      registry.Registry
 	broker        broker.Broker
 	dsync         dsync.DSync
@@ -76,11 +76,11 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.dsync = dsync.Using(ctx)
 
 	// 初始化消息包编解码器
-	d.decoder = codec.MakeDecoder(d.Options.DecoderMsgCreator)
+	d.decoder = codec.MakeDecoder(d.options.DecoderMsgCreator)
 	d.encoder = codec.MakeEncoder()
 
 	// 初始化异步模型Future
-	d.futures = concurrent.MakeFutures(d.ctx, d.Options.FutureTimeout)
+	d.futures = concurrent.MakeFutures(d.ctx, d.options.FutureTimeout)
 
 	// 初始化消息去重器
 	d.deduplication = concurrent.MakeDeduplication()
@@ -125,9 +125,9 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	// 服务节点信息
 	serviceNode := registry.Service{
 		Name:      d.ctx.GetName(),
-		Version:   d.Options.Version,
-		Metadata:  d.Options.Metadata,
-		Endpoints: d.Options.Endpoints,
+		Version:   d.options.Version,
+		Metadata:  d.options.Metadata,
+		Endpoints: d.options.Endpoints,
 		Nodes: []registry.Node{
 			{
 				Id:      d.ctx.GetId().String(),
@@ -137,7 +137,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 
 	// 注册服务
-	err = d.registry.Register(d.ctx, serviceNode, d.Options.RefreshInterval*2)
+	err = d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2)
 	if err != nil {
 		log.Panicf(d.ctx, "register service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
@@ -176,18 +176,18 @@ func (d *_Distributed) GetFutures() concurrent.IFutures {
 }
 
 // MakeServiceBroadcastAddr 创建服务广播地址
-func (d *_Distributed) MakeServiceBroadcastAddr(serviceName string) string {
-	return broker.Path(d.ctx, "service", serviceName)
+func (d *_Distributed) MakeServiceBroadcastAddr(service string) string {
+	return broker.Path(d.ctx, "service", service)
 }
 
 // MakeServiceBalanceAddr 创建服务负载均衡地址
-func (d *_Distributed) MakeServiceBalanceAddr(serviceName string) string {
-	return broker.Path(d.ctx, "service", serviceName, "balance")
+func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
+	return broker.Path(d.ctx, "service", service, "balance")
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
-func (d *_Distributed) MakeServiceNodeAddr(serviceName, nodeId string) string {
-	return broker.Path(d.ctx, "service", serviceName, nodeId)
+func (d *_Distributed) MakeServiceNodeAddr(service, node string) string {
+	return broker.Path(d.ctx, "service", service, node)
 }
 
 // SendMsg 发送消息

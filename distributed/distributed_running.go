@@ -16,7 +16,7 @@ func (d *_Distributed) mainLoop(serviceNode registry.Service, subs []broker.Subs
 
 	log.Infof(d.ctx, "start service %q node %q", d.ctx.GetName(), d.ctx.GetId())
 
-	ticker := time.NewTicker(d.Options.RefreshInterval)
+	ticker := time.NewTicker(d.options.RefreshInterval)
 	defer ticker.Stop()
 
 loop:
@@ -24,7 +24,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, serviceNode, d.Options.RefreshInterval*2); err != nil {
+			if err := d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2); err != nil {
 				log.Errorf(d.ctx, "refresh service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 				continue
 			}
@@ -59,7 +59,7 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 		return fmt.Errorf("discard duplicate gap.msg-packet, head:%+v", mp.Head)
 	}
 
-	return generic.FuncError(d.Options.RecvMsgHandler.Invoke(nil, e.Topic(), mp))
+	return generic.FuncError(d.options.RecvMsgHandler.Invoke(nil, e.Topic(), mp))
 }
 
 func (d *_Distributed) watching(watcher registry.Watcher) {
