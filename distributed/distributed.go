@@ -39,7 +39,7 @@ type Distributed interface {
 	// MakeServiceBalanceAddr 创建服务负载均衡地址
 	MakeServiceBalanceAddr(service string) string
 	// MakeServiceNodeAddr 创建服务节点地址
-	MakeServiceNodeAddr(service, node string) string
+	MakeServiceNodeAddr(service, node string) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 }
@@ -91,8 +91,8 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		GlobalBalanceAddr:    d.MakeServiceBalanceAddr(""),
 		ServiceBroadcastAddr: d.MakeServiceBroadcastAddr(d.ctx.GetName()),
 		ServiceBalanceAddr:   d.MakeServiceBalanceAddr(d.ctx.GetName()),
-		LocalAddr:            d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String()),
 	}
+	d.address.LocalAddr, _ = d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String())
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))
@@ -192,14 +192,14 @@ func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
-func (d *_Distributed) MakeServiceNodeAddr(service, node string) string {
+func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error) {
 	if service == "" {
-		log.Panicf(d.ctx, "%w: service is empty", golaxy.ErrArgs)
+		return "", fmt.Errorf("%w: service is empty", golaxy.ErrArgs)
 	}
 	if node == "" {
-		log.Panicf(d.ctx, "%w: node is empty", golaxy.ErrArgs)
+		return "", fmt.Errorf("%w: node is empty", golaxy.ErrArgs)
 	}
-	return broker.Path(d.ctx, "service", "node", service, node)
+	return broker.Path(d.ctx, "service", "node", service, node), nil
 }
 
 // SendMsg 发送消息

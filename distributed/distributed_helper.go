@@ -27,7 +27,7 @@ func MakeServiceBalanceAddr(servCtx service.Context, serviceName string) string 
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
-func MakeServiceNodeAddr(servCtx service.Context, serviceName, nodeId string) string {
+func MakeServiceNodeAddr(servCtx service.Context, serviceName, nodeId string) (string, error) {
 	return Using(servCtx).MakeServiceNodeAddr(serviceName, nodeId)
 }
 
