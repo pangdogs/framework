@@ -87,8 +87,8 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 	// 初始化地址信息
 	d.address = Address{
-		GlobalBroadcastAddr:  "service",
-		GlobalBalanceAddr:    broker.Path(d.ctx, "service", "balance"),
+		GlobalBroadcastAddr:  d.MakeServiceBroadcastAddr(""),
+		GlobalBalanceAddr:    d.MakeServiceBalanceAddr(""),
 		ServiceBroadcastAddr: d.MakeServiceBroadcastAddr(d.ctx.GetName()),
 		ServiceBalanceAddr:   d.MakeServiceBalanceAddr(d.ctx.GetName()),
 		LocalAddr:            d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String()),
@@ -177,17 +177,29 @@ func (d *_Distributed) GetFutures() concurrent.IFutures {
 
 // MakeServiceBroadcastAddr 创建服务广播地址
 func (d *_Distributed) MakeServiceBroadcastAddr(service string) string {
-	return broker.Path(d.ctx, "service", service)
+	if service == "" {
+		return broker.Path(d.ctx, "service", "broadcast")
+	}
+	return broker.Path(d.ctx, "service", "broadcast", service)
 }
 
 // MakeServiceBalanceAddr 创建服务负载均衡地址
 func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
-	return broker.Path(d.ctx, "service", service, "balance")
+	if service == "" {
+		return broker.Path(d.ctx, "service", "balance")
+	}
+	return broker.Path(d.ctx, "service", "balance", service)
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
 func (d *_Distributed) MakeServiceNodeAddr(service, node string) string {
-	return broker.Path(d.ctx, "service", service, node)
+	if service == "" {
+		log.Panicf(d.ctx, "%w: service is empty", golaxy.ErrArgs)
+	}
+	if node == "" {
+		log.Panicf(d.ctx, "%w: node is empty", golaxy.ErrArgs)
+	}
+	return broker.Path(d.ctx, "service", "node", service, node)
 }
 
 // SendMsg 发送消息
