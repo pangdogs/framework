@@ -35,21 +35,23 @@ func (m MsgSyncTime) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	corrId, err := bs.ReadInt64()
+	var err error
+
+	m.CorrId, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	localUnixMilli, err := bs.ReadInt64()
+
+	m.LocalUnixMilli, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	remoteUnixMilli, err := bs.ReadInt64()
+
+	m.RemoteUnixMilli, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.CorrId = corrId
-	m.LocalUnixMilli = localUnixMilli
-	m.RemoteUnixMilli = remoteUnixMilli
+
 	return bs.BytesRead(), nil
 }
 

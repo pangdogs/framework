@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	ErrRenewConn     = errors.New("renew conn")          // 刷新链路错误
-	ErrUnexpectedSeq = errors.New("unexpected sequence") // 收到非预期的消息序号，表示序号不连续
-	ErrDiscardSeq    = errors.New("discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
-	ErrNetIO         = errors.New("net i/o")             // 网络io错误
-	ErrTimeout       = os.ErrDeadlineExceeded            // 网络io超时
-	ErrClosed        = os.ErrClosed                      // 网络链路已关闭
-	ErrUnexpectedEOF = io.ErrUnexpectedEOF               // 非预期的io结束
-	ErrEOF           = io.EOF                            // io结束
+	ErrRenewConn     = errors.New("gtp: renew conn")          // 刷新链路错误
+	ErrUnexpectedSeq = errors.New("gtp: unexpected sequence") // 收到非预期的消息序号，表示序号不连续
+	ErrDiscardSeq    = errors.New("gtp: discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
+	ErrNetIO         = errors.New("gtp: net i/o")             // 网络io错误
+	ErrTimeout       = os.ErrDeadlineExceeded                 // 网络io超时
+	ErrClosed        = os.ErrClosed                           // 网络链路已关闭
+	ErrUnexpectedEOF = io.ErrUnexpectedEOF                    // 非预期的io结束
+	ErrEOF           = io.EOF                                 // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全
@@ -52,7 +52,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 
 	// 编码消息
 	if err := t.Encoder.EncodeWriter(t.Synchronizer, me.Flags, me.Msg); err != nil {
-		return fmt.Errorf("encode gtp.msg failed, %w", err)
+		return fmt.Errorf("gtp: encode msg failed, %w", err)
 	}
 
 	// 设置链路超时时间
@@ -64,7 +64,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("send gtp.msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("gtp: send msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -80,7 +80,7 @@ func (t *Transceiver) SendRst(err error) error {
 			rstErr.Message = err.Error()
 		}
 	}
-	return t.Send(rstErr.Event().Pack())
+	return t.Send(rstErr.CastEvent().Pack())
 }
 
 // Resend 重新发送未完整发送的消息事件
@@ -109,7 +109,7 @@ func (t *Transceiver) Resend() error {
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("resend gtp.msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("gtp: resend msg-packet failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 		}
 
 		if !errors.Is(err, codec.ErrDataNotEnough) {
-			return Event[gtp.Msg]{}, fmt.Errorf("decode gtp.msg-packet failed, %w", err)
+			return Event[gtp.Msg]{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
 		}
 
 		// 设置链路超时时间
@@ -153,7 +153,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[gtp.Msg]{}, fmt.Errorf("recv gtp.msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
+			return Event[gtp.Msg]{}, fmt.Errorf("gtp: recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
 		}
 	}
 }

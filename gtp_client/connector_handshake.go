@@ -79,7 +79,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		func(servHello transport.Event[gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
-				return fmt.Errorf("the expected gtp.msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
+				return fmt.Errorf("gtp: the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
 			}
 
 			// 检查协议版本

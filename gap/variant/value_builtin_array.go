@@ -24,48 +24,39 @@ type Array []Variant
 
 // Read implements io.Reader
 func (v Array) Read(p []byte) (int, error) {
-	rn := 0
-
 	bs := binaryutil.NewBigEndianStream(p)
+
 	if err := bs.WriteUvarint(uint64(len(v))); err != nil {
-		return rn, err
+		return bs.BytesWritten(), err
 	}
-	rn += bs.BytesWritten()
 
 	for i := range v {
-		n, err := v[i].Read(p[rn:])
-		rn += n
-		if err != nil {
-			return rn, err
+		if _, err := binaryutil.ReadFrom(&bs, v[i]); err != nil {
+			return bs.BytesWritten(), err
 		}
 	}
 
-	return rn, nil
+	return bs.BytesWritten(), nil
 }
 
 // Write implements io.Writer
 func (v *Array) Write(p []byte) (int, error) {
-	wn := 0
-
 	bs := binaryutil.NewBigEndianStream(p)
+
 	l, err := bs.ReadUvarint()
 	if err != nil {
-		return wn, err
+		return bs.BytesRead(), err
 	}
-	wn += bs.BytesRead()
 
-	arr := make([]Variant, l)
+	*v = make([]Variant, l)
 
 	for i := uint64(0); i < l; i++ {
-		n, err := arr[i].Write(p[wn:])
-		wn += n
-		if err != nil {
-			return wn, err
+		if _, err := bs.WriteTo(&(*v)[i]); err != nil {
+			return bs.BytesRead(), err
 		}
 	}
-	*v = arr
 
-	return wn, nil
+	return bs.BytesRead(), nil
 }
 
 // Size 大小

@@ -1,62 +1,59 @@
 package variant
 
-import "errors"
+import (
+	"errors"
+	"kit.golaxy.org/plugins/util/binaryutil"
+	"reflect"
+)
 
 // Variant 可变类型
 type Variant struct {
-	TypeId TypeId // 类型Id
-	Value  Value  // 值
+	TypeId    TypeId        // 类型Id
+	Value     ValueReader   // 读取值
+	Reflected reflect.Value // 反射值
 }
 
 // Read implements io.Reader
 func (v Variant) Read(p []byte) (int, error) {
+	bs := binaryutil.NewBigEndianStream(p)
+
+	if _, err := binaryutil.ReadFrom(&bs, v.TypeId); err != nil {
+		return bs.BytesWritten(), err
+	}
+
 	if v.Value == nil {
-		return 0, errors.New("value is nil")
+		return bs.BytesWritten(), errors.New("value is nil")
 	}
 
-	var rn int
-
-	n, err := v.TypeId.Read(p)
-	rn += n
-	if err != nil {
-		return rn, err
+	if _, err := binaryutil.ReadFrom(&bs, v.Value); err != nil {
+		return bs.BytesWritten(), err
 	}
 
-	n, err = v.Value.Read(p[rn:])
-	rn += n
-	if err != nil {
-		return rn, err
-	}
-
-	return rn, nil
+	return bs.BytesWritten(), nil
 }
 
 // Write implements io.Writer
 func (v *Variant) Write(p []byte) (int, error) {
-	var wn int
+	bs := binaryutil.NewBigEndianStream(p)
 
-	var typeId TypeId
-	n, err := typeId.Write(p)
-	wn += n
-	if err != nil {
-		return wn, err
+	if _, err := bs.WriteTo(&v.TypeId); err != nil {
+		return bs.BytesRead(), err
 	}
 
-	value, err := typeId.New()
+	reflected, err := v.TypeId.NewReflected()
 	if err != nil {
-		return wn, err
+		return bs.BytesRead(), err
 	}
 
-	n, err = value.Write(p[wn:])
-	wn += n
-	if err != nil {
-		return wn, err
+	value := reflected.Interface().(Value)
+	if _, err := bs.WriteTo(value); err != nil {
+		return bs.BytesRead(), err
 	}
 
-	v.TypeId = typeId
 	v.Value = value
+	v.Reflected = reflected
 
-	return wn, nil
+	return bs.BytesRead(), nil
 }
 
 // Size 大小
@@ -69,7 +66,7 @@ func (v Variant) Size() int {
 }
 
 // MakeVariant 创建可变类型
-func MakeVariant(v Value) (Variant, error) {
+func MakeVariant(v ValueReader) (Variant, error) {
 	if v == nil {
 		return Variant{}, errors.New("v is nil")
 	}
@@ -81,77 +78,110 @@ func MakeVariant(v Value) (Variant, error) {
 
 // CastVariant 转换为可变类型
 func CastVariant(a any) (Variant, error) {
+retry:
 	switch v := a.(type) {
 	case int:
-		value := Int(v)
-		return MakeVariant(&value)
+		return MakeVariant(Int(v))
+	case *int:
+		return MakeVariant((*Int)(v))
 	case int8:
-		value := Int8(v)
-		return MakeVariant(&value)
+		return MakeVariant(Int8(v))
+	case *int8:
+		return MakeVariant((*Int8)(v))
 	case int16:
-		value := Int16(v)
-		return MakeVariant(&value)
+		return MakeVariant(Int16(v))
+	case *int16:
+		return MakeVariant((*Int16)(v))
 	case int32:
-		value := Int32(v)
-		return MakeVariant(&value)
+		return MakeVariant(Int32(v))
+	case *int32:
+		return MakeVariant((*Int32)(v))
 	case int64:
-		value := Int64(v)
-		return MakeVariant(&value)
+		return MakeVariant(Int64(v))
+	case *int64:
+		return MakeVariant((*Int64)(v))
 	case uint:
-		value := Uint(v)
-		return MakeVariant(&value)
+		return MakeVariant(Uint(v))
+	case *uint:
+		return MakeVariant((*Uint)(v))
 	case uint8:
-		value := Uint8(v)
-		return MakeVariant(&value)
+		return MakeVariant(Uint8(v))
+	case *uint8:
+		return MakeVariant((*Uint8)(v))
 	case uint16:
-		value := Uint16(v)
-		return MakeVariant(&value)
+		return MakeVariant(Uint16(v))
+	case *uint16:
+		return MakeVariant((*Uint16)(v))
 	case uint32:
-		value := Uint32(v)
-		return MakeVariant(&value)
+		return MakeVariant(Uint32(v))
+	case *uint32:
+		return MakeVariant((*Uint32)(v))
 	case uint64:
-		value := Uint64(v)
-		return MakeVariant(&value)
+		return MakeVariant(Uint64(v))
+	case *uint64:
+		return MakeVariant((*Uint64)(v))
 	case float32:
-		value := Float(v)
-		return MakeVariant(&value)
+		return MakeVariant(Float(v))
+	case *float32:
+		return MakeVariant((*Float)(v))
 	case float64:
-		value := Double(v)
-		return MakeVariant(&value)
+		return MakeVariant(Double(v))
+	case *float64:
+		return MakeVariant((*Double)(v))
 	case bool:
-		value := Bool(v)
-		return MakeVariant(&value)
+		return MakeVariant(Bool(v))
+	case *bool:
+		return MakeVariant((*Bool)(v))
 	case []byte:
-		value := Bytes(v)
-		return MakeVariant(&value)
+		return MakeVariant(Bytes(v))
+	case *[]byte:
+		return MakeVariant((*Bytes)(v))
 	case string:
-		value := String(v)
-		return MakeVariant(&value)
+		return MakeVariant(String(v))
+	case *string:
+		return MakeVariant((*String)(v))
 	case nil:
-		value := Null{}
-		return MakeVariant(&value)
+		return MakeVariant(Null{})
 	case Array:
-		return MakeVariant(&v)
+		return MakeVariant(v)
 	case *Array:
 		return MakeVariant(v)
 	case Map:
-		return MakeVariant(&v)
+		return MakeVariant(v)
 	case *Map:
 		return MakeVariant(v)
 	case Variant:
 		return v, nil
+	case *Variant:
+		return *v, nil
 	case Error:
-		return MakeVariant(&v)
+		return MakeVariant(v)
 	case *Error:
 		return MakeVariant(v)
 	case error:
-		value := MakeError(v)
-		return MakeVariant(&value)
-	default:
-		value, ok := a.(Value)
-		if !ok {
-			return Variant{}, ErrNotVariant
+		var value *Error
+		if !errors.As(v, &value) {
+			value = &Error{
+				Code:    -1,
+				Message: v.Error(),
+			}
 		}
 		return MakeVariant(value)
+	case ValueReader:
+		return MakeVariant(v)
+	case reflect.Value:
+		if !v.CanInterface() {
+			return Variant{}, ErrNotVariant
+		}
+		a = v.Interface()
+		goto retry
+	case *reflect.Value:
+		if !v.CanInterface() {
+			return Variant{}, ErrNotVariant
+		}
+		a = v.Interface()
+		goto retry
+	default:
+		return Variant{}, ErrNotVariant
 	}
 }

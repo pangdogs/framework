@@ -31,21 +31,23 @@ func (m MsgAuth) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgAuth) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	userId, err := bs.ReadStringRef()
+	var err error
+
+	m.UserId, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	token, err := bs.ReadStringRef()
+
+	m.Token, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	extensions, err := bs.ReadBytesRef()
+
+	m.Extensions, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.UserId = userId
-	m.Token = token
-	m.Extensions = extensions
+
 	return bs.BytesRead(), nil
 }
 

@@ -22,11 +22,13 @@ func (m MsgPayload) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgPayload) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	data, err := bs.ReadBytesRef()
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Data = data
+
 	return bs.BytesRead(), nil
 }
 

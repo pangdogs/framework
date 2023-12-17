@@ -41,6 +41,12 @@ func NewLittleEndianStream(p []byte) ByteStream {
 	return NewByteStream(p, binary.LittleEndian)
 }
 
+func ReadFrom[T io.Reader](bs *ByteStream, reader T) (int64, error) {
+	n, err := reader.Read(bs.wp)
+	bs.wp = bs.wp[n:]
+	return int64(n), err
+}
+
 type ByteStream struct {
 	noCopy     noCopy
 	sp, wp, rp []byte
@@ -51,9 +57,7 @@ func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
 	if reader == nil {
 		return 0, fmt.Errorf("%w: reader is nil", golaxy.ErrArgs)
 	}
-	n, err := reader.Read(s.wp)
-	s.wp = s.wp[n:]
-	return int64(n), err
+	return ReadFrom(s, reader)
 }
 
 func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {

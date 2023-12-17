@@ -33,33 +33,33 @@ func (m MsgHead) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	l, err := bs.ReadUint32()
+	var err error
+
+	m.Len, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	msgId, err := bs.ReadUint32()
+
+	m.MsgId, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	src, err := bs.ReadString()
+
+	m.Src, err = bs.ReadString()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	seq, err := bs.ReadInt64()
+
+	m.Seq, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Len = l
-	m.MsgId = msgId
-	m.Src = src
-	m.Seq = seq
+
 	return bs.BytesRead(), nil
 }
 
 // Size 大小
 func (m MsgHead) Size() int {
-	return binaryutil.SizeofUint32() +
-		binaryutil.SizeofUint32() +
-		binaryutil.SizeofString(m.Src) +
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofString(m.Src) +
 		binaryutil.SizeofInt64()
 }

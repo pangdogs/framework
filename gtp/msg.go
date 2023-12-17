@@ -28,7 +28,7 @@ type Msg interface {
 	Clone() Msg
 }
 
-// MsgReader 消息读取
+// MsgReader 读取消息
 type MsgReader interface {
 	io.Reader
 	// Size 大小
@@ -37,7 +37,7 @@ type MsgReader interface {
 	MsgId() MsgId
 }
 
-// MsgWriter 消息写入
+// MsgWriter 写入消息
 type MsgWriter interface {
 	io.Writer
 	// Size 大小

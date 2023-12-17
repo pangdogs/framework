@@ -21,6 +21,10 @@ import (
 
 // Address 地址信息
 type Address struct {
+	Domain               string // 主域
+	BroadcastSubdomain   string // 广播地址子域
+	BalanceSubdomain     string // 负载均衡地址子域
+	NodeSubdomain        string // 服务节点地址子域
 	GlobalBroadcastAddr  string // 全局广播地址
 	GlobalBalanceAddr    string // 全局负载均衡地址
 	ServiceBroadcastAddr string // 服务广播地址
@@ -86,12 +90,14 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.deduplication = concurrent.MakeDeduplication()
 
 	// 初始化地址信息
-	d.address = Address{
-		GlobalBroadcastAddr:  d.MakeServiceBroadcastAddr(""),
-		GlobalBalanceAddr:    d.MakeServiceBalanceAddr(""),
-		ServiceBroadcastAddr: d.MakeServiceBroadcastAddr(d.ctx.GetName()),
-		ServiceBalanceAddr:   d.MakeServiceBalanceAddr(d.ctx.GetName()),
-	}
+	d.address = Address{Domain: d.options.Domain}
+	d.address.BroadcastSubdomain = broker.Path(d.ctx, d.address.Domain, "broadcast")
+	d.address.BalanceSubdomain = broker.Path(d.ctx, d.address.Domain, "balance")
+	d.address.NodeSubdomain = broker.Path(d.ctx, d.address.Domain, "node")
+	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
+	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
+	d.address.ServiceBroadcastAddr = d.MakeServiceBroadcastAddr(d.ctx.GetName())
+	d.address.ServiceBalanceAddr = d.MakeServiceBalanceAddr(d.ctx.GetName())
 	d.address.LocalAddr, _ = d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String())
 
 	// 加分布式锁
@@ -177,29 +183,20 @@ func (d *_Distributed) GetFutures() concurrent.IFutures {
 
 // MakeServiceBroadcastAddr 创建服务广播地址
 func (d *_Distributed) MakeServiceBroadcastAddr(service string) string {
-	if service == "" {
-		return broker.Path(d.ctx, "service", "broadcast")
-	}
-	return broker.Path(d.ctx, "service", "broadcast", service)
+	return broker.Path(d.ctx, d.address.BroadcastSubdomain, service)
 }
 
 // MakeServiceBalanceAddr 创建服务负载均衡地址
 func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
-	if service == "" {
-		return broker.Path(d.ctx, "service", "balance")
-	}
-	return broker.Path(d.ctx, "service", "balance", service)
+	return broker.Path(d.ctx, d.address.BalanceSubdomain, service)
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
 func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error) {
-	if service == "" {
-		return "", fmt.Errorf("%w: service is empty", golaxy.ErrArgs)
-	}
 	if node == "" {
 		return "", fmt.Errorf("%w: node is empty", golaxy.ErrArgs)
 	}
-	return broker.Path(d.ctx, "service", "node", service, node), nil
+	return broker.Path(d.ctx, d.address.NodeSubdomain, service, node), nil
 }
 
 // SendMsg 发送消息

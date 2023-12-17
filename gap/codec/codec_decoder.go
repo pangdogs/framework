@@ -89,7 +89,7 @@ func (d Decoder) decode(data []byte) (gap.MsgPacket, int, error) {
 	// 读取消息头
 	n, err := mp.Write(data)
 	if err != nil {
-		return gap.MsgPacket{}, 0, fmt.Errorf("read gap.msg-packet-head failed, %w", err)
+		return gap.MsgPacket{}, 0, fmt.Errorf("gap: read msg-packet-head failed, %w", err)
 	}
 
 	if len(data) < int(mp.Head.Len) {
@@ -97,15 +97,15 @@ func (d Decoder) decode(data []byte) (gap.MsgPacket, int, error) {
 	}
 
 	// 创建消息体
-	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
+	mp.Msg, err = d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
-		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("spawn gap.msg failed, %w (%d)", err, mp.Head.MsgId)
+		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("gap: spawn msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息
 	_, err = mp.Msg.Write(data[n:])
 	if err != nil {
-		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("read gap.msg failed, %w", err)
+		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("gap: read msg failed, %w", err)
 	}
 
 	return mp, int(mp.Head.Len), nil

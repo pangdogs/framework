@@ -25,16 +25,18 @@ func (m MsgCompressed) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgCompressed) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	data, err := bs.ReadBytesRef()
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	originalSize, err := bs.ReadVarint()
+
+	m.OriginalSize, err = bs.ReadVarint()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Data = data
-	m.OriginalSize = originalSize
+
 	return bs.BytesRead(), nil
 }
 

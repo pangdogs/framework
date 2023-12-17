@@ -47,31 +47,37 @@ func (cs CipherSuite) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (cs *CipherSuite) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+
 	secretKeyExchange, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	cs.SecretKeyExchange = SecretKeyExchange(secretKeyExchange)
+
 	symmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	cs.SymmetricEncryption = SymmetricEncryption(symmetricEncryption)
+
 	blockCipherMode, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	cs.BlockCipherMode = BlockCipherMode(blockCipherMode)
+
 	paddingMode, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	cs.PaddingMode = PaddingMode(paddingMode)
+
 	macHash, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	cs.SecretKeyExchange = SecretKeyExchange(secretKeyExchange)
-	cs.SymmetricEncryption = SymmetricEncryption(symmetricEncryption)
-	cs.BlockCipherMode = BlockCipherMode(blockCipherMode)
-	cs.PaddingMode = PaddingMode(paddingMode)
 	cs.MACHash = Hash(macHash)
+
 	return bs.BytesRead(), nil
 }
 
@@ -102,7 +108,7 @@ func (m MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Random); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := bs.ReadFrom(&m.CipherSuite); err != nil {
+	if _, err := binaryutil.ReadFrom(&bs, m.CipherSuite); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {
@@ -114,31 +120,34 @@ func (m MsgHello) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgHello) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+
 	version, err := bs.ReadUint16()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	sessionId, err := bs.ReadStringRef()
+	m.Version = Version(version)
+
+	m.SessionId, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	random, err := bs.ReadBytesRef()
+
+	m.Random, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	cipherSuite := CipherSuite{}
-	if _, err := bs.WriteTo(&cipherSuite); err != nil {
+
+	_, err = bs.WriteTo(&m.CipherSuite)
+	if err != nil {
 		return bs.BytesRead(), err
 	}
+
 	compression, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Version = Version(version)
-	m.SessionId = sessionId
-	m.Random = random
-	m.CipherSuite = cipherSuite
 	m.Compression = Compression(compression)
+
 	return bs.BytesRead(), nil
 }
 

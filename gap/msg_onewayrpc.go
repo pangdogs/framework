@@ -6,64 +6,42 @@ import (
 )
 
 type MsgOneWayRPC struct {
-	EntityId  string        // 实体Id
-	Component string        // 组件名
-	Method    string        // 方法名
-	Args      variant.Array // 参数列表
+	Path string        // 调用路径
+	Args variant.Array // 参数列表
 }
 
 // Read implements io.Reader
 func (m MsgOneWayRPC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteString(m.EntityId); err != nil {
+	if err := bs.WriteString(m.Path); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.Component); err != nil {
+	if _, err := binaryutil.ReadFrom(&bs, m.Args); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.Method); err != nil {
-		return bs.BytesWritten(), err
-	}
-	n, err := m.Args.Read(bs.BuffUnwritten())
-	if err != nil {
-		return bs.BytesWritten() + n, nil
-	}
-	return bs.BytesWritten() + n, nil
+	return bs.BytesWritten(), nil
 }
 
 // Write implements io.Writer
 func (m *MsgOneWayRPC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	entityId, err := bs.ReadString()
+	var err error
+
+	m.Path, err = bs.ReadString()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	component, err := bs.ReadString()
-	if err != nil {
+
+	if _, err = bs.WriteTo(&m.Args); err != nil {
 		return bs.BytesRead(), err
 	}
-	method, err := bs.ReadString()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	var args variant.Array
-	n, err := args.Write(bs.BuffUnread())
-	if err != nil {
-		return bs.BytesRead() + n, err
-	}
-	m.EntityId = entityId
-	m.Component = component
-	m.Method = method
-	m.Args = args
-	return bs.BytesRead() + n, nil
+
+	return bs.BytesRead(), nil
 }
 
 // Size 大小
 func (m MsgOneWayRPC) Size() int {
-	return binaryutil.SizeofString(m.EntityId) +
-		binaryutil.SizeofString(m.Component) +
-		binaryutil.SizeofString(m.Method) +
-		m.Args.Size()
+	return binaryutil.SizeofString(m.Path) + m.Args.Size()
 }
 
 // MsgId 消息Id

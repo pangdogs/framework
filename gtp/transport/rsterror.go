@@ -16,8 +16,8 @@ func (err RstError) Error() string {
 	return fmt.Sprintf("(%d) %s", err.Code, err.Message)
 }
 
-// Event 转换为消息事件
-func (err RstError) Event() Event[gtp.MsgRst] {
+// CastEvent 转换为消息事件
+func (err RstError) CastEvent() Event[gtp.MsgRst] {
 	return Event[gtp.MsgRst]{
 		Msg: gtp.MsgRst{
 			Code:    err.Code,
@@ -26,8 +26,8 @@ func (err RstError) Event() Event[gtp.MsgRst] {
 	}
 }
 
-// EventRstToRstErr Rst错误事件转换为错误提示
-func EventRstToRstErr(e Event[gtp.MsgRst]) RstError {
+// CastRstErr Rst错误事件转换为错误提示
+func CastRstErr(e Event[gtp.MsgRst]) RstError {
 	return RstError{
 		Code:    e.Msg.Code,
 		Message: e.Msg.Message,

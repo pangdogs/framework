@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	ErrNotVariant    = errors.New("not variant")            // 非可变类型
-	ErrNotRegistered = errors.New("variant not registered") // 类型未注册
+	ErrNotVariant    = errors.New("gap: not variant")            // 非可变类型
+	ErrNotRegistered = errors.New("gap: variant not registered") // 类型未注册
 )
 
 // IVariantCreator 可变类型对象构建器接口
@@ -17,8 +17,14 @@ type IVariantCreator interface {
 	Register(v Value)
 	// Deregister 取消注册类型
 	Deregister(typeId TypeId)
-	// Spawn 构建对象
-	Spawn(typeId TypeId) (Value, error)
+	// New 创建对象指针
+	New(typeId TypeId) (Value, error)
+	// Make 创建对象
+	Make(typeId TypeId) (ValueReader, error)
+	// NewReflected 创建反射对象指针
+	NewReflected(typeId TypeId) (reflect.Value, error)
+	// MakeReflected 创建反射对象
+	MakeReflected(typeId TypeId) (reflect.Value, error)
 }
 
 var variantCreator = _NewVariantCreator()
@@ -80,15 +86,46 @@ func (c *_VariantCreator) Deregister(typeId TypeId) {
 	delete(c.variantTypeMap, typeId)
 }
 
-// Spawn 构建对象
-func (c *_VariantCreator) Spawn(typeId TypeId) (Value, error) {
+// New 创建对象指针
+func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
+	reflected, err := c.NewReflected(typeId)
+	if err != nil {
+		return nil, err
+	}
+	return reflected.Interface().(Value), nil
+}
+
+// Make 创建对象
+func (c *_VariantCreator) Make(typeId TypeId) (ValueReader, error) {
+	reflected, err := c.MakeReflected(typeId)
+	if err != nil {
+		return nil, err
+	}
+	return reflected.Interface().(ValueReader), nil
+}
+
+// NewReflected 创建反射对象指针
+func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	rtype, ok := c.variantTypeMap[typeId]
 	if !ok {
-		return nil, ErrNotRegistered
+		return reflect.Value{}, ErrNotRegistered
 	}
 
-	return reflect.New(rtype).Interface().(Value), nil
+	return reflect.New(rtype), nil
+}
+
+// MakeReflected 创建反射对象
+func (c *_VariantCreator) MakeReflected(typeId TypeId) (reflect.Value, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	rtype, ok := c.variantTypeMap[typeId]
+	if !ok {
+		return reflect.Value{}, ErrNotRegistered
+	}
+
+	return reflect.Zero(rtype), nil
 }

@@ -5,7 +5,7 @@ import (
 )
 
 // Uint16 builtin uint16
-type Uint16 int16
+type Uint16 uint16
 
 // Read implements io.Reader
 func (v Uint16) Read(p []byte) (int, error) {

@@ -22,6 +22,7 @@ type DistributedOptions struct {
 	Version           string              // 服务版本号
 	Metadata          map[string]string   // 服务元数据，以键值对的形式保存附加信息
 	Endpoints         []registry.Endpoint // 服务端点列表
+	Domain            string              // 服务地址域
 	RefreshInterval   time.Duration       // 服务信息刷新间隔
 	FutureTimeout     time.Duration       // 异步模型Future超时时间
 	DecoderMsgCreator gap.IMsgCreator     // 消息包解码器的消息构建器
@@ -34,6 +35,7 @@ func (Option) Default() option.Setting[DistributedOptions] {
 		Option{}.Version("")(options)
 		Option{}.Metadata(nil)(options)
 		Option{}.Endpoints(nil)(options)
+		Option{}.Domain("service")(options)
 		Option{}.RefreshInterval(3 * time.Second)(options)
 		Option{}.FutureTimeout(5 * time.Second)(options)
 		Option{}.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
@@ -59,6 +61,13 @@ func (Option) Metadata(meta map[string]string) option.Setting[DistributedOptions
 func (Option) Endpoints(endpoints []registry.Endpoint) option.Setting[DistributedOptions] {
 	return func(o *DistributedOptions) {
 		o.Endpoints = endpoints
+	}
+}
+
+// Domain 服务地址域
+func (Option) Domain(domain string) option.Setting[DistributedOptions] {
+	return func(o *DistributedOptions) {
+		o.Domain = domain
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrNotRegistered = errors.New("gtp.msg not registered") // 消息未注册
+	ErrNotRegistered = errors.New("gtp: msg not registered") // 消息未注册
 )
 
 // IMsgCreator 消息对象构建器接口
@@ -18,8 +18,8 @@ type IMsgCreator interface {
 	Register(msg Msg)
 	// Deregister 取消注册消息
 	Deregister(msgId MsgId)
-	// Spawn 构建消息
-	Spawn(msgId MsgId) (Msg, error)
+	// New 创建消息指针
+	New(msgId MsgId) (Msg, error)
 }
 
 var msgCreator = NewMsgCreator()
@@ -75,8 +75,8 @@ func (c *_MsgCreator) Deregister(msgId MsgId) {
 	delete(c.msgTypeMap, msgId)
 }
 
-// Spawn 构建消息
-func (c *_MsgCreator) Spawn(msgId MsgId) (Msg, error) {
+// New 创建消息指针
+func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
 	c.RLock()
 	defer c.RUnlock()
 

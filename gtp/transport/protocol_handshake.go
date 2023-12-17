@@ -59,7 +59,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[gtp.MsgHello], helloFin Hell
 	case gtp.MsgId_Hello:
 		break
 	case gtp.MsgId_Rst:
-		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
+		return CastRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -149,7 +149,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case gtp.MsgId_ECDHESecretKeyExchange:
 		break
 	case gtp.MsgId_Rst:
-		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
+		return CastRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -173,7 +173,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 	case gtp.MsgId_ChangeCipherSpec:
 		break
 	case gtp.MsgId_Rst:
-		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
+		return CastRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -414,7 +414,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 	case gtp.MsgId_Finished:
 		break
 	case gtp.MsgId_Rst:
-		return EventRstToRstErr(UnpackEvent[gtp.MsgRst](recv))
+		return CastRstErr(UnpackEvent[gtp.MsgRst](recv))
 	default:
 		return fmt.Errorf("%w (%d)", ErrUnexpectedMsg, recv.Msg.MsgId())
 	}

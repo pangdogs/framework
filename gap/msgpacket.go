@@ -1,5 +1,7 @@
 package gap
 
+import "kit.golaxy.org/plugins/util/binaryutil"
+
 // MsgPacket 消息包
 type MsgPacket struct {
 	Head MsgHead // 消息头
@@ -8,42 +10,40 @@ type MsgPacket struct {
 
 // Read implements io.Reader
 func (mp MsgPacket) Read(p []byte) (int, error) {
-	rn := 0
+	bs := binaryutil.NewBigEndianStream(p)
 
-	n, err := mp.Head.Read(p)
-	rn += n
-	if err != nil {
-		return rn, err
+	if _, err := binaryutil.ReadFrom(&bs, mp.Head); err != nil {
+		return bs.BytesWritten(), err
 	}
 
 	if mp.Msg == nil {
-		return rn, nil
+		return bs.BytesWritten(), nil
 	}
 
-	n, err = mp.Msg.Read(p[rn:])
-	rn += n
+	if _, err := binaryutil.ReadFrom(&bs, mp.Msg); err != nil {
+		return bs.BytesWritten(), err
+	}
 
-	return rn, err
+	return bs.BytesWritten(), nil
 }
 
 // Write implements io.Writer
 func (mp *MsgPacket) Write(p []byte) (int, error) {
-	wn := 0
+	bs := binaryutil.NewBigEndianStream(p)
 
-	n, err := mp.Head.Write(p)
-	wn += n
-	if err != nil {
-		return wn, err
+	if _, err := bs.WriteTo(&mp.Head); err != nil {
+		return bs.BytesRead(), err
 	}
 
 	if mp.Msg == nil {
-		return wn, nil
+		return bs.BytesRead(), nil
 	}
 
-	n, err = mp.Msg.Write(p[wn:])
-	wn += n
+	if _, err := bs.WriteTo(mp.Msg); err != nil {
+		return bs.BytesRead(), err
+	}
 
-	return wn, err
+	return bs.BytesRead(), nil
 }
 
 // Size 大小

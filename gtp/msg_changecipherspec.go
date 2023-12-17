@@ -27,11 +27,13 @@ func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	encryptedHello, err := bs.ReadBytesRef()
+	var err error
+
+	m.EncryptedHello, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.EncryptedHello = encryptedHello
+
 	return bs.BytesRead(), nil
 }
 

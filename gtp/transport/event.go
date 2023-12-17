@@ -4,7 +4,7 @@ import (
 	"kit.golaxy.org/plugins/gtp"
 )
 
-// Event 事件
+// Event 消息事件
 type Event[T gtp.MsgReader] struct {
 	Flags gtp.Flags // 标志位
 	Seq   uint32    // 消息序号
@@ -36,7 +36,7 @@ func UnpackEvent[T gtp.MsgReader](me Event[gtp.Msg]) Event[T] {
 
 	msg, ok := any(me.Msg).(*T)
 	if !ok {
-		panic("incorrect gtp.msg type")
+		panic("gtp: incorrect msg type")
 	}
 	e.Msg = *msg
 

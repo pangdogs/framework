@@ -18,53 +18,34 @@ func (m MsgRPCReply) Read(p []byte) (int, error) {
 	if err := bs.WriteVarint(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
-
-	rn := bs.BytesWritten()
-
-	n, err := m.Rets.Read(p[rn:])
-	rn += n
-	if err != nil {
-		return rn, nil
+	if _, err := binaryutil.ReadFrom(&bs, m.Rets); err != nil {
+		return bs.BytesWritten(), err
 	}
-
-	n, err = m.Error.Read(p[rn:])
-	rn += n
-	if err != nil {
-		return rn, nil
+	if _, err := binaryutil.ReadFrom(&bs, m.Error); err != nil {
+		return bs.BytesWritten(), err
 	}
-
-	return rn, nil
+	return bs.BytesWritten(), nil
 }
 
 // Write implements io.Writer
 func (m *MsgRPCReply) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	corrId, err := bs.ReadVarint()
+	var err error
+
+	m.CorrId, err = bs.ReadVarint()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
 
-	wn := bs.BytesRead()
-
-	var rets variant.Array
-	n, err := rets.Write(p[wn:])
-	wn += n
-	if err != nil {
-		return wn, err
+	if _, err = bs.WriteTo(&m.Rets); err != nil {
+		return bs.BytesRead(), err
 	}
 
-	var retErr variant.Error
-	n, err = retErr.Write(p[wn:])
-	wn += n
-	if err != nil {
-		return wn, err
+	if _, err = bs.WriteTo(&m.Error); err != nil {
+		return bs.BytesRead(), err
 	}
 
-	m.CorrId = corrId
-	m.Rets = rets
-	m.Error = retErr
-
-	return wn, nil
+	return bs.BytesRead(), nil
 }
 
 // Size 大小
