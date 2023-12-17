@@ -79,7 +79,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 		func(servHello transport.Event[gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
-				return fmt.Errorf("gtp: the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
+				return fmt.Errorf("the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
 			}
 
 			// 检查协议版本
@@ -172,15 +172,15 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	// 等待服务端通知握手结束
 	err = handshake.ClientFinished(func(finished transport.Event[gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
-			return fmt.Errorf("the expected gtp.msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
+			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
 		}
 
 		if authFlow && !finished.Flags.Is(gtp.Flag_AuthOK) {
-			return fmt.Errorf("the expected gtp.msg-finished-flag (0x%x) was not received", gtp.Flag_AuthOK)
+			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_AuthOK)
 		}
 
 		if continueFlow && !finished.Flags.Is(gtp.Flag_ContinueOK) {
-			return fmt.Errorf("the expected gtp.msg-finished-flag (0x%x) was not received", gtp.Flag_ContinueOK)
+			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_ContinueOK)
 		}
 
 		remoteSendSeq = finished.Msg.SendSeq

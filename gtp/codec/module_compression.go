@@ -116,7 +116,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 	}
 
 	if msgCompressed.OriginalSize >= math.MaxInt32 {
-		return binaryutil.MakeNonRecycleBytes(nil), errors.New("OriginalSize too large")
+		return binaryutil.MakeNonRecycleBytes(nil), errors.New("original size too large")
 	}
 
 	rawBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(msgCompressed.OriginalSize)))
