@@ -39,15 +39,15 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	defer t.sendMutex.Unlock()
 
 	if t.Conn == nil {
-		return errors.New("setting Conn is nil")
+		return errors.New("gtp: setting Conn is nil")
 	}
 
 	if t.Encoder == nil {
-		return errors.New("setting Encoder is nil")
+		return errors.New("gtp: setting Encoder is nil")
 	}
 
 	if t.Synchronizer == nil {
-		return errors.New("setting Synchronizer is nil")
+		return errors.New("gtp: setting Synchronizer is nil")
 	}
 
 	// 编码消息
@@ -58,7 +58,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("gtp: set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
@@ -89,21 +89,21 @@ func (t *Transceiver) Resend() error {
 	defer t.sendMutex.Unlock()
 
 	if t.Conn == nil {
-		return errors.New("setting Conn is nil")
+		return errors.New("gtp: setting Conn is nil")
 	}
 
 	if t.Encoder == nil {
-		return errors.New("setting Encoder is nil")
+		return errors.New("gtp: setting Encoder is nil")
 	}
 
 	if t.Synchronizer == nil {
-		return errors.New("setting Synchronizer is nil")
+		return errors.New("gtp: setting Synchronizer is nil")
 	}
 
 	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("gtp: set conn send timeout failed, cached: %d, %w: %w", t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
@@ -121,11 +121,11 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 	defer t.recvMutex.Unlock()
 
 	if t.Conn == nil {
-		return Event[gtp.Msg]{}, errors.New("setting Conn is nil")
+		return Event[gtp.Msg]{}, errors.New("gtp: setting Conn is nil")
 	}
 
 	if t.Decoder == nil {
-		return Event[gtp.Msg]{}, errors.New("setting Decoder is nil")
+		return Event[gtp.Msg]{}, errors.New("gtp: setting Decoder is nil")
 	}
 
 	for {
@@ -147,7 +147,7 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 		// 设置链路超时时间
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
-				return Event[gtp.Msg]{}, fmt.Errorf("set conn recv timeout failed, %w: %w", ErrNetIO, err)
+				return Event[gtp.Msg]{}, fmt.Errorf("gtp: set conn recv timeout failed, %w: %w", ErrNetIO, err)
 			}
 		}
 

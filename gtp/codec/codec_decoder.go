@@ -54,7 +54,7 @@ func (d *Decoder) Write(p []byte) (int, error) {
 // ReadFrom implements io.ReaderFrom
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 	if r == nil {
-		return 0, fmt.Errorf("%w: r is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("gtp: %w: r is nil", golaxy.ErrArgs)
 	}
 
 	var buff [bytes.MinRead]byte
@@ -80,7 +80,7 @@ func (d *Decoder) Decode(validate ...IValidate) (gtp.MsgPacket, error) {
 // DecodeBuff 从指定buff，解码消息包
 func (d *Decoder) DecodeBuff(buff *bytes.Buffer, validate ...IValidate) (gtp.MsgPacket, error) {
 	if buff == nil {
-		return gtp.MsgPacket{}, fmt.Errorf("%w: buff is nil", golaxy.ErrArgs)
+		return gtp.MsgPacket{}, fmt.Errorf("gtp: %w: buff is nil", golaxy.ErrArgs)
 	}
 
 	// 探测消息包长度
@@ -127,7 +127,7 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 	}
 
 	if len(data) < int(mpl.Len) {
-		return int(mpl.Len), fmt.Errorf("%w (%d < %d)", ErrDataNotEnough, len(data), mpl.Len)
+		return int(mpl.Len), fmt.Errorf("gtp: %w (%d < %d)", ErrDataNotEnough, len(data), mpl.Len)
 	}
 
 	return int(mpl.Len), nil
@@ -136,7 +136,7 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 // decode 解码消息包
 func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, error) {
 	if d.MsgCreator == nil {
-		return gtp.MsgPacket{}, errors.New("setting MsgCreator is nil")
+		return gtp.MsgPacket{}, errors.New("gtp: setting MsgCreator is nil")
 	}
 
 	// 消息包数据缓存
@@ -151,7 +151,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	// 读取消息头
 	_, err := mp.Write(mpBuf.Data())
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("read gtp.msg-packet-head failed, %w", err)
+		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg-packet-head failed, %w", err)
 	}
 
 	msgBuf := mpBuf.Data()[mp.Head.Size():]
@@ -160,7 +160,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	if len(validate) > 0 {
 		err = validate[0].Validate(mp.Head, msgBuf)
 		if err != nil {
-			return gtp.MsgPacket{}, fmt.Errorf("validate gtp.msg-packet-head failed, %w", err)
+			return gtp.MsgPacket{}, fmt.Errorf("gtp: validate msg-packet-head failed, %w", err)
 		}
 	}
 
@@ -168,7 +168,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {
 		// 解密消息体
 		if d.EncryptionModule == nil {
-			return gtp.MsgPacket{}, errors.New("setting EncryptionModule is nil, gtp.msg can't be decrypted")
+			return gtp.MsgPacket{}, errors.New("gtp: setting EncryptionModule is nil, msg can't be decrypted")
 		}
 		dencryptBuf, err := d.EncryptionModule.Transforming(msgBuf, msgBuf)
 		if err != nil {
@@ -182,12 +182,12 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 		// 检查MAC标记
 		if mp.Head.Flags.Is(gtp.Flag_MAC) {
 			if d.MACModule == nil {
-				return gtp.MsgPacket{}, errors.New("setting MACModule is nil, msg can't be verify MAC")
+				return gtp.MsgPacket{}, errors.New("gtp: setting MACModule is nil, msg can't be verify MAC")
 			}
 			// 检测MAC
 			msgBuf, err = d.MACModule.VerifyMAC(mp.Head.MsgId, mp.Head.Flags, msgBuf)
 			if err != nil {
-				return gtp.MsgPacket{}, fmt.Errorf("verify msg-mac failed, %w", err)
+				return gtp.MsgPacket{}, fmt.Errorf("gtp: verify msg-mac failed, %w", err)
 			}
 		}
 	}
@@ -195,11 +195,11 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	// 检查压缩标记
 	if mp.Head.Flags.Is(gtp.Flag_Compressed) {
 		if d.CompressionModule == nil {
-			return gtp.MsgPacket{}, errors.New("setting CompressionModule is nil, msg can't be uncompress")
+			return gtp.MsgPacket{}, errors.New("gtp: setting CompressionModule is nil, msg can't be uncompress")
 		}
 		uncompressedBuf, err := d.CompressionModule.Uncompress(msgBuf)
 		if err != nil {
-			return gtp.MsgPacket{}, fmt.Errorf("uncompress msg failed, %w", err)
+			return gtp.MsgPacket{}, fmt.Errorf("gtp: uncompress msg failed, %w", err)
 		}
 		if uncompressedBuf.Recyclable() {
 			d.gcList = append(d.gcList, uncompressedBuf)
@@ -210,13 +210,13 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	// 创建消息体
 	mp.Msg, err = d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("spawn msg failed, %w (%d)", err, mp.Head.MsgId)
+		return gtp.MsgPacket{}, fmt.Errorf("gtp: new msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息
 	_, err = mp.Msg.Write(msgBuf)
 	if err != nil {
-		return gtp.MsgPacket{}, fmt.Errorf("read msg failed, %w", err)
+		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg failed, %w", err)
 	}
 
 	return mp, nil

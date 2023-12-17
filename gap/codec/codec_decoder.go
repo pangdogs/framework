@@ -21,7 +21,7 @@ func DefaultDecoder() Decoder {
 // MakeDecoder 创建消息包解码器
 func MakeDecoder(mc gap.IMsgCreator) Decoder {
 	if mc == nil {
-		panic(fmt.Errorf("%w: mc is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("gap: %w: mc is nil", golaxy.ErrArgs))
 	}
 	return Decoder{
 		MsgCreator: mc,
@@ -42,7 +42,7 @@ func (d *Decoder) Write(p []byte) (int, error) {
 // ReadFrom implements io.ReaderFrom
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 	if r == nil {
-		return 0, fmt.Errorf("%w: r is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("gap: %w: r is nil", golaxy.ErrArgs)
 	}
 
 	var buff [bytes.MinRead]byte
@@ -81,7 +81,7 @@ func (d Decoder) DecodeBytes(data []byte) (gap.MsgPacket, error) {
 // decode 解码消息包
 func (d Decoder) decode(data []byte) (gap.MsgPacket, int, error) {
 	if d.MsgCreator == nil {
-		return gap.MsgPacket{}, 0, errors.New("setting MsgCreator is nil")
+		return gap.MsgPacket{}, 0, errors.New("gap: setting MsgCreator is nil")
 	}
 
 	mp := gap.MsgPacket{}
@@ -93,13 +93,13 @@ func (d Decoder) decode(data []byte) (gap.MsgPacket, int, error) {
 	}
 
 	if len(data) < int(mp.Head.Len) {
-		return gap.MsgPacket{}, 0, fmt.Errorf("%w (%d < %d)", ErrDataNotEnough, len(data), mp.Head.Len)
+		return gap.MsgPacket{}, 0, fmt.Errorf("gap: %w (%d < %d)", ErrDataNotEnough, len(data), mp.Head.Len)
 	}
 
 	// 创建消息体
 	mp.Msg, err = d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
-		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("gap: spawn msg failed, %w (%d)", err, mp.Head.MsgId)
+		return gap.MsgPacket{}, int(mp.Head.Len), fmt.Errorf("gap: new msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息

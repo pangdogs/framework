@@ -27,7 +27,7 @@ type DecoderCreator struct {
 // SetupEncryptionModule 安装加密模块
 func (dc DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("must invoke CreateDecoder() first")
+		panic("gtp: must invoke CreateDecoder() first")
 	}
 	dc.decoder.EncryptionModule = encryptionModule
 	return dc
@@ -36,7 +36,7 @@ func (dc DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModul
 // SetupMACModule 安装MAC模块
 func (dc DecoderCreator) SetupMACModule(macModule IMACModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("must invoke CreateDecoder() first")
+		panic("gtp: must invoke CreateDecoder() first")
 	}
 	dc.decoder.MACModule = macModule
 	return dc
@@ -45,7 +45,7 @@ func (dc DecoderCreator) SetupMACModule(macModule IMACModule) DecoderCreator {
 // SetupCompressionModule 安装压缩模块
 func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("must invoke CreateDecoder() first")
+		panic("gtp: must invoke CreateDecoder() first")
 	}
 	dc.decoder.CompressionModule = compressionModule
 	return dc
@@ -54,7 +54,7 @@ func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 // Spawn 获取消息包解码器
 func (dc DecoderCreator) Spawn() IDecoder {
 	if dc.decoder == nil {
-		panic("must invoke CreateDecoder() first")
+		panic("gtp: must invoke CreateDecoder() first")
 	}
 	return dc.decoder
 }
@@ -74,7 +74,7 @@ type EncoderCreator struct {
 // SetupEncryptionModule 安装加密模块
 func (ec EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) EncoderCreator {
 	if ec.encoder == nil {
-		panic("must invoke CreateEncoder() first")
+		panic("gtp: must invoke CreateEncoder() first")
 	}
 	ec.encoder.EncryptionModule = encryptionModule
 	ec.encoder.Encryption = encryptionModule != nil
@@ -84,7 +84,7 @@ func (ec EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModul
 // SetupMACModule 安装MAC模块
 func (ec EncoderCreator) SetupMACModule(macModule IMACModule) EncoderCreator {
 	if ec.encoder == nil {
-		panic("must invoke CreateEncoder() first")
+		panic("gtp: must invoke CreateEncoder() first")
 	}
 	ec.encoder.MACModule = macModule
 	ec.encoder.PatchMAC = macModule != nil
@@ -94,7 +94,7 @@ func (ec EncoderCreator) SetupMACModule(macModule IMACModule) EncoderCreator {
 // SetupCompressionModule 安装压缩模块
 func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionModule, compressedSize int) EncoderCreator {
 	if ec.encoder == nil {
-		panic("must invoke CreateEncoder() first")
+		panic("gtp: must invoke CreateEncoder() first")
 	}
 	ec.encoder.CompressionModule = compressionModule
 	if compressionModule != nil {
@@ -108,7 +108,7 @@ func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 // Spawn 获取消息包编码器
 func (ec EncoderCreator) Spawn() IEncoder {
 	if ec.encoder == nil {
-		panic("must invoke CreateEncoder() first")
+		panic("gtp: must invoke CreateEncoder() first")
 	}
 	return ec.encoder
 }
