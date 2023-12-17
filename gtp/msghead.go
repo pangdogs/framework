@@ -80,31 +80,34 @@ func (m MsgHead) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	l, err := bs.ReadUint32()
+	var err error
+
+	m.Len, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	msgId, err := bs.ReadUint8()
+
+	m.MsgId, err = bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+
 	flags, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	seq, err := bs.ReadUint32()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	ack, err := bs.ReadUint32()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	m.Len = l
-	m.MsgId = msgId
 	m.Flags = Flags(flags)
-	m.Seq = seq
-	m.Ack = ack
+
+	m.Seq, err = bs.ReadUint32()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.Ack, err = bs.ReadUint32()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
 	return bs.BytesRead(), nil
 }
 

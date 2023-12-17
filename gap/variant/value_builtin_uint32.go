@@ -5,7 +5,7 @@ import (
 )
 
 // Uint32 builtin uint32
-type Uint32 int32
+type Uint32 uint32
 
 // Read implements io.Reader
 func (v Uint32) Read(p []byte) (int, error) {

@@ -35,21 +35,25 @@ func (sa SignatureAlgorithm) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+
 	asymmetricEncryption, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	sa.AsymmetricEncryption = AsymmetricEncryption(asymmetricEncryption)
+
 	paddingMode, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	sa.PaddingMode = PaddingMode(paddingMode)
+
 	hash, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	sa.AsymmetricEncryption = AsymmetricEncryption(asymmetricEncryption)
-	sa.PaddingMode = PaddingMode(paddingMode)
 	sa.Hash = Hash(hash)
+
 	return bs.BytesRead(), nil
 }
 
@@ -88,7 +92,7 @@ func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.NonceStep); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := bs.ReadFrom(&m.SignatureAlgorithm); err != nil {
+	if _, err := binaryutil.ReadFrom(&bs, m.SignatureAlgorithm); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Signature); err != nil {
@@ -100,48 +104,50 @@ func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+
 	namedCurve, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	publicKey, err := bs.ReadBytesRef()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	iv, err := bs.ReadBytesRef()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	nonce, err := bs.ReadBytesRef()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	nonceStep, err := bs.ReadBytesRef()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-	signatureAlgorithm := SignatureAlgorithm{}
-	if _, err := bs.WriteTo(&signatureAlgorithm); err != nil {
-		return bs.BytesRead(), err
-	}
-	signature, err := bs.ReadBytesRef()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
 	m.NamedCurve = NamedCurve(namedCurve)
-	m.PublicKey = publicKey
-	m.IV = iv
-	m.Nonce = nonce
-	m.NonceStep = nonceStep
-	m.SignatureAlgorithm = signatureAlgorithm
-	m.Signature = signature
+
+	m.PublicKey, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.IV, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.Nonce, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.NonceStep, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	if _, err := bs.WriteTo(&m.SignatureAlgorithm); err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.Signature, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
 	return bs.BytesRead(), nil
 }
 
 // Size 大小
 func (m MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
-		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() + binaryutil.SizeofBytes(m.Signature)
+		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() +
+		binaryutil.SizeofBytes(m.Signature)
 }
 
 // MsgId 消息Id

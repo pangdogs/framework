@@ -25,16 +25,18 @@ func (m MsgMAC32) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgMAC32) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	data, err := bs.ReadBytesRef()
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	mac, err := bs.ReadUint32()
+
+	m.MAC, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Data = data
-	m.MAC = mac
+
 	return bs.BytesRead(), nil
 }
 
@@ -64,16 +66,18 @@ func (m MsgMAC64) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgMAC64) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	data, err := bs.ReadBytesRef()
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	mac, err := bs.ReadUint64()
+
+	m.MAC, err = bs.ReadUint64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Data = data
-	m.MAC = mac
+
 	return bs.BytesRead(), nil
 }
 
@@ -103,16 +107,18 @@ func (m MsgMAC) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgMAC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	data, err := bs.ReadBytesRef()
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	mac, err := bs.ReadBytesRef()
+
+	m.MAC, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Data = data
-	m.MAC = mac
+
 	return bs.BytesRead(), nil
 }
 

@@ -32,22 +32,24 @@ func (m MsgFinished) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgFinished) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	sendSeq, err := bs.ReadUint32()
+	var err error
+
+	m.SendSeq, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	recvSeq, err := bs.ReadUint32()
+
+	m.RecvSeq, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.SendSeq = sendSeq
-	m.RecvSeq = recvSeq
+
 	return bs.BytesRead(), nil
 }
 
 // Size 大小
 func (MsgFinished) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }
 
 // MsgId 消息Id

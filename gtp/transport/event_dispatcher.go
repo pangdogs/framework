@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrMsgNotProcessed = errors.New("gtp.msg not processed") // 消息事件未处理
-	ErrUnexpectedMsg   = errors.New("unexpected gtp.msg")    // 收到非预期的消息事件
+	ErrUnableToDispatch = errors.New("gtp: unable to dispatch") // 无法分发消息事件
+	ErrUnexpectedMsg    = errors.New("gtp: unexpected msg")     // 收到非预期的消息
 )
 
 type (
@@ -50,7 +50,7 @@ func (d *EventDispatcher) Dispatching() error {
 		return nil
 	}
 
-	return fmt.Errorf("%w (%d)", ErrMsgNotProcessed, e.Msg.MsgId())
+	return fmt.Errorf("%w (%d)", ErrUnableToDispatch, e.Msg.MsgId())
 }
 
 // Run 运行

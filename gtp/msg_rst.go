@@ -41,16 +41,19 @@ func (m MsgRst) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (m *MsgRst) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
+	var err error
+
 	code, err := bs.ReadInt32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	msg, err := bs.ReadStringRef()
+	m.Code = Code(code)
+
+	m.Message, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	m.Code = Code(code)
-	m.Message = msg
+
 	return bs.BytesRead(), nil
 }
 

@@ -5,7 +5,7 @@ import (
 )
 
 // Uint8 builtin uint8
-type Uint8 int8
+type Uint8 uint8
 
 // Read implements io.Reader
 func (v Uint8) Read(p []byte) (int, error) {

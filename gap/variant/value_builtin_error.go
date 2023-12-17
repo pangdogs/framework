@@ -5,18 +5,6 @@ import (
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
-// MakeError 创建可变类型error
-func MakeError(err error) Error {
-	if err == nil {
-		return Error{}
-	} else {
-		return Error{
-			Code:    -1,
-			Message: err.Error(),
-		}
-	}
-}
-
 // Error builtin error
 type Error struct {
 	Code    int32
@@ -38,16 +26,18 @@ func (v Error) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (v *Error) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	code, err := bs.ReadInt32()
+	var err error
+
+	v.Code, err = bs.ReadInt32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	message, err := bs.ReadString()
+
+	v.Message, err = bs.ReadString()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	v.Code = code
-	v.Message = message
+
 	return bs.BytesRead(), nil
 }
 

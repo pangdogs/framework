@@ -3,5 +3,5 @@ package method
 import "errors"
 
 var (
-	ErrInvalidMethod = errors.New("invalid method")
+	ErrInvalidMethod = errors.New("gtp: invalid method")
 )

@@ -56,7 +56,7 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 	}
 
 	if !d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq) {
-		return fmt.Errorf("discard duplicate gap.msg-packet, head:%+v", mp.Head)
+		return fmt.Errorf("gap: discard duplicate msg-packet, head:%+v", mp.Head)
 	}
 
 	return generic.FuncError(d.options.RecvMsgHandler.Invoke(nil, e.Topic(), mp))

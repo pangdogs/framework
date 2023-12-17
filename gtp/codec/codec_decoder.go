@@ -208,7 +208,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	}
 
 	// 创建消息体
-	mp.Msg, err = d.MsgCreator.Spawn(mp.Head.MsgId)
+	mp.Msg, err = d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("spawn msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
