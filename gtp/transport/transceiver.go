@@ -20,7 +20,7 @@ var (
 	ErrTimeout       = os.ErrDeadlineExceeded                 // 网络io超时
 	ErrClosed        = os.ErrClosed                           // 网络链路已关闭
 	ErrUnexpectedEOF = io.ErrUnexpectedEOF                    // 非预期的io结束
-	ErrEOF           = io.EOF                                 // io结束
+	EOF              = io.EOF                                 // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全

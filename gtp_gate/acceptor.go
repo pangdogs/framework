@@ -6,6 +6,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"kit.golaxy.org/golaxy/util/generic"
 	"kit.golaxy.org/plugins/gtp/codec"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 )
 
@@ -34,15 +35,15 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 		state: SessionState_Birth,
 	}
 
-	session.Context, session.cancel = context.WithCancel(acc.gate.ctx)
+	session.Context, session.cancel = context.WithCancelCause(acc.gate.ctx)
 	session.transceiver.Conn = conn
 
 	// 初始化会话默认选项
 	_SessionOption{}.Default()(&session.options)
 	_SessionOption{}.SendDataChanSize(acc.options.SessionSendDataChanSize)(&session.options)
 	_SessionOption{}.RecvDataChanSize(acc.options.SessionRecvDataChanSize)(&session.options)
-	_SessionOption{}.SendEventChanSize(acc.options.SessionSendEventSize)(&session.options)
-	_SessionOption{}.RecvEventChanSize(acc.options.SessionRecvEventSize)(&session.options)
+	_SessionOption{}.SendEventChanSize(acc.options.SessionSendEventChanSize)(&session.options)
+	_SessionOption{}.RecvEventChanSize(acc.options.SessionRecvEventChanSize)(&session.options)
 
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver
@@ -58,6 +59,10 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	session.ctrl.Transceiver = &session.transceiver
 	session.ctrl.RetryTimes = acc.gate.options.IORetryTimes
 	session.ctrl.HeartbeatHandler = generic.CastDelegateFunc1(session.handleHeartbeat)
+
+	// 初始化监听器
+	session.dataWatchers = concurrent.MakeLockedSlice[*_DataWatcher](0, 0)
+	session.eventWatchers = concurrent.MakeLockedSlice[*_EventWatcher](0, 0)
 
 	return session, nil
 }

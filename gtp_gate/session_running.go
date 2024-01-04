@@ -2,11 +2,9 @@ package gtp_gate
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -40,18 +38,21 @@ func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDe
 // renew 刷新
 func (s *_Session) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	s.Lock()
-
-	defer func() {
-		s.Unlock()
-
-		select {
-		case s.renewChan <- struct{}{}:
-		default:
-		}
-	}()
+	defer s.Unlock()
 
 	// 刷新链路
-	return s.transceiver.Renew(conn, remoteRecvSeq)
+	sendSeq, recvSeq, err = s.transceiver.Renew(conn, remoteRecvSeq)
+	if err != nil {
+		return
+	}
+
+	// 通知刷新
+	select {
+	case s.renewChan <- struct{}{}:
+	default:
+	}
+
+	return
 }
 
 // pauseIO 暂停收发消息
@@ -67,11 +68,7 @@ func (s *_Session) continueIO() {
 // mainLoop 主线程
 func (s *_Session) mainLoop() {
 	defer func() {
-		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			defer s.cancel()
-			log.Errorf(s.gate.ctx, "session %q main loop abort, conn %q -> %q, %s", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr(),
-				fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
-		}
+		s.cancel(nil)
 
 		// 调整会话状态为已过期
 		s.setState(SessionState_Death)
@@ -84,6 +81,9 @@ func (s *_Session) mainLoop() {
 
 		// 删除会话
 		s.gate.deleteSession(s.GetId())
+
+		s.gate.wg.Done()
+		close(s.closedChan)
 	}()
 
 	log.Debugf(s.gate.ctx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
@@ -126,18 +126,29 @@ func (s *_Session) mainLoop() {
 	// 调整会话状态为活跃
 	s.setState(SessionState_Active)
 
+loop:
 	for {
 		// 非活跃状态，检测超时时间
 		if s.state == SessionState_Inactive {
 			if time.Now().After(timeout) {
-				s.cancel()
+				s.cancel(&transport.RstError{
+					Code:    gtp.Code_SessionDeath,
+					Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
+				})
+				break loop
 			}
 		}
 
 		// 检测会话是否已关闭
 		select {
 		case <-s.Done():
-			return
+			break loop
+		case <-s.gate.ctx.Done():
+			s.cancel(&transport.RstError{
+				Code:    gtp.Code_Shutdown,
+				Message: "service shutdown",
+			})
+			break loop
 		default:
 		}
 
@@ -148,14 +159,13 @@ func (s *_Session) mainLoop() {
 				// 网络io超时，触发心跳检测，向对方发送ping
 				if errors.Is(err, transport.ErrTimeout) {
 					if !pinged {
+						// 尝试ping对端
 						log.Debugf(s.gate.ctx, "session %q send ping", s.GetId())
-
 						s.ctrl.SendPing()
 						pinged = true
 					} else {
-						log.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
-
 						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
+						log.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
 						if s.setState(SessionState_Inactive) {
 							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 						}
@@ -193,7 +203,7 @@ func (s *_Session) mainLoop() {
 				continue
 			}
 
-			log.Debugf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
+			log.Errorf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
 			continue
 		}
 
@@ -202,6 +212,9 @@ func (s *_Session) mainLoop() {
 		// 调整会话状态活跃
 		s.setState(SessionState_Active)
 	}
+
+	// 发送关闭原因
+	s.ctrl.SendRst(context.Cause(s))
 
 	log.Debugf(s.gate.ctx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
@@ -222,19 +235,20 @@ func (s *_Session) setState(state SessionState) bool {
 
 	interrupt := func(panicErr error) bool {
 		if panicErr != nil {
-			log.Errorf(s.gate.ctx, "session %q state changed handler error: %s", s.GetId(), panicErr)
+			log.Errorf(s.gate.ctx, "handle session %q state changed failed, %s", s.GetId(), panicErr)
 		}
 		return false
 	}
 
-	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, old, state)
 	s.options.StateChangedHandler.Invoke(interrupt, old, state)
+	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, old, state)
 
 	return true
 }
 
 // handleEvent 接收自定义事件的处理器
 func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
+	// 写入channel
 	if s.options.RecvEventChan != nil {
 		eventCopy := event
 		eventCopy.Msg = eventCopy.Msg.Clone()
@@ -246,22 +260,30 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 		}
 	}
 
-	interrupt := func(err, panicErr error) bool {
-		err = generic.FuncError(err, panicErr)
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			if err != nil {
-				log.Errorf(s.gate.ctx, "session %q receive event handler error: %s", s.GetId(), err)
-			}
-			return true
+	var errs []error
+
+	interrupt := func(err, _ error) bool {
+		if err != nil {
+			errs = append(errs, err)
 		}
 		return false
 	}
 
-	err1 := generic.FuncError(s.gate.options.SessionRecvEventHandler.Invoke(interrupt, s, event))
-	err2 := generic.FuncError(s.options.RecvEventHandler.Invoke(interrupt, event))
+	// 回调监控器
+	s.eventWatchers.AutoRLock(func(watchers *[]*_EventWatcher) {
+		for i := range *watchers {
+			(*watchers)[i].handler.Exec(interrupt, event)
+		}
+	})
 
-	if errors.Is(err1, transport.ErrUnexpectedMsg) && errors.Is(err2, transport.ErrUnexpectedMsg) {
-		return transport.ErrUnexpectedMsg
+	// 回调会话处理器
+	s.options.RecvEventHandler.Exec(interrupt, event)
+
+	// 回调网关处理器
+	s.gate.options.SessionRecvEventHandler.Exec(interrupt, s, event)
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
@@ -269,6 +291,7 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 
 // handlePayload Payload消息事件处理器
 func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
+	// 写入channel
 	if s.options.RecvDataChan != nil {
 		select {
 		case s.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
@@ -277,22 +300,30 @@ func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 		}
 	}
 
-	interrupt := func(err, panicErr error) bool {
-		err = generic.FuncError(err, panicErr)
-		if err == nil || !errors.Is(err, transport.ErrUnexpectedMsg) {
-			if err != nil {
-				log.Errorf(s.gate.ctx, "session %q receive data handler error: %s", s.GetId(), err)
-			}
-			return true
+	var errs []error
+
+	interrupt := func(err, _ error) bool {
+		if err != nil {
+			errs = append(errs, err)
 		}
 		return false
 	}
 
-	err1 := generic.FuncError(s.gate.options.SessionRecvDataHandler.Invoke(interrupt, s, event.Msg.Data))
-	err2 := generic.FuncError(s.options.RecvDataHandler.Invoke(interrupt, event.Msg.Data))
+	// 回调监控器
+	s.dataWatchers.AutoRLock(func(watchers *[]*_DataWatcher) {
+		for i := range *watchers {
+			(*watchers)[i].handler.Exec(interrupt, event.Msg.Data)
+		}
+	})
 
-	if errors.Is(err1, transport.ErrUnexpectedMsg) && errors.Is(err2, transport.ErrUnexpectedMsg) {
-		return transport.ErrUnexpectedMsg
+	// 回调会话处理器
+	s.options.RecvDataHandler.Invoke(interrupt, event.Msg.Data)
+
+	// 回调网关处理器
+	s.gate.options.SessionRecvDataHandler.Invoke(interrupt, s, event.Msg.Data)
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

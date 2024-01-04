@@ -40,17 +40,7 @@ func (t TypeId) New() (Value, error) {
 	return variantCreator.New(t)
 }
 
-// Make 创建对象
-func (t TypeId) Make() (ValueReader, error) {
-	return variantCreator.Make(t)
-}
-
 // NewReflected 创建反射对象指针
 func (t TypeId) NewReflected() (reflect.Value, error) {
 	return variantCreator.NewReflected(t)
-}
-
-// MakeReflected 创建反射对象
-func (t TypeId) MakeReflected() (reflect.Value, error) {
-	return variantCreator.MakeReflected(t)
 }

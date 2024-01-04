@@ -68,11 +68,18 @@ func (c *CtrlProtocol) retrySend(err error) error {
 
 // HandleEvent 消息事件处理器
 func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
+	var errs []error
+
+	interrupt := func(err, _ error) bool {
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return false
+	}
+
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:
-		return c.RstHandler.Exec(func(err, _ error) bool {
-			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
-		}, UnpackEvent[gtp.MsgRst](e))
+		c.RstHandler.Exec(interrupt, UnpackEvent[gtp.MsgRst](e))
 
 	case gtp.MsgId_SyncTime:
 		syncTime := UnpackEvent[gtp.MsgSyncTime](e)
@@ -96,9 +103,7 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 			}
 		}
 
-		return c.SyncTimeHandler.Exec(func(err, _ error) bool {
-			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
-		}, syncTime)
+		c.SyncTimeHandler.Exec(interrupt, syncTime)
 
 	case gtp.MsgId_Heartbeat:
 		heartbeat := UnpackEvent[gtp.MsgHeartbeat](e)
@@ -117,11 +122,15 @@ func (c *CtrlProtocol) HandleEvent(e Event[gtp.Msg]) error {
 			}
 		}
 
-		return c.HeartbeatHandler.Exec(func(err, _ error) bool {
-			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
-		}, heartbeat)
+		c.HeartbeatHandler.Exec(interrupt, heartbeat)
 
 	default:
-		return ErrUnexpectedMsg
+		return nil
 	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
 }

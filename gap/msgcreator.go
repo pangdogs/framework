@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"kit.golaxy.org/golaxy"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"reflect"
-	"sync"
 )
 
 var (
@@ -38,42 +38,32 @@ func init() {
 // NewMsgCreator 创建消息对象构建器
 func NewMsgCreator() IMsgCreator {
 	return &_MsgCreator{
-		msgTypeMap: make(map[MsgId]reflect.Type),
+		msgTypeMap: concurrent.MakeLockedMap[MsgId, reflect.Type](0),
 	}
 }
 
 // _MsgCreator 消息对象构建器
 type _MsgCreator struct {
-	sync.RWMutex
-	msgTypeMap map[MsgId]reflect.Type
+	msgTypeMap concurrent.LockedMap[MsgId, reflect.Type]
 }
 
 // Register 注册消息
 func (c *_MsgCreator) Register(msg Msg) {
-	c.Lock()
-	defer c.Unlock()
-
 	if msg == nil {
 		panic(fmt.Errorf("%w: msg is nil", golaxy.ErrArgs))
 	}
 
-	c.msgTypeMap[msg.MsgId()] = reflect.TypeOf(msg).Elem()
+	c.msgTypeMap.Insert(msg.MsgId(), reflect.TypeOf(msg).Elem())
 }
 
 // Deregister 取消注册消息
 func (c *_MsgCreator) Deregister(msgId MsgId) {
-	c.Lock()
-	defer c.Unlock()
-
-	delete(c.msgTypeMap, msgId)
+	c.msgTypeMap.Delete(msgId)
 }
 
 // New 创建消息指针
 func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	rtype, ok := c.msgTypeMap[msgId]
+	rtype, ok := c.msgTypeMap.Get(msgId)
 	if !ok {
 		return nil, ErrNotRegistered
 	}

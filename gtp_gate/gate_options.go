@@ -48,13 +48,13 @@ type GateOptions struct {
 	CompressedSize                 int                        // 通信中启用压缩阀值（字节），<=0表示不开启
 	AuthClientHandler              AuthClientHandler          // 客户端鉴权鉴权处理器
 	SessionInactiveTimeout         time.Duration              // 会话不活跃后的超时时间
-	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级高于会话的处理器）
+	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
 	SessionSendDataChanSize        int                        // 会话发送数据的channel的大小，<=0表示不使用channel
 	SessionRecvDataChanSize        int                        // 会话接收数据的channel的大小，<=0表示不使用channel
-	SessionSendEventSize           int                        // 会话发送自定义事件的channel的大小，<=0表示不使用channel
-	SessionRecvEventSize           int                        // 会话接收自定义事件的channel的大小，<=0表示不使用channel
-	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级高于会话的处理器）
-	SessionRecvEventHandler        SessionRecvEventHandler    // 会话接收的自定义事件的处理器（优先级高于会话的处理器）
+	SessionSendEventChanSize       int                        // 会话发送自定义事件的channel的大小，<=0表示不使用channel
+	SessionRecvEventChanSize       int                        // 会话接收自定义事件的channel的大小，<=0表示不使用channel
+	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级低于会话的处理器）
+	SessionRecvEventHandler        SessionRecvEventHandler    // 会话接收的自定义事件的处理器（优先级低于会话的处理器）
 	FutureTimeout                  time.Duration              // 异步模型Future超时时间
 }
 
@@ -97,8 +97,8 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		_GateOption{}.SessionStateChangedHandler(nil)(options)
 		_GateOption{}.SessionSendDataChanSize(0)(options)
 		_GateOption{}.SessionRecvDataChanSize(0)(options)
-		_GateOption{}.SessionSendEventSize(0)(options)
-		_GateOption{}.SessionRecvEventSize(0)(options)
+		_GateOption{}.SessionSendEventChanSize(0)(options)
+		_GateOption{}.SessionRecvEventChanSize(0)(options)
 		_GateOption{}.SessionRecvDataHandler(nil)(options)
 		_GateOption{}.SessionRecvEventHandler(nil)(options)
 		_GateOption{}.FutureTimeout(10 * time.Second)(options)
@@ -275,15 +275,15 @@ func (_GateOption) SessionRecvDataChanSize(size int) option.Setting[GateOptions]
 	}
 }
 
-func (_GateOption) SessionSendEventSize(size int) option.Setting[GateOptions] {
+func (_GateOption) SessionSendEventChanSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.SessionSendEventSize = size
+		options.SessionSendEventChanSize = size
 	}
 }
 
-func (_GateOption) SessionRecvEventSize(size int) option.Setting[GateOptions] {
+func (_GateOption) SessionRecvEventChanSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.SessionRecvEventSize = size
+		options.SessionRecvEventChanSize = size
 	}
 }
 

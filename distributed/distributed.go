@@ -32,6 +32,12 @@ type Address struct {
 	LocalAddr            string // 本服务节点地址
 }
 
+// Watcher 监听器
+type Watcher interface {
+	context.Context
+	Stop() <-chan struct{}
+}
+
 // Distributed 分布式服务支持
 type Distributed interface {
 	// GetAddress 获取地址信息
@@ -46,6 +52,8 @@ type Distributed interface {
 	MakeServiceNodeAddr(service, node string) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
+	// WatchMsg 监听消息
+	WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher
 }
 
 func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
@@ -57,6 +65,7 @@ func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
 type _Distributed struct {
 	options       DistributedOptions
 	ctx           service.Context
+	wg            sync.WaitGroup
 	registry      registry.Registry
 	broker        broker.Broker
 	dsync         dsync.DSync
@@ -65,12 +74,12 @@ type _Distributed struct {
 	decoder       codec.Decoder
 	futures       concurrent.Futures
 	deduplication concurrent.Deduplication
-	wg            sync.WaitGroup
+	msgWatchers   concurrent.LockedSlice[*_MsgWatcher]
 }
 
 // InitSP 初始化服务插件
 func (d *_Distributed) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin %q with %q", Name, types.AnyFullName(*d))
+	log.Infof(ctx, "init service plugin <%s>:%s", Name, types.AnyFullName(*d))
 
 	d.ctx = ctx
 
@@ -88,6 +97,9 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 	// 初始化消息去重器
 	d.deduplication = concurrent.MakeDeduplication()
+
+	// 初始化监听器
+	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
 
 	// 初始化地址信息
 	d.address = Address{Domain: d.options.Domain}
@@ -147,7 +159,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	if err != nil {
 		log.Panicf(d.ctx, "register service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
 	}
-	log.Infof(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
+	log.Debugf(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
 
 	// 监控服务节点变化
 	watcher, err := d.registry.Watch(d.ctx, "")
@@ -155,9 +167,9 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 		log.Panicf(d.ctx, "watching service changes failed, %s", err)
 	}
 
-	// 运行服务节点监控线程
+	// 运行服务节点监听线程
 	d.wg.Add(1)
-	go d.watching(watcher)
+	go d.watchingService(watcher)
 
 	// 运行主线程
 	d.wg.Add(1)
@@ -166,7 +178,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (d *_Distributed) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*d))
 
 	d.wg.Wait()
 }
@@ -214,6 +226,11 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	return d.broker.Publish(context.Background(), dst, mpBuf.Data())
 }
 
+// WatchMsg 监听消息
+func (d *_Distributed) WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher {
+	return d.newMsgWatcher(ctx, handler)
+}
+
 func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {
 	sub, err := d.broker.Subscribe(d.ctx, topic,
 		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
@@ -221,6 +238,6 @@ func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {
 	if err != nil {
 		log.Panicf(d.ctx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
 	}
-	log.Infof(d.ctx, "subscribe topic %q queue %q success", topic, queue)
+	log.Debugf(d.ctx, "subscribe topic %q queue %q success", topic, queue)
 	return sub
 }

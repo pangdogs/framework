@@ -6,6 +6,7 @@ import (
 
 // Subscriber is a convenience return type for the Broker.Subscribe method.
 type Subscriber interface {
+	context.Context
 	// Pattern returns the subscription pattern used to create the subscriber.
 	Pattern() string
 	// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
@@ -25,7 +26,7 @@ type SyncSubscriber interface {
 type ChanSubscriber interface {
 	Subscriber
 	// EventChan returns a channel that can be used to receive events from the subscriber.
-	EventChan() <-chan Event
+	EventChan() (<-chan Event, error)
 }
 
 // Event is given to a subscription handler for processing.

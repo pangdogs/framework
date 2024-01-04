@@ -20,7 +20,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (*_Watcher, 
 		registry:    r,
 		ctx:         ctx,
 		cancel:      cancel,
-		stoppedChan: make(chan struct{}, 1),
+		stoppedChan: make(chan struct{}),
 		pattern:     pattern,
 		watchChan:   r.client.Watch(ctx, watchKey, etcd_client.WithPrefix(), etcd_client.WithPrevKV()),
 		eventChan:   make(chan *registry.Event, r.options.WatchChanSize),
@@ -63,7 +63,7 @@ func (w *_Watcher) Stop() <-chan struct{} {
 func (w *_Watcher) mainLoop() {
 	defer func() {
 		close(w.eventChan)
-		w.stoppedChan <- struct{}{}
+		close(w.stoppedChan)
 	}()
 
 	log.Debugf(w.registry.ctx, "start watch %q", w.pattern)

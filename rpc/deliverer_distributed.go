@@ -3,19 +3,37 @@ package rpc
 import (
 	"kit.golaxy.org/golaxy/runtime"
 	"kit.golaxy.org/golaxy/service"
+	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/distributed"
 	"kit.golaxy.org/plugins/gap"
 	"kit.golaxy.org/plugins/gap/variant"
+	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/util/concurrent"
 	"strings"
 )
 
-// DistributedDeliverer 分布式服务RPC投递器
-type DistributedDeliverer struct{}
+// DistributedDeliverer 分布式服务的RPC投递器
+type DistributedDeliverer struct {
+	ctx  service.Context
+	dist distributed.Distributed
+}
+
+// Init 初始化
+func (d *DistributedDeliverer) Init(ctx service.Context) {
+	d.ctx = ctx
+	d.dist = distributed.Using(ctx)
+
+	log.Debugf(d.ctx, "deliverer %q started", types.AnyFullName(*d))
+}
+
+// Shut 结束
+func (d *DistributedDeliverer) Shut(ctx service.Context) {
+	log.Debugf(d.ctx, "deliverer %q stopped", types.AnyFullName(*d))
+}
 
 // Match 是否匹配
-func (DistributedDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	addr := distributed.Using(ctx).GetAddress()
+func (d *DistributedDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
+	addr := d.dist.GetAddress()
 
 	if !strings.HasPrefix(dst, addr.Domain) {
 		return false
@@ -31,11 +49,9 @@ func (DistributedDeliverer) Match(ctx service.Context, dst, path string, oneWay 
 }
 
 // Request 请求
-func (DistributedDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
-	dist := distributed.Using(ctx)
-
+func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
-	future := concurrent.MakeFuture(dist.GetFutures(), nil, ret)
+	future := concurrent.MakeFuture(d.dist.GetFutures(), nil, ret)
 
 	vargs, err := variant.MakeArray(args)
 	if err != nil {
@@ -49,17 +65,18 @@ func (DistributedDeliverer) Request(ctx service.Context, dst, path string, args 
 		Args:   vargs,
 	}
 
-	err = dist.SendMsg(dst, msg)
-	if err != nil {
+	if err = d.dist.SendMsg(dst, msg); err != nil {
 		future.Cancel(err)
 		return ret.Cast()
 	}
+
+	log.Debugf(d.ctx, "rpc request to %q ok, path:%q, corr_id:%d", dst, path, future.Id)
 
 	return ret.Cast()
 }
 
 // Notify 通知
-func (DistributedDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
+func (d *DistributedDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
 	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		return err
@@ -70,5 +87,11 @@ func (DistributedDeliverer) Notify(ctx service.Context, dst, path string, args [
 		Args: vargs,
 	}
 
-	return distributed.Using(ctx).SendMsg(dst, msg)
+	if err = d.dist.SendMsg(dst, msg); err != nil {
+		return err
+	}
+
+	log.Debugf(d.ctx, "rpc notify to %q ok, path:%q", dst, path)
+
+	return nil
 }

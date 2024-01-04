@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/andybalholm/brotli v1.0.5
+	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fufuok/bytespool v1.3.2
 	github.com/go-redsync/redsync/v4 v4.9.2
 	github.com/golang/snappy v0.0.4
@@ -18,7 +19,7 @@ require (
 	golang.org/x/crypto v0.13.0
 	golang.org/x/net v0.10.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	kit.golaxy.org/golaxy v0.2.15
+	kit.golaxy.org/golaxy v0.2.16
 )
 
 require (

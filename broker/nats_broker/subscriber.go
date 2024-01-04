@@ -10,7 +10,19 @@ import (
 	"strings"
 )
 
+type _SubscribeMode int32
+
+const (
+	_SubscribeMode_Handler _SubscribeMode = iota
+	_SubscribeMode_Sync
+	_SubscribeMode_Chan
+)
+
 func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, pattern string, opts broker.SubscriberOptions) (*_Subscriber, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if b.options.TopicPrefix != "" {
 		pattern = b.options.TopicPrefix + pattern
 	}
@@ -18,11 +30,22 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 	ctx, cancel := context.WithCancel(ctx)
 
 	sub := &_Subscriber{
+		Context:             ctx,
 		broker:              b,
-		ctx:                 ctx,
 		cancel:              cancel,
-		stoppedChan:         make(chan struct{}, 1),
+		stoppedChan:         make(chan struct{}),
 		unsubscribedHandler: opts.UnsubscribedHandler,
+	}
+
+	var handleMsg nats.MsgHandler
+
+	switch mode {
+	case _SubscribeMode_Sync, _SubscribeMode_Chan:
+		sub.eventChan = make(chan broker.Event, opts.EventChanSize)
+		handleMsg = sub.handleEventChan
+	case _SubscribeMode_Handler:
+		sub.eventHandler = opts.EventHandler
+		handleMsg = sub.handleEventProcess
 	}
 
 	var err error
@@ -32,40 +55,26 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		if b.options.QueuePrefix != "" {
 			queue = b.options.QueuePrefix + queue
 		}
-		sub.natsSub, err = b.client.QueueSubscribe(pattern, queue, sub.handleMsg)
+		sub.natsSub, err = b.client.QueueSubscribe(pattern, queue, handleMsg)
 	} else {
-		sub.natsSub, err = b.client.Subscribe(pattern, sub.handleMsg)
+		sub.natsSub, err = b.client.Subscribe(pattern, handleMsg)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", broker.ErrBroker, err)
 	}
 
-	switch mode {
-	case _SubscribeMode_Sync, _SubscribeMode_Chan:
-		sub.eventChan = make(chan broker.Event, opts.EventChanSize)
-	case _SubscribeMode_Handler:
-		sub.eventHandler = opts.EventHandler
-	}
-
-	go sub.mainLoop()
-
 	log.Debugf(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
+
+	b.wg.Add(1)
+	go sub.mainLoop()
 
 	return sub, nil
 }
 
-type _SubscribeMode int32
-
-const (
-	_SubscribeMode_Handler _SubscribeMode = iota
-	_SubscribeMode_Sync
-	_SubscribeMode_Chan
-)
-
 type _Subscriber struct {
+	context.Context
 	broker              *_Broker
-	ctx                 context.Context
 	cancel              context.CancelFunc
 	stoppedChan         chan struct{}
 	natsSub             *nats.Subscription
@@ -99,14 +108,21 @@ func (s *_Subscriber) Next() (broker.Event, error) {
 }
 
 // EventChan returns a channel that can be used to receive events from the subscriber.
-func (s *_Subscriber) EventChan() <-chan broker.Event {
-	return s.eventChan
+func (s *_Subscriber) EventChan() (<-chan broker.Event, error) {
+	return s.eventChan, nil
 }
 
 func (s *_Subscriber) mainLoop() {
-	<-s.ctx.Done()
+	defer func() {
+		s.cancel()
+		s.broker.wg.Done()
+		close(s.stoppedChan)
+	}()
 
-	defer func() { s.stoppedChan <- struct{}{} }()
+	select {
+	case <-s.Done():
+	case <-s.broker.ctx.Done():
+	}
 
 	if err := s.natsSub.Unsubscribe(); err != nil {
 		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
@@ -118,34 +134,39 @@ func (s *_Subscriber) mainLoop() {
 		close(s.eventChan)
 	}
 
-	if err := s.unsubscribedHandler.Invoke(nil, s); err != nil {
-		log.Errorf(s.broker.ctx, "handle unsubscribed from topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), err)
-	}
+	s.unsubscribedHandler.Invoke(func(panicErr error) bool {
+		log.Errorf(s.broker.ctx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
+		return false
+	}, s)
 }
 
-func (s *_Subscriber) handleMsg(msg *nats.Msg) {
+func (s *_Subscriber) handleEventChan(msg *nats.Msg) {
 	e := &_Event{
 		msg: msg,
 		ns:  s,
 	}
 
-	if err := generic.FuncError(s.eventHandler.Invoke(nil, e)); err != nil {
+	select {
+	case s.eventChan <- e:
+	default:
 		var nakErr error
 		if e.Queue() != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s, nak: %v", e.Topic(), e.Queue(), err, nakErr)
+		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+	}
+}
+
+func (s *_Subscriber) handleEventProcess(msg *nats.Msg) {
+	e := &_Event{
+		msg: msg,
+		ns:  s,
 	}
 
-	if s.eventChan != nil {
-		select {
-		case s.eventChan <- e:
-		default:
-			var nakErr error
-			if e.Queue() != "" {
-				nakErr = e.Nak(context.Background())
-			}
-			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+	s.eventHandler.Invoke(func(err error, panicErr error) bool {
+		if err := generic.FuncError(err, panicErr); err != nil {
+			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s", e.Topic(), e.Queue(), err)
 		}
-	}
+		return panicErr != nil
+	}, e)
 }

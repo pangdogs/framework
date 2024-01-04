@@ -9,11 +9,6 @@ import (
 	"kit.golaxy.org/plugins/gtp"
 )
 
-var (
-	ErrUnableToDispatch = errors.New("gtp: unable to dispatch") // 无法分发消息事件
-	ErrUnexpectedMsg    = errors.New("gtp: unexpected msg")     // 收到非预期的消息
-)
-
 type (
 	EventHandler = generic.DelegateFunc1[Event[gtp.Msg], error] // 消息事件处理器
 	ErrorHandler = generic.DelegateAction1[error]               // 错误处理器
@@ -39,18 +34,20 @@ func (d *EventDispatcher) Dispatching() error {
 		return err
 	}
 
-	err = generic.FuncError(d.EventHandler.Invoke(func(err, panicErr error) bool {
-		err = generic.FuncError(err, panicErr)
-		if err == nil || !errors.Is(err, ErrUnexpectedMsg) {
-			return true
+	var errs []error
+
+	d.EventHandler.Invoke(func(err, panicErr error) bool {
+		if err := generic.FuncError(err, panicErr); err != nil {
+			errs = append(errs, err)
 		}
-		return false
-	}, e))
-	if err == nil {
-		return nil
+		return panicErr != nil
+	}, e)
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
-	return fmt.Errorf("%w (%d)", ErrUnableToDispatch, e.Msg.MsgId())
+	return nil
 }
 
 // Run 运行

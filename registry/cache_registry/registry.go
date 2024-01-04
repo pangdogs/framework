@@ -40,7 +40,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 	r.ctx = ctx
 
-	log.Infof(ctx, "init service plugin %q with %q, wrap %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+	log.Infof(ctx, "init service plugin <%s>:%s, wrap %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
 
 	if init, ok := r.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(ctx)
@@ -78,7 +78,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
 
 	r.wg.Wait()
 
@@ -89,8 +89,8 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 
 // GetServiceNode 查询服务节点
 func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
 	serviceNode, ok := r.serviceNodeMap[[2]string{serviceName, nodeId}]
 	if !ok {
@@ -102,8 +102,8 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId stri
 
 // GetService 查询服务
 func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
 	versions, ok := r.serviceMap[serviceName]
 	if !ok {
@@ -121,8 +121,8 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 
 // ListServices 查询所有服务
 func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
 	servicesCopy := make([]registry.Service, 0, len(r.serviceNodeMap))
 
@@ -147,16 +147,17 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 func (r *_Registry) mainLoop(watcher registry.Watcher) {
 	defer r.wg.Done()
 
+	log.Debug(r.ctx, "watching service changes started")
+
 loop:
 	for {
 		event, err := watcher.Next()
 		if err != nil {
 			if errors.Is(err, registry.ErrStoppedWatching) {
-				log.Debugf(r.ctx, "watching service changes stopped")
 				break loop
 			}
-			log.Errorf(r.ctx, "watching service changes aborted, %s", err)
-			break loop
+			log.Errorf(r.ctx, "watching service changes failed, %s", err)
+			continue
 		}
 
 		func() {
@@ -240,4 +241,6 @@ loop:
 	}
 
 	<-watcher.Stop()
+
+	log.Debugf(r.ctx, "watching service changes stopped")
 }

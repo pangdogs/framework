@@ -295,6 +295,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 		session.setState(SessionState_Confirmed)
 
 		// 运行会话
+		session.gate.wg.Add(1)
 		go session.mainLoop()
 	}
 

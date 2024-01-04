@@ -27,12 +27,18 @@ const (
 	SessionState_Death                         // 已过期
 )
 
+// Watcher 监听器
+type Watcher interface {
+	context.Context
+	Stop() <-chan struct{}
+}
+
 // Session 客户端会话
 type Session interface {
 	context.Context
 	fmt.Stringer
-	// Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
-	Options(settings ...option.Setting[SessionOptions]) error
+	// Settings 设置会话选项（在会话状态Handshake与Confirmed时可用）
+	Settings(settings ...option.Setting[SessionOptions]) error
 	// GetContext 获取服务上下文
 	GetContext() service.Context
 	// GetId 获取会话Id
@@ -49,8 +55,12 @@ type Session interface {
 	GetFutures() concurrent.IFutures
 	// SendData 发送数据
 	SendData(data []byte) error
+	// WatchData 监听数据
+	WatchData(ctx context.Context, handler RecvDataHandler) Watcher
 	// SendEvent 发送自定义事件
 	SendEvent(event transport.Event[gtp.MsgReader]) error
+	// WatchEvent 监听自定义事件
+	WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- []byte
 	// RecvDataChan 接收数据的channel
@@ -60,13 +70,14 @@ type Session interface {
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.Event[gtp.Msg]
 	// Close 关闭
-	Close(err error)
+	Close(err error) <-chan struct{}
 }
 
 type _Session struct {
 	context.Context
 	sync.Mutex
-	cancel          context.CancelFunc
+	cancel          context.CancelCauseFunc
+	closedChan      chan struct{}
 	gate            *_Gate
 	options         SessionOptions
 	id              string
@@ -77,15 +88,17 @@ type _Session struct {
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
 	renewChan       chan struct{}
+	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
+	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
 }
 
 // String implements fmt.Stringer
 func (s *_Session) String() string {
-	return fmt.Sprintf(`{"id":%q "token":%q "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
+	return fmt.Sprintf(`{"id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
 }
 
-// Options 设置会话选项（在会话状态Handshake与Confirmed时可用）
-func (s *_Session) Options(settings ...option.Setting[SessionOptions]) error {
+// Settings 设置会话选项（在会话状态Handshake与Confirmed时可用）
+func (s *_Session) Settings(settings ...option.Setting[SessionOptions]) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -147,12 +160,22 @@ func (s *_Session) SendData(data []byte) error {
 	return s.trans.SendData(data)
 }
 
+// WatchData 监听数据
+func (s *_Session) WatchData(ctx context.Context, handler RecvDataHandler) Watcher {
+	return s.newDataWatcher(ctx, handler)
+}
+
 // SendEvent 发送自定义事件
 func (s *_Session) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	return transport.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
 	}.Send(s.transceiver.Send(event))
+}
+
+// WatchEvent 监听自定义事件
+func (s *_Session) WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher {
+	return s.newEventWatcher(ctx, handler)
 }
 
 // SendDataChan 发送数据的channel
@@ -188,9 +211,7 @@ func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 }
 
 // Close 关闭
-func (s *_Session) Close(err error) {
-	if err != nil {
-		s.ctrl.SendRst(err)
-	}
-	s.cancel()
+func (s *_Session) Close(err error) <-chan struct{} {
+	s.cancel(err)
+	return s.closedChan
 }

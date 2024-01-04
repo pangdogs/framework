@@ -1,6 +1,7 @@
 package distributed
 
 import (
+	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/plugins/gap"
 	"kit.golaxy.org/plugins/util/concurrent"
@@ -34,4 +35,9 @@ func MakeServiceNodeAddr(servCtx service.Context, serviceName, nodeId string) (s
 // SendMsg 发送消息
 func SendMsg(servCtx service.Context, dst string, msg gap.Msg) error {
 	return Using(servCtx).SendMsg(dst, msg)
+}
+
+// WatchMsg 监听消息
+func WatchMsg(servCtx service.Context, ctx context.Context, handler RecvMsgHandler) Watcher {
+	return Using(servCtx).WatchMsg(ctx, handler)
 }

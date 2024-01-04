@@ -159,14 +159,7 @@ retry:
 	case *Error:
 		return MakeVariant(v)
 	case error:
-		var value *Error
-		if !errors.As(v, &value) {
-			value = &Error{
-				Code:    -1,
-				Message: v.Error(),
-			}
-		}
-		return MakeVariant(value)
+		return MakeVariant(MakeError(v))
 	case ValueReader:
 		return MakeVariant(v)
 	case reflect.Value:

@@ -9,7 +9,10 @@ const (
 	Service = "S"
 	Runtime = "R"
 	Entity  = "E"
-	sep     = 0x1d
+)
+
+var (
+	Sep = byte('>')
 )
 
 type CallPath struct {
@@ -26,40 +29,37 @@ func (cp CallPath) Encode() (string, error) {
 	switch cp.Category {
 	case Service:
 		sb.WriteString(cp.Category)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
-		sb.WriteByte(sep)
 
 		return sb.String(), nil
 
 	case Runtime:
 		sb.WriteString(cp.Category)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
-		sb.WriteByte(sep)
 
 		return sb.String(), nil
 
 	case Entity:
 		sb.WriteString(cp.Category)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Component)
-		sb.WriteByte(sep)
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
-		sb.WriteByte(sep)
 
 		return sb.String(), nil
 
 	default:
-		return "", errors.New("invalid action")
+		return "", errors.New("rpc: invalid action")
 	}
 }
 
@@ -73,9 +73,12 @@ func Parse(path string) (CallPath, error) {
 
 loop:
 	for i := 0; ; i++ {
-		idx := strings.IndexByte(path, sep)
+		idx := strings.IndexByte(path, Sep)
 		if idx < 0 {
-			break
+			if path == "" {
+				break
+			}
+			idx = len(path)
 		}
 		field := path[:idx]
 
@@ -86,8 +89,9 @@ loop:
 			switch cp.Category {
 			case Service, Runtime, Entity:
 			default:
-				return CallPath{}, errors.New("invalid action")
+				return CallPath{}, errors.New("rpc: invalid action")
 			}
+
 		case 1:
 			switch cp.Category {
 			case Service:
@@ -95,6 +99,7 @@ loop:
 			case Runtime, Entity:
 				cp.EntityId = field
 			}
+
 		case 2:
 			switch cp.Category {
 			case Service:
@@ -104,16 +109,23 @@ loop:
 			case Entity:
 				cp.Component = field
 			}
+
 		case 3:
 			switch cp.Category {
 			case Runtime, Entity:
 				cp.Method = field
 			}
+
 		default:
 			break loop
 		}
 
-		path = path[idx+1:]
+		if idx < len(path) {
+			path = path[idx+1:]
+			continue
+		}
+
+		break
 	}
 
 	return cp, nil
