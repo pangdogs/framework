@@ -32,7 +32,7 @@ func newGate(settings ...option.Setting[GateOptions]) Gate {
 
 type _Gate struct {
 	options      GateOptions
-	ctx          service.Context
+	servCtx      service.Context
 	wg           sync.WaitGroup
 	listeners    []net.Listener
 	sessionMap   sync.Map
@@ -44,7 +44,7 @@ type _Gate struct {
 func (g *_Gate) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*g))
 
-	g.ctx = ctx
+	g.servCtx = ctx
 	g.futures = concurrent.MakeFutures(ctx, g.options.FutureTimeout)
 
 	if len(g.options.Endpoints) <= 0 {
@@ -65,7 +65,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		g.listeners = append(g.listeners, listener)
 
-		log.Infof(g.ctx, "listener %q started", listener.Addr())
+		log.Infof(g.servCtx, "listener %q started", listener.Addr())
 	}
 
 	for _, listener := range g.listeners {
@@ -76,14 +76,14 @@ func (g *_Gate) InitSP(ctx service.Context) {
 				conn, err := listener.Accept()
 				if err != nil {
 					if errors.Is(err, net.ErrClosed) {
-						log.Debugf(ctx, "listener %q closed", listener.Addr())
+						log.Debugf(g.servCtx, "listener %q closed", listener.Addr())
 						return
 					}
-					log.Errorf(ctx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
+					log.Errorf(g.servCtx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
 					continue
 				}
 
-				log.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
+				log.Debugf(g.servCtx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
 
 				go g.handleSession(conn)
 			}

@@ -14,9 +14,9 @@ func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) 
 
 	watcher := &_DataWatcher{
 		Context:     ctx,
-		session:     s,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
+		session:     s,
 		handler:     handler,
 	}
 	s.dataWatchers.Append(watcher)
@@ -29,9 +29,9 @@ func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) 
 
 type _DataWatcher struct {
 	context.Context
-	session     *_Session
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
+	session     *_Session
 	handler     RecvDataHandler
 }
 

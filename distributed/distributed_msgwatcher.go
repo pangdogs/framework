@@ -14,9 +14,9 @@ func (d *_Distributed) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 
 	watcher := &_MsgWatcher{
 		Context:     ctx,
-		distributed: d,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
+		distributed: d,
 		handler:     handler,
 	}
 	d.msgWatchers.Append(watcher)
@@ -29,9 +29,9 @@ func (d *_Distributed) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 
 type _MsgWatcher struct {
 	context.Context
-	distributed *_Distributed
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
+	distributed *_Distributed
 	handler     RecvMsgHandler
 }
 

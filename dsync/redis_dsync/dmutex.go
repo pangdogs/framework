@@ -24,7 +24,7 @@ func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
 		redsync.WithValue(options.Value),
 	)
 
-	log.Debugf(s.ctx, "new dsync mutex %q", name)
+	log.Debugf(s.servCtx, "new dsync mutex %q", name)
 
 	return &_DMutex{
 		dsync: s,
@@ -52,7 +52,7 @@ func (m *_DMutex) Lock(ctx context.Context) error {
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
-	log.Debugf(m.dsync.ctx, "dsync mutex %q is locked", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dsync mutex %q is locked", m.Mutex.Name())
 
 	return nil
 }
@@ -72,7 +72,7 @@ func (m *_DMutex) Unlock(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	log.Debugf(m.dsync.ctx, "dsync mutex %q is unlocked", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dsync mutex %q is unlocked", m.Mutex.Name())
 
 	return nil
 }
@@ -92,7 +92,7 @@ func (m *_DMutex) Extend(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	log.Debugf(m.dsync.ctx, "dsync mutex %q is extended", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dsync mutex %q is extended", m.Mutex.Name())
 
 	return nil
 }

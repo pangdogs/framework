@@ -63,9 +63,11 @@ func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
 }
 
 type _Distributed struct {
-	options       DistributedOptions
-	ctx           service.Context
+	ctx           context.Context
+	cancel        context.CancelFunc
+	servCtx       service.Context
 	wg            sync.WaitGroup
+	options       DistributedOptions
 	registry      registry.Registry
 	broker        broker.Broker
 	dsync         dsync.DSync
@@ -81,7 +83,8 @@ type _Distributed struct {
 func (d *_Distributed) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", Name, types.AnyFullName(*d))
 
-	d.ctx = ctx
+	d.ctx, d.cancel = context.WithCancel(context.Background())
+	d.servCtx = ctx
 
 	// 获取依赖的插件
 	d.registry = registry.Using(ctx)
@@ -93,7 +96,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.encoder = codec.MakeEncoder()
 
 	// 初始化异步模型Future
-	d.futures = concurrent.MakeFutures(d.ctx, d.options.FutureTimeout)
+	d.futures = concurrent.MakeFutures(d.servCtx, d.options.FutureTimeout)
 
 	// 初始化消息去重器
 	d.deduplication = concurrent.MakeDeduplication()
@@ -103,29 +106,29 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 	// 初始化地址信息
 	d.address = Address{Domain: d.options.Domain}
-	d.address.BroadcastSubdomain = broker.Path(d.ctx, d.address.Domain, "broadcast")
-	d.address.BalanceSubdomain = broker.Path(d.ctx, d.address.Domain, "balance")
-	d.address.NodeSubdomain = broker.Path(d.ctx, d.address.Domain, "node")
+	d.address.BroadcastSubdomain = broker.Path(d.servCtx, d.address.Domain, "broadcast")
+	d.address.BalanceSubdomain = broker.Path(d.servCtx, d.address.Domain, "balance")
+	d.address.NodeSubdomain = broker.Path(d.servCtx, d.address.Domain, "node")
 	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
 	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
-	d.address.ServiceBroadcastAddr = d.MakeServiceBroadcastAddr(d.ctx.GetName())
-	d.address.ServiceBalanceAddr = d.MakeServiceBalanceAddr(d.ctx.GetName())
-	d.address.LocalAddr, _ = d.MakeServiceNodeAddr(d.ctx.GetName(), d.ctx.GetId().String())
+	d.address.ServiceBroadcastAddr = d.MakeServiceBroadcastAddr(d.servCtx.GetName())
+	d.address.ServiceBalanceAddr = d.MakeServiceBalanceAddr(d.servCtx.GetName())
+	d.address.LocalAddr, _ = d.MakeServiceNodeAddr(d.servCtx.GetName(), d.servCtx.GetId().String())
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutex(dsync.Path(d.ctx, "service", d.ctx.GetName(), d.ctx.GetId().String()))
-	if err := mutex.Lock(d.ctx); err != nil {
-		log.Panicf(d.ctx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
+	mutex := d.dsync.NewMutex(dsync.Path(d.servCtx, "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
+	if err := mutex.Lock(d.servCtx); err != nil {
+		log.Panicf(d.servCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
 	defer mutex.Unlock(context.Background())
 
 	// 检查服务节点是否已被注册
-	_, err := d.registry.GetServiceNode(d.ctx, d.ctx.GetName(), d.ctx.GetId().String())
+	_, err := d.registry.GetServiceNode(d.servCtx, d.servCtx.GetName(), d.servCtx.GetId().String())
 	if err == nil {
-		log.Panicf(d.ctx, "check service %q node %q failed, already registered", d.ctx.GetName(), d.ctx.GetId())
+		log.Panicf(d.servCtx, "check service %q node %q failed, already registered", d.servCtx.GetName(), d.servCtx.GetId())
 	}
 	if !errors.Is(err, registry.ErrNotFound) {
-		log.Panicf(d.ctx, "check service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
+		log.Panicf(d.servCtx, "check service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 	}
 
 	// 订阅topic
@@ -142,29 +145,29 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 	// 服务节点信息
 	serviceNode := registry.Service{
-		Name:      d.ctx.GetName(),
+		Name:      d.servCtx.GetName(),
 		Version:   d.options.Version,
 		Metadata:  d.options.Metadata,
 		Endpoints: d.options.Endpoints,
 		Nodes: []registry.Node{
 			{
-				Id:      d.ctx.GetId().String(),
+				Id:      d.servCtx.GetId().String(),
 				Address: d.address.LocalAddr,
 			},
 		},
 	}
 
 	// 注册服务
-	err = d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2)
+	err = d.registry.Register(d.servCtx, serviceNode, d.options.RefreshInterval*2)
 	if err != nil {
-		log.Panicf(d.ctx, "register service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
+		log.Panicf(d.servCtx, "register service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 	}
-	log.Debugf(d.ctx, "register service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
+	log.Debugf(d.servCtx, "register service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
 
 	// 监控服务节点变化
 	watcher, err := d.registry.Watch(d.ctx, "")
 	if err != nil {
-		log.Panicf(d.ctx, "watching service changes failed, %s", err)
+		log.Panicf(d.servCtx, "watching service changes failed, %s", err)
 	}
 
 	// 运行服务节点监听线程
@@ -195,12 +198,12 @@ func (d *_Distributed) GetFutures() concurrent.IFutures {
 
 // MakeServiceBroadcastAddr 创建服务广播地址
 func (d *_Distributed) MakeServiceBroadcastAddr(service string) string {
-	return broker.Path(d.ctx, d.address.BroadcastSubdomain, service)
+	return broker.Path(d.servCtx, d.address.BroadcastSubdomain, service)
 }
 
 // MakeServiceBalanceAddr 创建服务负载均衡地址
 func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
-	return broker.Path(d.ctx, d.address.BalanceSubdomain, service)
+	return broker.Path(d.servCtx, d.address.BalanceSubdomain, service)
 }
 
 // MakeServiceNodeAddr 创建服务节点地址
@@ -208,7 +211,7 @@ func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error)
 	if node == "" {
 		return "", fmt.Errorf("%w: node is empty", golaxy.ErrArgs)
 	}
-	return broker.Path(d.ctx, d.address.NodeSubdomain, service, node), nil
+	return broker.Path(d.servCtx, d.address.NodeSubdomain, service, node), nil
 }
 
 // SendMsg 发送消息
@@ -223,7 +226,7 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	}
 	defer mpBuf.Release()
 
-	return d.broker.Publish(context.Background(), dst, mpBuf.Data())
+	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
 }
 
 // WatchMsg 监听消息
@@ -236,8 +239,8 @@ func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {
 		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
 		broker.Option{}.Queue(queue))
 	if err != nil {
-		log.Panicf(d.ctx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
+		log.Panicf(d.servCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
 	}
-	log.Debugf(d.ctx, "subscribe topic %q queue %q success", topic, queue)
+	log.Debugf(d.servCtx, "subscribe topic %q queue %q success", topic, queue)
 	return sub
 }

@@ -86,7 +86,7 @@ func (s *_Session) mainLoop() {
 		close(s.closedChan)
 	}()
 
-	log.Debugf(s.gate.ctx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.servCtx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 
 	// 启动发送数据的线程
 	if s.options.SendDataChan != nil {
@@ -95,7 +95,7 @@ func (s *_Session) mainLoop() {
 				select {
 				case data := <-s.options.SendDataChan:
 					if err := s.SendData(data); err != nil {
-						log.Errorf(s.gate.ctx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
+						log.Errorf(s.gate.servCtx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
 					return
@@ -111,7 +111,7 @@ func (s *_Session) mainLoop() {
 				select {
 				case event := <-s.options.SendEventChan:
 					if err := s.SendEvent(event); err != nil {
-						log.Errorf(s.gate.ctx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
+						log.Errorf(s.gate.servCtx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
 					return
@@ -143,7 +143,7 @@ loop:
 		select {
 		case <-s.Done():
 			break loop
-		case <-s.gate.ctx.Done():
+		case <-s.gate.servCtx.Done():
 			s.cancel(&transport.RstError{
 				Code:    gtp.Code_Shutdown,
 				Message: "service shutdown",
@@ -160,12 +160,12 @@ loop:
 				if errors.Is(err, transport.ErrTimeout) {
 					if !pinged {
 						// 尝试ping对端
-						log.Debugf(s.gate.ctx, "session %q send ping", s.GetId())
+						log.Debugf(s.gate.servCtx, "session %q send ping", s.GetId())
 						s.ctrl.SendPing()
 						pinged = true
 					} else {
 						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-						log.Debugf(s.gate.ctx, "session %q no pong received", s.GetId())
+						log.Debugf(s.gate.servCtx, "session %q no pong received", s.GetId())
 						if s.setState(SessionState_Inactive) {
 							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 						}
@@ -199,11 +199,11 @@ loop:
 					}
 				}()
 
-				log.Debugf(s.gate.ctx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+				log.Debugf(s.gate.servCtx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 				continue
 			}
 
-			log.Errorf(s.gate.ctx, "session %q dispatching event failed, %s", s.GetId(), err)
+			log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s", s.GetId(), err)
 			continue
 		}
 
@@ -216,7 +216,7 @@ loop:
 	// 发送关闭原因
 	s.ctrl.SendRst(context.Cause(s))
 
-	log.Debugf(s.gate.ctx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.servCtx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
 
 // setState 调整会话状态
@@ -231,11 +231,11 @@ func (s *_Session) setState(state SessionState) bool {
 	s.state = state
 	s.Unlock()
 
-	log.Debugf(s.gate.ctx, "session %q state %q => %q", s.GetId(), old, state)
+	log.Debugf(s.gate.servCtx, "session %q state %q => %q", s.GetId(), old, state)
 
 	interrupt := func(panicErr error) bool {
 		if panicErr != nil {
-			log.Errorf(s.gate.ctx, "handle session %q state changed failed, %s", s.GetId(), panicErr)
+			log.Errorf(s.gate.servCtx, "handle session %q state changed failed, %s", s.GetId(), panicErr)
 		}
 		return false
 	}
@@ -256,7 +256,7 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 		select {
 		case s.options.RecvEventChan <- eventCopy:
 		default:
-			log.Errorf(s.gate.ctx, "session %q receive event channel is full", s.GetId())
+			log.Errorf(s.gate.servCtx, "session %q receive event channel is full", s.GetId())
 		}
 	}
 
@@ -296,7 +296,7 @@ func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 		select {
 		case s.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
-			log.Errorf(s.gate.ctx, "session %q receive data channel is full", s.GetId())
+			log.Errorf(s.gate.servCtx, "session %q receive data channel is full", s.GetId())
 		}
 	}
 
@@ -332,9 +332,9 @@ func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 // handleHeartbeat Heartbeat消息事件处理器
 func (s *_Session) handleHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
-		log.Debugf(s.gate.ctx, "session %q receive ping", s.GetId())
+		log.Debugf(s.gate.servCtx, "session %q receive ping", s.GetId())
 	} else {
-		log.Debugf(s.gate.ctx, "session %q receive pong", s.GetId())
+		log.Debugf(s.gate.servCtx, "session %q receive pong", s.GetId())
 	}
 	return nil
 }

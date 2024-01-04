@@ -32,7 +32,7 @@ func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry 
 
 type _Registry struct {
 	options  RegistryOptions
-	ctx      service.Context
+	servCtx  service.Context
 	client   *etcd_client.Client
 	register map[string]uint64
 	leases   map[string]etcd_client.LeaseID
@@ -43,7 +43,7 @@ type _Registry struct {
 func (r *_Registry) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
-	r.ctx = ctx
+	r.servCtx = ctx
 
 	if r.options.EtcdClient == nil {
 		cli, err := etcd_client.New(r.configure())
@@ -169,7 +169,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
 		if err != nil {
-			log.Errorf(r.ctx, "decode service %q failed, %s", kv, err)
+			log.Errorf(r.servCtx, "decode service %q failed, %s", kv, err)
 			continue
 		}
 
@@ -215,7 +215,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
 		if err != nil {
-			log.Errorf(r.ctx, "decode service %q failed, ", kv.Value, err)
+			log.Errorf(r.servCtx, "decode service %q failed, ", kv.Value, err)
 			continue
 		}
 
@@ -321,19 +321,19 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 				// decode the existing node
 				srv, err := decodeService(kv.Value)
 				if err != nil {
-					log.Errorf(r.ctx, "decode service %q failed, %s", kv.Value, err)
+					log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
 					continue
 				}
 
 				if len(srv.Nodes) <= 0 {
-					log.Errorf(r.ctx, "decode service %q failed, empty nodes", kv.Value)
+					log.Errorf(r.servCtx, "decode service %q failed, empty nodes", kv.Value)
 					continue
 				}
 
 				// create hash of service; uint64
 				hv, err := hash.Hash(srv.Nodes[0], hash.FormatV2, nil)
 				if err != nil {
-					log.Errorf(r.ctx, "decode service %q failed, %s", kv.Value, err)
+					log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
 					continue
 				}
 
@@ -354,14 +354,14 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 
 	// renew the lease if it exists
 	if leaseID != etcd_client.NoLease {
-		log.Debugf(r.ctx, "renewing existing lease %d for %q", leaseID, service.Name)
+		log.Debugf(r.servCtx, "renewing existing lease %d for %q", leaseID, service.Name)
 
 		_, err = r.client.KeepAliveOnce(ctx, leaseID)
 		if err != nil {
 			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
 				return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 			}
-			log.Debugf(r.ctx, "lease %d not found for %q", leaseID, service.Name)
+			log.Debugf(r.servCtx, "lease %d not found for %q", leaseID, service.Name)
 			// lease not found do register
 			leaseNotFound = true
 		}
@@ -374,7 +374,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 
 	// the service is unchanged, skip registering
 	if ok && v == hv && !leaseNotFound {
-		log.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
+		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
 	}
 
@@ -393,10 +393,10 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 
 	// create an entry for the node
 	if lgr != nil {
-		log.Debugf(r.ctx, "registering service %q node %q content %q with lease %q and leaseID %d and ttl %q", serviceNode.Name, node.Id, serviceNodeData, lgr, lgr.ID, ttl)
+		log.Debugf(r.servCtx, "registering service %q node %q content %q with lease %q and leaseID %d and ttl %q", serviceNode.Name, node.Id, serviceNodeData, lgr, lgr.ID, ttl)
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData, etcd_client.WithLease(lgr.ID))
 	} else {
-		log.Debugf(r.ctx, "registering service %q node %q content %q", serviceNode.Name, node.Id, serviceNodeData)
+		log.Debugf(r.servCtx, "registering service %q node %q content %q", serviceNode.Name, node.Id, serviceNodeData)
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData)
 	}
 	if err != nil {
@@ -412,13 +412,13 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	}
 	r.mutex.Unlock()
 
-	log.Debugf(r.ctx, "register service %q node %q success", serviceNode.Name, node.Id)
+	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 
 	return nil
 }
 
 func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
-	log.Debugf(r.ctx, "deregistering service %q node %q", service.Name, node.Id)
+	log.Debugf(r.servCtx, "deregistering service %q node %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
@@ -433,7 +433,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service
 		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
-	log.Debugf(r.ctx, "deregister service %q node %q success", service.Name, node.Id)
+	log.Debugf(r.servCtx, "deregister service %q node %q success", service.Name, node.Id)
 
 	return nil
 }

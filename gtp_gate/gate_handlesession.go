@@ -18,7 +18,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 		if err != nil {
-			log.Errorf(g.ctx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
+			log.Errorf(g.servCtx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
 			conn.Close()
 		}
 	}()
@@ -35,7 +35,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 		return
 	}
 
-	log.Infof(g.ctx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
+	log.Infof(g.servCtx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
 // loadSession 查询会话

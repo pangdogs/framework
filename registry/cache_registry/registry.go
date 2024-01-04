@@ -24,11 +24,11 @@ func newRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry 
 type _Registry struct {
 	registry.Registry
 	options        RegistryOptions
-	ctx            service.Context
+	servCtx        service.Context
+	wg             sync.WaitGroup
 	serviceMap     map[string]*[]registry.Service
 	serviceNodeMap map[[2]string]*registry.Service
 	mutex          sync.RWMutex
-	wg             sync.WaitGroup
 }
 
 // InitSP 初始化服务插件
@@ -38,7 +38,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 	r.Registry = r.options.Registry
 
-	r.ctx = ctx
+	r.servCtx = ctx
 
 	log.Infof(ctx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
 
@@ -147,7 +147,7 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 func (r *_Registry) mainLoop(watcher registry.Watcher) {
 	defer r.wg.Done()
 
-	log.Debug(r.ctx, "watching service changes started")
+	log.Debug(r.servCtx, "watching service changes started")
 
 loop:
 	for {
@@ -156,7 +156,7 @@ loop:
 			if errors.Is(err, registry.ErrStoppedWatching) {
 				break loop
 			}
-			log.Errorf(r.ctx, "watching service changes failed, %s", err)
+			log.Errorf(r.servCtx, "watching service changes failed, %s", err)
 			continue
 		}
 
@@ -242,5 +242,5 @@ loop:
 
 	<-watcher.Stop()
 
-	log.Debugf(r.ctx, "watching service changes stopped")
+	log.Debugf(r.servCtx, "watching service changes stopped")
 }

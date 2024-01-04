@@ -14,21 +14,21 @@ import (
 
 // DistributedDeliverer 分布式服务的RPC投递器
 type DistributedDeliverer struct {
-	ctx  service.Context
-	dist distributed.Distributed
+	servCtx service.Context
+	dist    distributed.Distributed
 }
 
 // Init 初始化
 func (d *DistributedDeliverer) Init(ctx service.Context) {
-	d.ctx = ctx
+	d.servCtx = ctx
 	d.dist = distributed.Using(ctx)
 
-	log.Debugf(d.ctx, "deliverer %q started", types.AnyFullName(*d))
+	log.Debugf(d.servCtx, "deliverer %q started", types.AnyFullName(*d))
 }
 
 // Shut 结束
 func (d *DistributedDeliverer) Shut(ctx service.Context) {
-	log.Debugf(d.ctx, "deliverer %q stopped", types.AnyFullName(*d))
+	log.Debugf(d.servCtx, "deliverer %q stopped", types.AnyFullName(*d))
 }
 
 // Match 是否匹配
@@ -70,7 +70,7 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 		return ret.Cast()
 	}
 
-	log.Debugf(d.ctx, "rpc request to %q ok, path:%q, corr_id:%d", dst, path, future.Id)
+	log.Debugf(d.servCtx, "rpc request to %q ok, path:%q, corr_id:%d", dst, path, future.Id)
 
 	return ret.Cast()
 }
@@ -91,7 +91,7 @@ func (d *DistributedDeliverer) Notify(ctx service.Context, dst, path string, arg
 		return err
 	}
 
-	log.Debugf(d.ctx, "rpc notify to %q ok, path:%q", dst, path)
+	log.Debugf(d.servCtx, "rpc notify to %q ok, path:%q", dst, path)
 
 	return nil
 }

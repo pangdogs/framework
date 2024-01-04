@@ -18,7 +18,7 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.DSync {
 
 type _DSync struct {
 	options DSyncOptions
-	ctx     service.Context
+	servCtx service.Context
 	client  *etcd_client.Client
 }
 
@@ -26,7 +26,7 @@ type _DSync struct {
 func (s *_DSync) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
-	s.ctx = ctx
+	s.servCtx = ctx
 
 	if s.options.EtcdClient == nil {
 		cli, err := etcd_client.New(s.configure())

@@ -25,7 +25,7 @@ func newRPC(settings ...option.Setting[RPCOptions]) RPC {
 
 type _RPC struct {
 	options         RPCOptions
-	ctx             service.Context
+	servCtx         service.Context
 	delivererInfos  []concurrent.Locked[Deliverer]
 	dispatcherInfos []concurrent.Locked[Dispatcher]
 }
@@ -34,7 +34,7 @@ type _RPC struct {
 func (r *_RPC) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
-	r.ctx = ctx
+	r.servCtx = ctx
 
 	for _, d := range r.options.Deliverers {
 		r.delivererInfos = append(r.delivererInfos, concurrent.MakeLocked(d))
@@ -92,10 +92,10 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 		var ret runtime.AsyncRet
 
 		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
-			if !(*d).Match(r.ctx, dst, path, false) {
+			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}
-			ret = (*d).Request(r.ctx, dst, path, args)
+			ret = (*d).Request(r.servCtx, dst, path, args)
 		})
 
 		if ret != nil {
@@ -116,12 +116,12 @@ func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
 		var err error
 
 		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
-			if !(*d).Match(r.ctx, dst, path, false) {
+			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}
 
 			b = true
-			err = (*d).Notify(r.ctx, dst, path, args)
+			err = (*d).Notify(r.servCtx, dst, path, args)
 		})
 
 		if b {

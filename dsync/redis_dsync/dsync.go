@@ -19,7 +19,7 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.DSync {
 
 type _Dsync struct {
 	options DSyncOptions
-	ctx     service.Context
+	servCtx service.Context
 	client  *redis.Client
 	redSync *redsync.Redsync
 }
@@ -28,7 +28,7 @@ type _Dsync struct {
 func (s *_Dsync) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
-	s.ctx = ctx
+	s.servCtx = ctx
 
 	if s.options.RedisClient == nil {
 		s.client = redis.NewClient(s.configure())
@@ -73,7 +73,7 @@ func (s *_Dsync) configure() *redis.Options {
 	if s.options.RedisURL != "" {
 		conf, err := redis.ParseURL(s.options.RedisURL)
 		if err != nil {
-			log.Panicf(s.ctx, "parse redis url %q failed, %s", s.options.RedisURL, err)
+			log.Panicf(s.servCtx, "parse redis url %q failed, %s", s.options.RedisURL, err)
 		}
 		return conf
 	}
