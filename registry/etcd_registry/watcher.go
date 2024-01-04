@@ -62,6 +62,7 @@ func (w *_Watcher) Stop() <-chan struct{} {
 
 func (w *_Watcher) mainLoop() {
 	defer func() {
+		w.cancel()
 		close(w.eventChan)
 		close(w.stoppedChan)
 	}()
