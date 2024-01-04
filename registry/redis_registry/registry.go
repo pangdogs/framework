@@ -46,14 +46,14 @@ func (r *_Registry) InitSP(ctx service.Context) {
 		r.client = r.options.RedisClient
 	}
 
-	_, err := r.client.Ping(ctx).Result()
+	_, err := r.client.Ping(r.servCtx).Result()
 	if err != nil {
-		log.Panicf(ctx, "ping redis %q failed, %v", r.client, err)
+		log.Panicf(r.servCtx, "ping redis %q failed, %v", r.client, err)
 	}
 
-	_, err = r.client.ConfigSet(ctx, "notify-keyspace-events", "KEA").Result()
+	_, err = r.client.ConfigSet(r.servCtx, "notify-keyspace-events", "KEA").Result()
 	if err != nil {
-		log.Panicf(ctx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
+		log.Panicf(r.servCtx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
 }
 

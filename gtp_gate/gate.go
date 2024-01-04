@@ -7,6 +7,8 @@ import (
 	"kit.golaxy.org/golaxy/service"
 	"kit.golaxy.org/golaxy/util/option"
 	"kit.golaxy.org/golaxy/util/types"
+	"kit.golaxy.org/plugins/gtp"
+	"kit.golaxy.org/plugins/gtp/transport"
 	"kit.golaxy.org/plugins/log"
 	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
@@ -31,6 +33,8 @@ func newGate(settings ...option.Setting[GateOptions]) Gate {
 }
 
 type _Gate struct {
+	ctx          context.Context
+	cancel       context.CancelCauseFunc
 	options      GateOptions
 	servCtx      service.Context
 	wg           sync.WaitGroup
@@ -44,11 +48,14 @@ type _Gate struct {
 func (g *_Gate) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*g))
 
+	g.ctx, g.cancel = context.WithCancelCause(context.Background())
 	g.servCtx = ctx
-	g.futures = concurrent.MakeFutures(ctx, g.options.FutureTimeout)
+
+	// 初始化异步模型Future
+	g.futures = concurrent.MakeFutures(g.ctx, g.options.FutureTimeout)
 
 	if len(g.options.Endpoints) <= 0 {
-		log.Panic(ctx, "no endpoints need to listen")
+		log.Panic(g.servCtx, "no endpoints need to listen")
 	}
 
 	listenConf := newListenConfig(&g.options)
@@ -56,7 +63,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	for _, endpoint := range g.options.Endpoints {
 		listener, err := listenConf.Listen(context.Background(), "tcp", endpoint)
 		if err != nil {
-			log.Panicf(ctx, "listen %q failed, %s", endpoint, err)
+			log.Panicf(g.servCtx, "listen %q failed, %s", endpoint, err)
 		}
 
 		if g.options.TLSConfig != nil {
@@ -69,9 +76,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	}
 
 	for _, listener := range g.listeners {
-		g.wg.Add(1)
 		go func(listener net.Listener) {
-			defer g.wg.Done()
 			for {
 				conn, err := listener.Accept()
 				if err != nil {
@@ -95,6 +100,10 @@ func (g *_Gate) InitSP(ctx service.Context) {
 func (g *_Gate) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*g))
 
+	g.cancel(&transport.RstError{
+		Code:    gtp.Code_Shutdown,
+		Message: "service shutdown",
+	})
 	g.wg.Wait()
 
 	for _, listener := range g.listeners {

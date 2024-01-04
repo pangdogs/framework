@@ -20,6 +20,12 @@ type _Acceptor struct {
 
 // accept 接受网络连接
 func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
+	select {
+	case <-acc.gate.ctx.Done():
+		return nil, errors.New("service shutdown")
+	default:
+	}
+
 	return acc.handshake(conn)
 }
 
@@ -35,7 +41,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 		state: SessionState_Birth,
 	}
 
-	session.Context, session.cancel = context.WithCancelCause(acc.gate.servCtx)
+	session.Context, session.cancel = context.WithCancelCause(acc.gate.ctx)
 	session.transceiver.Conn = conn
 
 	// 初始化会话默认选项

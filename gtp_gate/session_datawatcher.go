@@ -14,9 +14,9 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler RecvEventHandler
 
 	watcher := &_EventWatcher{
 		Context:     ctx,
-		session:     s,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
+		session:     s,
 		handler:     handler,
 	}
 	s.eventWatchers.Append(watcher)

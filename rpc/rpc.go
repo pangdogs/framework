@@ -48,7 +48,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
-				init.Init(ctx)
+				init.Init(r.servCtx)
 			}
 		})
 	}
@@ -57,7 +57,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
-				init.Init(ctx)
+				init.Init(r.servCtx)
 			}
 		})
 	}
@@ -71,7 +71,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
-				shut.Shut(ctx)
+				shut.Shut(r.servCtx)
 			}
 		})
 	}
@@ -80,7 +80,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
-				shut.Shut(ctx)
+				shut.Shut(r.servCtx)
 			}
 		})
 	}

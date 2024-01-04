@@ -87,16 +87,16 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.servCtx = ctx
 
 	// 获取依赖的插件
-	d.registry = registry.Using(ctx)
-	d.broker = broker.Using(ctx)
-	d.dsync = dsync.Using(ctx)
+	d.registry = registry.Using(d.servCtx)
+	d.broker = broker.Using(d.servCtx)
+	d.dsync = dsync.Using(d.servCtx)
 
 	// 初始化消息包编解码器
 	d.decoder = codec.MakeDecoder(d.options.DecoderMsgCreator)
 	d.encoder = codec.MakeEncoder()
 
 	// 初始化异步模型Future
-	d.futures = concurrent.MakeFutures(d.servCtx, d.options.FutureTimeout)
+	d.futures = concurrent.MakeFutures(d.ctx, d.options.FutureTimeout)
 
 	// 初始化消息去重器
 	d.deduplication = concurrent.MakeDeduplication()
@@ -183,6 +183,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 func (d *_Distributed) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
 
+	d.cancel()
 	d.wg.Wait()
 }
 
