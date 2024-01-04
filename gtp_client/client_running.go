@@ -149,7 +149,7 @@ loop:
 		// 非活跃状态，未开启自动重连，检测超时时间
 		if !active && !c.options.AutoReconnect {
 			if time.Now().After(timeout) {
-				break loop
+				c.cancel()
 			}
 		}
 

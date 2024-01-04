@@ -23,7 +23,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.servCtx, serviceNode, d.options.RefreshInterval*2); err != nil {
+			if err := d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2); err != nil {
 				log.Errorf(d.servCtx, "refresh service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 				continue
 			}

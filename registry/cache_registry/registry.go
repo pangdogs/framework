@@ -23,6 +23,8 @@ func newRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry 
 
 type _Registry struct {
 	registry.Registry
+	ctx            context.Context
+	cancel         context.CancelFunc
 	options        RegistryOptions
 	servCtx        service.Context
 	wg             sync.WaitGroup
@@ -38,17 +40,18 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 	r.Registry = r.options.Registry
 
+	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.servCtx = ctx
 
-	log.Infof(ctx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+	log.Infof(r.servCtx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
 
 	if init, ok := r.Registry.(golaxy.LifecycleServicePluginInit); ok {
-		init.InitSP(ctx)
+		init.InitSP(r.servCtx)
 	}
 
-	services, err := r.Registry.ListServices(ctx)
+	services, err := r.Registry.ListServices(r.servCtx)
 	if err != nil {
-		log.Panicf(ctx, "list all services failed, %s", err)
+		log.Panicf(r.servCtx, "list all services failed, %s", err)
 	}
 
 	for i := range services {
@@ -67,9 +70,9 @@ func (r *_Registry) InitSP(ctx service.Context) {
 		}
 	}
 
-	watcher, err := r.Registry.Watch(ctx, "")
+	watcher, err := r.Registry.Watch(r.ctx, "")
 	if err != nil {
-		log.Panicf(ctx, "watching service changes failed, %s", err)
+		log.Panicf(r.servCtx, "watching service changes failed, %s", err)
 	}
 
 	r.wg.Add(1)
@@ -80,6 +83,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 func (r *_Registry) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
 
+	r.cancel()
 	r.wg.Wait()
 
 	if shut, ok := r.Registry.(golaxy.LifecycleServicePluginShut); ok {

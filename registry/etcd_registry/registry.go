@@ -48,7 +48,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	if r.options.EtcdClient == nil {
 		cli, err := etcd_client.New(r.configure())
 		if err != nil {
-			log.Panicf(ctx, "new etcd client failed, %s", err)
+			log.Panicf(r.servCtx, "new etcd client failed, %s", err)
 		}
 		r.client = cli
 	} else {
@@ -56,8 +56,8 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 
 	for _, ep := range r.client.Endpoints() {
-		if _, err := r.client.Status(ctx, ep); err != nil {
-			log.Panicf(ctx, "status etcd %q failed, %s", ep, err)
+		if _, err := r.client.Status(r.servCtx, ep); err != nil {
+			log.Panicf(r.servCtx, "status etcd %q failed, %s", ep, err)
 		}
 	}
 }

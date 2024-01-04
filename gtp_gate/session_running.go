@@ -135,19 +135,12 @@ loop:
 					Code:    gtp.Code_SessionDeath,
 					Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
 				})
-				break loop
 			}
 		}
 
 		// 检测会话是否已关闭
 		select {
 		case <-s.Done():
-			break loop
-		case <-s.gate.servCtx.Done():
-			s.cancel(&transport.RstError{
-				Code:    gtp.Code_Shutdown,
-				Message: "service shutdown",
-			})
 			break loop
 		default:
 		}
@@ -216,7 +209,7 @@ loop:
 	// 发送关闭原因
 	s.ctrl.SendRst(context.Cause(s))
 
-	log.Debugf(s.gate.servCtx, "session %q shutdown, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.servCtx, "session %q stopped, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
 
 // setState 调整会话状态
