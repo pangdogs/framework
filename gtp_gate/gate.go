@@ -42,7 +42,7 @@ type _Gate struct {
 
 // InitSP 初始化服务插件
 func (g *_Gate) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*g))
+	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*g))
 
 	g.ctx = ctx
 	g.futures = concurrent.MakeFutures(ctx, g.options.FutureTimeout)
@@ -93,7 +93,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (g *_Gate) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*g))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*g))
 
 	g.wg.Wait()
 

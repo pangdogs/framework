@@ -40,7 +40,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 	r.ctx = ctx
 
-	log.Infof(ctx, "init service plugin <%s>:%s, wrap %q", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+	log.Infof(ctx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
 
 	if init, ok := r.Registry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(ctx)
@@ -78,7 +78,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	r.wg.Wait()
 
