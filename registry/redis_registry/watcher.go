@@ -12,6 +12,12 @@ import (
 )
 
 func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_Watcher, err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
 	var keyPath string
 	if pattern != "" {
 		keyPath = getServicePath(r.options.KeyPrefix, pattern)
@@ -60,7 +66,6 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		}
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
 	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
 
 	watcher = &_Watcher{
