@@ -28,7 +28,7 @@ type _Broker struct {
 
 // InitSP 初始化服务插件
 func (b *_Broker) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*b))
+	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
 
 	b.ctx = ctx
 
@@ -49,7 +49,7 @@ func (b *_Broker) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (b *_Broker) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*b))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
 
 	b.wg.Wait()
 

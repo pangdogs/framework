@@ -24,7 +24,7 @@ type _DSync struct {
 
 // InitSP 初始化服务插件
 func (s *_DSync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	s.ctx = ctx
 
@@ -47,7 +47,7 @@ func (s *_DSync) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (s *_DSync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	if s.options.EtcdClient == nil {
 		if s.client != nil {

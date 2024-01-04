@@ -79,7 +79,7 @@ type _Distributed struct {
 
 // InitSP 初始化服务插件
 func (d *_Distributed) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:%s", Name, types.AnyFullName(*d))
+	log.Infof(ctx, "init service plugin <%s>:[%s]", Name, types.AnyFullName(*d))
 
 	d.ctx = ctx
 
@@ -178,7 +178,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (d *_Distributed) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*d))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
 
 	d.wg.Wait()
 }

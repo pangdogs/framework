@@ -41,7 +41,7 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	r.ctx = ctx
 
@@ -64,7 +64,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {
