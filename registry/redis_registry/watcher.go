@@ -127,6 +127,11 @@ func (w *_Watcher) mainLoop() {
 
 	log.Debugf(w.registry.servCtx, "start watch %q", w.pathList)
 
+	go func() {
+		<-w.ctx.Done()
+		w.pubSub.Close()
+	}()
+
 loop:
 	for {
 		msg, err := w.pubSub.ReceiveMessage(w.ctx)
