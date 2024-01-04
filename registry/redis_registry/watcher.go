@@ -35,14 +35,14 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		watchPathPrefixList[1] + "expired",
 	}
 
-	watch := r.client.PSubscribe(ctx)
+	pubSub := r.client.PSubscribe(ctx)
 	defer func() {
 		if err != nil {
-			watch.Close()
+			pubSub.Close()
 		}
 	}()
 
-	if err := watch.PSubscribe(ctx, watchPathList...); err != nil {
+	if err := pubSub.PSubscribe(ctx, watchPathList...); err != nil {
 		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
@@ -77,7 +77,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		pathPrefixList: watchPathPrefixList,
 		pathList:       watchPathList,
 		keyCache:       keyCache,
-		pubSub:         watch,
+		pubSub:         pubSub,
 		eventChan:      eventChan,
 	}
 
