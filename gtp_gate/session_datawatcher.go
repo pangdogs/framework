@@ -29,9 +29,9 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler RecvEventHandler
 
 type _EventWatcher struct {
 	context.Context
-	session     *_Session
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
+	session     *_Session
 	handler     RecvEventHandler
 }
 

@@ -13,7 +13,7 @@ import (
 func (d *_Distributed) mainLoop(serviceNode registry.Service, subs []broker.Subscriber) {
 	defer d.wg.Done()
 
-	log.Infof(d.ctx, "service %q node %q started", d.ctx.GetName(), d.ctx.GetId())
+	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
 
 	ticker := time.NewTicker(d.options.RefreshInterval)
 	defer ticker.Stop()
@@ -23,12 +23,12 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2); err != nil {
-				log.Errorf(d.ctx, "refresh service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
+			if err := d.registry.Register(d.servCtx, serviceNode, d.options.RefreshInterval*2); err != nil {
+				log.Errorf(d.servCtx, "refresh service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 				continue
 			}
 
-			log.Debugf(d.ctx, "refresh service %q node %q success", d.ctx.GetName(), d.ctx.GetId())
+			log.Debugf(d.servCtx, "refresh service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
 
 		case <-d.ctx.Done():
 			break loop
@@ -37,7 +37,7 @@ loop:
 
 	// 取消注册服务节点
 	if err := d.registry.Deregister(context.Background(), serviceNode); err != nil {
-		log.Errorf(d.ctx, "deregister service %q node %q failed, %s", d.ctx.GetName(), d.ctx.GetId(), err)
+		log.Errorf(d.servCtx, "deregister service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 	}
 
 	// 取消订阅topic
@@ -45,13 +45,13 @@ loop:
 		<-sub.Unsubscribe()
 	}
 
-	log.Infof(d.ctx, "service %q node %q stopped", d.ctx.GetName(), d.ctx.GetId())
+	log.Infof(d.servCtx, "service %q node %q stopped", d.servCtx.GetName(), d.servCtx.GetId())
 }
 
 func (d *_Distributed) watchingService(watcher registry.Watcher) {
 	defer d.wg.Done()
 
-	log.Debug(d.ctx, "watching service changes started")
+	log.Debug(d.servCtx, "watching service changes started")
 
 loop:
 	for {
@@ -60,7 +60,7 @@ loop:
 			if errors.Is(err, registry.ErrStoppedWatching) {
 				break loop
 			}
-			log.Errorf(d.ctx, "watching service changes failed, %s", err)
+			log.Errorf(d.servCtx, "watching service changes failed, %s", err)
 			continue
 		}
 
@@ -75,7 +75,7 @@ loop:
 	// 停止监听服务节点
 	<-watcher.Stop()
 
-	log.Debug(d.ctx, "watching service changes stopped")
+	log.Debug(d.servCtx, "watching service changes stopped")
 }
 
 func (d *_Distributed) handleEvent(e broker.Event) error {

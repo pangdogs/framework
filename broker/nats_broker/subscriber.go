@@ -31,9 +31,9 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	sub := &_Subscriber{
 		Context:             ctx,
-		broker:              b,
 		cancel:              cancel,
 		stoppedChan:         make(chan struct{}),
+		broker:              b,
 		unsubscribedHandler: opts.UnsubscribedHandler,
 	}
 
@@ -64,7 +64,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		return nil, fmt.Errorf("%w: %w", broker.ErrBroker, err)
 	}
 
-	log.Debugf(b.ctx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
+	log.Debugf(b.servCtx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
 
 	b.wg.Add(1)
 	go sub.mainLoop()
@@ -74,9 +74,9 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 type _Subscriber struct {
 	context.Context
-	broker              *_Broker
 	cancel              context.CancelFunc
 	stoppedChan         chan struct{}
+	broker              *_Broker
 	natsSub             *nats.Subscription
 	eventChan           chan broker.Event
 	eventHandler        broker.EventHandler
@@ -125,9 +125,9 @@ func (s *_Subscriber) mainLoop() {
 	}
 
 	if err := s.natsSub.Unsubscribe(); err != nil {
-		log.Errorf(s.broker.ctx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
+		log.Errorf(s.broker.servCtx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
 	} else {
-		log.Debugf(s.broker.ctx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
+		log.Debugf(s.broker.servCtx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
 	}
 
 	if s.eventChan != nil {
@@ -135,7 +135,7 @@ func (s *_Subscriber) mainLoop() {
 	}
 
 	s.unsubscribedHandler.Invoke(func(panicErr error) bool {
-		log.Errorf(s.broker.ctx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
+		log.Errorf(s.broker.servCtx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
 		return false
 	}, s)
 }
@@ -153,7 +153,7 @@ func (s *_Subscriber) handleEventChan(msg *nats.Msg) {
 		if e.Queue() != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+		log.Errorf(s.broker.servCtx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
 	}
 }
 
@@ -165,7 +165,7 @@ func (s *_Subscriber) handleEventProcess(msg *nats.Msg) {
 
 	s.eventHandler.Invoke(func(err error, panicErr error) bool {
 		if err := generic.FuncError(err, panicErr); err != nil {
-			log.Errorf(s.broker.ctx, "handle msg from topic %q queue %q failed, %s", e.Topic(), e.Queue(), err)
+			log.Errorf(s.broker.servCtx, "handle msg from topic %q queue %q failed, %s", e.Topic(), e.Queue(), err)
 		}
 		return panicErr != nil
 	}, e)

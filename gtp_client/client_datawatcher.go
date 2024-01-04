@@ -14,9 +14,9 @@ func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) 
 
 	watcher := &_EventWatcher{
 		Context:     ctx,
-		client:      c,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
+		client:      c,
 		handler:     handler,
 	}
 	c.eventWatchers.Append(watcher)
@@ -29,9 +29,9 @@ func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) 
 
 type _EventWatcher struct {
 	context.Context
-	client      *Client
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
+	client      *Client
 	handler     RecvEventHandler
 }
 

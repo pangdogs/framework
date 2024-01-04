@@ -78,8 +78,8 @@ type _Session struct {
 	sync.Mutex
 	cancel          context.CancelCauseFunc
 	closedChan      chan struct{}
-	gate            *_Gate
 	options         SessionOptions
+	gate            *_Gate
 	id              string
 	token           string
 	state           SessionState
@@ -116,7 +116,7 @@ func (s *_Session) Settings(settings ...option.Setting[SessionOptions]) error {
 
 // GetContext 获取服务上下文
 func (s *_Session) GetContext() service.Context {
-	return s.gate.ctx
+	return s.gate.servCtx
 }
 
 // GetId 获取会话Id
@@ -181,7 +181,7 @@ func (s *_Session) WatchEvent(ctx context.Context, handler RecvEventHandler) Wat
 // SendDataChan 发送数据的channel
 func (s *_Session) SendDataChan() chan<- []byte {
 	if s.options.SendDataChan == nil {
-		log.Panicf(s.gate.ctx, "send data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.servCtx, "send data channel size less equal 0, can't be used")
 	}
 	return s.options.SendDataChan
 }
@@ -189,7 +189,7 @@ func (s *_Session) SendDataChan() chan<- []byte {
 // RecvDataChan 接收数据的channel
 func (s *_Session) RecvDataChan() <-chan []byte {
 	if s.options.RecvDataChan == nil {
-		log.Panicf(s.gate.ctx, "receive data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.servCtx, "receive data channel size less equal 0, can't be used")
 	}
 	return s.options.RecvDataChan
 }
@@ -197,7 +197,7 @@ func (s *_Session) RecvDataChan() <-chan []byte {
 // SendEventChan 发送自定义事件的channel
 func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 	if s.options.SendEventChan == nil {
-		log.Panicf(s.gate.ctx, "send event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.servCtx, "send event channel size less equal 0, can't be used")
 	}
 	return s.options.SendEventChan
 }
@@ -205,7 +205,7 @@ func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 // RecvEventChan 接收自定义事件的channel
 func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 	if s.options.RecvEventChan == nil {
-		log.Panicf(s.gate.ctx, "receive event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.servCtx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.options.RecvEventChan
 }

@@ -20,9 +20,11 @@ func newBroker(settings ...option.Setting[BrokerOptions]) broker.Broker {
 }
 
 type _Broker struct {
-	options BrokerOptions
-	ctx     service.Context
+	ctx     context.Context
+	cancel  context.CancelFunc
+	servCtx service.Context
 	wg      sync.WaitGroup
+	options BrokerOptions
 	client  *nats.Conn
 }
 
@@ -30,7 +32,8 @@ type _Broker struct {
 func (b *_Broker) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
 
-	b.ctx = ctx
+	b.ctx, b.cancel = context.WithCancel(context.Background())
+	b.servCtx = ctx
 
 	if b.options.NatsClient == nil {
 		client, err := nats.Connect(strings.Join(b.options.FastAddresses, ","), nats.UserInfo(b.options.FastUsername, b.options.FastPassword), nats.Name(ctx.String()))
@@ -51,6 +54,7 @@ func (b *_Broker) InitSP(ctx service.Context) {
 func (b *_Broker) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
 
+	b.cancel()
 	b.wg.Wait()
 
 	if b.options.NatsClient == nil {

@@ -28,7 +28,7 @@ func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry 
 
 type _Registry struct {
 	options  RegistryOptions
-	ctx      service.Context
+	servCtx  service.Context
 	client   *redis.Client
 	register map[string]uint64
 	mutex    sync.RWMutex
@@ -38,7 +38,7 @@ type _Registry struct {
 func (r *_Registry) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
-	r.ctx = ctx
+	r.servCtx = ctx
 
 	if r.options.RedisClient == nil {
 		r.client = redis.NewClient(r.configure())
@@ -168,7 +168,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			log.Errorf(r.ctx, "decode service %q failed, %s", v, err)
+			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
@@ -219,7 +219,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 	for _, v := range nodeVals {
 		service, err := decodeService([]byte(v.(string)))
 		if err != nil {
-			log.Errorf(r.ctx, "decode service %q failed, %s", v, err)
+			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
@@ -267,7 +267,7 @@ func (r *_Registry) configure() *redis.Options {
 	if r.options.RedisURL != "" {
 		conf, err := redis.ParseURL(r.options.RedisURL)
 		if err != nil {
-			log.Panicf(r.ctx, "parse redis url %q failed, %s", r.options.RedisURL, err)
+			log.Panicf(r.servCtx, "parse redis url %q failed, %s", r.options.RedisURL, err)
 		}
 		return conf
 	}
@@ -307,7 +307,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		if err != nil {
 			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 		}
-		log.Debugf(r.ctx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
+		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
 	}
 
 	r.mutex.RLock()
@@ -315,7 +315,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	r.mutex.RUnlock()
 
 	if ok && rhv == hv && keepAlive {
-		log.Debugf(r.ctx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
+		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
 	}
 
@@ -323,7 +323,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	serviceNode.Nodes = []registry.Node{node}
 	serviceNodeData := encodeService(&serviceNode)
 
-	log.Debugf(r.ctx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
+	log.Debugf(r.servCtx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
 	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
@@ -334,13 +334,13 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	r.register[nodePath] = hv
 	r.mutex.Unlock()
 
-	log.Debugf(r.ctx, "register service %q node %q success", serviceNode.Name, node.Id)
+	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 
 	return nil
 }
 
 func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
-	log.Debugf(r.ctx, "deregistering service %q node %q", service.Name, node.Id)
+	log.Debugf(r.servCtx, "deregistering service %q node %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
@@ -352,7 +352,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service
 		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
 	}
 
-	log.Debugf(r.ctx, "deregister service %q node %q success", service.Name, node.Id)
+	log.Debugf(r.servCtx, "deregister service %q node %q success", service.Name, node.Id)
 
 	return nil
 }
