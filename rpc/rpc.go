@@ -9,15 +9,15 @@ import (
 	"kit.golaxy.org/plugins/util/concurrent"
 )
 
-// RPC RPC支持
-type RPC interface {
+// IRPC RPC接口
+type IRPC interface {
 	// RPC RPC调用
 	RPC(dst, path string, args ...any) runtime.AsyncRet
 	// OneWayRPC 单向RPC调用
 	OneWayRPC(dst, path string, args ...any) error
 }
 
-func newRPC(settings ...option.Setting[RPCOptions]) RPC {
+func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 	return &_RPC{
 		options: option.Make(Option{}.Default(), settings...),
 	}
