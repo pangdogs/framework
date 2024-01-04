@@ -10,6 +10,7 @@ import (
 	"kit.golaxy.org/plugins/broker"
 	"kit.golaxy.org/plugins/log"
 	"strings"
+	"sync"
 )
 
 func newBroker(settings ...option.Setting[BrokerOptions]) broker.Broker {
@@ -21,12 +22,13 @@ func newBroker(settings ...option.Setting[BrokerOptions]) broker.Broker {
 type _Broker struct {
 	options BrokerOptions
 	ctx     service.Context
+	wg      sync.WaitGroup
 	client  *nats.Conn
 }
 
 // InitSP 初始化服务插件
 func (b *_Broker) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*b))
+	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*b))
 
 	b.ctx = ctx
 
@@ -47,7 +49,9 @@ func (b *_Broker) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (b *_Broker) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*b))
+
+	b.wg.Wait()
 
 	if b.options.NatsClient == nil {
 		if b.client != nil {

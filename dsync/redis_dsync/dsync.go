@@ -26,7 +26,7 @@ type _Dsync struct {
 
 // InitSP 初始化服务插件
 func (s *_Dsync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*s))
 
 	s.ctx = ctx
 
@@ -46,7 +46,7 @@ func (s *_Dsync) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (s *_Dsync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*s))
 
 	if s.options.RedisClient == nil {
 		if s.client != nil {

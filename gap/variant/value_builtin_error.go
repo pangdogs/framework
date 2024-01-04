@@ -1,9 +1,26 @@
 package variant
 
 import (
+	"errors"
 	"fmt"
 	"kit.golaxy.org/plugins/util/binaryutil"
 )
+
+func MakeError(err error) *Error {
+	if err == nil {
+		return &Error{}
+	}
+
+	var varErr *Error
+	if !errors.As(err, &varErr) {
+		return &Error{
+			Code:    -1,
+			Message: err.Error(),
+		}
+	}
+
+	return varErr
+}
 
 // Error builtin error
 type Error struct {
@@ -53,4 +70,8 @@ func (Error) Type() TypeId {
 
 func (v Error) Error() string {
 	return fmt.Sprintf("(%d) %s", v.Code, v.Message)
+}
+
+func (v Error) OK() bool {
+	return v.Code == 0
 }

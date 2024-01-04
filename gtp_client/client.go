@@ -11,11 +11,18 @@ import (
 	"sync"
 )
 
+// Watcher 监听器
+type Watcher interface {
+	context.Context
+	Stop() <-chan struct{}
+}
+
 // Client 客户端
 type Client struct {
 	context.Context
 	cancel          context.CancelFunc
 	closedChan      chan struct{}
+	wg              sync.WaitGroup
 	mutex           sync.Mutex
 	options         ClientOptions
 	sessionId       string
@@ -27,12 +34,14 @@ type Client struct {
 	reconnectChan   chan struct{}
 	renewChan       chan struct{}
 	futures         concurrent.Futures
+	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
+	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
 	logger          *zap.SugaredLogger
 }
 
 // String implements fmt.Stringer
 func (c *Client) String() string {
-	return fmt.Sprintf(`{"session_id":%q "token":%q "end_point":%q}`, c.GetSessionId(), c.GetToken(), c.GetEndpoint())
+	return fmt.Sprintf(`{"session_id":%q, "token":%q, "end_point":%q}`, c.GetSessionId(), c.GetToken(), c.GetEndpoint())
 }
 
 // GetSessionId 获取会话Id
@@ -74,12 +83,22 @@ func (c *Client) SendData(data []byte) error {
 	return c.trans.SendData(data)
 }
 
+// WatchData 监听数据
+func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) Watcher {
+	return c.newDataWatcher(ctx, handler)
+}
+
 // SendEvent 发送自定义事件
 func (c *Client) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	return transport.Retry{
 		Transceiver: &c.transceiver,
 		Times:       c.options.IORetryTimes,
 	}.Send(c.transceiver.Send(event.Pack()))
+}
+
+// WatchEvent 监听自定义事件
+func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher {
+	return c.newEventWatcher(ctx, handler)
 }
 
 // SendDataChan 发送数据的channel

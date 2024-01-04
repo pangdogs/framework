@@ -90,8 +90,8 @@ func (Option) Default() option.Setting[ClientOptions] {
 		Option{}.InactiveTimeout(60 * time.Second)(options)
 		Option{}.SendDataChanSize(0)(options)
 		Option{}.RecvDataChanSize(0)(options)
-		Option{}.SendEventSize(0)(options)
-		Option{}.RecvEventSize(0)(options)
+		Option{}.SendEventChanSize(0)(options)
+		Option{}.RecvEventChanSize(0)(options)
 		Option{}.RecvDataHandler(nil)(options)
 		Option{}.RecvEventHandler(nil)(options)
 		Option{}.FutureTimeout(10 * time.Second)(options)
@@ -251,7 +251,7 @@ func (Option) RecvDataChanSize(size int) option.Setting[ClientOptions] {
 	}
 }
 
-func (Option) SendEventSize(size int) option.Setting[ClientOptions] {
+func (Option) SendEventChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.SendEventChan = make(chan transport.Event[gtp.MsgReader], size)
@@ -261,7 +261,7 @@ func (Option) SendEventSize(size int) option.Setting[ClientOptions] {
 	}
 }
 
-func (Option) RecvEventSize(size int) option.Setting[ClientOptions] {
+func (Option) RecvEventChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
 			options.RecvEventChan = make(chan transport.Event[gtp.Msg], size)

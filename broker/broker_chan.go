@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 	"kit.golaxy.org/golaxy"
 	"kit.golaxy.org/golaxy/service"
@@ -48,14 +49,14 @@ func MakeReadChan(servCtx service.Context, ctx context.Context, pattern, queue s
 		Option{}.EventHandler(generic.CastDelegateFunc1(func(e Event) error {
 			select {
 			case ch <- e.Message():
+				return nil
 			default:
 				var nakErr error
 				if e.Queue() != "" {
 					nakErr = e.Nak(context.Background())
 				}
-				log.Errorf(servCtx, "receive data from topic %q queue %q failed, output chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+				return fmt.Errorf("read chan is full, nak: %v", nakErr)
 			}
-			return nil
 		})),
 		Option{}.UnsubscribedHandler(generic.CastDelegateAction1(func(sub Subscriber) {
 			close(ch)

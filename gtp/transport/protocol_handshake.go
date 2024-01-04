@@ -9,6 +9,10 @@ import (
 	"kit.golaxy.org/plugins/gtp"
 )
 
+var (
+	ErrUnexpectedMsg = errors.New("gtp: unexpected msg") // 收到非预期的消息
+)
+
 type (
 	HelloAccept               = generic.PairFunc1[Event[gtp.MsgHello], Event[gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
 	HelloFin                  = generic.Func1[Event[gtp.MsgHello], error]                                                      // 客户端获取服务端Hello响应

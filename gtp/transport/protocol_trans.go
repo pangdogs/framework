@@ -38,10 +38,22 @@ func (t *TransProtocol) retrySend(err error) error {
 func (t *TransProtocol) HandleEvent(e Event[gtp.Msg]) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
-		return t.PayloadHandler.Exec(func(err, _ error) bool {
-			return err == nil || !errors.Is(err, ErrUnexpectedMsg)
+		var errs []error
+
+		t.PayloadHandler.Exec(func(err, _ error) bool {
+			if err != nil {
+				errs = append(errs, err)
+			}
+			return false
 		}, UnpackEvent[gtp.MsgPayload](e))
+
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+
+		return nil
+
 	default:
-		return ErrUnexpectedMsg
+		return nil
 	}
 }

@@ -2,8 +2,8 @@ package variant
 
 import (
 	"errors"
+	"kit.golaxy.org/plugins/util/concurrent"
 	"reflect"
-	"sync"
 )
 
 var (
@@ -19,12 +19,8 @@ type IVariantCreator interface {
 	Deregister(typeId TypeId)
 	// New 创建对象指针
 	New(typeId TypeId) (Value, error)
-	// Make 创建对象
-	Make(typeId TypeId) (ValueReader, error)
 	// NewReflected 创建反射对象指针
 	NewReflected(typeId TypeId) (reflect.Value, error)
-	// MakeReflected 创建反射对象
-	MakeReflected(typeId TypeId) (reflect.Value, error)
 }
 
 var variantCreator = _NewVariantCreator()
@@ -60,30 +56,23 @@ func init() {
 // _NewVariantCreator 创建可变类型对象构建器
 func _NewVariantCreator() IVariantCreator {
 	return &_VariantCreator{
-		variantTypeMap: make(map[TypeId]reflect.Type),
+		variantTypeMap: concurrent.MakeLockedMap[TypeId, reflect.Type](0),
 	}
 }
 
 // _VariantCreator 可变类型对象构建器
 type _VariantCreator struct {
-	sync.RWMutex
-	variantTypeMap map[TypeId]reflect.Type
+	variantTypeMap concurrent.LockedMap[TypeId, reflect.Type]
 }
 
 // Register 注册类型
 func (c *_VariantCreator) Register(v Value) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.variantTypeMap[v.Type()] = reflect.TypeOf(v).Elem()
+	c.variantTypeMap.Insert(v.Type(), reflect.TypeOf(v).Elem())
 }
 
 // Deregister 取消注册类型
 func (c *_VariantCreator) Deregister(typeId TypeId) {
-	c.Lock()
-	defer c.Unlock()
-
-	delete(c.variantTypeMap, typeId)
+	c.variantTypeMap.Delete(typeId)
 }
 
 // New 创建对象指针
@@ -95,37 +84,11 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 	return reflected.Interface().(Value), nil
 }
 
-// Make 创建对象
-func (c *_VariantCreator) Make(typeId TypeId) (ValueReader, error) {
-	reflected, err := c.MakeReflected(typeId)
-	if err != nil {
-		return nil, err
-	}
-	return reflected.Interface().(ValueReader), nil
-}
-
 // NewReflected 创建反射对象指针
 func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	rtype, ok := c.variantTypeMap[typeId]
+	rtype, ok := c.variantTypeMap.Get(typeId)
 	if !ok {
 		return reflect.Value{}, ErrNotRegistered
 	}
-
 	return reflect.New(rtype), nil
-}
-
-// MakeReflected 创建反射对象
-func (c *_VariantCreator) MakeReflected(typeId TypeId) (reflect.Value, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	rtype, ok := c.variantTypeMap[typeId]
-	if !ok {
-		return reflect.Value{}, ErrNotRegistered
-	}
-
-	return reflect.Zero(rtype), nil
 }

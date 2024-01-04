@@ -24,32 +24,83 @@ func newRPC(settings ...option.Setting[RPCOptions]) RPC {
 }
 
 type _RPC struct {
-	options RPCOptions
-	ctx     service.Context
+	options         RPCOptions
+	ctx             service.Context
+	delivererInfos  []concurrent.Locked[Deliverer]
+	dispatcherInfos []concurrent.Locked[Dispatcher]
 }
 
 // InitSP 初始化服务插件
 func (r *_RPC) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
 
 	r.ctx = ctx
+
+	for _, d := range r.options.Deliverers {
+		r.delivererInfos = append(r.delivererInfos, concurrent.MakeLocked(d))
+	}
+
+	for _, d := range r.options.Dispatchers {
+		r.dispatcherInfos = append(r.dispatcherInfos, concurrent.MakeLocked(d))
+	}
+
+	for i := range r.delivererInfos {
+		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
+			init, ok := (*d).(LifecycleInit)
+			if ok {
+				init.Init(ctx)
+			}
+		})
+	}
+
+	for i := range r.dispatcherInfos {
+		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
+			init, ok := (*d).(LifecycleInit)
+			if ok {
+				init.Init(ctx)
+			}
+		})
+	}
 }
 
 // ShutSP 关闭服务插件
 func (r *_RPC) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*r))
+
+	for i := range r.delivererInfos {
+		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
+			shut, ok := (*d).(LifecycleShut)
+			if ok {
+				shut.Shut(ctx)
+			}
+		})
+	}
+
+	for i := range r.dispatcherInfos {
+		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
+			shut, ok := (*d).(LifecycleShut)
+			if ok {
+				shut.Shut(ctx)
+			}
+		})
+	}
 }
 
 // RPC RPC调用
 func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
-	for i := range r.options.Deliverers {
-		deliverer := r.options.Deliverers[i]
+	for i := range r.delivererInfos {
+		var ret runtime.AsyncRet
 
-		if !deliverer.Match(r.ctx, dst, path, false) {
-			continue
+		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
+			if !(*d).Match(r.ctx, dst, path, false) {
+				return
+			}
+			ret = (*d).Request(r.ctx, dst, path, args)
+		})
+
+		if ret != nil {
+			return ret
 		}
-
-		return deliverer.Request(r.ctx, dst, path, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
@@ -60,14 +111,22 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 
 // OneWayRPC 单向RPC调用
 func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
-	for i := range r.options.Deliverers {
-		deliverer := r.options.Deliverers[i]
+	for i := range r.delivererInfos {
+		var b bool
+		var err error
 
-		if !deliverer.Match(r.ctx, dst, path, true) {
-			continue
+		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
+			if !(*d).Match(r.ctx, dst, path, false) {
+				return
+			}
+
+			b = true
+			err = (*d).Notify(r.ctx, dst, path, args)
+		})
+
+		if b {
+			return err
 		}
-
-		return deliverer.Notify(r.ctx, dst, path, args)
 	}
 
 	return ErrNoDeliverer

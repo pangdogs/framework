@@ -33,6 +33,7 @@ func newGate(settings ...option.Setting[GateOptions]) Gate {
 type _Gate struct {
 	options      GateOptions
 	ctx          service.Context
+	wg           sync.WaitGroup
 	listeners    []net.Listener
 	sessionMap   sync.Map
 	sessionCount int64
@@ -41,7 +42,7 @@ type _Gate struct {
 
 // InitSP 初始化服务插件
 func (g *_Gate) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin %q with %q", plugin.Name, types.AnyFullName(*g))
+	log.Infof(ctx, "init service plugin <%s>:%s", plugin.Name, types.AnyFullName(*g))
 
 	g.ctx = ctx
 	g.futures = concurrent.MakeFutures(ctx, g.options.FutureTimeout)
@@ -68,7 +69,9 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	}
 
 	for _, listener := range g.listeners {
+		g.wg.Add(1)
 		go func(listener net.Listener) {
+			defer g.wg.Done()
 			for {
 				conn, err := listener.Accept()
 				if err != nil {
@@ -77,6 +80,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 						return
 					}
 					log.Errorf(ctx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
+					continue
 				}
 
 				log.Debugf(ctx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
@@ -89,7 +93,9 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (g *_Gate) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin %q", plugin.Name)
+	log.Infof(ctx, "shut service plugin <%s>:%s", plugin.Name, types.AnyFullName(*g))
+
+	g.wg.Wait()
 
 	for _, listener := range g.listeners {
 		listener.Close()

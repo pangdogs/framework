@@ -51,6 +51,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		return nil, err
 	}
 
+	client.wg.Add(1)
 	go client.mainLoop()
 
 	return client, nil
@@ -97,7 +98,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	}
 
 	client.Context, client.cancel = context.WithCancel(ctx)
-	client.closedChan = make(chan struct{}, 1)
+	client.closedChan = make(chan struct{})
 	client.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
@@ -118,6 +119,10 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 
 	// 初始化异步模型Future控制器
 	client.futures = concurrent.MakeFutures(client.Context, ctor.options.FutureTimeout)
+
+	// 初始化监听器
+	client.dataWatchers = concurrent.MakeLockedSlice[*_DataWatcher](0, 0)
+	client.eventWatchers = concurrent.MakeLockedSlice[*_EventWatcher](0, 0)
 
 	return client
 }

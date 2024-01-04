@@ -3,9 +3,6 @@ package gtp_client
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/types"
 	"kit.golaxy.org/plugins/gtp"
 	"kit.golaxy.org/plugins/gtp/codec"
 	"kit.golaxy.org/plugins/gtp/transport"
@@ -41,18 +38,21 @@ func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDeco
 // renew 刷新
 func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	c.mutex.Lock()
-
-	defer func() {
-		c.mutex.Unlock()
-
-		select {
-		case c.renewChan <- struct{}{}:
-		default:
-		}
-	}()
+	defer c.mutex.Unlock()
 
 	// 刷新链路
-	return c.transceiver.Renew(conn, remoteRecvSeq)
+	sendSeq, recvSeq, err = c.transceiver.Renew(conn, remoteRecvSeq)
+	if err != nil {
+		return
+	}
+
+	// 通知刷新
+	select {
+	case c.renewChan <- struct{}{}:
+	default:
+	}
+
+	return
 }
 
 // pauseIO 暂停收发消息
@@ -68,21 +68,19 @@ func (c *Client) continueIO() {
 // mainLoop 主线程
 func (c *Client) mainLoop() {
 	defer func() {
-		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			defer c.cancel()
-			c.logger.Errorf("client %q main loop aborted, conn %q -> %q, %s", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr(),
-				fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr))
-		}
+		c.cancel()
 
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
 		}
 		c.transceiver.Clean()
 
-		c.closedChan <- struct{}{}
+		c.wg.Done()
+		c.wg.Wait()
+		close(c.closedChan)
 	}()
 
-	c.logger.Infof("client %q loop started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+	c.logger.Infof("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 
 	// 启动发送数据的线程
 	if c.options.SendDataChan != nil {
@@ -121,10 +119,10 @@ func (c *Client) mainLoop() {
 		go func() {
 			for {
 				select {
-				case <-c.Done():
-					return
 				case <-c.reconnectChan:
 					c.reconnect()
+				case <-c.Done():
+					return
 				}
 			}
 		}()
@@ -151,8 +149,7 @@ loop:
 		// 非活跃状态，未开启自动重连，检测超时时间
 		if !active && !c.options.AutoReconnect {
 			if time.Now().After(timeout) {
-				// 超时关闭连接
-				c.cancel()
+				break loop
 			}
 		}
 
@@ -170,14 +167,13 @@ loop:
 				// 网络io超时，触发心跳检测，向对方发送ping
 				if errors.Is(err, transport.ErrTimeout) {
 					if !pinged {
+						// 尝试ping对端
 						c.logger.Debugf("client %q send ping", c.GetSessionId())
-
 						c.ctrl.SendPing()
 						pinged = true
 					} else {
-						c.logger.Debugf("client %q no pong received", c.GetSessionId())
-
 						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
+						c.logger.Debugf("client %q no pong received", c.GetSessionId())
 						changeActive(false)
 					}
 					continue
@@ -221,7 +217,7 @@ loop:
 		changeActive(true)
 	}
 
-	c.logger.Infof("client %q loop shutdown, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+	c.logger.Infof("client %q stopped, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 }
 
 // reconnect 重连
@@ -259,6 +255,7 @@ func (c *Client) reconnect() {
 				return
 			}
 
+			// 重连失败，暂停一会再试
 			time.Sleep(c.options.AutoReconnectInterval)
 			continue
 		}
@@ -268,12 +265,13 @@ func (c *Client) reconnect() {
 	}
 
 	// 多次重连失败，关闭连接
-	c.logger.Errorf("client %q auto reconnect shutdown, close client", c.GetSessionId())
+	c.logger.Errorf("client %q auto reconnect unsuccessful, close client", c.GetSessionId())
 	c.cancel()
 }
 
-// handleEvent 接收自定义事件的处理器
+// handleEvent 接收自定义事件
 func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
+	// 写入channel
 	if c.options.RecvEventChan != nil {
 		eventCopy := event
 		eventCopy.Msg = event.Msg.Clone()
@@ -285,13 +283,35 @@ func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
 		}
 	}
 
-	return c.options.RecvEventHandler.Exec(func(err, _ error) bool {
-		return err == nil || !errors.Is(err, transport.ErrUnexpectedMsg)
-	}, event)
+	var errs []error
+
+	interrupt := func(err, _ error) bool {
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return false
+	}
+
+	// 回调监控器
+	c.eventWatchers.AutoRLock(func(watchers *[]*_EventWatcher) {
+		for i := range *watchers {
+			(*watchers)[i].handler.Exec(interrupt, event)
+		}
+	})
+
+	// 回调处理器
+	c.options.RecvEventHandler.Exec(interrupt, event)
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
 }
 
 // handlePayload Payload消息事件处理器
 func (c *Client) handlePayload(event transport.Event[gtp.MsgPayload]) error {
+	// 写入channel
 	if c.options.RecvDataChan != nil {
 		select {
 		case c.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
@@ -300,9 +320,30 @@ func (c *Client) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 		}
 	}
 
-	return c.options.RecvDataHandler.Exec(func(err, _ error) bool {
-		return err == nil || !errors.Is(err, transport.ErrUnexpectedMsg)
-	}, event.Msg.Data)
+	var errs []error
+
+	interrupt := func(err, _ error) bool {
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return false
+	}
+
+	// 回调监控器
+	c.dataWatchers.AutoRLock(func(watchers *[]*_DataWatcher) {
+		for i := range *watchers {
+			(*watchers)[i].handler.Exec(interrupt, event.Msg.Data)
+		}
+	})
+
+	// 回调处理器
+	c.options.RecvDataHandler.Exec(interrupt, event.Msg.Data)
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
 }
 
 // handleHeartbeat Heartbeat消息事件处理器
