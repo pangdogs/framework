@@ -134,7 +134,7 @@ func (w *_Watcher) mainLoop() {
 
 loop:
 	for {
-		msg, err := w.pubSub.ReceiveMessage(w.ctx)
+		msg, err := w.pubSub.ReceiveMessage(context.Background())
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
 				log.Debugf(w.registry.servCtx, "stop watch %q, %s", w.pathList, err)
@@ -222,7 +222,5 @@ loop:
 		}
 	}
 
-	if err := w.pubSub.Close(); err != nil {
-		log.Errorf(w.registry.servCtx, "close watch %q failed, %s", w.pathList, err)
-	}
+	w.pubSub.Close()
 }
