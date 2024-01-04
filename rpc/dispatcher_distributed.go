@@ -52,7 +52,7 @@ func (d *DistributedDispatcher) Shut(ctx service.Context) {
 	log.Debugf(d.ctx, "dispatcher %q stopped", types.AnyFullName(*d))
 }
 
-func (d *DistributedDispatcher) handleMsg(src string, mp gap.MsgPacket) error {
+func (d *DistributedDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	addr := d.dist.GetAddress()
 
 	if !strings.HasPrefix(mp.Head.Src, addr.Domain) {
