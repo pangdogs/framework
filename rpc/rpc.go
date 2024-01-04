@@ -24,10 +24,10 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 }
 
 type _RPC struct {
-	options         RPCOptions
-	servCtx         service.Context
-	delivererInfos  []concurrent.Locked[Deliverer]
-	dispatcherInfos []concurrent.Locked[Dispatcher]
+	options     RPCOptions
+	servCtx     service.Context
+	deliverers  []concurrent.Locked[Deliverer]
+	dispatchers []concurrent.Locked[Dispatcher]
 }
 
 // InitSP 初始化服务插件
@@ -37,15 +37,15 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	r.servCtx = ctx
 
 	for _, d := range r.options.Deliverers {
-		r.delivererInfos = append(r.delivererInfos, concurrent.MakeLocked(d))
+		r.deliverers = append(r.deliverers, concurrent.MakeLocked(d))
 	}
 
 	for _, d := range r.options.Dispatchers {
-		r.dispatcherInfos = append(r.dispatcherInfos, concurrent.MakeLocked(d))
+		r.dispatchers = append(r.dispatchers, concurrent.MakeLocked(d))
 	}
 
-	for i := range r.delivererInfos {
-		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
+	for i := range r.deliverers {
+		r.deliverers[i].AutoLock(func(d *Deliverer) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
 				init.Init(r.servCtx)
@@ -53,8 +53,8 @@ func (r *_RPC) InitSP(ctx service.Context) {
 		})
 	}
 
-	for i := range r.dispatcherInfos {
-		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
+	for i := range r.dispatchers {
+		r.dispatchers[i].AutoLock(func(d *Dispatcher) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
 				init.Init(r.servCtx)
@@ -67,8 +67,8 @@ func (r *_RPC) InitSP(ctx service.Context) {
 func (r *_RPC) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
-	for i := range r.delivererInfos {
-		r.delivererInfos[i].AutoLock(func(d *Deliverer) {
+	for i := range r.deliverers {
+		r.deliverers[i].AutoLock(func(d *Deliverer) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
 				shut.Shut(r.servCtx)
@@ -76,8 +76,8 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 		})
 	}
 
-	for i := range r.dispatcherInfos {
-		r.dispatcherInfos[i].AutoLock(func(d *Dispatcher) {
+	for i := range r.dispatchers {
+		r.dispatchers[i].AutoLock(func(d *Dispatcher) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
 				shut.Shut(r.servCtx)
@@ -88,10 +88,10 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 
 // RPC RPC调用
 func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
-	for i := range r.delivererInfos {
+	for i := range r.deliverers {
 		var ret runtime.AsyncRet
 
-		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
+		r.deliverers[i].AutoRLock(func(d *Deliverer) {
 			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}
@@ -111,11 +111,11 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 
 // OneWayRPC 单向RPC调用
 func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
-	for i := range r.delivererInfos {
+	for i := range r.deliverers {
 		var b bool
 		var err error
 
-		r.delivererInfos[i].AutoRLock(func(d *Deliverer) {
+		r.deliverers[i].AutoRLock(func(d *Deliverer) {
 			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}

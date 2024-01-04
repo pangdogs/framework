@@ -11,8 +11,8 @@ type RPCOptions struct {
 
 func (Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		Option{}.Deliverers(&DistributedDeliverer{})
-		Option{}.Dispatchers(&DistributedDispatcher{})
+		Option{}.Deliverers(&DistributedDeliverer{})(options)
+		Option{}.Dispatchers(&DistributedDispatcher{})(options)
 	}
 }
 
