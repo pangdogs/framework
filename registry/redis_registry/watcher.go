@@ -136,7 +136,7 @@ loop:
 	for {
 		msg, err := w.pubSub.ReceiveMessage(context.Background())
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
+			if errors.Is(err, net.ErrClosed) {
 				log.Debugf(w.registry.servCtx, "stop watch %q, %s", w.pathList, err)
 				break loop
 			}
