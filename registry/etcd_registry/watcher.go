@@ -9,12 +9,16 @@ import (
 )
 
 func (r *_Registry) newWatcher(ctx context.Context, pattern string) (*_Watcher, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
 	watchKey := r.options.KeyPrefix
 	if pattern != "" {
 		watchKey = getServicePath(r.options.KeyPrefix, pattern)
 	}
-
-	ctx, cancel := context.WithCancel(ctx)
 
 	watcher := &_Watcher{
 		registry:    r,

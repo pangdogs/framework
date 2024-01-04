@@ -253,9 +253,6 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 
 // Watch 获取服务监听器
 func (r *_Registry) Watch(ctx context.Context, pattern string) (registry.Watcher, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	return r.newWatcher(ctx, pattern)
 }
 
