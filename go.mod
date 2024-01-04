@@ -11,7 +11,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nats-io/nats.go v1.28.0
 	github.com/pierrec/lz4/v4 v4.1.18
-	github.com/redis/go-redis/v9 v9.1.0
+	github.com/redis/go-redis/v9 v9.3.1
 	github.com/segmentio/ksuid v1.0.4
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
