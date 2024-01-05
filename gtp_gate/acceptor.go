@@ -54,12 +54,12 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver
 	session.eventDispatcher.RetryTimes = acc.gate.options.IORetryTimes
-	session.eventDispatcher.EventHandler = generic.CastDelegateFunc1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.handleEvent)
+	session.eventDispatcher.EventHandler = generic.CastDelegateFunc1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.handleRecvEventChan, session.handleEventProcess)
 
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver
 	session.trans.RetryTimes = acc.gate.options.IORetryTimes
-	session.trans.PayloadHandler = generic.CastDelegateFunc1(session.handlePayload)
+	session.trans.PayloadHandler = generic.CastDelegateFunc1(session.handleRecvDataChan, session.handlePayloadProcess)
 
 	// 初始化控制协议
 	session.ctrl.Transceiver = &session.transceiver

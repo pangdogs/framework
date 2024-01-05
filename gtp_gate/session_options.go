@@ -17,8 +17,8 @@ type (
 
 type SessionOptions struct {
 	StateChangedHandler StateChangedHandler                 // 接收会话状态变化的处理器
-	RecvDataHandler     RecvDataHandler                     // 接收数据的处理器
-	RecvEventHandler    RecvEventHandler                    // 接收自定义事件的处理器
+	RecvDataHandler     RecvDataHandler                     // 接收数据的处理器（优先级低于监控器）
+	RecvEventHandler    RecvEventHandler                    // 接收自定义事件的处理器（优先级低于监控器）
 	SendDataChan        chan []byte                         // 发送数据的channel
 	RecvDataChan        chan []byte                         // 接收数据的channel
 	SendEventChan       chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel

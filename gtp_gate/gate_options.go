@@ -101,7 +101,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		_GateOption{}.SessionRecvEventChanSize(0)(options)
 		_GateOption{}.SessionRecvDataHandler(nil)(options)
 		_GateOption{}.SessionRecvEventHandler(nil)(options)
-		_GateOption{}.FutureTimeout(10 * time.Second)(options)
+		_GateOption{}.FutureTimeout(5 * time.Second)(options)
 	}
 }
 
