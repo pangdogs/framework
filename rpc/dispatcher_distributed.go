@@ -311,11 +311,17 @@ func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value,
 		argRT := argRV.Type()
 		paramRT := methodRT.In(i)
 
+	retry:
 		if !argRT.AssignableTo(paramRT) {
-			if argRT.Elem().AssignableTo(paramRT) {
-				argRV = argRV.Elem()
+			if argRV.CanConvert(paramRT) {
+				argRV = argRV.Convert(paramRT)
 			} else {
-				return nil, ErrMethodParameterTypeMismatch
+				if argRT.Kind() != reflect.Pointer {
+					return nil, ErrMethodParameterTypeMismatch
+				}
+				argRV = argRV.Elem()
+				argRT = argRV.Type()
+				goto retry
 			}
 		}
 
