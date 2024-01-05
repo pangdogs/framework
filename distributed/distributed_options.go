@@ -26,7 +26,7 @@ type DistributedOptions struct {
 	RefreshInterval   time.Duration       // 服务信息刷新间隔
 	FutureTimeout     time.Duration       // 异步模型Future超时时间
 	DecoderMsgCreator gap.IMsgCreator     // 消息包解码器的消息构建器
-	RecvMsgHandler    RecvMsgHandler      // 接收消息的处理器
+	RecvMsgHandler    RecvMsgHandler      // 接收消息的处理器（优先级低于监控器）
 }
 
 // Default 默认值

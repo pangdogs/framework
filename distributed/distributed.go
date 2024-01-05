@@ -52,7 +52,7 @@ type Distributed interface {
 	MakeServiceNodeAddr(service, node string) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
-	// WatchMsg 监听消息
+	// WatchMsg 监听消息（优先级高）
 	WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher
 }
 
@@ -230,7 +230,7 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
 }
 
-// WatchMsg 监听消息
+// WatchMsg 监听消息（优先级高）
 func (d *_Distributed) WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher {
 	return d.newMsgWatcher(ctx, handler)
 }

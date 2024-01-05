@@ -239,8 +239,8 @@ func (s *_Session) setState(state SessionState) bool {
 	return true
 }
 
-// handleEvent 接收自定义事件的处理器
-func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
+// handleRecvEventChan 接收自定义事件并写入channel
+func (s *_Session) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 	// 写入channel
 	if s.options.RecvEventChan != nil {
 		eventCopy := event
@@ -249,10 +249,14 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 		select {
 		case s.options.RecvEventChan <- eventCopy:
 		default:
-			log.Errorf(s.gate.servCtx, "session %q receive event channel is full", s.GetId())
+			return errors.New("receive event channel is full")
 		}
 	}
+	return nil
+}
 
+// handleEventProcess 接收自定义事件并回调
+func (s *_Session) handleEventProcess(event transport.Event[gtp.Msg]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -282,17 +286,21 @@ func (s *_Session) handleEvent(event transport.Event[gtp.Msg]) error {
 	return nil
 }
 
-// handlePayload Payload消息事件处理器
-func (s *_Session) handlePayload(event transport.Event[gtp.MsgPayload]) error {
+// handleRecvDataChan 接收Payload消息数据并写入channel
+func (s *_Session) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error {
 	// 写入channel
 	if s.options.RecvDataChan != nil {
 		select {
 		case s.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
 		default:
-			log.Errorf(s.gate.servCtx, "session %q receive data channel is full", s.GetId())
+			return errors.New("receive data channel is full")
 		}
 	}
+	return nil
+}
 
+// handlePayloadProcess 接收Payload消息数据并回调
+func (s *_Session) handlePayloadProcess(event transport.Event[gtp.MsgPayload]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {

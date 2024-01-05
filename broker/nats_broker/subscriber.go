@@ -153,7 +153,7 @@ func (s *_Subscriber) handleEventChan(msg *nats.Msg) {
 		if e.Queue() != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.servCtx, "handle msg from topic %q queue %q failed, event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+		log.Errorf(s.broker.servCtx, "handle msg from topic %q queue %q failed, receive event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
 	}
 }
 
