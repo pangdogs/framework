@@ -61,103 +61,142 @@ func (d *DistributedDispatcher) handleMsg(topic string, mp gap.MsgPacket) error 
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OneWayRPC:
-		msg := mp.Msg.(*gap.MsgOneWayRPC)
-		go d.acceptNotify(msg)
+		return d.acceptNotify(mp.Msg.(*gap.MsgOneWayRPC))
 
 	case gap.MsgId_RPC_Request:
-		msg := mp.Msg.(*gap.MsgRPCRequest)
-		go d.acceptRequest(mp.Head.Src, msg)
+		return d.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
-		msg := mp.Msg.(*gap.MsgRPCReply)
-		return d.resolve(msg)
+		return d.resolve(mp.Msg.(*gap.MsgRPCReply))
 	}
 
 	return nil
 }
 
-func (d *DistributedDispatcher) acceptNotify(req *gap.MsgOneWayRPC) {
+func (d *DistributedDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		log.Errorf(d.servCtx, "parse call path %q failed, %s", req.Path, err)
-		return
+		return fmt.Errorf("parse call path %q failed, %s", req.Path, err)
 	}
 
 	switch cp.Category {
 	case callpath.Service:
-		if _, err := d.callService(cp.Plugin, cp.Method, req.Args); err != nil {
-			log.Errorf(d.servCtx, "service plugin %q method %q calls failed, %s", cp.Plugin, cp.Method, err)
+		go func() {
+			if _, err := d.callService(cp.Plugin, cp.Method, req.Args); err != nil {
+				log.Errorf(d.servCtx, "service plugin %q method %q calls failed, %s", cp.Plugin, cp.Method, err)
+				return
+			}
+			log.Debugf(d.servCtx, "service plugin %q method %q calls finished", cp.Plugin, cp.Method)
 			return
-		}
+		}()
 
-		log.Debugf(d.servCtx, "service plugin %q method %q calls finished", cp.Plugin, cp.Method)
-		return
+		return nil
 
 	case callpath.Runtime:
-		if _, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args); err != nil {
+		asyncRet, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		if err != nil {
 			log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
-			return
+			return nil
 		}
 
-		log.Debugf(d.servCtx, "entity %q runtime plugin %q method %q calls finished", cp.EntityId, cp.Plugin, cp.Method)
-		return
+		go func() {
+			ret := asyncRet.Wait(d.servCtx)
+			if !ret.OK() {
+				log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
+				return
+			}
+			log.Debugf(d.servCtx, "entity %q runtime plugin %q method %q calls finished", cp.EntityId, cp.Plugin, cp.Method)
+		}()
+
+		return nil
 
 	case callpath.Entity:
-		if _, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args); err != nil {
+		asyncRet, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
+		if err != nil {
 			log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
-			return
+			return nil
 		}
 
-		log.Debugf(d.servCtx, "entity %q component %q method %q calls finished", cp.EntityId, cp.Component, cp.Method)
-		return
+		go func() {
+			ret := asyncRet.Wait(d.servCtx)
+			if !ret.OK() {
+				log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
+				return
+			}
+			log.Debugf(d.servCtx, "entity %q component %q method %q calls finished", cp.EntityId, cp.Component, cp.Method)
+		}()
+
+		return nil
 	}
+
+	return nil
 }
 
-func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) {
+func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		log.Errorf(d.servCtx, "parse call path %q failed, %s", req.Path, err)
-		d.reply(src, req.CorrId, nil, err)
-		return
+		err = fmt.Errorf("parse call path %q failed, %s", req.Path, err)
+		go d.reply(src, req.CorrId, nil, err)
+		return err
 	}
 
 	switch cp.Category {
 	case callpath.Service:
-		retsRV, err := d.callService(cp.Plugin, cp.Method, req.Args)
-		if err != nil {
-			log.Errorf(d.servCtx, "service plugin %q method %q calls failed, %s", cp.Plugin, cp.Method, err)
-			d.reply(src, req.CorrId, nil, err)
-			return
-		}
+		go func() {
+			retsRV, err := d.callService(cp.Plugin, cp.Method, req.Args)
+			if err != nil {
+				log.Errorf(d.servCtx, "service plugin %q method %q calls failed, %s", cp.Plugin, cp.Method, err)
+				d.reply(src, req.CorrId, nil, err)
+				return
+			}
+			log.Debugf(d.servCtx, "service plugin %q method %q calls finished", cp.Plugin, cp.Method)
+			d.reply(src, req.CorrId, retsRV, nil)
+		}()
 
-		log.Debugf(d.servCtx, "service plugin %q method %q calls finished", cp.Plugin, cp.Method)
-		d.reply(src, req.CorrId, retsRV, nil)
-		return
+		return nil
 
 	case callpath.Runtime:
-		retsRV, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
-			d.reply(src, req.CorrId, nil, err)
-			return
+			go d.reply(src, req.CorrId, nil, err)
+			return nil
 		}
 
-		log.Debugf(d.servCtx, "entity %q runtime plugin %q method %q calls finished", cp.EntityId, cp.Plugin, cp.Method)
-		d.reply(src, req.CorrId, retsRV, nil)
-		return
+		go func() {
+			ret := asyncRet.Wait(d.servCtx)
+			if !ret.OK() {
+				log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
+				return
+			}
+			log.Debugf(d.servCtx, "entity %q runtime plugin %q method %q calls finished", cp.EntityId, cp.Plugin, cp.Method)
+			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+		}()
+
+		return nil
 
 	case callpath.Entity:
-		retsRV, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
+		asyncRet, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
-			d.reply(src, req.CorrId, nil, err)
-			return
+			go d.reply(src, req.CorrId, nil, err)
+			return nil
 		}
 
-		log.Debugf(d.servCtx, "entity %q component %q method %q calls finished", cp.EntityId, cp.Component, cp.Method)
-		d.reply(src, req.CorrId, retsRV, nil)
-		return
+		go func() {
+			ret := asyncRet.Wait(d.servCtx)
+			if !ret.OK() {
+				log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
+				return
+			}
+			log.Debugf(d.servCtx, "entity %q component %q method %q calls finished", cp.EntityId, cp.Component, cp.Method)
+			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+		}()
+
+		return nil
 	}
+
+	return nil
 }
 
 func (d *DistributedDispatcher) callService(plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
@@ -185,14 +224,14 @@ func (d *DistributedDispatcher) callService(plugin, method string, args variant.
 	return methodRV.Call(argsRV), nil
 }
 
-func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
+func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 
-	ret := d.servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
+	return d.servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
 		plugin := a[0].(string)
 		method := a[1].(string)
 		args := a[2].(variant.Array)
@@ -214,22 +253,17 @@ func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method stri
 
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
 
-	}, plugin, method, args).Wait(d.servCtx)
-	if !ret.OK() {
-		return nil, ret.Error
-	}
-
-	return ret.Value.([]reflect.Value), nil
+	}, plugin, method, args), nil
 }
 
-func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method string, args variant.Array) (rets []reflect.Value, err error) {
+func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
 		}
 	}()
 
-	ret := d.servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
+	return d.servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
 		compName := a[0].(string)
 		method := a[1].(string)
 		args := a[2].(variant.Array)
@@ -251,12 +285,7 @@ func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method st
 
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
 
-	}, component, method, args).Wait(d.servCtx)
-	if !ret.OK() {
-		return nil, ret.Error
-	}
-
-	return ret.Value.([]reflect.Value), nil
+	}, component, method, args), nil
 }
 
 func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
@@ -285,17 +314,17 @@ func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect
 }
 
 func (d *DistributedDispatcher) resolve(reply *gap.MsgRPCReply) error {
-	rets := make([]any, 0, len(reply.Rets))
-	for i := range reply.Rets {
-		rets = append(rets, reply.Rets[i].Value)
+	ret := concurrent.Ret[any]{}
+
+	if reply.Error.OK() {
+		if len(reply.Rets) > 0 {
+			ret.Value = reply.Rets
+		}
+	} else {
+		ret.Error = &reply.Error
 	}
 
-	var err error
-	if !reply.Error.OK() {
-		err = &reply.Error
-	}
-
-	return d.dist.GetFutures().Resolve(reply.CorrId, concurrent.MakeRet[any](rets, err))
+	return d.dist.GetFutures().Resolve(reply.CorrId, ret)
 }
 
 func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
