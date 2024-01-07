@@ -100,3 +100,8 @@ func (v Map) Size() int {
 func (Map) Type() TypeId {
 	return TypeId_Map
 }
+
+// Indirect 原始值
+func (v Map) Indirect() any {
+	return v
+}

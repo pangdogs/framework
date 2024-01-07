@@ -22,3 +22,8 @@ func (Null) Size() int {
 func (Null) Type() TypeId {
 	return TypeId_Null
 }
+
+// Indirect 原始值
+func (Null) Indirect() any {
+	return nil
+}

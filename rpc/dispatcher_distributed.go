@@ -343,6 +343,9 @@ func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value,
 	retry:
 		if !argRT.AssignableTo(paramRT) {
 			if argRV.CanConvert(paramRT) {
+				if argRT.Size() > paramRT.Size() {
+					return nil, ErrMethodParameterTypeMismatch
+				}
 				argRV = argRV.Convert(paramRT)
 			} else {
 				if argRT.Kind() != reflect.Pointer {

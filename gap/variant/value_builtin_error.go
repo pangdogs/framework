@@ -68,6 +68,11 @@ func (Error) Type() TypeId {
 	return TypeId_Error
 }
 
+// Indirect 原始值
+func (v Error) Indirect() any {
+	return v
+}
+
 func (v Error) Error() string {
 	return fmt.Sprintf("(%d) %s", v.Code, v.Message)
 }

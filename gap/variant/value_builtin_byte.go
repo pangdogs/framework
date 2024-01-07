@@ -36,3 +36,8 @@ func (Byte) Size() int {
 func (Byte) Type() TypeId {
 	return TypeId_Byte
 }
+
+// Indirect 原始值
+func (v Byte) Indirect() any {
+	return byte(v)
+}
