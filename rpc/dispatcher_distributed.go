@@ -167,6 +167,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "%d: entity %q runtime plugin %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, ret.Error)
+				d.reply(src, req.CorrId, nil, ret.Error)
 				return
 			}
 			log.Debugf(d.servCtx, "%d: entity %q runtime plugin %q method %q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
@@ -187,6 +188,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "%d: entity %q component %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, ret.Error)
+				d.reply(src, req.CorrId, nil, ret.Error)
 				return
 			}
 			log.Debugf(d.servCtx, "%d: entity %q component %q method %q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
