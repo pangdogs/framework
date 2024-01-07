@@ -36,3 +36,8 @@ func (Double) Size() int {
 func (Double) Type() TypeId {
 	return TypeId_Double
 }
+
+// Indirect 原始值
+func (v Double) Indirect() any {
+	return float64(v)
+}

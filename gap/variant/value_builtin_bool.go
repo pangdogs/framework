@@ -36,3 +36,8 @@ func (Bool) Size() int {
 func (Bool) Type() TypeId {
 	return TypeId_Bool
 }
+
+// Indirect 原始值
+func (v Bool) Indirect() any {
+	return bool(v)
+}

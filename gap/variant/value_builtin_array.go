@@ -72,3 +72,8 @@ func (v Array) Size() int {
 func (Array) Type() TypeId {
 	return TypeId_Array
 }
+
+// Indirect 原始值
+func (v Array) Indirect() any {
+	return v
+}

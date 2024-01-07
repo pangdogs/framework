@@ -17,6 +17,8 @@ type ValueReader interface {
 	Size() int
 	// Type 类型
 	Type() TypeId
+	// Indirect 原始值
+	Indirect() any
 }
 
 // ValueWriter 写入值

@@ -36,3 +36,8 @@ func (Int32) Size() int {
 func (Int32) Type() TypeId {
 	return TypeId_Int32
 }
+
+// Indirect 原始值
+func (v Int32) Indirect() any {
+	return int32(v)
+}
