@@ -106,7 +106,7 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	ret.Push(concurrent.MakeRet[any](nil, ErrNoDeliverer))
 
-	return ret.Cast()
+	return ret.CastAsyncRet()
 }
 
 // OneWayRPC 单向RPC调用

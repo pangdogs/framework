@@ -34,5 +34,5 @@ func (c *Client) RequestTime(ctx context.Context) concurrent.Reply[*ResponseTime
 	if err := c.ctrl.RequestTime(future.Id); err != nil {
 		future.Cancel(err)
 	}
-	return resp.Cast()
+	return resp.CastReply()
 }

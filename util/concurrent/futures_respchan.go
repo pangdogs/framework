@@ -36,13 +36,13 @@ func (resp RespChan[T]) Push(ret Ret[any]) error {
 		return nil
 	}
 
-	resp <- MakeRet[T](v, ret.Error)
+	resp <- MakeRet[T](v, nil)
 	close(resp)
 	return nil
 }
 
-// Cast 转换为异步答复
-func (resp RespChan[T]) Cast() Reply[T] {
+// CastReply 转换为异步答复
+func (resp RespChan[T]) CastReply() Reply[T] {
 	return chan Ret[T](resp)
 }
 

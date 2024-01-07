@@ -28,7 +28,7 @@ func (resp RespAsyncRet) Push(ret Ret[any]) error {
 	return nil
 }
 
-// Cast 转换为异步调用结果
-func (resp RespAsyncRet) Cast() runtime.AsyncRet {
+// CastAsyncRet 转换为异步调用结果
+func (resp RespAsyncRet) CastAsyncRet() runtime.AsyncRet {
 	return chan runtime.Ret(resp)
 }

@@ -21,7 +21,7 @@ func (resp RespFunc[T]) Push(ret Ret[any]) error {
 		return nil
 	}
 
-	generic.CastAction1(resp).Exec(MakeRet[T](v, ret.Error))
+	generic.CastAction1(resp).Exec(MakeRet[T](v, nil))
 	return nil
 }
 
@@ -41,6 +41,6 @@ func (resp RespDelegate[T]) Push(ret Ret[any]) error {
 		return nil
 	}
 
-	generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](v, ret.Error))
+	generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](v, nil))
 	return nil
 }
