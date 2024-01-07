@@ -135,7 +135,7 @@ func (d *DistributedDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("parse call path %q failed, %s", req.Path, err)
+		err = fmt.Errorf("%d: parse call path %q failed, %s", req.CorrId, req.Path, err)
 		go d.reply(src, req.CorrId, nil, err)
 		return err
 	}
@@ -145,11 +145,11 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 		go func() {
 			retsRV, err := d.callService(cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(d.servCtx, "service plugin %q method %q calls failed, %s", cp.Plugin, cp.Method, err)
+				log.Errorf(d.servCtx, "%d: service plugin %q method %q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
 				d.reply(src, req.CorrId, nil, err)
 				return
 			}
-			log.Debugf(d.servCtx, "service plugin %q method %q calls finished", cp.Plugin, cp.Method)
+			log.Debugf(d.servCtx, "%d: service plugin %q method %q calls finished", req.CorrId, cp.Plugin, cp.Method)
 			d.reply(src, req.CorrId, retsRV, nil)
 		}()
 
@@ -158,7 +158,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 	case callpath.Runtime:
 		asyncRet, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
+			log.Errorf(d.servCtx, "%d: entity %q runtime plugin %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
 			go d.reply(src, req.CorrId, nil, err)
 			return nil
 		}
@@ -166,10 +166,10 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "entity %q runtime plugin %q method %q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
+				log.Errorf(d.servCtx, "%d: entity %q runtime plugin %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
 				return
 			}
-			log.Debugf(d.servCtx, "entity %q runtime plugin %q method %q calls finished", cp.EntityId, cp.Plugin, cp.Method)
+			log.Debugf(d.servCtx, "%d: entity %q runtime plugin %q method %q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
 			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
@@ -178,7 +178,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 	case callpath.Entity:
 		asyncRet, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
+			log.Errorf(d.servCtx, "%d: entity %q component %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
 			go d.reply(src, req.CorrId, nil, err)
 			return nil
 		}
@@ -186,10 +186,10 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "entity %q component %q method %q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
+				log.Errorf(d.servCtx, "%d: entity %q component %q method %q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
 				return
 			}
-			log.Debugf(d.servCtx, "entity %q component %q method %q calls finished", cp.EntityId, cp.Component, cp.Method)
+			log.Debugf(d.servCtx, "%d: entity %q component %q method %q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
 			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
@@ -296,7 +296,7 @@ func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect
 	var err error
 	msg.Rets, err = variant.MakeArray(retsRV)
 	if err != nil {
-		log.Errorf(d.servCtx, "reply to %q failed, corr_id:%d, %s", src, corrId, err)
+		log.Errorf(d.servCtx, "%d: reply to %q failed, %s", src, err)
 		return
 	}
 
@@ -306,11 +306,11 @@ func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect
 
 	err = d.dist.SendMsg(src, msg)
 	if err != nil {
-		log.Errorf(d.servCtx, "reply to %q failed, corr_id:%d, %s", src, corrId, err)
+		log.Errorf(d.servCtx, "%d: reply to %q failed, %s", corrId, src, err)
 		return
 	}
 
-	log.Debugf(d.servCtx, "reply to %q ok, corr_id:%d", src, corrId)
+	log.Debugf(d.servCtx, "%d: reply to %q ok", corrId, src)
 }
 
 func (d *DistributedDispatcher) resolve(reply *gap.MsgRPCReply) error {
