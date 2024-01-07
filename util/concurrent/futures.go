@@ -82,7 +82,7 @@ func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout 
 	future, resp := MakeFutureRespAsyncRet(fs, ctx, timeout...)
 	handler.Exec(future)
 
-	return resp.Cast()
+	return resp.CastAsyncRet()
 }
 
 // Resolve 解决

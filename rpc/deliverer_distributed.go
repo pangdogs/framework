@@ -56,7 +56,7 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		future.Cancel(err)
-		return ret.Cast()
+		return ret.CastAsyncRet()
 	}
 
 	msg := &gap.MsgRPCRequest{
@@ -67,12 +67,12 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 
 	if err = d.dist.SendMsg(dst, msg); err != nil {
 		future.Cancel(err)
-		return ret.Cast()
+		return ret.CastAsyncRet()
 	}
 
 	log.Debugf(d.servCtx, "rpc request to %q ok, path:%q, corr_id:%d", dst, path, future.Id)
 
-	return ret.Cast()
+	return ret.CastAsyncRet()
 }
 
 // Notify 通知

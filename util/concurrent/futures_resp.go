@@ -1,9 +1,5 @@
 package concurrent
 
-import (
-	"kit.golaxy.org/golaxy/runtime"
-)
-
 // Resp 响应接口
 type Resp interface {
 	// Push 填入返回结果
@@ -27,9 +23,4 @@ type Ret[T any] struct {
 // OK 是否成功
 func (ret Ret[T]) OK() bool {
 	return ret.Error == nil
-}
-
-// Cast 转换为调用结果
-func (ret Ret[T]) Cast() runtime.Ret {
-	return runtime.MakeRet(ret.Value, ret.Error)
 }
