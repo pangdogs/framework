@@ -23,12 +23,12 @@ func (d *DistributedDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = distributed.Using(ctx)
 
-	log.Debugf(d.servCtx, "deliverer %q started", types.AnyFullName(*d))
+	log.Debugf(d.servCtx, "rpc deliverer %q started", types.AnyFullName(*d))
 }
 
 // Shut 结束
 func (d *DistributedDeliverer) Shut(ctx service.Context) {
-	log.Debugf(d.servCtx, "deliverer %q stopped", types.AnyFullName(*d))
+	log.Debugf(d.servCtx, "rpc deliverer %q stopped", types.AnyFullName(*d))
 }
 
 // Match 是否匹配
@@ -70,7 +70,7 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 		return ret.CastAsyncRet()
 	}
 
-	log.Debugf(d.servCtx, "rpc request to %q ok, path:%q, corr_id:%d", dst, path, future.Id)
+	log.Debugf(d.servCtx, "%d: rpc request to %q ok, path:%q", future.Id, dst, path)
 
 	return ret.CastAsyncRet()
 }
