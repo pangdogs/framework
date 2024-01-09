@@ -45,6 +45,8 @@ loop:
 		<-sub.Unsubscribe()
 	}
 
+	d.broker.Flush(context.Background())
+
 	log.Infof(d.servCtx, "service %q node %q stopped", d.servCtx.GetName(), d.servCtx.GetId())
 }
 

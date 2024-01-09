@@ -74,6 +74,7 @@ type _Distributed struct {
 	address       Address
 	encoder       codec.Encoder
 	decoder       codec.Decoder
+	sendMutex     sync.Mutex
 	futures       concurrent.Futures
 	deduplication concurrent.Deduplication
 	msgWatchers   concurrent.LockedSlice[*_MsgWatcher]
@@ -220,6 +221,9 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	if msg == nil {
 		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
+
+	d.sendMutex.Lock()
+	defer d.sendMutex.Unlock()
 
 	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, d.deduplication.MakeSeq(), msg)
 	if err != nil {
