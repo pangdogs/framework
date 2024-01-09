@@ -26,8 +26,8 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 type _RPC struct {
 	options     RPCOptions
 	servCtx     service.Context
-	deliverers  []concurrent.Locked[Deliverer]
-	dispatchers []concurrent.Locked[Dispatcher]
+	deliverers  []concurrent.RWLocked[Deliverer]
+	dispatchers []concurrent.RWLocked[Dispatcher]
 }
 
 // InitSP 初始化服务插件
@@ -37,11 +37,11 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	r.servCtx = ctx
 
 	for _, d := range r.options.Deliverers {
-		r.deliverers = append(r.deliverers, concurrent.MakeLocked(d))
+		r.deliverers = append(r.deliverers, concurrent.MakeRWLocked(d))
 	}
 
 	for _, d := range r.options.Dispatchers {
-		r.dispatchers = append(r.dispatchers, concurrent.MakeLocked(d))
+		r.dispatchers = append(r.dispatchers, concurrent.MakeRWLocked(d))
 	}
 
 	for i := range r.deliverers {
