@@ -1,7 +1,6 @@
 package concurrent
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -24,10 +23,7 @@ func MakeDeduplication() Deduplication {
 	}
 }
 
-type _RemoteSeq struct {
-	sync.Mutex
-	Seq int64
-}
+type _RemoteSeq = Locked[int64]
 
 // Deduplication 去重器，用于保持幂等性
 type Deduplication struct {
@@ -41,7 +37,7 @@ func (d *Deduplication) MakeSeq() int64 {
 }
 
 // ValidateSeq 验证序号
-func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
+func (d *Deduplication) ValidateSeq(remote string, seq int64) (passed bool) {
 	remoteSeq, ok := d.remoteSeqMap.Get(remote)
 	if !ok {
 		var firstInsert bool
@@ -49,9 +45,7 @@ func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
 		d.remoteSeqMap.AutoLock(func(m *map[string]*_RemoteSeq) {
 			remoteSeq, ok = (*m)[remote]
 			if !ok {
-				remoteSeq = &_RemoteSeq{
-					Seq: seq,
-				}
+				remoteSeq = NewLocked[int64](seq)
 				(*m)[remote] = remoteSeq
 
 				firstInsert = true
@@ -63,15 +57,15 @@ func (d *Deduplication) ValidateSeq(remote string, seq int64) bool {
 		}
 	}
 
-	remoteSeq.Lock()
-	defer remoteSeq.Unlock()
+	remoteSeq.AutoLock(func(remoteSeq *int64) {
+		if seq <= *remoteSeq {
+			return
+		}
+		*remoteSeq = seq
+		passed = true
+	})
 
-	if seq <= remoteSeq.Seq {
-		return false
-	}
-	remoteSeq.Seq = seq
-
-	return true
+	return
 }
 
 // Remove 删除对端

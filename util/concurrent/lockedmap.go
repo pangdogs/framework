@@ -2,12 +2,18 @@ package concurrent
 
 func MakeLockedMap[K comparable, V any](size int) LockedMap[K, V] {
 	return LockedMap[K, V]{
-		Locked: MakeLocked(make(map[K]V, size)),
+		Locked: MakeRWLocked(make(map[K]V, size)),
+	}
+}
+
+func NewLockedMap[K comparable, V any](size int) *LockedMap[K, V] {
+	return &LockedMap[K, V]{
+		Locked: MakeRWLocked(make(map[K]V, size)),
 	}
 }
 
 type LockedMap[K comparable, V any] struct {
-	Locked[map[K]V]
+	RWLocked[map[K]V]
 }
 
 func (lm *LockedMap[K, V]) Insert(k K, v V) {

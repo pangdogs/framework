@@ -6,12 +6,18 @@ import (
 
 func MakeLockedSlice[T any](len, cap int) LockedSlice[T] {
 	return LockedSlice[T]{
-		Locked: MakeLocked[[]T](make([]T, len, cap)),
+		Locked: MakeRWLocked[[]T](make([]T, len, cap)),
+	}
+}
+
+func NewLockedSlice[T any](len, cap int) *LockedSlice[T] {
+	return &LockedSlice[T]{
+		Locked: MakeRWLocked[[]T](make([]T, len, cap)),
 	}
 }
 
 type LockedSlice[T any] struct {
-	Locked[[]T]
+	RWLocked[[]T]
 }
 
 func (ls *LockedSlice[T]) Insert(idx int, values ...T) {
