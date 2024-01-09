@@ -6,13 +6,13 @@ import (
 
 func MakeLockedSlice[T any](len, cap int) LockedSlice[T] {
 	return LockedSlice[T]{
-		Locked: MakeRWLocked[[]T](make([]T, len, cap)),
+		RWLocked: MakeRWLocked[[]T](make([]T, len, cap)),
 	}
 }
 
 func NewLockedSlice[T any](len, cap int) *LockedSlice[T] {
 	return &LockedSlice[T]{
-		Locked: MakeRWLocked[[]T](make([]T, len, cap)),
+		RWLocked: MakeRWLocked[[]T](make([]T, len, cap)),
 	}
 }
 
