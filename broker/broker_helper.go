@@ -32,17 +32,22 @@ func Flush(servCtx service.Context, ctx context.Context) error {
 	return Using(servCtx).Flush(ctx)
 }
 
-// MaxPayload return max payload bytes.
-func MaxPayload(servCtx service.Context) int64 {
-	return Using(servCtx).MaxPayload()
+// GetDeliveryReliability return message delivery reliability.
+func GetDeliveryReliability(servCtx service.Context) DeliveryReliability {
+	return Using(servCtx).GetDeliveryReliability()
 }
 
-// Separator return topic path separator.
-func Separator(servCtx service.Context) string {
-	return Using(servCtx).Separator()
+// GetMaxPayload return max payload bytes.
+func GetMaxPayload(servCtx service.Context) int64 {
+	return Using(servCtx).GetMaxPayload()
+}
+
+// GetSeparator return topic path separator.
+func GetSeparator(servCtx service.Context) string {
+	return Using(servCtx).GetSeparator()
 }
 
 // Path return topic path.
 func Path(servCtx service.Context, elems ...string) string {
-	return strings.Join(elems, Separator(servCtx))
+	return strings.Join(elems, GetSeparator(servCtx))
 }

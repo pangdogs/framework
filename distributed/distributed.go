@@ -165,15 +165,18 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 	log.Debugf(d.servCtx, "register service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
 
-	// 监控服务节点变化
-	watcher, err := d.registry.Watch(d.ctx, "")
-	if err != nil {
-		log.Panicf(d.servCtx, "watching service changes failed, %s", err)
-	}
+	// 最少一次交付模式，需要消息去重
+	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
+		// 监控服务节点变化
+		watcher, err := d.registry.Watch(d.ctx, "")
+		if err != nil {
+			log.Panicf(d.servCtx, "watching service changes failed, %s", err)
+		}
 
-	// 运行服务节点监听线程
-	d.wg.Add(1)
-	go d.watchingService(watcher)
+		// 运行服务节点监听线程
+		d.wg.Add(1)
+		go d.watchingService(watcher)
+	}
 
 	// 运行主线程
 	d.wg.Add(1)
@@ -222,10 +225,17 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
 	}
 
-	d.sendMutex.Lock()
-	defer d.sendMutex.Unlock()
+	var seq int64
 
-	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, d.deduplication.MakeSeq(), msg)
+	// 最少一次交付模式，需要消息去重
+	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
+		d.sendMutex.Lock()
+		defer d.sendMutex.Unlock()
+
+		seq = d.deduplication.MakeSeq()
+	}
+	
+	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}

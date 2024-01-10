@@ -107,12 +107,17 @@ func (b *_Broker) Flush(ctx context.Context) error {
 	return nil
 }
 
-// MaxPayload return max payload bytes.
-func (b *_Broker) MaxPayload() int64 {
+// GetDeliveryReliability return message delivery reliability.
+func (b *_Broker) GetDeliveryReliability() broker.DeliveryReliability {
+	return broker.AtMostOnce
+}
+
+// GetMaxPayload return max payload bytes.
+func (b *_Broker) GetMaxPayload() int64 {
 	return b.client.MaxPayload()
 }
 
-// Separator return topic path separator.
-func (b *_Broker) Separator() string {
+// GetSeparator return topic path separator.
+func (b *_Broker) GetSeparator() string {
 	return "."
 }
