@@ -70,7 +70,7 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 		return ret.CastAsyncRet()
 	}
 
-	log.Debugf(d.servCtx, "%d: rpc request to %q ok, path:%q", future.Id, dst, path)
+	log.Debugf(d.servCtx, "rpc (%d) request to dst:%q, path:%q ok", future.Id, dst, path)
 
 	return ret.CastAsyncRet()
 }
@@ -91,7 +91,7 @@ func (d *DistributedDeliverer) Notify(ctx service.Context, dst, path string, arg
 		return err
 	}
 
-	log.Debugf(d.servCtx, "rpc notify to %q ok, path:%q", dst, path)
+	log.Debugf(d.servCtx, "rpc notify to dst:%q, path:%q ok", dst, path)
 
 	return nil
 }
