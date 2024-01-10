@@ -10,7 +10,7 @@ type Option struct{}
 
 // RegistryOptions 所有选项
 type RegistryOptions struct {
-	Registry registry.Registry
+	Registry registry.IRegistry
 }
 
 // Default 默认值
@@ -21,7 +21,7 @@ func (Option) Default() option.Setting[RegistryOptions] {
 }
 
 // Wrap 包装其他registry插件
-func (Option) Wrap(r registry.Registry) option.Setting[RegistryOptions] {
+func (Option) Wrap(r registry.IRegistry) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		o.Registry = r
 	}

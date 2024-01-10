@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-func newBroker(settings ...option.Setting[BrokerOptions]) broker.Broker {
+func newBroker(settings ...option.Setting[BrokerOptions]) broker.IBroker {
 	return &_Broker{
 		options: option.Make(Option{}.Default(), settings...),
 	}
@@ -80,17 +80,17 @@ func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error 
 }
 
 // Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-func (b *_Broker) Subscribe(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.Subscriber, error) {
+func (b *_Broker) Subscribe(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.ISubscriber, error) {
 	return b.newSubscriber(ctx, _SubscribeMode_Handler, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 
 // SubscribeSync will express interest in the given topic pattern.
-func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.SyncSubscriber, error) {
+func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.ISyncSubscriber, error) {
 	return b.newSubscriber(ctx, _SubscribeMode_Sync, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 
 // SubscribeChan will express interest in the given topic pattern.
-func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.ChanSubscriber, error) {
+func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.IChanSubscriber, error) {
 	return b.newSubscriber(ctx, _SubscribeMode_Chan, pattern, option.Make(broker.Option{}.Default(), settings...))
 }
 

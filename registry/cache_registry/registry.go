@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-func newRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry {
+func newRegistry(settings ...option.Setting[RegistryOptions]) registry.IRegistry {
 	return &_Registry{
 		options:        option.Make(Option{}.Default(), settings...),
 		serviceMap:     map[string]*[]registry.Service{},
@@ -22,7 +22,7 @@ func newRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry 
 }
 
 type _Registry struct {
-	registry.Registry
+	registry.IRegistry
 	ctx            context.Context
 	cancel         context.CancelFunc
 	options        RegistryOptions
@@ -38,18 +38,18 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	if r.options.Registry == nil {
 		log.Panic(ctx, "wrap registry plugin is nil, must be set before init")
 	}
-	r.Registry = r.options.Registry
+	r.IRegistry = r.options.Registry
 
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.servCtx = ctx
 
-	log.Infof(r.servCtx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+	log.Infof(r.servCtx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.IRegistry).Elem()))
 
-	if init, ok := r.Registry.(golaxy.LifecycleServicePluginInit); ok {
+	if init, ok := r.IRegistry.(golaxy.LifecycleServicePluginInit); ok {
 		init.InitSP(r.servCtx)
 	}
 
-	services, err := r.Registry.ListServices(r.servCtx)
+	services, err := r.IRegistry.ListServices(r.servCtx)
 	if err != nil {
 		log.Panicf(r.servCtx, "list all services failed, %s", err)
 	}
@@ -70,7 +70,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 		}
 	}
 
-	watcher, err := r.Registry.Watch(r.ctx, "")
+	watcher, err := r.IRegistry.Watch(r.ctx, "")
 	if err != nil {
 		log.Panicf(r.servCtx, "watching service changes failed, %s", err)
 	}
@@ -81,12 +81,12 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.Registry).Elem()))
+	log.Infof(ctx, "shut service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.IRegistry).Elem()))
 
 	r.cancel()
 	r.wg.Wait()
 
-	if shut, ok := r.Registry.(golaxy.LifecycleServicePluginShut); ok {
+	if shut, ok := r.IRegistry.(golaxy.LifecycleServicePluginShut); ok {
 		shut.ShutSP(ctx)
 	}
 }
@@ -148,7 +148,7 @@ func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
 	return services
 }
 
-func (r *_Registry) mainLoop(watcher registry.Watcher) {
+func (r *_Registry) mainLoop(watcher registry.IWatcher) {
 	defer r.wg.Done()
 
 	log.Debug(r.servCtx, "watching service changes started")

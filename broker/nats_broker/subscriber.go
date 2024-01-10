@@ -41,7 +41,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	switch mode {
 	case _SubscribeMode_Sync, _SubscribeMode_Chan:
-		sub.eventChan = make(chan broker.Event, opts.EventChanSize)
+		sub.eventChan = make(chan broker.IEvent, opts.EventChanSize)
 		handleMsg = sub.handleEventChan
 	case _SubscribeMode_Handler:
 		sub.eventHandler = opts.EventHandler
@@ -78,7 +78,7 @@ type _Subscriber struct {
 	stoppedChan         chan struct{}
 	broker              *_Broker
 	natsSub             *nats.Subscription
-	eventChan           chan broker.Event
+	eventChan           chan broker.IEvent
 	eventHandler        broker.EventHandler
 	unsubscribedHandler broker.UnsubscribedHandler
 }
@@ -100,7 +100,7 @@ func (s *_Subscriber) Unsubscribe() <-chan struct{} {
 }
 
 // Next is a blocking call that waits for the next event to be received from the subscriber.
-func (s *_Subscriber) Next() (broker.Event, error) {
+func (s *_Subscriber) Next() (broker.IEvent, error) {
 	for event := range s.eventChan {
 		return event, nil
 	}
@@ -108,7 +108,7 @@ func (s *_Subscriber) Next() (broker.Event, error) {
 }
 
 // EventChan returns a channel that can be used to receive events from the subscriber.
-func (s *_Subscriber) EventChan() (<-chan broker.Event, error) {
+func (s *_Subscriber) EventChan() (<-chan broker.IEvent, error) {
 	return s.eventChan, nil
 }
 

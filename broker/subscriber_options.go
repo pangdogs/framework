@@ -11,9 +11,9 @@ type Option struct{}
 type (
 	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
 	// message and optional Ack method to acknowledge receipt of the message.
-	EventHandler = generic.DelegateFunc1[Event, error]
+	EventHandler = generic.DelegateFunc1[IEvent, error]
 	// UnsubscribedHandler Unsubscribed callback method.
-	UnsubscribedHandler = generic.DelegateAction1[Subscriber]
+	UnsubscribedHandler = generic.DelegateAction1[ISubscriber]
 )
 
 // SubscriberOptions represents the options for subscribe topic.

@@ -9,7 +9,7 @@ import (
 	"kit.golaxy.org/plugins/util/concurrent"
 )
 
-// IRPC RPC接口
+// IRPC RPC支持
 type IRPC interface {
 	// RPC RPC调用
 	RPC(dst, path string, args ...any) runtime.AsyncRet
@@ -26,8 +26,8 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 type _RPC struct {
 	options     RPCOptions
 	servCtx     service.Context
-	deliverers  []concurrent.RWLocked[Deliverer]
-	dispatchers []concurrent.RWLocked[Dispatcher]
+	deliverers  []concurrent.RWLocked[IDeliverer]
+	dispatchers []concurrent.RWLocked[IDispatcher]
 }
 
 // InitSP 初始化服务插件
@@ -45,7 +45,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	}
 
 	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *Deliverer) {
+		r.deliverers[i].AutoLock(func(d *IDeliverer) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
 				init.Init(r.servCtx)
@@ -54,7 +54,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	}
 
 	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *Dispatcher) {
+		r.dispatchers[i].AutoLock(func(d *IDispatcher) {
 			init, ok := (*d).(LifecycleInit)
 			if ok {
 				init.Init(r.servCtx)
@@ -68,7 +68,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *Deliverer) {
+		r.deliverers[i].AutoLock(func(d *IDeliverer) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
 				shut.Shut(r.servCtx)
@@ -77,7 +77,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 	}
 
 	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *Dispatcher) {
+		r.dispatchers[i].AutoLock(func(d *IDispatcher) {
 			shut, ok := (*d).(LifecycleShut)
 			if ok {
 				shut.Shut(r.servCtx)
@@ -91,7 +91,7 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 	for i := range r.deliverers {
 		var ret runtime.AsyncRet
 
-		r.deliverers[i].AutoRLock(func(d *Deliverer) {
+		r.deliverers[i].AutoRLock(func(d *IDeliverer) {
 			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}
@@ -115,7 +115,7 @@ func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
 		var b bool
 		var err error
 
-		r.deliverers[i].AutoRLock(func(d *Deliverer) {
+		r.deliverers[i].AutoRLock(func(d *IDeliverer) {
 			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}

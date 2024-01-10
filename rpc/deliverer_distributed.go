@@ -15,7 +15,7 @@ import (
 // DistributedDeliverer 分布式服务的RPC投递器
 type DistributedDeliverer struct {
 	servCtx service.Context
-	dist    distributed.Distributed
+	dist    distributed.IDistributed
 }
 
 // Init 初始化

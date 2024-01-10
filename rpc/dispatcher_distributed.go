@@ -32,8 +32,8 @@ var (
 // DistributedDispatcher 分布式服务的RPC分发器
 type DistributedDispatcher struct {
 	servCtx service.Context
-	dist    distributed.Distributed
-	watcher distributed.Watcher
+	dist    distributed.IDistributed
+	watcher distributed.IWatcher
 }
 
 // Init 初始化

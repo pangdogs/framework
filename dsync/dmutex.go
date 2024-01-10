@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// A DMutex is a distributed mutual exclusion lock. Avoid sharing the same DMutex instance among multiple goroutines. Create a separate DMutex instance for each goroutine.
-type DMutex interface {
+// A IDistMutex is a distributed mutual exclusion lock. Avoid sharing the same IDistMutex instance among multiple goroutines. Create a separate IDistMutex instance for each goroutine.
+type IDistMutex interface {
 	// Name returns mutex name.
 	Name() string
 	// Value returns the current random value. The value will be empty until a lock is acquired (or Value option is used).

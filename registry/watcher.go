@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-// Watcher is an interface that returns updates
+// IWatcher is an interface that returns updates
 // about services within the registry.
-type Watcher interface {
+type IWatcher interface {
 	// Pattern watching pattern
 	Pattern() string
 	// Next is a blocking call

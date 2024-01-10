@@ -4,8 +4,8 @@ import (
 	"context"
 )
 
-// Subscriber is a convenience return type for the Broker.Subscribe method.
-type Subscriber interface {
+// ISubscriber is a convenience return type for the IBroker.Subscribe method.
+type ISubscriber interface {
 	context.Context
 	// Pattern returns the subscription pattern used to create the subscriber.
 	Pattern() string
@@ -15,22 +15,22 @@ type Subscriber interface {
 	Unsubscribe() <-chan struct{}
 }
 
-// SyncSubscriber is a convenience return type for the Broker.SubscribeSync method.
-type SyncSubscriber interface {
-	Subscriber
+// ISyncSubscriber is a convenience return type for the IBroker.SubscribeSync method.
+type ISyncSubscriber interface {
+	ISubscriber
 	// Next is a blocking call that waits for the next event to be received from the subscriber.
-	Next() (Event, error)
+	Next() (IEvent, error)
 }
 
-// ChanSubscriber is a convenience return type for the Broker.SubscribeChan method.
-type ChanSubscriber interface {
-	Subscriber
+// IChanSubscriber is a convenience return type for the IBroker.SubscribeChan method.
+type IChanSubscriber interface {
+	ISubscriber
 	// EventChan returns a channel that can be used to receive events from the subscriber.
-	EventChan() (<-chan Event, error)
+	EventChan() (<-chan IEvent, error)
 }
 
-// Event is given to a subscription handler for processing.
-type Event interface {
+// IEvent is given to a subscription handler for processing.
+type IEvent interface {
 	// Pattern returns the subscription pattern used to create the event subscriber.
 	Pattern() string
 	// Topic returns the topic the event was received on.

@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-// Logger is a generic logging interface
-type Logger interface {
+// ILogger is a generic logging interface
+type ILogger interface {
 	// Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.
 	Log(level Level, v ...interface{})
 	// Logln writes a log entry, spaces are always added between operands and a newline is appended.

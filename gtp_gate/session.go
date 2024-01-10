@@ -27,14 +27,14 @@ const (
 	SessionState_Death                         // 已过期
 )
 
-// Watcher 监听器
-type Watcher interface {
+// IWatcher 监听器
+type IWatcher interface {
 	context.Context
 	Stop() <-chan struct{}
 }
 
-// Session 客户端会话
-type Session interface {
+// ISession 会话
+type ISession interface {
 	context.Context
 	fmt.Stringer
 	// Settings 设置会话选项（在会话状态Handshake与Confirmed时可用）
@@ -56,11 +56,11 @@ type Session interface {
 	// SendData 发送数据
 	SendData(data []byte) error
 	// WatchData 监听数据
-	WatchData(ctx context.Context, handler RecvDataHandler) Watcher
+	WatchData(ctx context.Context, handler RecvDataHandler) IWatcher
 	// SendEvent 发送自定义事件
 	SendEvent(event transport.Event[gtp.MsgReader]) error
 	// WatchEvent 监听自定义事件
-	WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher
+	WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- []byte
 	// RecvDataChan 接收数据的channel
@@ -161,7 +161,7 @@ func (s *_Session) SendData(data []byte) error {
 }
 
 // WatchData 监听数据
-func (s *_Session) WatchData(ctx context.Context, handler RecvDataHandler) Watcher {
+func (s *_Session) WatchData(ctx context.Context, handler RecvDataHandler) IWatcher {
 	return s.newDataWatcher(ctx, handler)
 }
 
@@ -174,7 +174,7 @@ func (s *_Session) SendEvent(event transport.Event[gtp.MsgReader]) error {
 }
 
 // WatchEvent 监听自定义事件
-func (s *_Session) WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher {
+func (s *_Session) WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher {
 	return s.newEventWatcher(ctx, handler)
 }
 

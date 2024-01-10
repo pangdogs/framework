@@ -46,7 +46,7 @@ func MakeReadChan(servCtx service.Context, ctx context.Context, pattern, queue s
 
 	_, err := Using(servCtx).Subscribe(ctx, pattern,
 		Option{}.Queue(queue),
-		Option{}.EventHandler(generic.CastDelegateFunc1(func(e Event) error {
+		Option{}.EventHandler(generic.CastDelegateFunc1(func(e IEvent) error {
 			select {
 			case ch <- e.Message():
 				return nil
@@ -58,7 +58,7 @@ func MakeReadChan(servCtx service.Context, ctx context.Context, pattern, queue s
 				return fmt.Errorf("read chan is full, nak: %v", nakErr)
 			}
 		})),
-		Option{}.UnsubscribedHandler(generic.CastDelegateAction1(func(sub Subscriber) {
+		Option{}.UnsubscribedHandler(generic.CastDelegateAction1(func(sub ISubscriber) {
 			close(ch)
 		})))
 	if err != nil {

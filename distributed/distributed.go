@@ -32,14 +32,14 @@ type Address struct {
 	LocalAddr            string // 本服务节点地址
 }
 
-// Watcher 监听器
-type Watcher interface {
+// IWatcher 监听器
+type IWatcher interface {
 	context.Context
 	Stop() <-chan struct{}
 }
 
-// Distributed 分布式服务支持
-type Distributed interface {
+// IDistributed 分布式服务支持
+type IDistributed interface {
 	// GetAddress 获取地址信息
 	GetAddress() Address
 	// GetFutures 获取异步模型Future控制器
@@ -53,10 +53,10 @@ type Distributed interface {
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
-	WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher
+	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
 }
 
-func newDistributed(setting ...option.Setting[DistributedOptions]) Distributed {
+func newDistributed(setting ...option.Setting[DistributedOptions]) IDistributed {
 	return &_Distributed{
 		options: option.Make(Option{}.Default(), setting...),
 	}
@@ -68,9 +68,9 @@ type _Distributed struct {
 	servCtx       service.Context
 	wg            sync.WaitGroup
 	options       DistributedOptions
-	registry      registry.Registry
-	broker        broker.Broker
-	dsync         dsync.DSync
+	registry      registry.IRegistry
+	broker        broker.IBroker
+	dsync         dsync.IDistSync
 	address       Address
 	encoder       codec.Encoder
 	decoder       codec.Decoder
@@ -133,7 +133,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 
 	// 订阅topic
-	subs := []broker.Subscriber{
+	subs := []broker.ISubscriber{
 		// 订阅全服topic
 		d.subscribe(d.address.GlobalBroadcastAddr, ""),
 		d.subscribe(d.address.GlobalBalanceAddr, "balance"),
@@ -234,7 +234,7 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 
 		seq = d.deduplication.MakeSeq()
 	}
-	
+
 	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, seq, msg)
 	if err != nil {
 		return err
@@ -245,11 +245,11 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 }
 
 // WatchMsg 监听消息（优先级高）
-func (d *_Distributed) WatchMsg(ctx context.Context, handler RecvMsgHandler) Watcher {
+func (d *_Distributed) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher {
 	return d.newMsgWatcher(ctx, handler)
 }
 
-func (d *_Distributed) subscribe(topic, queue string) broker.Subscriber {
+func (d *_Distributed) subscribe(topic, queue string) broker.ISubscriber {
 	sub, err := d.broker.Subscribe(d.ctx, topic,
 		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
 		broker.Option{}.Queue(queue))

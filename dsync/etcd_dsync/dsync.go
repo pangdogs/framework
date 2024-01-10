@@ -10,7 +10,7 @@ import (
 	"kit.golaxy.org/plugins/log"
 )
 
-func newDSync(settings ...option.Setting[DSyncOptions]) dsync.DSync {
+func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 	return &_DSync{
 		options: option.Make(Option{}.Default(), settings...),
 	}
@@ -57,7 +57,7 @@ func (s *_DSync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_DSync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.DMutex {
+func (s *_DSync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 

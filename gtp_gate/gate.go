@@ -16,17 +16,17 @@ import (
 	"sync/atomic"
 )
 
-// Gate 网关
-type Gate interface {
+// IGate 网关
+type IGate interface {
 	// GetSession 查询会话
-	GetSession(sessionId string) (Session, bool)
+	GetSession(sessionId string) (ISession, bool)
 	// RangeSessions 遍历所有会话
-	RangeSessions(fun func(session Session) bool)
+	RangeSessions(fun func(session ISession) bool)
 	// CountSessions 统计所有会话数量
 	CountSessions() int
 }
 
-func newGate(settings ...option.Setting[GateOptions]) Gate {
+func newGate(settings ...option.Setting[GateOptions]) IGate {
 	return &_Gate{
 		options: option.Make(_GateOption{}.Default(), settings...),
 	}
@@ -112,17 +112,17 @@ func (g *_Gate) ShutSP(ctx service.Context) {
 }
 
 // GetSession 查询会话
-func (g *_Gate) GetSession(sessionId string) (Session, bool) {
+func (g *_Gate) GetSession(sessionId string) (ISession, bool) {
 	return g.loadSession(sessionId)
 }
 
 // RangeSessions 遍历所有会话
-func (g *_Gate) RangeSessions(fun func(session Session) bool) {
+func (g *_Gate) RangeSessions(fun func(session ISession) bool) {
 	if fun == nil {
 		return
 	}
 	g.sessionMap.Range(func(k, v any) bool {
-		return fun(v.(Session))
+		return fun(v.(ISession))
 	})
 }
 

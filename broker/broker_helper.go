@@ -13,17 +13,17 @@ func Publish(servCtx service.Context, ctx context.Context, topic string, data []
 }
 
 // Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-func Subscribe(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (Subscriber, error) {
+func Subscribe(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISubscriber, error) {
 	return Using(servCtx).Subscribe(ctx, pattern, settings...)
 }
 
 // SubscribeSync will express interest in the given topic pattern.
-func SubscribeSync(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (SyncSubscriber, error) {
+func SubscribeSync(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISyncSubscriber, error) {
 	return Using(servCtx).SubscribeSync(ctx, pattern, settings...)
 }
 
 // SubscribeChan will express interest in the given topic pattern.
-func SubscribeChan(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ChanSubscriber, error) {
+func SubscribeChan(servCtx service.Context, ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (IChanSubscriber, error) {
 	return Using(servCtx).SubscribeChan(ctx, pattern, settings...)
 }
 

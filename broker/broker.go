@@ -10,7 +10,7 @@ import (
 var (
 	// ErrBroker broker errors.
 	ErrBroker = errors.New("broker")
-	// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the SyncSubscriber.Next method when the subscriber has been unsubscribed.
+	// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the ISyncSubscriber.Next method when the subscriber has been unsubscribed.
 	ErrUnsubscribed = fmt.Errorf("%w: unsubscribed", ErrBroker)
 )
 
@@ -24,16 +24,16 @@ const (
 	EffectivelyOnce                            // Effectively once
 )
 
-// Broker is an interface used for asynchronous messaging.
-type Broker interface {
+// IBroker is an interface used for asynchronous messaging.
+type IBroker interface {
 	// Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
 	Publish(ctx context.Context, topic string, data []byte) error
 	// Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-	Subscribe(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (Subscriber, error)
+	Subscribe(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
 	// SubscribeSync will express interest in the given topic pattern.
-	SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (SyncSubscriber, error)
+	SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISyncSubscriber, error)
 	// SubscribeChan will express interest in the given topic pattern.
-	SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ChanSubscriber, error)
+	SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (IChanSubscriber, error)
 	// Flush will perform a round trip to the server and return when it receives the internal reply.
 	Flush(ctx context.Context) error
 	// GetDeliveryReliability return message delivery reliability.
