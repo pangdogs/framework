@@ -11,12 +11,12 @@ func NewMutex(servCtx service.Context, name string, settings ...option.Setting[D
 	return Using(servCtx).NewMutex(name, settings...)
 }
 
-// Separator return name path separator.
-func Separator(servCtx service.Context) string {
-	return Using(servCtx).Separator()
+// GetSeparator return name path separator.
+func GetSeparator(servCtx service.Context) string {
+	return Using(servCtx).GetSeparator()
 }
 
 // Path return name path.
 func Path(servCtx service.Context, elems ...string) string {
-	return strings.Join(elems, Separator(servCtx))
+	return strings.Join(elems, GetSeparator(servCtx))
 }

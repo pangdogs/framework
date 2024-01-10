@@ -60,8 +60,8 @@ func (s *_Dsync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOp
 	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 
-// Separator return name path separator.
-func (s *_Dsync) Separator() string {
+// GetSeparator return name path separator.
+func (s *_Dsync) GetSeparator() string {
 	return ":"
 }
 

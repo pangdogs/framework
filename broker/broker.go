@@ -14,6 +14,16 @@ var (
 	ErrUnsubscribed = fmt.Errorf("%w: unsubscribed", ErrBroker)
 )
 
+// DeliveryReliability Message delivery reliability.
+type DeliveryReliability int32
+
+const (
+	AtMostOnce      DeliveryReliability = iota // At most once
+	AtLeastOnce                                // At last once
+	ExactlyOnce                                // Exactly once
+	EffectivelyOnce                            // Effectively once
+)
+
 // Broker is an interface used for asynchronous messaging.
 type Broker interface {
 	// Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
@@ -26,8 +36,10 @@ type Broker interface {
 	SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ChanSubscriber, error)
 	// Flush will perform a round trip to the server and return when it receives the internal reply.
 	Flush(ctx context.Context) error
-	// MaxPayload return max payload bytes.
-	MaxPayload() int64
-	// Separator return topic path separator.
-	Separator() string
+	// GetDeliveryReliability return message delivery reliability.
+	GetDeliveryReliability() DeliveryReliability
+	// GetMaxPayload return max payload bytes.
+	GetMaxPayload() int64
+	// GetSeparator return topic path separator.
+	GetSeparator() string
 }
