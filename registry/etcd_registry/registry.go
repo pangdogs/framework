@@ -22,7 +22,7 @@ import (
 )
 
 // NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
-func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.Registry {
+func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.IRegistry {
 	return &_Registry{
 		options:  option.Make(Option{}.Default(), settings...),
 		register: make(map[string]uint64),
@@ -248,7 +248,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 }
 
 // Watch 获取服务监听器
-func (r *_Registry) Watch(ctx context.Context, pattern string) (registry.Watcher, error) {
+func (r *_Registry) Watch(ctx context.Context, pattern string) (registry.IWatcher, error) {
 	return r.newWatcher(ctx, pattern)
 }
 

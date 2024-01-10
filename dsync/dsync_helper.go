@@ -7,7 +7,7 @@ import (
 )
 
 // NewMutex returns a new distributed mutex with given name.
-func NewMutex(servCtx service.Context, name string, settings ...option.Setting[DMutexOptions]) DMutex {
+func NewMutex(servCtx service.Context, name string, settings ...option.Setting[DMutexOptions]) IDistMutex {
 	return Using(servCtx).NewMutex(name, settings...)
 }
 

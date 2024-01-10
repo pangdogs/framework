@@ -11,16 +11,16 @@ import (
 var (
 	// ErrRegistry dsync errors.
 	ErrRegistry = errors.New("registry")
-	// ErrNotFound Not found error when Registry.GetService or Registry.GetServiceNode is called
+	// ErrNotFound Not found error when IRegistry.GetService or IRegistry.GetServiceNode is called
 	ErrNotFound = fmt.Errorf("%w: service not found", ErrRegistry)
 	// ErrStoppedWatching Stopped watching error when watcher is stopped
 	ErrStoppedWatching = fmt.Errorf("%w: stopped watching", ErrRegistry)
 )
 
-// The Registry provides an interface for service discovery
+// The IRegistry provides an interface for service discovery
 // and an abstraction over varying implementations
 // {consul, etcd, zookeeper, ...}
-type Registry interface {
+type IRegistry interface {
 	// Register 注册服务
 	Register(ctx context.Context, service Service, ttl time.Duration) error
 	// Deregister 取消注册服务
@@ -32,7 +32,7 @@ type Registry interface {
 	// ListServices 查询所有服务
 	ListServices(ctx context.Context) ([]Service, error)
 	// Watch 获取服务监听器
-	Watch(ctx context.Context, pattern string) (Watcher, error)
+	Watch(ctx context.Context, pattern string) (IWatcher, error)
 }
 
 // Service 服务配置

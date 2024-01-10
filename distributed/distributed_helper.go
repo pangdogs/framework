@@ -38,6 +38,6 @@ func SendMsg(servCtx service.Context, dst string, msg gap.Msg) error {
 }
 
 // WatchMsg 监听消息
-func WatchMsg(servCtx service.Context, ctx context.Context, handler RecvMsgHandler) Watcher {
+func WatchMsg(servCtx service.Context, ctx context.Context, handler RecvMsgHandler) IWatcher {
 	return Using(servCtx).WatchMsg(ctx, handler)
 }

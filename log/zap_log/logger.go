@@ -8,7 +8,7 @@ import (
 	"kit.golaxy.org/plugins/log"
 )
 
-func newLogger(settings ...option.Setting[LoggerOptions]) log.Logger {
+func newLogger(settings ...option.Setting[LoggerOptions]) log.ILogger {
 	return &_Logger{
 		options: option.Make(Option{}.Default(), settings...),
 	}

@@ -5,8 +5,8 @@ import "kit.golaxy.org/golaxy/util/option"
 type Option struct{}
 
 type RPCOptions struct {
-	Deliverers  []Deliverer
-	Dispatchers []Dispatcher
+	Deliverers  []IDeliverer
+	Dispatchers []IDispatcher
 }
 
 func (Option) Default() option.Setting[RPCOptions] {
@@ -16,13 +16,13 @@ func (Option) Default() option.Setting[RPCOptions] {
 	}
 }
 
-func (Option) Deliverers(deliverers ...Deliverer) option.Setting[RPCOptions] {
+func (Option) Deliverers(deliverers ...IDeliverer) option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
 		options.Deliverers = deliverers
 	}
 }
 
-func (Option) Dispatchers(dispatchers ...Dispatcher) option.Setting[RPCOptions] {
+func (Option) Dispatchers(dispatchers ...IDispatcher) option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
 		options.Dispatchers = dispatchers
 	}
