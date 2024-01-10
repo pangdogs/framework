@@ -86,8 +86,11 @@ func (d *_Distributed) handleEvent(e broker.Event) error {
 		return err
 	}
 
-	if !d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq) {
-		return fmt.Errorf("gap: discard duplicate msg-packet, head:%+v", mp.Head)
+	// 最少一次交付模式，需要消息去重
+	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
+		if !d.deduplication.ValidateSeq(mp.Head.Src, mp.Head.Seq) {
+			return fmt.Errorf("gap: discard duplicate msg-packet, head:%+v", mp.Head)
+		}
 	}
 
 	var errs []error
