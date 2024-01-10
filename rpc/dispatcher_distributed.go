@@ -214,7 +214,7 @@ func (d *DistributedDispatcher) callService(plugin, method string, args variant.
 	}
 
 	methodRV := pi.Reflected.MethodByName(method)
-	if methodRV.IsZero() {
+	if !methodRV.IsValid() {
 		return nil, ErrMethodNotFound
 	}
 
@@ -244,7 +244,7 @@ func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method stri
 		}
 
 		methodRV := pi.Reflected.MethodByName(method)
-		if methodRV.IsZero() {
+		if !methodRV.IsValid() {
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
 
@@ -276,7 +276,7 @@ func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method st
 		}
 
 		methodRV := ec.UnsafeComponent(comp).GetReflected().MethodByName(method)
-		if methodRV.IsZero() {
+		if !methodRV.IsValid() {
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
 
