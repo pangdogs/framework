@@ -70,7 +70,7 @@ func (d *DistributedDeliverer) Request(ctx service.Context, dst, path string, ar
 		return ret.CastAsyncRet()
 	}
 
-	log.Debugf(d.servCtx, "rpc(%d) request to dst:%q, path:%q ok", future.Id, dst, path)
+	log.Debugf(d.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, path)
 
 	return ret.CastAsyncRet()
 }
