@@ -1,4 +1,4 @@
-package distributed
+package dist
 
 import (
 	"errors"

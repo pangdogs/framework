@@ -1,4 +1,4 @@
-package distributed
+package dist
 
 import (
 	"git.golaxy.org/core/service"
