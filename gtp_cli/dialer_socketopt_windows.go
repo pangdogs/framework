@@ -1,8 +1,9 @@
-//go:build !windows
+//go:build windows
 
-package gtp_client
+package gtp_cli
 
 import (
+	"git.golaxy.org/core/util/types"
 	"net"
 	"syscall"
 )
@@ -13,11 +14,6 @@ func newDialer(options *ClientOptions) *net.Dialer {
 		noDelay = types.New(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
-	var quickAck *int
-	if options.TCPQuickAck != nil {
-		quickAck = types.New(types.Bool2Int[int](*options.TCPQuickAck))
-	}
-
 	recvBuf := options.TCPRecvBuf
 	sendBuf := options.TCPSendBuf
 	lingerSec := options.TCPLinger
@@ -26,16 +22,13 @@ func newDialer(options *ClientOptions) *net.Dialer {
 		Control: func(network, address string, conn syscall.RawConn) error {
 			return conn.Control(func(fd uintptr) {
 				if noDelay != nil {
-					syscall.SetsockoptInt(int(fd), syscall.SOL_TCP, syscall.TCP_NODELAY, *noDelay)
-				}
-				if quickAck != nil {
-					syscall.SetsockoptInt(int(fd), syscall.SOL_TCP, syscall.TCP_QUICKACK, *quickAck)
+					syscall.SetsockoptInt(syscall.Handle(fd), syscall.IPPROTO_TCP, syscall.TCP_NODELAY, *noDelay)
 				}
 				if recvBuf != nil {
-					syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_RCVBUF, *recvBuf)
+					syscall.SetsockoptInt(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_RCVBUF, *recvBuf)
 				}
 				if sendBuf != nil {
-					syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, *sendBuf)
+					syscall.SetsockoptInt(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, *sendBuf)
 				}
 				if lingerSec != nil {
 					var l syscall.Linger
@@ -46,7 +39,7 @@ func newDialer(options *ClientOptions) *net.Dialer {
 						l.Onoff = 0
 						l.Linger = 0
 					}
-					syscall.SetsockoptLinger(int(fd), syscall.SOL_SOCKET, syscall.SO_LINGER, &l)
+					syscall.SetsockoptLinger(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_LINGER, &l)
 				}
 			})
 		},
