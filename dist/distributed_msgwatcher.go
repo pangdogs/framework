@@ -1,4 +1,4 @@
-package distributed
+package dist
 
 import (
 	"github.com/elliotchance/pie/v2"
