@@ -5,21 +5,21 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {
+func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) *_EventWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	watcher := &_DataWatcher{
+	watcher := &_EventWatcher{
 		Context:     ctx,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
 		client:      c,
 		handler:     handler,
 	}
-	c.dataWatchers.Append(watcher)
+	c.eventWatchers.Append(watcher)
 
 	c.wg.Add(1)
 	go watcher.mainLoop()
@@ -27,20 +27,20 @@ func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_
 	return watcher
 }
 
-type _DataWatcher struct {
+type _EventWatcher struct {
 	context.Context
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
 	client      *Client
-	handler     RecvDataHandler
+	handler     RecvEventHandler
 }
 
-func (w *_DataWatcher) Stop() <-chan struct{} {
+func (w *_EventWatcher) Stop() <-chan struct{} {
 	w.cancel()
 	return w.stoppedChan
 }
 
-func (w *_DataWatcher) mainLoop() {
+func (w *_EventWatcher) mainLoop() {
 	defer func() {
 		w.cancel()
 		w.client.wg.Done()
@@ -52,8 +52,8 @@ func (w *_DataWatcher) mainLoop() {
 	case <-w.client.Done():
 	}
 
-	w.client.dataWatchers.AutoLock(func(watchers *[]*_DataWatcher) {
-		*watchers = pie.DropWhile(*watchers, func(other *_DataWatcher) bool {
+	w.client.eventWatchers.AutoLock(func(watchers *[]*_EventWatcher) {
+		*watchers = pie.DropWhile(*watchers, func(other *_EventWatcher) bool {
 			return other == w
 		})
 	})
