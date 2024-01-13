@@ -3,10 +3,10 @@ package gtp_gate
 import (
 	"context"
 	"errors"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/gtp/codec"
+	"git.golaxy.org/plugins/util/concurrent"
 	"github.com/segmentio/ksuid"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/gtp/codec"
-	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 )
 

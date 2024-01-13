@@ -3,9 +3,9 @@ package transport
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/codec"
 	"io"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
 	"net"
 	"os"
 	"sync"

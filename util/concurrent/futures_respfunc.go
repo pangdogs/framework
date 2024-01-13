@@ -1,8 +1,8 @@
 package concurrent
 
 import (
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/types"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/types"
 )
 
 // RespFunc 接收响应返回值的函数

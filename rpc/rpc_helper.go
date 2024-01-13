@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
 )
 
 // RPC RPC调用

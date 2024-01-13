@@ -3,19 +3,19 @@ package distributed
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/broker"
+	"git.golaxy.org/plugins/dsync"
+	"git.golaxy.org/plugins/gap"
+	"git.golaxy.org/plugins/gap/codec"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/registry"
+	"git.golaxy.org/plugins/util/concurrent"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/dsync"
-	"kit.golaxy.org/plugins/gap"
-	"kit.golaxy.org/plugins/gap/codec"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/registry"
-	"kit.golaxy.org/plugins/util/concurrent"
 	"sync"
 )
 
@@ -214,7 +214,7 @@ func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
 // MakeServiceNodeAddr 创建服务节点地址
 func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error) {
 	if node == "" {
-		return "", fmt.Errorf("%w: node is empty", golaxy.ErrArgs)
+		return "", fmt.Errorf("%w: node is empty", core.ErrArgs)
 	}
 	return broker.Path(d.servCtx, d.address.NodeSubdomain, service, node), nil
 }
@@ -222,7 +222,7 @@ func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error)
 // SendMsg 发送消息
 func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 	if msg == nil {
-		return fmt.Errorf("%w: msg is nil", golaxy.ErrArgs)
+		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
 	}
 
 	var seq int64

@@ -2,9 +2,9 @@ package gtp_gate
 
 import (
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/log"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/log"
 	"net"
 	"sync/atomic"
 )
@@ -15,7 +15,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			log.Errorf(g.servCtx, "listener %q accept client %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)

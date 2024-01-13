@@ -1,8 +1,8 @@
 package cache_registry
 
 import (
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/registry"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/registry"
 )
 
 // Option 所有选项设置器

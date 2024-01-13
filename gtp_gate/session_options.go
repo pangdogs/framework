@@ -1,10 +1,10 @@
 package gtp_gate
 
 import (
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/transport"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/transport"
 )
 
 type _SessionOption struct{}

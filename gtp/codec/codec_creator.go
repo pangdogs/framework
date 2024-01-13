@@ -2,14 +2,14 @@ package codec
 
 import (
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // CreateDecoder 创建消息包解码器
 func CreateDecoder(msgCreator gtp.IMsgCreator) DecoderCreator {
 	if msgCreator == nil {
-		panic(fmt.Errorf("%w: msgCreator is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: msgCreator is nil", core.ErrArgs))
 	}
 
 	return DecoderCreator{

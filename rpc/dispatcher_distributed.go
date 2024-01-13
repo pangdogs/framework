@@ -3,20 +3,20 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/plugins/distributed"
+	"git.golaxy.org/plugins/gap"
+	"git.golaxy.org/plugins/gap/variant"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/rpc/callpath"
+	"git.golaxy.org/plugins/util/concurrent"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/ec"
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/golaxy/util/uid"
-	"kit.golaxy.org/plugins/distributed"
-	"kit.golaxy.org/plugins/gap"
-	"kit.golaxy.org/plugins/gap/variant"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/rpc/callpath"
-	"kit.golaxy.org/plugins/util/concurrent"
 	"reflect"
 	"strings"
 )
@@ -204,7 +204,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 func (d *DistributedDispatcher) callService(plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -229,7 +229,7 @@ func (d *DistributedDispatcher) callService(plugin, method string, args variant.
 func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -261,7 +261,7 @@ func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method stri
 func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 

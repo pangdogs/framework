@@ -2,9 +2,9 @@ package method
 
 import (
 	"crypto/sha256"
+	"git.golaxy.org/plugins/gtp"
 	"hash"
 	"hash/fnv"
-	"kit.golaxy.org/plugins/gtp"
 )
 
 // NewHash 创建Hash

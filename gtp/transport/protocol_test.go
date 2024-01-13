@@ -3,9 +3,9 @@ package transport
 import (
 	"context"
 	"fmt"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/codec"
 	"math/rand"
 	"net"
 	"sync"

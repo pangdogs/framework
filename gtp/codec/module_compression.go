@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/method"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/method"
-	"kit.golaxy.org/plugins/util/binaryutil"
 	"math"
 )
 
@@ -23,7 +23,7 @@ type ICompressionModule interface {
 // NewCompressionModule 创建压缩模块
 func NewCompressionModule(cs method.CompressionStream) ICompressionModule {
 	if cs == nil {
-		panic(fmt.Errorf("%w: cs is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: cs is nil", core.ErrArgs))
 	}
 
 	return &CompressionModule{
@@ -101,7 +101,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 // Uncompress 解压缩数据
 func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
 	if len(src) <= 0 {
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: src too small", golaxy.ErrArgs)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: src too small", core.ErrArgs)
 	}
 
 	if m.CompressionStream == nil {

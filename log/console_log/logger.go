@@ -2,11 +2,11 @@ package console_log
 
 import (
 	"fmt"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/log"
 	"io"
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/log"
 	"os"
 	goruntime "runtime"
 	"strings"

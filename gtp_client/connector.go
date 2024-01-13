@@ -5,11 +5,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/gtp/codec"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/gtp/codec"
+	"git.golaxy.org/plugins/util/concurrent"
 	"net"
 )
 
@@ -37,7 +37,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			conn.Close()
@@ -74,7 +74,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", golaxy.ErrPanicked, panicErr)
+			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			conn.Close()

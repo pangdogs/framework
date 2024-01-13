@@ -2,8 +2,8 @@ package broker
 
 import (
 	"context"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
 	"strings"
 )
 

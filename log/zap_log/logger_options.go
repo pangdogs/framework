@@ -2,9 +2,9 @@ package zap_log
 
 import (
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/option"
 	"go.uber.org/zap"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/option"
 )
 
 // Option 所有选项设置器
@@ -32,7 +32,7 @@ func (Option) Default() option.Setting[LoggerOptions] {
 func (Option) ZapLogger(logger *zap.Logger) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		if logger == nil {
-			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs))
 		}
 		options.ZapLogger = logger
 	}
@@ -56,7 +56,7 @@ func (Option) RuntimeInfo(b bool) option.Setting[LoggerOptions] {
 func (Option) CallerSkip(skip int) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		if skip < 0 {
-			panic(fmt.Errorf("%w: option CallerSkip can't be set to a value less than 0", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option CallerSkip can't be set to a value less than 0", core.ErrArgs))
 		}
 		options.CallerSkip = skip
 	}

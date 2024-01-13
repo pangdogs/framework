@@ -3,10 +3,10 @@ package gtp_client
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/transport"
+	"git.golaxy.org/plugins/util/concurrent"
 	"go.uber.org/zap"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/util/concurrent"
 	"net"
 	"sync"
 )

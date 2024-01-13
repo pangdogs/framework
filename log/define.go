@@ -1,6 +1,6 @@
 package log
 
-import "kit.golaxy.org/golaxy/define"
+import "git.golaxy.org/core/define"
 
 var (
 	plugin = define.DefinePluginInterface[ILogger]()

@@ -2,7 +2,7 @@ package registry
 
 import (
 	"context"
-	"kit.golaxy.org/golaxy/service"
+	"git.golaxy.org/core/service"
 	"time"
 )
 

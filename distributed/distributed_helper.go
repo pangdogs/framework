@@ -1,10 +1,10 @@
 package distributed
 
 import (
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/plugins/gap"
+	"git.golaxy.org/plugins/util/concurrent"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/plugins/gap"
-	"kit.golaxy.org/plugins/util/concurrent"
 )
 
 // GetAddress 获取地址信息

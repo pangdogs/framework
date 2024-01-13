@@ -2,7 +2,7 @@ package gtp_client
 
 import (
 	"context"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/plugins/util/concurrent"
 	"time"
 )
 

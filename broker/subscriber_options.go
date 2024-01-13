@@ -1,8 +1,8 @@
 package broker
 
 import (
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
 )
 
 // Option is a helper struct to provide default options.

@@ -3,9 +3,9 @@ package redis_dsync
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/plugins/dsync"
+	"git.golaxy.org/plugins/log"
 	"github.com/go-redsync/redsync/v4"
-	"kit.golaxy.org/plugins/dsync"
-	"kit.golaxy.org/plugins/log"
 	"strings"
 )
 

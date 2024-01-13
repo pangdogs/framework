@@ -2,7 +2,7 @@ package transport
 
 import (
 	"fmt"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // RstError Rst错误提示

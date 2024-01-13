@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
 )
 
 // NewUnsequencedSynchronizer 创建无时序同步器缓存
@@ -22,7 +22,7 @@ type UnsequencedSynchronizer struct {
 // WriteTo implements io.WriteTo
 func (s *UnsequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
-		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("%w: w is nil", core.ErrArgs)
 	}
 	return s.Buffer.WriteTo(w)
 }

@@ -1,7 +1,7 @@
 package log
 
 import (
-	gxplugin "kit.golaxy.org/golaxy/plugin"
+	gxplugin "git.golaxy.org/core/plugin"
 )
 
 // Trace logs a message at TraceLevel, spaces are added between operands when neither is a string and a newline is appended.

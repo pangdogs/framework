@@ -1,11 +1,11 @@
 package zap_log
 
 import (
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/log"
 	"go.uber.org/zap"
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/log"
 )
 
 func newLogger(settings ...option.Setting[LoggerOptions]) log.ILogger {

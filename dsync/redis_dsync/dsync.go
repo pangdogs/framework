@@ -1,14 +1,14 @@
 package redis_dsync
 
 import (
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/dsync"
+	"git.golaxy.org/plugins/log"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/dsync"
-	"kit.golaxy.org/plugins/log"
 )
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {

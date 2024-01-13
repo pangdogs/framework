@@ -2,7 +2,7 @@ package transport
 
 import (
 	"errors"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // Retry 网络io超时时重试

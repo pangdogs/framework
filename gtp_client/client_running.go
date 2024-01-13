@@ -3,10 +3,10 @@ package gtp_client
 import (
 	"bytes"
 	"errors"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/codec"
-	"kit.golaxy.org/plugins/gtp/transport"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/codec"
+	"git.golaxy.org/plugins/gtp/transport"
+	"git.golaxy.org/plugins/util/concurrent"
 	"net"
 	"time"
 )

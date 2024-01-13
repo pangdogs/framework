@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gap"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gap"
 )
 
 var (
@@ -21,7 +21,7 @@ func DefaultDecoder() Decoder {
 // MakeDecoder 创建消息包解码器
 func MakeDecoder(mc gap.IMsgCreator) Decoder {
 	if mc == nil {
-		panic(fmt.Errorf("gap: %w: mc is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("gap: %w: mc is nil", core.ErrArgs))
 	}
 	return Decoder{
 		MsgCreator: mc,
@@ -42,7 +42,7 @@ func (d *Decoder) Write(p []byte) (int, error) {
 // ReadFrom implements io.ReaderFrom
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 	if r == nil {
-		return 0, fmt.Errorf("gap: %w: r is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("gap: %w: r is nil", core.ErrArgs)
 	}
 
 	var buff [bytes.MinRead]byte

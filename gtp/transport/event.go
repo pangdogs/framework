@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // Event 消息事件

@@ -3,8 +3,8 @@ package gtp_client
 import (
 	"context"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/option"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/option"
 )
 
 // Connect 连接服务端
@@ -18,7 +18,7 @@ func Connect(ctx context.Context, endpoint string, settings ...option.Setting[Cl
 // Reonnect 重连服务端
 func Reonnect(client *Client) error {
 	if client == nil {
-		return fmt.Errorf("%w: client is nil", golaxy.ErrArgs)
+		return fmt.Errorf("%w: client is nil", core.ErrArgs)
 	}
 
 	connector := _Connector{

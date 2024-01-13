@@ -1,8 +1,8 @@
 package gap
 
 import (
-	"kit.golaxy.org/plugins/gap/variant"
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/plugins/gap/variant"
+	"git.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgRPCRequest RPC请求

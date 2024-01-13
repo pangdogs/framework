@@ -4,11 +4,11 @@ import (
 	"crypto"
 	"crypto/tls"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/transport"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/transport"
 	"math/big"
 	"net"
 	"time"
@@ -109,7 +109,7 @@ func (_GateOption) Endpoints(endpoints ...string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		for _, endpoint := range endpoints {
 			if _, _, err := net.SplitHostPort(endpoint); err != nil {
-				panic(fmt.Errorf("%w: %w", golaxy.ErrArgs, err))
+				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 			}
 		}
 		options.Endpoints = endpoints
@@ -173,7 +173,7 @@ func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 func (_GateOption) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if mc == nil {
-			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
 		}
 		options.DecoderMsgCreator = mc
 	}
@@ -302,7 +302,7 @@ func (_GateOption) SessionRecvEventHandler(handler SessionRecvEventHandler) opti
 func (_GateOption) FutureTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if d <= 0 {
-			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs))
 		}
 		options.FutureTimeout = d
 	}

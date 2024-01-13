@@ -2,7 +2,7 @@ package method
 
 import (
 	"errors"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // Padding 填充方案

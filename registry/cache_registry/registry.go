@@ -3,12 +3,12 @@ package cache_registry
 import (
 	"context"
 	"errors"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/registry"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/registry"
 	"reflect"
 	"sync"
 )
@@ -45,7 +45,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 	log.Infof(r.servCtx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.IRegistry).Elem()))
 
-	if init, ok := r.IRegistry.(golaxy.LifecycleServicePluginInit); ok {
+	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
 		init.InitSP(r.servCtx)
 	}
 
@@ -86,7 +86,7 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 	r.cancel()
 	r.wg.Wait()
 
-	if shut, ok := r.IRegistry.(golaxy.LifecycleServicePluginShut); ok {
+	if shut, ok := r.IRegistry.(core.LifecycleServicePluginShut); ok {
 		shut.ShutSP(ctx)
 	}
 }

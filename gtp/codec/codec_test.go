@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/method"
 	"hash/fnv"
 	"io"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/method"
 	"testing"
 )
 
