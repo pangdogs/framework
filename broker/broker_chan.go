@@ -2,11 +2,11 @@ package broker
 
 import (
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/log"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/log"
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
@@ -16,7 +16,7 @@ func MakeWriteChan(servCtx service.Context, topic string, size int) chan<- []byt
 	go func() {
 		defer func() {
 			if info := recover(); info != nil {
-				log.Errorf(servCtx, "%s: publish data to topic %q failed, %s", golaxy.ErrPanicked, topic, info)
+				log.Errorf(servCtx, "%s: publish data to topic %q failed, %s", core.ErrPanicked, topic, info)
 			}
 		}()
 

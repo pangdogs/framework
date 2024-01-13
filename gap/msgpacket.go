@@ -1,6 +1,6 @@
 package gap
 
-import "kit.golaxy.org/plugins/util/binaryutil"
+import "git.golaxy.org/plugins/util/binaryutil"
 
 // MsgPacket 消息包
 type MsgPacket struct {

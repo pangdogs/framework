@@ -2,7 +2,7 @@ package variant
 
 import (
 	"errors"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/plugins/util/concurrent"
 	"reflect"
 )
 

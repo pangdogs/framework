@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // IEncoder 消息包编码器接口
@@ -45,7 +45,7 @@ func (e *Encoder) Read(p []byte) (int, error) {
 // WriteTo implements io.WriterTo
 func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
-		return 0, fmt.Errorf("gtp: %w: w is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("gtp: %w: w is nil", core.ErrArgs)
 	}
 	return e.buffer.WriteTo(w)
 }
@@ -63,7 +63,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) error {
 // EncodeWriter 编码消息包，写入指定writer
 func (e *Encoder) EncodeWriter(writer io.Writer, flags gtp.Flags, msg gtp.MsgReader) error {
 	if writer == nil {
-		return fmt.Errorf("gtp: %w: writer is nil", golaxy.ErrArgs)
+		return fmt.Errorf("gtp: %w: writer is nil", core.ErrArgs)
 	}
 
 	mpBuf, err := e.encode(flags, msg)
@@ -83,7 +83,7 @@ func (e *Encoder) EncodeWriter(writer io.Writer, flags gtp.Flags, msg gtp.MsgRea
 // EncodeBuff 编码消息包，写入指定buffer
 func (e *Encoder) EncodeBuff(buff *bytes.Buffer, flags gtp.Flags, msg gtp.MsgReader) error {
 	if buff == nil {
-		return fmt.Errorf("gtp: %w: buff is nil", golaxy.ErrArgs)
+		return fmt.Errorf("gtp: %w: buff is nil", core.ErrArgs)
 	}
 	return e.EncodeWriter(buff, flags, msg)
 }
@@ -96,7 +96,7 @@ func (e *Encoder) EncodeBytes(flags gtp.Flags, msg gtp.MsgReader) (binaryutil.Re
 // encode 编码消息包
 func (e *Encoder) encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("gtp: %w: msg is nil", golaxy.ErrArgs)
+		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("gtp: %w: msg is nil", core.ErrArgs)
 	}
 
 	head := gtp.MsgHead{}

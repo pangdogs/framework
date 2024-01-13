@@ -1,8 +1,8 @@
 package transport
 
 import (
+	"git.golaxy.org/plugins/gtp/codec"
 	"io"
-	"kit.golaxy.org/plugins/gtp/codec"
 )
 
 // ISynchronizer 同步器缓存

@@ -4,12 +4,12 @@ import (
 	"crypto"
 	"crypto/tls"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp/transport"
 	"go.uber.org/zap"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/gtp/transport"
 	"time"
 )
 
@@ -159,7 +159,7 @@ func (Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
 func (Option) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
-			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
 		}
 		options.DecoderMsgCreator = mc
 	}
@@ -310,7 +310,7 @@ func (Option) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
 func (Option) ZapLogger(logger *zap.Logger) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if logger == nil {
-			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs))
 		}
 		options.ZapLogger = logger
 	}

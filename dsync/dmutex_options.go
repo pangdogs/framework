@@ -2,10 +2,10 @@ package dsync
 
 import (
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/uid"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/uid"
 	"math/rand"
 	"time"
 )
@@ -83,7 +83,7 @@ func (Option) RetryDelay(delay time.Duration) option.Setting[DMutexOptions] {
 func (Option) RetryDelayFunc(fn DelayFunc) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		if fn == nil {
-			panic(fmt.Errorf("%w: option DelayFunc can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option DelayFunc can't be assigned to nil", core.ErrArgs))
 		}
 		options.DelayFunc = fn
 	}
@@ -107,7 +107,7 @@ func (Option) TimeoutFactor(factor float64) option.Setting[DMutexOptions] {
 func (Option) GenValueFunc(fn GenValueFunc) option.Setting[DMutexOptions] {
 	return func(options *DMutexOptions) {
 		if fn == nil {
-			panic(fmt.Errorf("%w: option GenValueFunc can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option GenValueFunc can't be assigned to nil", core.ErrArgs))
 		}
 		options.GenValueFunc = fn
 	}

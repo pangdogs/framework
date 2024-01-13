@@ -2,12 +2,12 @@ package etcd_dsync
 
 import (
 	"crypto/tls"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/dsync"
+	"git.golaxy.org/plugins/log"
 	etcd_client "go.etcd.io/etcd/client/v3"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/dsync"
-	"kit.golaxy.org/plugins/log"
 )
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {

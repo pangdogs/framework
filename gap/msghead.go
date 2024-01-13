@@ -1,7 +1,7 @@
 package gap
 
 import (
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/plugins/util/binaryutil"
 )
 
 // MsgHead 消息头

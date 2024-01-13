@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/registry"
 	"github.com/redis/go-redis/v9"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/registry"
 	"net"
 	"strings"
 )

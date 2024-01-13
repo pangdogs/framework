@@ -1,6 +1,6 @@
 package rpc
 
-import "kit.golaxy.org/golaxy/util/option"
+import "git.golaxy.org/core/util/option"
 
 type Option struct{}
 

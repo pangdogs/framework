@@ -1,7 +1,7 @@
 package gtp_gate
 
 import (
-	"kit.golaxy.org/golaxy/service"
+	"git.golaxy.org/core/service"
 )
 
 // GetSession 查询会话

@@ -3,8 +3,8 @@ package concurrent
 import (
 	"context"
 	"errors"
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/util/generic"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/util/generic"
 	"math/rand"
 	"sync"
 	"sync/atomic"

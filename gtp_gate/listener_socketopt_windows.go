@@ -3,7 +3,7 @@
 package gtp_gate
 
 import (
-	"kit.golaxy.org/golaxy/util/types"
+	"git.golaxy.org/core/util/types"
 	"net"
 	"syscall"
 )

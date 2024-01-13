@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/plugins/gap/variant"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/plugins/gap/variant"
 )
 
 func Results(ret runtime.Ret) ([]any, error) {

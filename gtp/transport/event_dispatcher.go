@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/gtp"
 )
 
 type (
@@ -58,7 +58,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 	}
 
 	if ctx == nil {
-		errorHandler.Invoke(nil, fmt.Errorf("%w: ctx is nil", golaxy.ErrArgs))
+		errorHandler.Invoke(nil, fmt.Errorf("%w: ctx is nil", core.ErrArgs))
 		return
 	}
 

@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/plugins/util/binaryutil"
 )
 
 // SyncTime消息标志位

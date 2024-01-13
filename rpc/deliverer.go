@@ -2,8 +2,8 @@ package rpc
 
 import (
 	"errors"
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
 )
 
 var (

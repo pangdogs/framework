@@ -2,11 +2,11 @@ package distributed
 
 import (
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/gap"
-	"kit.golaxy.org/plugins/registry"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/gap"
+	"git.golaxy.org/plugins/registry"
 	"time"
 )
 
@@ -75,7 +75,7 @@ func (Option) Domain(domain string) option.Setting[DistributedOptions] {
 func (Option) RefreshInterval(d time.Duration) option.Setting[DistributedOptions] {
 	return func(o *DistributedOptions) {
 		if d <= 0 {
-			panic(fmt.Errorf("%w: option RefreshInterval can't be set to a value less equal 0", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option RefreshInterval can't be set to a value less equal 0", core.ErrArgs))
 		}
 		o.RefreshInterval = d
 	}
@@ -85,7 +85,7 @@ func (Option) RefreshInterval(d time.Duration) option.Setting[DistributedOptions
 func (Option) FutureTimeout(d time.Duration) option.Setting[DistributedOptions] {
 	return func(options *DistributedOptions) {
 		if d <= 0 {
-			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs))
 		}
 		options.FutureTimeout = d
 	}
@@ -95,7 +95,7 @@ func (Option) FutureTimeout(d time.Duration) option.Setting[DistributedOptions] 
 func (Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistributedOptions] {
 	return func(options *DistributedOptions) {
 		if mc == nil {
-			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
 		}
 		options.DecoderMsgCreator = mc
 	}

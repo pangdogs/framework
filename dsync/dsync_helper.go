@@ -1,8 +1,8 @@
 package dsync
 
 import (
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/option"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/option"
 	"strings"
 )
 

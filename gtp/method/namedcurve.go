@@ -2,7 +2,7 @@ package method
 
 import (
 	"crypto/ecdh"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/gtp"
 )
 
 // NewNamedCurve 创建曲线

@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"hash"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 var (
@@ -27,11 +27,11 @@ type IMACModule interface {
 // NewMACModule 创建MAC模块
 func NewMACModule(h hash.Hash, pk []byte) IMACModule {
 	if h == nil {
-		panic(fmt.Errorf("%w: h is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: h is nil", core.ErrArgs))
 	}
 
 	if len(pk) <= 0 {
-		panic(fmt.Errorf("%w: len(pk) <= 0", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: len(pk) <= 0", core.ErrArgs))
 	}
 
 	return &MACModule{

@@ -1,7 +1,7 @@
 package zap_log
 
 import (
-	"kit.golaxy.org/golaxy/define"
+	"git.golaxy.org/core/define"
 )
 
 var (

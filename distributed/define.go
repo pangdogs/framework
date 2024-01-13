@@ -1,7 +1,7 @@
 package distributed
 
 import (
-	"kit.golaxy.org/golaxy/define"
+	"git.golaxy.org/core/define"
 )
 
 var (

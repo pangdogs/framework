@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/types"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/types"
 	"math"
 )
 
@@ -23,7 +23,7 @@ func (*noCopy) Unlock() {}
 
 func NewByteStream(p []byte, endian binary.ByteOrder) ByteStream {
 	if endian == nil {
-		panic(fmt.Errorf("%w: endian is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: endian is nil", core.ErrArgs))
 	}
 	return ByteStream{
 		sp:     p,
@@ -55,14 +55,14 @@ type ByteStream struct {
 
 func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
 	if reader == nil {
-		return 0, fmt.Errorf("%w: reader is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("%w: reader is nil", core.ErrArgs)
 	}
 	return ReadFrom(s, reader)
 }
 
 func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {
 	if writer == nil {
-		return 0, fmt.Errorf("%w: writer is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("%w: writer is nil", core.ErrArgs)
 	}
 	n, err := writer.Write(s.rp)
 	s.rp = s.rp[n:]

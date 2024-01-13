@@ -1,6 +1,6 @@
 package dsync
 
-import "kit.golaxy.org/golaxy/define"
+import "git.golaxy.org/core/define"
 
 var (
 	plugin = define.DefineServicePluginInterface[IDistSync]()

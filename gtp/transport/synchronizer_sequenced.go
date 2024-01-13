@@ -2,10 +2,10 @@ package transport
 
 import (
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/util/binaryutil"
 	"sync/atomic"
 )
 
@@ -86,7 +86,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 // WriteTo implements io.WriteTo
 func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
-		return 0, fmt.Errorf("%w: w is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("%w: w is nil", core.ErrArgs)
 	}
 
 	var wn int64

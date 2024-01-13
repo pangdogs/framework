@@ -3,20 +3,20 @@ package codec
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"hash"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 // NewMAC32Module 创建MAC32模块
 func NewMAC32Module(h hash.Hash32, pk []byte) IMACModule {
 	if h == nil {
-		panic(fmt.Errorf("%w: h is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: h is nil", core.ErrArgs))
 	}
 
 	if len(pk) <= 0 {
-		panic(fmt.Errorf("%w: len(pk) <= 0", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: len(pk) <= 0", core.ErrArgs))
 	}
 
 	return &MAC32Module{

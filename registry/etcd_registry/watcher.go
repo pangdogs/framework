@@ -2,9 +2,9 @@ package etcd_registry
 
 import (
 	"context"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/registry"
 	etcd_client "go.etcd.io/etcd/client/v3"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/registry"
 	"strings"
 )
 

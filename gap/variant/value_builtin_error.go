@@ -3,7 +3,7 @@ package variant
 import (
 	"errors"
 	"fmt"
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/plugins/util/binaryutil"
 )
 
 func MakeError(err error) *Error {

@@ -1,7 +1,7 @@
 package cache_registry
 
 import (
-	"kit.golaxy.org/golaxy/define"
+	"git.golaxy.org/core/define"
 )
 
 var (

@@ -2,9 +2,9 @@ package nats_broker
 
 import (
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/option"
 	"github.com/nats-io/nats.go"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/option"
 	"net"
 	"strings"
 )
@@ -73,7 +73,7 @@ func (Option) FastAddresses(addrs ...string) option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", golaxy.ErrArgs, err))
+				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 			}
 		}
 		options.FastAddresses = addrs

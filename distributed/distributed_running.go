@@ -3,10 +3,10 @@ package distributed
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/plugins/broker"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/registry"
 	"golang.org/x/net/context"
-	"kit.golaxy.org/plugins/broker"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/registry"
 	"time"
 )
 

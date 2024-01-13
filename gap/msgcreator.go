@@ -3,8 +3,8 @@ package gap
 import (
 	"errors"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/util/concurrent"
 	"reflect"
 )
 
@@ -50,7 +50,7 @@ type _MsgCreator struct {
 // Register 注册消息
 func (c *_MsgCreator) Register(msg Msg) {
 	if msg == nil {
-		panic(fmt.Errorf("%w: msg is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: msg is nil", core.ErrArgs))
 	}
 
 	c.msgTypeMap.Insert(msg.MsgId(), reflect.TypeOf(msg).Elem())

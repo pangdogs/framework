@@ -1,7 +1,7 @@
 package variant
 
 import (
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"reflect"
 )
 

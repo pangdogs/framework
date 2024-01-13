@@ -1,14 +1,14 @@
 package rpc
 
 import (
-	"kit.golaxy.org/golaxy/runtime"
-	"kit.golaxy.org/golaxy/service"
-	"kit.golaxy.org/golaxy/util/types"
-	"kit.golaxy.org/plugins/distributed"
-	"kit.golaxy.org/plugins/gap"
-	"kit.golaxy.org/plugins/gap/variant"
-	"kit.golaxy.org/plugins/log"
-	"kit.golaxy.org/plugins/util/concurrent"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/distributed"
+	"git.golaxy.org/plugins/gap"
+	"git.golaxy.org/plugins/gap/variant"
+	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/util/concurrent"
 	"strings"
 )
 

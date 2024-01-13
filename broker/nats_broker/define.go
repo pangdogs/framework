@@ -1,7 +1,7 @@
 package nats_broker
 
 import (
-	"kit.golaxy.org/golaxy/define"
+	"git.golaxy.org/core/define"
 )
 
 var (

@@ -2,9 +2,9 @@ package console_log
 
 import (
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/option"
-	"kit.golaxy.org/plugins/log"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/plugins/log"
 	"time"
 )
 
@@ -90,7 +90,7 @@ func (Option) CallerFullName(b bool) option.Setting[LoggerOptions] {
 func (Option) CallerSkip(skip int) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		if skip < 0 {
-			panic(fmt.Errorf("%w: option CallerSkip can't be set to a value less than 0", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: option CallerSkip can't be set to a value less than 0", core.ErrArgs))
 		}
 		options.CallerSkip = skip
 	}

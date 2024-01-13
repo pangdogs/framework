@@ -3,11 +3,11 @@ package method
 import (
 	"compress/flate"
 	"compress/gzip"
+	"git.golaxy.org/plugins/gtp"
 	"github.com/andybalholm/brotli"
 	"github.com/golang/snappy"
 	"github.com/pierrec/lz4/v4"
 	"io"
-	"kit.golaxy.org/plugins/gtp"
 )
 
 var (

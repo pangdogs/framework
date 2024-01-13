@@ -2,8 +2,8 @@ package transport
 
 import (
 	"errors"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/gtp"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/gtp"
 )
 
 type (

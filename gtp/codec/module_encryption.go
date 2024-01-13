@@ -3,10 +3,10 @@ package codec
 import (
 	"errors"
 	"fmt"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/golaxy/util/generic"
-	"kit.golaxy.org/plugins/gtp/method"
-	"kit.golaxy.org/plugins/util/binaryutil"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/plugins/gtp/method"
+	"git.golaxy.org/plugins/util/binaryutil"
 )
 
 // IEncryptionModule 加密模块接口
@@ -24,18 +24,18 @@ type (
 // NewEncryptionModule 创建加密模块
 func NewEncryptionModule(cipher method.Cipher, padding method.Padding, fetchNonce FetchNonce) IEncryptionModule {
 	if cipher == nil {
-		panic(fmt.Errorf("%w: cipher is nil", golaxy.ErrArgs))
+		panic(fmt.Errorf("%w: cipher is nil", core.ErrArgs))
 	}
 
 	if cipher.Pad() || cipher.Unpad() {
 		if padding == nil {
-			panic(fmt.Errorf("%w: padding is nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: padding is nil", core.ErrArgs))
 		}
 	}
 
 	if cipher.NonceSize() > 0 {
 		if fetchNonce == nil {
-			panic(fmt.Errorf("%w: fetchNonce is nil", golaxy.ErrArgs))
+			panic(fmt.Errorf("%w: fetchNonce is nil", core.ErrArgs))
 		}
 	}
 

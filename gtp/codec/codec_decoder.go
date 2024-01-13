@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/plugins/gtp"
+	"git.golaxy.org/plugins/util/binaryutil"
 	"io"
-	"kit.golaxy.org/golaxy"
-	"kit.golaxy.org/plugins/gtp"
-	"kit.golaxy.org/plugins/util/binaryutil"
 )
 
 var (
@@ -54,7 +54,7 @@ func (d *Decoder) Write(p []byte) (int, error) {
 // ReadFrom implements io.ReaderFrom
 func (d *Decoder) ReadFrom(r io.Reader) (int64, error) {
 	if r == nil {
-		return 0, fmt.Errorf("gtp: %w: r is nil", golaxy.ErrArgs)
+		return 0, fmt.Errorf("gtp: %w: r is nil", core.ErrArgs)
 	}
 
 	var buff [bytes.MinRead]byte
@@ -80,7 +80,7 @@ func (d *Decoder) Decode(validate ...IValidate) (gtp.MsgPacket, error) {
 // DecodeBuff 从指定buff，解码消息包
 func (d *Decoder) DecodeBuff(buff *bytes.Buffer, validate ...IValidate) (gtp.MsgPacket, error) {
 	if buff == nil {
-		return gtp.MsgPacket{}, fmt.Errorf("gtp: %w: buff is nil", golaxy.ErrArgs)
+		return gtp.MsgPacket{}, fmt.Errorf("gtp: %w: buff is nil", core.ErrArgs)
 	}
 
 	// 探测消息包长度
