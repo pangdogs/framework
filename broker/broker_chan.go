@@ -1,12 +1,12 @@
 package broker
 
 import (
+	"context"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/plugins/log"
-	"golang.org/x/net/context"
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.

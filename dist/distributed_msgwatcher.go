@@ -1,8 +1,8 @@
 package dist
 
 import (
+	"context"
 	"github.com/elliotchance/pie/v2"
-	"golang.org/x/net/context"
 )
 
 func (d *_Distributed) newMsgWatcher(ctx context.Context, handler RecvMsgHandler) *_MsgWatcher {

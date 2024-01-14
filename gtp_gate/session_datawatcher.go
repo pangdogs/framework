@@ -1,8 +1,8 @@
 package gtp_gate
 
 import (
+	"context"
 	"github.com/elliotchance/pie/v2"
-	"golang.org/x/net/context"
 )
 
 func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {

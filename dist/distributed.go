@@ -1,6 +1,7 @@
 package dist
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
@@ -15,7 +16,6 @@ import (
 	"git.golaxy.org/plugins/log"
 	"git.golaxy.org/plugins/registry"
 	"git.golaxy.org/plugins/util/concurrent"
-	"golang.org/x/net/context"
 	"sync"
 )
 
