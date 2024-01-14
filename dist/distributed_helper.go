@@ -1,10 +1,10 @@
 package dist
 
 import (
+	"context"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/plugins/gap"
 	"git.golaxy.org/plugins/util/concurrent"
-	"golang.org/x/net/context"
 )
 
 // GetAddress 获取地址信息

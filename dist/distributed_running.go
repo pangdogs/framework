@@ -1,12 +1,12 @@
 package dist
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/plugins/broker"
 	"git.golaxy.org/plugins/log"
 	"git.golaxy.org/plugins/registry"
-	"golang.org/x/net/context"
 	"time"
 )
 

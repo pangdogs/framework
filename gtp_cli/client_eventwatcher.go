@@ -1,8 +1,8 @@
 package gtp_cli
 
 import (
+	"context"
 	"github.com/elliotchance/pie/v2"
-	"golang.org/x/net/context"
 )
 
 func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) *_EventWatcher {

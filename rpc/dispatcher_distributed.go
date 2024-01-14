@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
@@ -16,7 +17,6 @@ import (
 	"git.golaxy.org/plugins/log"
 	"git.golaxy.org/plugins/rpc/callpath"
 	"git.golaxy.org/plugins/util/concurrent"
-	"golang.org/x/net/context"
 	"reflect"
 	"strings"
 )

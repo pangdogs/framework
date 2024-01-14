@@ -1,8 +1,8 @@
 package concurrent
 
 import (
+	"context"
 	"git.golaxy.org/core/runtime"
-	"golang.org/x/net/context"
 	"time"
 )
 
