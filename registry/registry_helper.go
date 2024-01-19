@@ -7,12 +7,12 @@ import (
 )
 
 // Register 注册服务
-func Register(servCtx service.Context, ctx context.Context, service Service, ttl time.Duration) error {
+func Register(servCtx service.Context, ctx context.Context, service *Service, ttl time.Duration) error {
 	return Using(servCtx).Register(ctx, service, ttl)
 }
 
 // Deregister 取消注册服务
-func Deregister(servCtx service.Context, ctx context.Context, service Service) error {
+func Deregister(servCtx service.Context, ctx context.Context, service *Service) error {
 	return Using(servCtx).Deregister(ctx, service)
 }
 

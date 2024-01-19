@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (d *_Distributed) mainLoop(serviceNode registry.Service, subs []broker.ISubscriber) {
+func (d *_Distributed) mainLoop(serviceNode *registry.Service, subs []broker.ISubscriber) {
 	defer d.wg.Done()
 
 	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
