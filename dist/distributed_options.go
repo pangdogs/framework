@@ -6,7 +6,6 @@ import (
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/plugins/gap"
-	"git.golaxy.org/plugins/registry"
 	"time"
 )
 
@@ -19,22 +18,20 @@ type (
 
 // DistributedOptions 所有选项
 type DistributedOptions struct {
-	Version           string              // 服务版本号
-	Metadata          map[string]string   // 服务元数据，以键值对的形式保存附加信息
-	Endpoints         []registry.Endpoint // 服务端点列表
-	Domain            string              // 服务地址域
-	RefreshInterval   time.Duration       // 服务信息刷新间隔
-	FutureTimeout     time.Duration       // 异步模型Future超时时间
-	DecoderMsgCreator gap.IMsgCreator     // 消息包解码器的消息构建器
-	RecvMsgHandler    RecvMsgHandler      // 接收消息的处理器（优先级低于监控器）
+	Version           string            // 服务版本号
+	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
+	Domain            string            // 服务地址域
+	RefreshInterval   time.Duration     // 服务信息刷新间隔
+	FutureTimeout     time.Duration     // 异步模型Future超时时间
+	DecoderMsgCreator gap.IMsgCreator   // 消息包解码器的消息构建器
+	RecvMsgHandler    RecvMsgHandler    // 接收消息的处理器（优先级低于监控器）
 }
 
 // Default 默认值
 func (Option) Default() option.Setting[DistributedOptions] {
 	return func(options *DistributedOptions) {
 		Option{}.Version("")(options)
-		Option{}.Metadata(nil)(options)
-		Option{}.Endpoints(nil)(options)
+		Option{}.Meta(nil)(options)
 		Option{}.Domain("service")(options)
 		Option{}.RefreshInterval(3 * time.Second)(options)
 		Option{}.FutureTimeout(5 * time.Second)(options)
@@ -50,17 +47,10 @@ func (Option) Version(version string) option.Setting[DistributedOptions] {
 	}
 }
 
-// Metadata 服务元数据，以键值对的形式保存附加信息
-func (Option) Metadata(meta map[string]string) option.Setting[DistributedOptions] {
+// Meta 服务元数据，以键值对的形式保存附加信息
+func (Option) Meta(meta map[string]string) option.Setting[DistributedOptions] {
 	return func(o *DistributedOptions) {
-		o.Metadata = meta
-	}
-}
-
-// Endpoints 服务端点列表
-func (Option) Endpoints(endpoints []registry.Endpoint) option.Setting[DistributedOptions] {
-	return func(o *DistributedOptions) {
-		o.Endpoints = endpoints
+		o.Meta = meta
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
+func (s *_DistSync) newMutex(name string, options dsync.DistMutexOptions) *_DistMutex {
 	if s.options.KeyPrefix != "" {
 		name = s.options.KeyPrefix + name
 	}
@@ -24,26 +24,26 @@ func (s *_Dsync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
 		redsync.WithValue(options.Value),
 	)
 
-	log.Debugf(s.servCtx, "new dsync mutex %q", name)
+	log.Debugf(s.servCtx, "new dist mutex %q", name)
 
-	return &_DMutex{
+	return &_DistMutex{
 		dsync: s,
 		Mutex: mutex,
 	}
 }
 
-type _DMutex struct {
-	dsync *_Dsync
+type _DistMutex struct {
+	dsync *_DistSync
 	*redsync.Mutex
 }
 
 // Name returns mutex name.
-func (m *_DMutex) Name() string {
+func (m *_DistMutex) Name() string {
 	return strings.TrimPrefix(m.Mutex.Name(), m.dsync.options.KeyPrefix)
 }
 
 // Lock locks m. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
-func (m *_DMutex) Lock(ctx context.Context) error {
+func (m *_DistMutex) Lock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -52,13 +52,13 @@ func (m *_DMutex) Lock(ctx context.Context) error {
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is locked", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is locked", m.Mutex.Name())
 
 	return nil
 }
 
 // Unlock unlocks m and returns the status of unlock.
-func (m *_DMutex) Unlock(ctx context.Context) error {
+func (m *_DistMutex) Unlock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -72,13 +72,13 @@ func (m *_DMutex) Unlock(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is unlocked", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is unlocked", m.Mutex.Name())
 
 	return nil
 }
 
 // Extend resets the mutex's expiry and returns the status of expiry extension.
-func (m *_DMutex) Extend(ctx context.Context) error {
+func (m *_DistMutex) Extend(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -92,7 +92,7 @@ func (m *_DMutex) Extend(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is extended", m.Mutex.Name())
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is extended", m.Mutex.Name())
 
 	return nil
 }
@@ -100,7 +100,7 @@ func (m *_DMutex) Extend(ctx context.Context) error {
 // Valid returns true if the lock acquired through m is still valid. It may
 // also return true erroneously if quorum is achieved during the call and at
 // least one node then takes long enough to respond for the lock to expire.
-func (m *_DMutex) Valid(ctx context.Context) (bool, error) {
+func (m *_DistMutex) Valid(ctx context.Context) (bool, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

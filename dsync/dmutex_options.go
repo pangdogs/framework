@@ -20,8 +20,8 @@ type (
 	GenValueFunc = generic.PairFunc0[string, error]
 )
 
-// DMutexOptions represents the options for acquiring a distributed mutex.
-type DMutexOptions struct {
+// DistMutexOptions represents the options for acquiring a distributed mutex.
+type DistMutexOptions struct {
 	Expiry        time.Duration
 	Tries         int
 	DelayFunc     DelayFunc
@@ -32,11 +32,11 @@ type DMutexOptions struct {
 }
 
 // Default sets the default options for acquiring a distributed mutex.
-func (Option) Default() option.Setting[DMutexOptions] {
+func (Option) Default() option.Setting[DistMutexOptions] {
 	defaultRetryDelayFunc := func(tries int) time.Duration {
 		const (
-			minRetryDelayMilliSec = 50
-			maxRetryDelayMilliSec = 250
+			minRetryDelayMilliSec = 10
+			maxRetryDelayMilliSec = 150
 		)
 		return time.Duration(rand.Intn(maxRetryDelayMilliSec-minRetryDelayMilliSec)+minRetryDelayMilliSec) * time.Millisecond
 	}
@@ -45,34 +45,34 @@ func (Option) Default() option.Setting[DMutexOptions] {
 		return string(uid.New()), nil
 	}
 
-	return func(options *DMutexOptions) {
-		Option{}.Expiry(8 * time.Second)(options)
-		Option{}.Tries(32)(options)
+	return func(options *DistMutexOptions) {
+		Option{}.Expiry(3 * time.Second)(options)
+		Option{}.Tries(15)(options)
 		Option{}.RetryDelayFunc(defaultRetryDelayFunc)(options)
 		Option{}.DriftFactor(0.01)(options)
-		Option{}.TimeoutFactor(0.05)(options)
+		Option{}.TimeoutFactor(0.10)(options)
 		Option{}.GenValueFunc(defaultGenValueFunc)(options)
 		Option{}.Value("")(options)
 	}
 }
 
 // Expiry can be used to set the expiry of a mutex to the given value.
-func (Option) Expiry(expiry time.Duration) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) Expiry(expiry time.Duration) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.Expiry = expiry
 	}
 }
 
 // Tries can be used to set the number of times lock acquire is attempted.
-func (Option) Tries(tries int) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) Tries(tries int) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.Tries = tries
 	}
 }
 
 // RetryDelay can be used to set the amount of time to wait between retries.
-func (Option) RetryDelay(delay time.Duration) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) RetryDelay(delay time.Duration) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.DelayFunc = func(tries int) time.Duration {
 			return delay
 		}
@@ -80,8 +80,8 @@ func (Option) RetryDelay(delay time.Duration) option.Setting[DMutexOptions] {
 }
 
 // RetryDelayFunc can be used to override default delay behavior.
-func (Option) RetryDelayFunc(fn DelayFunc) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) RetryDelayFunc(fn DelayFunc) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		if fn == nil {
 			panic(fmt.Errorf("%w: option DelayFunc can't be assigned to nil", core.ErrArgs))
 		}
@@ -90,22 +90,22 @@ func (Option) RetryDelayFunc(fn DelayFunc) option.Setting[DMutexOptions] {
 }
 
 // DriftFactor can be used to set the clock drift factor.
-func (Option) DriftFactor(factor float64) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) DriftFactor(factor float64) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.DriftFactor = factor
 	}
 }
 
 // TimeoutFactor can be used to set the timeout factor.
-func (Option) TimeoutFactor(factor float64) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) TimeoutFactor(factor float64) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.TimeoutFactor = factor
 	}
 }
 
 // GenValueFunc can be used to set the custom value generator.
-func (Option) GenValueFunc(fn GenValueFunc) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) GenValueFunc(fn GenValueFunc) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		if fn == nil {
 			panic(fmt.Errorf("%w: option GenValueFunc can't be assigned to nil", core.ErrArgs))
 		}
@@ -115,8 +115,8 @@ func (Option) GenValueFunc(fn GenValueFunc) option.Setting[DMutexOptions] {
 
 // Value can be used to assign the random value without having to call lock.
 // This allows the ownership of a lock to be "transferred" and allows the lock to be unlocked from elsewhere.
-func (Option) Value(v string) option.Setting[DMutexOptions] {
-	return func(options *DMutexOptions) {
+func (Option) Value(v string) option.Setting[DistMutexOptions] {
+	return func(options *DistMutexOptions) {
 		options.Value = v
 	}
 }
