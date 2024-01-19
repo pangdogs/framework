@@ -22,9 +22,9 @@ var (
 // {consul, etcd, zookeeper, ...}
 type IRegistry interface {
 	// Register 注册服务
-	Register(ctx context.Context, service Service, ttl time.Duration) error
+	Register(ctx context.Context, service *Service, ttl time.Duration) error
 	// Deregister 取消注册服务
-	Deregister(ctx context.Context, service Service) error
+	Deregister(ctx context.Context, service *Service) error
 	// GetServiceNode 查询服务节点
 	GetServiceNode(ctx context.Context, serviceName, nodeId string) (*Service, error)
 	// GetService 查询服务

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/types"
@@ -69,9 +70,13 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 }
 
 // Register 注册服务
-func (r *_Registry) Register(ctx context.Context, service registry.Service, ttl time.Duration) error {
+func (r *_Registry) Register(ctx context.Context, service *registry.Service, ttl time.Duration) error {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	if service == nil {
+		return fmt.Errorf("%w: %w: serivce is nil", registry.ErrRegistry, core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
@@ -80,7 +85,9 @@ func (r *_Registry) Register(ctx context.Context, service registry.Service, ttl 
 
 	var errs []error
 
-	for _, node := range service.Nodes {
+	for i := range service.Nodes {
+		node := &service.Nodes[i]
+
 		if err := r.registerNode(ctx, service, node, ttl); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
@@ -94,9 +101,13 @@ func (r *_Registry) Register(ctx context.Context, service registry.Service, ttl 
 }
 
 // Deregister 取消注册服务
-func (r *_Registry) Deregister(ctx context.Context, service registry.Service) error {
+func (r *_Registry) Deregister(ctx context.Context, service *registry.Service) error {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	if service == nil {
+		return fmt.Errorf("%w: %w: serivce is nil", registry.ErrRegistry, core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
@@ -105,7 +116,9 @@ func (r *_Registry) Deregister(ctx context.Context, service registry.Service) er
 
 	var errs []error
 
-	for _, node := range service.Nodes {
+	for i := range service.Nodes {
+		node := &service.Nodes[i]
+
 		if err := r.deregisterNode(ctx, service, node); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
@@ -278,7 +291,7 @@ func (r *_Registry) configure() *redis.Options {
 	return conf
 }
 
-func (r *_Registry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
+func (r *_Registry) registerNode(ctx context.Context, service *registry.Service, node *registry.Node, ttl time.Duration) error {
 	if service.Name == "" {
 		return errors.New("service name can't empty")
 	}
@@ -317,8 +330,8 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	}
 
 	serviceNode := service
-	serviceNode.Nodes = []registry.Node{node}
-	serviceNodeData := encodeService(&serviceNode)
+	serviceNode.Nodes = []registry.Node{*node}
+	serviceNodeData := encodeService(serviceNode)
 
 	log.Debugf(r.servCtx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
 
@@ -336,7 +349,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	return nil
 }
 
-func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service, node registry.Node) error {
+func (r *_Registry) deregisterNode(ctx context.Context, service *registry.Service, node *registry.Node) error {
 	log.Debugf(r.servCtx, "deregistering service %q node %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)

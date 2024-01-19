@@ -145,7 +145,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 
 	// 服务节点信息
-	serviceNode := registry.Service{
+	serviceNode := &registry.Service{
 		Name:    d.servCtx.GetName(),
 		Version: d.options.Version,
 		Meta:    d.options.Meta,
