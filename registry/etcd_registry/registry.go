@@ -278,11 +278,11 @@ func (r *_Registry) configure() etcd_client.Config {
 
 func (r *_Registry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
 	if service.Name == "" {
-		return fmt.Errorf("%w: service name can't empty", registry.ErrRegistry)
+		return errors.New("service name can't empty")
 	}
 
 	if node.Id == "" {
-		return fmt.Errorf("%w: service node id can't empty", registry.ErrRegistry)
+		return errors.New("service node id can't empty")
 	}
 
 	if ttl < 0 {
@@ -292,7 +292,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	// create hash of service; uint64
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
@@ -307,7 +307,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		// look for the existing key
 		rsp, err := r.client.Get(ctx, nodePath, etcd_client.WithSerializable())
 		if err != nil {
-			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+			return err
 		}
 
 		// get the existing lease
@@ -356,7 +356,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		_, err = r.client.KeepAliveOnce(ctx, leaseID)
 		if err != nil {
 			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
-				return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+				return err
 			}
 			log.Debugf(r.servCtx, "lease %d not found for %q", leaseID, service.Name)
 			// lease not found do register
@@ -380,7 +380,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		// get a lease used to expire keys since we have a ttl
 		lgr, err = r.client.Grant(ctx, int64(ttl.Seconds()))
 		if err != nil {
-			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+			return err
 		}
 	}
 
@@ -397,7 +397,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData)
 	}
 	if err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	r.mutex.Lock()
@@ -427,7 +427,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service
 	r.mutex.Unlock()
 
 	if _, err := r.client.Delete(ctx, nodePath); err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	log.Debugf(r.servCtx, "deregister service %q node %q success", service.Name, node.Id)

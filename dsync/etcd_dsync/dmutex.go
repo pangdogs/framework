@@ -14,28 +14,26 @@ import (
 	"time"
 )
 
-func (s *_DSync) newMutex(name string, options dsync.DMutexOptions) *_DMutex {
+func (s *_DistSync) newMutex(name string, options dsync.DistMutexOptions) *_DistMutex {
 	if s.options.KeyPrefix != "" {
 		name = s.options.KeyPrefix + name
 	}
 
-	log.Debugf(s.servCtx, "new dsync mutex %q", name)
+	log.Debugf(s.servCtx, "new dist mutex %q", name)
 
-	return &_DMutex{
+	return &_DistMutex{
 		dsync:         s,
 		name:          name,
 		expiry:        options.Expiry,
-		tries:         options.Tries,
 		driftFactor:   options.DriftFactor,
 		timeoutFactor: options.TimeoutFactor,
 	}
 }
 
-type _DMutex struct {
-	dsync         *_DSync
+type _DistMutex struct {
+	dsync         *_DistSync
 	name          string
 	expiry        time.Duration
-	tries         int
 	driftFactor   float64
 	timeoutFactor float64
 	session       *etcd_concurrency.Session
@@ -44,12 +42,12 @@ type _DMutex struct {
 }
 
 // Name returns mutex name.
-func (m *_DMutex) Name() string {
+func (m *_DistMutex) Name() string {
 	return strings.TrimPrefix(m.name, m.dsync.options.KeyPrefix)
 }
 
 // Value returns the current random value. The value will be empty until a lock is acquired (or Value option is used).
-func (m *_DMutex) Value() string {
+func (m *_DistMutex) Value() string {
 	if m.session == nil {
 		return ""
 	}
@@ -57,19 +55,22 @@ func (m *_DMutex) Value() string {
 }
 
 // Until returns the time of validity of acquired lock. The value will be zero value until a lock is acquired.
-func (m *_DMutex) Until() time.Time {
+func (m *_DistMutex) Until() time.Time {
 	return m.until
 }
 
 // Lock locks m. In case it returns an error on failure, you may retry to acquire the lock by calling this method again.
-func (m *_DMutex) Lock(ctx context.Context) error {
+func (m *_DistMutex) Lock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	expirySec := math.Ceil(m.expiry.Seconds())
+	expirySec := m.expiry.Seconds()
+	if expirySec <= 0 {
+		expirySec = 1
+	}
 
-	session, err := etcd_concurrency.NewSession(m.dsync.client, etcd_concurrency.WithTTL(int(expirySec)))
+	session, err := etcd_concurrency.NewSession(m.dsync.client, etcd_concurrency.WithTTL(int(math.Ceil(expirySec))))
 	if err != nil {
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
@@ -77,14 +78,16 @@ func (m *_DMutex) Lock(ctx context.Context) error {
 	mutex := etcd_concurrency.NewMutex(session, m.name)
 
 	start := time.Now()
-	ctx, _ = context.WithTimeout(ctx, time.Duration((expirySec*m.timeoutFactor*float64(m.tries))*float64(time.Second)))
+	ctx, _ = context.WithTimeout(ctx, time.Duration((expirySec*m.timeoutFactor)*float64(time.Second)))
 
 	if err = mutex.Lock(ctx); err != nil {
+		session.Close()
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
 	if _, err = m.dsync.client.KeepAlive(ctx, session.Lease()); err != nil {
 		mutex.Unlock(context.Background())
+		session.Close()
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
@@ -96,13 +99,13 @@ func (m *_DMutex) Lock(ctx context.Context) error {
 	now := time.Now()
 	m.until = now.Add(m.expiry - now.Sub(start) - time.Duration(int64(expirySec*m.driftFactor)))
 
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is locked", m.name)
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is locked", m.name)
 
 	return nil
 }
 
 // Unlock unlocks m and returns the status of unlock.
-func (m *_DMutex) Unlock(ctx context.Context) error {
+func (m *_DistMutex) Unlock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -111,23 +114,22 @@ func (m *_DMutex) Unlock(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
+	defer m.clean()
+
 	if err := m.mutex.Unlock(ctx); err != nil {
 		if errors.Is(err, rpctypes.ErrKeyNotFound) {
-			m.clean()
 			return dsync.ErrNotAcquired
 		}
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
-	m.clean()
-
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is unlocked", m.name)
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is unlocked", m.name)
 
 	return nil
 }
 
 // Extend resets the mutex's expiry and returns the status of expiry extension.
-func (m *_DMutex) Extend(ctx context.Context) error {
+func (m *_DistMutex) Extend(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -143,7 +145,7 @@ func (m *_DMutex) Extend(ctx context.Context) error {
 		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
 	}
 
-	log.Debugf(m.dsync.servCtx, "dsync mutex %q is extended", m.name)
+	log.Debugf(m.dsync.servCtx, "dist mutex %q is extended", m.name)
 
 	return nil
 }
@@ -151,7 +153,7 @@ func (m *_DMutex) Extend(ctx context.Context) error {
 // Valid returns true if the lock acquired through m is still valid. It may
 // also return true erroneously if quorum is achieved during the call and at
 // least one node then takes long enough to respond for the lock to expire.
-func (m *_DMutex) Valid(ctx context.Context) (bool, error) {
+func (m *_DistMutex) Valid(ctx context.Context) (bool, error) {
 	if m.session == nil {
 		return false, nil
 	}
@@ -164,7 +166,7 @@ func (m *_DMutex) Valid(ctx context.Context) (bool, error) {
 	}
 }
 
-func (m *_DMutex) clean() {
+func (m *_DistMutex) clean() {
 	if m.session != nil {
 		m.session.Close()
 	}

@@ -12,12 +12,12 @@ import (
 )
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
-	return &_Dsync{
+	return &_DistSync{
 		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 
-type _Dsync struct {
+type _DistSync struct {
 	options DSyncOptions
 	servCtx service.Context
 	client  *redis.Client
@@ -25,7 +25,7 @@ type _Dsync struct {
 }
 
 // InitSP 初始化服务插件
-func (s *_Dsync) InitSP(ctx service.Context) {
+func (s *_DistSync) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	s.servCtx = ctx
@@ -45,7 +45,7 @@ func (s *_Dsync) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (s *_Dsync) ShutSP(ctx service.Context) {
+func (s *_DistSync) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	if s.options.RedisClient == nil {
@@ -56,16 +56,16 @@ func (s *_Dsync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_Dsync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.IDistMutex {
+func (s *_DistSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 
 // GetSeparator return name path separator.
-func (s *_Dsync) GetSeparator() string {
+func (s *_DistSync) GetSeparator() string {
 	return ":"
 }
 
-func (s *_Dsync) configure() *redis.Options {
+func (s *_DistSync) configure() *redis.Options {
 	if s.options.RedisConfig != nil {
 		return s.options.RedisConfig
 	}

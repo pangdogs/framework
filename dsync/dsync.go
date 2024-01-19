@@ -16,7 +16,7 @@ var (
 // IDistSync represents a distributed synchronization mechanism.
 type IDistSync interface {
 	// NewMutex returns a new distributed mutex with given name.
-	NewMutex(name string, settings ...option.Setting[DMutexOptions]) IDistMutex
+	NewMutex(name string, settings ...option.Setting[DistMutexOptions]) IDistMutex
 	// GetSeparator return name path separator.
 	GetSeparator() string
 }

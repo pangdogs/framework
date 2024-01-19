@@ -11,19 +11,19 @@ import (
 )
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
-	return &_DSync{
+	return &_DistSync{
 		options: option.Make(Option{}.Default(), settings...),
 	}
 }
 
-type _DSync struct {
+type _DistSync struct {
 	options DSyncOptions
 	servCtx service.Context
 	client  *etcd_client.Client
 }
 
 // InitSP 初始化服务插件
-func (s *_DSync) InitSP(ctx service.Context) {
+func (s *_DistSync) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	s.servCtx = ctx
@@ -46,7 +46,7 @@ func (s *_DSync) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (s *_DSync) ShutSP(ctx service.Context) {
+func (s *_DistSync) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
 
 	if s.options.EtcdClient == nil {
@@ -57,16 +57,16 @@ func (s *_DSync) ShutSP(ctx service.Context) {
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (s *_DSync) NewMutex(name string, settings ...option.Setting[dsync.DMutexOptions]) dsync.IDistMutex {
+func (s *_DistSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
 }
 
 // GetSeparator return name path separator.
-func (s *_DSync) GetSeparator() string {
+func (s *_DistSync) GetSeparator() string {
 	return "/"
 }
 
-func (s *_DSync) configure() etcd_client.Config {
+func (s *_DistSync) configure() etcd_client.Config {
 	if s.options.EtcdConfig != nil {
 		return *s.options.EtcdConfig
 	}

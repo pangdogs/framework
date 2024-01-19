@@ -280,11 +280,11 @@ func (r *_Registry) configure() *redis.Options {
 
 func (r *_Registry) registerNode(ctx context.Context, service registry.Service, node registry.Node, ttl time.Duration) error {
 	if service.Name == "" {
-		return fmt.Errorf("%w: service name can't empty", registry.ErrRegistry)
+		return errors.New("service name can't empty")
 	}
 
 	if node.Id == "" {
-		return fmt.Errorf("%w: service node id can't empty", registry.ErrRegistry)
+		return errors.New("service node id can't empty")
 	}
 
 	if ttl < 0 {
@@ -293,7 +293,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
@@ -302,7 +302,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 	if ttl.Seconds() > 0 {
 		keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
 		if err != nil {
-			return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+			return err
 		}
 		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
 	}
@@ -324,7 +324,7 @@ func (r *_Registry) registerNode(ctx context.Context, service registry.Service, 
 
 	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	r.mutex.Lock()
@@ -346,7 +346,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service registry.Service
 	r.mutex.Unlock()
 
 	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return err
 	}
 
 	log.Debugf(r.servCtx, "deregister service %q node %q success", service.Name, node.Id)
