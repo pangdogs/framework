@@ -21,15 +21,15 @@ import (
 
 // Address 地址信息
 type Address struct {
-	Domain               string // 主域
-	BroadcastSubdomain   string // 广播地址子域
-	BalanceSubdomain     string // 负载均衡地址子域
-	NodeSubdomain        string // 服务节点地址子域
-	GlobalBroadcastAddr  string // 全局广播地址
-	GlobalBalanceAddr    string // 全局负载均衡地址
-	ServiceBroadcastAddr string // 服务广播地址
-	ServiceBalanceAddr   string // 服务负载均衡地址
-	LocalAddr            string // 本服务节点地址
+	Domain              string // 主域
+	BroadcastSubdomain  string // 广播地址子域
+	BalanceSubdomain    string // 负载均衡地址子域
+	NodeSubdomain       string // 服务节点地址子域
+	GlobalBroadcastAddr string // 全局广播地址
+	GlobalBalanceAddr   string // 全局负载均衡地址
+	BroadcastAddr       string // 服务广播地址
+	BalanceAddr         string // 服务负载均衡地址
+	LocalAddr           string // 本服务节点地址
 }
 
 // IWatcher 监听器
@@ -112,8 +112,8 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.address.NodeSubdomain = broker.Path(d.servCtx, d.address.Domain, "node")
 	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
 	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
-	d.address.ServiceBroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
-	d.address.ServiceBalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
+	d.address.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
+	d.address.BalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
 	d.address.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId().String())
 
 	// 加分布式锁
@@ -138,8 +138,8 @@ func (d *_DistService) InitSP(ctx service.Context) {
 		d.subscribe(d.address.GlobalBroadcastAddr, ""),
 		d.subscribe(d.address.GlobalBalanceAddr, "balance"),
 		// 订阅服务类型topic
-		d.subscribe(d.address.ServiceBroadcastAddr, ""),
-		d.subscribe(d.address.ServiceBalanceAddr, "balance"),
+		d.subscribe(d.address.BroadcastAddr, ""),
+		d.subscribe(d.address.BalanceAddr, "balance"),
 		// 订阅服务节点topic
 		d.subscribe(d.address.LocalAddr, ""),
 	}
