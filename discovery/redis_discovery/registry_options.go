@@ -1,4 +1,4 @@
-package redis_registry
+package redis_discovery
 
 import (
 	"fmt"

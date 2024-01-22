@@ -1,4 +1,4 @@
-package etcd_registry
+package etcd_discovery
 
 import (
 	"crypto/tls"

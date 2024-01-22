@@ -17,19 +17,19 @@ func GetFutures(servCtx service.Context) concurrent.IFutures {
 	return Using(servCtx).GetFutures()
 }
 
-// MakeServiceBroadcastAddr 创建服务广播地址
-func MakeServiceBroadcastAddr(servCtx service.Context, serviceName string) string {
-	return Using(servCtx).MakeServiceBroadcastAddr(serviceName)
+// MakeBroadcastAddr 创建服务广播地址
+func MakeBroadcastAddr(servCtx service.Context, serviceName string) string {
+	return Using(servCtx).MakeBroadcastAddr(serviceName)
 }
 
-// MakeServiceBalanceAddr 创建服务负载均衡地址
-func MakeServiceBalanceAddr(servCtx service.Context, serviceName string) string {
-	return Using(servCtx).MakeServiceBalanceAddr(serviceName)
+// MakeBalanceAddr 创建服务负载均衡地址
+func MakeBalanceAddr(servCtx service.Context, serviceName string) string {
+	return Using(servCtx).MakeBalanceAddr(serviceName)
 }
 
-// MakeServiceNodeAddr 创建服务节点地址
-func MakeServiceNodeAddr(servCtx service.Context, serviceName, nodeId string) (string, error) {
-	return Using(servCtx).MakeServiceNodeAddr(serviceName, nodeId)
+// MakeNodeAddr 创建服务节点地址
+func MakeNodeAddr(servCtx service.Context, nodeId string) (string, error) {
+	return Using(servCtx).MakeNodeAddr(nodeId)
 }
 
 // SendMsg 发送消息

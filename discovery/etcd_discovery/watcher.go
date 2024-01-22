@@ -1,9 +1,9 @@
-package etcd_registry
+package etcd_discovery
 
 import (
 	"context"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"strings"
 )
@@ -27,7 +27,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (*_Watcher, 
 		stoppedChan: make(chan struct{}),
 		pattern:     pattern,
 		watchChan:   r.client.Watch(ctx, watchKey, etcd_client.WithPrefix(), etcd_client.WithPrevKV()),
-		eventChan:   make(chan *registry.Event, r.options.WatchChanSize),
+		eventChan:   make(chan *discovery.Event, r.options.WatchChanSize),
 	}
 
 	go watcher.mainLoop()
@@ -42,7 +42,7 @@ type _Watcher struct {
 	stoppedChan chan struct{}
 	pattern     string
 	watchChan   etcd_client.WatchChan
-	eventChan   chan *registry.Event
+	eventChan   chan *discovery.Event
 }
 
 // Pattern watching pattern
@@ -51,11 +51,11 @@ func (w *_Watcher) Pattern() string {
 }
 
 // Next is a blocking call
-func (w *_Watcher) Next() (*registry.Event, error) {
+func (w *_Watcher) Next() (*discovery.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
-	return nil, registry.ErrStoppedWatching
+	return nil, discovery.ErrStoppedWatching
 }
 
 // Stop stop watching
@@ -84,15 +84,15 @@ func (w *_Watcher) mainLoop() {
 		}
 
 		for _, etcdEvent := range watchRsp.Events {
-			event := &registry.Event{}
+			event := &discovery.Event{}
 			var err error
 
 			switch etcdEvent.Type {
 			case etcd_client.EventTypePut:
 				if etcdEvent.IsCreate() {
-					event.Type = registry.Create
+					event.Type = discovery.Create
 				} else if etcdEvent.IsModify() {
-					event.Type = registry.Update
+					event.Type = discovery.Update
 				}
 
 				// get service from Kv
@@ -103,7 +103,7 @@ func (w *_Watcher) mainLoop() {
 				}
 
 			case etcd_client.EventTypeDelete:
-				event.Type = registry.Delete
+				event.Type = discovery.Delete
 
 				// get service from prevKv
 				event.Service, err = decodeService(etcdEvent.PrevKv.Value)
