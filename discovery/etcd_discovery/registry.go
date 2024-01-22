@@ -1,4 +1,4 @@
-package etcd_registry
+package etcd_discovery
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_client "go.etcd.io/etcd/client/v3"
@@ -23,7 +23,7 @@ import (
 )
 
 // NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
-func NewRegistry(settings ...option.Setting[RegistryOptions]) registry.IRegistry {
+func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:  option.Make(Option{}.Default(), settings...),
 		register: make(map[string]uint64),
@@ -75,17 +75,17 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 }
 
 // Register 注册服务
-func (r *_Registry) Register(ctx context.Context, service *registry.Service, ttl time.Duration) error {
+func (r *_Registry) Register(ctx context.Context, service *discovery.Service, ttl time.Duration) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if service == nil {
-		return fmt.Errorf("%w: %w: serivce is nil", registry.ErrRegistry, core.ErrArgs)
+		return fmt.Errorf("%w: %w: serivce is nil", discovery.ErrRegistry, core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
-		return fmt.Errorf("%w: require at least one node", registry.ErrRegistry)
+		return fmt.Errorf("%w: require at least one node", discovery.ErrRegistry)
 	}
 
 	var errs []error
@@ -99,24 +99,24 @@ func (r *_Registry) Register(ctx context.Context, service *registry.Service, ttl
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, errors.Join(errs...))
+		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
 	}
 
 	return nil
 }
 
 // Deregister 取消注册服务
-func (r *_Registry) Deregister(ctx context.Context, service *registry.Service) error {
+func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if service == nil {
-		return fmt.Errorf("%w: %w: serivce is nil", registry.ErrRegistry, core.ErrArgs)
+		return fmt.Errorf("%w: %w: serivce is nil", discovery.ErrRegistry, core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
-		return fmt.Errorf("%w: require at least one node", registry.ErrRegistry)
+		return fmt.Errorf("%w: require at least one node", discovery.ErrRegistry)
 	}
 
 	var errs []error
@@ -130,54 +130,54 @@ func (r *_Registry) Deregister(ctx context.Context, service *registry.Service) e
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", registry.ErrRegistry, errors.Join(errs...))
+		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
 	}
 
 	return nil
 }
 
 // GetServiceNode 查询服务节点
-func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if serviceName == "" || nodeId == "" {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
 	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), etcd_client.WithSerializable())
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	if len(rsp.Kvs) <= 0 {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
 	return decodeService(rsp.Kvs[0].Value)
 }
 
 // GetService 查询服务
-func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if serviceName == "" {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
 	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName), etcd_client.WithPrefix(), etcd_client.WithSerializable())
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	if len(rsp.Kvs) <= 0 {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
-	serviceMap := map[string]*registry.Service{}
+	serviceMap := map[string]*discovery.Service{}
 
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
@@ -195,7 +195,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 		s.Nodes = append(s.Nodes, service.Nodes...)
 	}
 
-	services := make([]registry.Service, 0, len(serviceMap))
+	services := make([]discovery.Service, 0, len(serviceMap))
 	for _, service := range serviceMap {
 		services = append(services, *service)
 	}
@@ -209,21 +209,21 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 }
 
 // ListServices 查询所有服务
-func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error) {
+func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	rsp, err := r.client.Get(ctx, r.options.KeyPrefix, etcd_client.WithPrefix(), etcd_client.WithSerializable())
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	if len(rsp.Kvs) <= 0 {
 		return nil, nil
 	}
 
-	versions := make(map[string]*registry.Service)
+	versions := make(map[string]*discovery.Service)
 
 	for _, kv := range rsp.Kvs {
 		service, err := decodeService(kv.Value)
@@ -244,7 +244,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 		s.Nodes = append(s.Nodes, service.Nodes...)
 	}
 
-	services := make([]registry.Service, 0, len(versions))
+	services := make([]discovery.Service, 0, len(versions))
 	for _, service := range versions {
 		services = append(services, *service)
 	}
@@ -261,7 +261,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 }
 
 // Watch 获取服务监听器
-func (r *_Registry) Watch(ctx context.Context, pattern string) (registry.IWatcher, error) {
+func (r *_Registry) Watch(ctx context.Context, pattern string) (discovery.IWatcher, error) {
 	return r.newWatcher(ctx, pattern)
 }
 
@@ -289,7 +289,7 @@ func (r *_Registry) configure() etcd_client.Config {
 	return config
 }
 
-func (r *_Registry) registerNode(ctx context.Context, service *registry.Service, node *registry.Node, ttl time.Duration) error {
+func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service, node *discovery.Node, ttl time.Duration) error {
 	if service.Name == "" {
 		return errors.New("service name can't empty")
 	}
@@ -398,7 +398,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *registry.Service,
 	}
 
 	serviceNode := service
-	serviceNode.Nodes = []registry.Node{*node}
+	serviceNode.Nodes = []discovery.Node{*node}
 	serviceNodeData := encodeService(serviceNode)
 
 	// create an entry for the node
@@ -427,7 +427,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *registry.Service,
 	return nil
 }
 
-func (r *_Registry) deregisterNode(ctx context.Context, service *registry.Service, node *registry.Node) error {
+func (r *_Registry) deregisterNode(ctx context.Context, service *discovery.Service, node *discovery.Node) error {
 	log.Debugf(r.servCtx, "deregistering service %q node %q", service.Name, node.Id)
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
@@ -448,16 +448,16 @@ func (r *_Registry) deregisterNode(ctx context.Context, service *registry.Servic
 	return nil
 }
 
-func encodeService(s *registry.Service) string {
+func encodeService(s *discovery.Service) string {
 	b, _ := json.Marshal(s)
 	return string(b)
 }
 
-func decodeService(ds []byte) (*registry.Service, error) {
-	var s *registry.Service
+func decodeService(ds []byte) (*discovery.Service, error) {
+	var s *discovery.Service
 
 	if err := json.Unmarshal(ds, &s); err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	return s, nil

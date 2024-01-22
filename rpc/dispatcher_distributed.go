@@ -32,7 +32,7 @@ var (
 // DistributedDispatcher 分布式服务的RPC分发器
 type DistributedDispatcher struct {
 	servCtx service.Context
-	dist    dist.IDistributed
+	dist    dist.IDistService
 	watcher dist.IWatcher
 }
 

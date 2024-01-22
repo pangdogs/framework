@@ -10,11 +10,11 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/plugins/broker"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/dsync"
 	"git.golaxy.org/plugins/gap"
 	"git.golaxy.org/plugins/gap/codec"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
 	"git.golaxy.org/plugins/util/concurrent"
 	"sync"
 )
@@ -38,57 +38,57 @@ type IWatcher interface {
 	Stop() <-chan struct{}
 }
 
-// IDistributed 分布式服务支持
-type IDistributed interface {
+// IDistService 分布式服务支持
+type IDistService interface {
 	// GetAddress 获取地址信息
 	GetAddress() Address
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
-	// MakeServiceBroadcastAddr 创建服务广播地址
-	MakeServiceBroadcastAddr(service string) string
-	// MakeServiceBalanceAddr 创建服务负载均衡地址
-	MakeServiceBalanceAddr(service string) string
-	// MakeServiceNodeAddr 创建服务节点地址
-	MakeServiceNodeAddr(service, node string) (string, error)
+	// MakeBroadcastAddr 创建服务广播地址
+	MakeBroadcastAddr(service string) string
+	// MakeBalanceAddr 创建服务负载均衡地址
+	MakeBalanceAddr(service string) string
+	// MakeNodeAddr 创建服务节点地址
+	MakeNodeAddr(service, node string) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
 	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
 }
 
-func newDistributed(setting ...option.Setting[DistributedOptions]) IDistributed {
-	return &_Distributed{
+func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
+	return &_DistService{
 		options: option.Make(Option{}.Default(), setting...),
 	}
 }
 
-type _Distributed struct {
+type _DistService struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	servCtx       service.Context
 	wg            sync.WaitGroup
-	options       DistributedOptions
-	registry      registry.IRegistry
+	options       DistServiceOptions
+	registry      discovery.IRegistry
 	broker        broker.IBroker
 	dsync         dsync.IDistSync
 	address       Address
 	encoder       codec.Encoder
 	decoder       codec.Decoder
-	sendMutex     sync.Mutex
 	futures       concurrent.Futures
+	sendMutex     sync.Mutex
 	deduplication concurrent.Deduplication
 	msgWatchers   concurrent.LockedSlice[*_MsgWatcher]
 }
 
 // InitSP 初始化服务插件
-func (d *_Distributed) InitSP(ctx service.Context) {
+func (d *_DistService) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init service plugin <%s>:[%s]", Name, types.AnyFullName(*d))
 
 	d.ctx, d.cancel = context.WithCancel(context.Background())
 	d.servCtx = ctx
 
 	// 获取依赖的插件
-	d.registry = registry.Using(d.servCtx)
+	d.registry = discovery.Using(d.servCtx)
 	d.broker = broker.Using(d.servCtx)
 	d.dsync = dsync.Using(d.servCtx)
 
@@ -112,9 +112,9 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	d.address.NodeSubdomain = broker.Path(d.servCtx, d.address.Domain, "node")
 	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
 	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
-	d.address.ServiceBroadcastAddr = d.MakeServiceBroadcastAddr(d.servCtx.GetName())
-	d.address.ServiceBalanceAddr = d.MakeServiceBalanceAddr(d.servCtx.GetName())
-	d.address.LocalAddr, _ = d.MakeServiceNodeAddr(d.servCtx.GetName(), d.servCtx.GetId().String())
+	d.address.ServiceBroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
+	d.address.ServiceBalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
+	d.address.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetName(), d.servCtx.GetId().String())
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(dsync.Path(d.servCtx, "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
@@ -128,7 +128,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	if err == nil {
 		log.Panicf(d.servCtx, "check service %q node %q failed, already registered", d.servCtx.GetName(), d.servCtx.GetId())
 	}
-	if !errors.Is(err, registry.ErrNotFound) {
+	if !errors.Is(err, discovery.ErrNotFound) {
 		log.Panicf(d.servCtx, "check service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 	}
 
@@ -145,11 +145,11 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 	}
 
 	// 服务节点信息
-	serviceNode := &registry.Service{
+	serviceNode := &discovery.Service{
 		Name:    d.servCtx.GetName(),
 		Version: d.options.Version,
 		Meta:    d.options.Meta,
-		Nodes: []registry.Node{
+		Nodes: []discovery.Node{
 			{
 				Id:      d.servCtx.GetId().String(),
 				Address: d.address.LocalAddr,
@@ -183,7 +183,7 @@ func (d *_Distributed) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (d *_Distributed) ShutSP(ctx service.Context) {
+func (d *_DistService) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
 
 	d.cancel()
@@ -191,27 +191,27 @@ func (d *_Distributed) ShutSP(ctx service.Context) {
 }
 
 // GetAddress 获取地址信息
-func (d *_Distributed) GetAddress() Address {
+func (d *_DistService) GetAddress() Address {
 	return d.address
 }
 
 // GetFutures 获取异步模型Future控制器
-func (d *_Distributed) GetFutures() concurrent.IFutures {
+func (d *_DistService) GetFutures() concurrent.IFutures {
 	return &d.futures
 }
 
-// MakeServiceBroadcastAddr 创建服务广播地址
-func (d *_Distributed) MakeServiceBroadcastAddr(service string) string {
+// MakeBroadcastAddr 创建服务广播地址
+func (d *_DistService) MakeBroadcastAddr(service string) string {
 	return broker.Path(d.servCtx, d.address.BroadcastSubdomain, service)
 }
 
-// MakeServiceBalanceAddr 创建服务负载均衡地址
-func (d *_Distributed) MakeServiceBalanceAddr(service string) string {
+// MakeBalanceAddr 创建服务负载均衡地址
+func (d *_DistService) MakeBalanceAddr(service string) string {
 	return broker.Path(d.servCtx, d.address.BalanceSubdomain, service)
 }
 
-// MakeServiceNodeAddr 创建服务节点地址
-func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error) {
+// MakeNodeAddr 创建服务节点地址
+func (d *_DistService) MakeNodeAddr(service, node string) (string, error) {
 	if node == "" {
 		return "", fmt.Errorf("%w: node is empty", core.ErrArgs)
 	}
@@ -219,7 +219,7 @@ func (d *_Distributed) MakeServiceNodeAddr(service, node string) (string, error)
 }
 
 // SendMsg 发送消息
-func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
+func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 	if msg == nil {
 		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
 	}
@@ -244,11 +244,11 @@ func (d *_Distributed) SendMsg(dst string, msg gap.Msg) error {
 }
 
 // WatchMsg 监听消息（优先级高）
-func (d *_Distributed) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher {
+func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher {
 	return d.newMsgWatcher(ctx, handler)
 }
 
-func (d *_Distributed) subscribe(topic, queue string) broker.ISubscriber {
+func (d *_DistService) subscribe(topic, queue string) broker.ISubscriber {
 	sub, err := d.broker.Subscribe(d.ctx, topic,
 		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
 		broker.Option{}.Queue(queue))

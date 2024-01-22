@@ -1,11 +1,11 @@
-package redis_registry
+package redis_discovery
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
 	"github.com/redis/go-redis/v9"
 	"net"
 	"strings"
@@ -43,12 +43,12 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	}()
 
 	if err := pubSub.PSubscribe(ctx, watchPathList...); err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	keys, err := r.client.Keys(ctx, keyPath).Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
 	keyCache := map[string]string{}
@@ -56,7 +56,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	if len(keys) > 0 {
 		values, err := r.client.MGet(ctx, keys...).Result()
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", registry.ErrRegistry, err)
+			return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 		}
 
 		for i, v := range values {
@@ -66,7 +66,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		}
 	}
 
-	eventChan := make(chan *registry.Event, r.options.WatchChanSize)
+	eventChan := make(chan *discovery.Event, r.options.WatchChanSize)
 
 	watcher = &_Watcher{
 		registry:       r,
@@ -96,7 +96,7 @@ type _Watcher struct {
 	pathList       []string
 	keyCache       map[string]string
 	pubSub         *redis.PubSub
-	eventChan      chan *registry.Event
+	eventChan      chan *discovery.Event
 }
 
 // Pattern watching pattern
@@ -105,11 +105,11 @@ func (w *_Watcher) Pattern() string {
 }
 
 // Next is a blocking call
-func (w *_Watcher) Next() (*registry.Event, error) {
+func (w *_Watcher) Next() (*discovery.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
-	return nil, registry.ErrStoppedWatching
+	return nil, discovery.ErrStoppedWatching
 }
 
 // Stop stop watching
@@ -161,7 +161,7 @@ loop:
 			continue
 		}
 
-		event := &registry.Event{}
+		event := &discovery.Event{}
 
 		switch opt {
 		case "set":
@@ -176,9 +176,9 @@ loop:
 
 			_, ok := w.keyCache[key]
 			if ok {
-				event.Type = registry.Update
+				event.Type = discovery.Update
 			} else {
-				event.Type = registry.Create
+				event.Type = discovery.Create
 			}
 
 			event.Service, err = decodeService([]byte(val))
@@ -198,7 +198,7 @@ loop:
 
 			delete(w.keyCache, key)
 
-			event.Type = registry.Delete
+			event.Type = discovery.Delete
 			event.Service, err = decodeService([]byte(v))
 			if err != nil {
 				log.Errorf(w.registry.servCtx, "decode service %q data failed, %s", v, err)
