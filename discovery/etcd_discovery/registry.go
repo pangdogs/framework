@@ -16,6 +16,7 @@ import (
 	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_client "go.etcd.io/etcd/client/v3"
+	"math"
 	"path"
 	"sort"
 	"strings"
@@ -388,7 +389,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 	// create an entry for the node
 	if ttl.Seconds() > 0 {
 		// get a lease used to expire keys since we have a ttl
-		lgr, err := r.client.Grant(ctx, int64(ttl.Seconds()))
+		lgr, err := r.client.Grant(ctx, int64(math.Ceil(ttl.Seconds())))
 		if err != nil {
 			return err
 		}
