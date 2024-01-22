@@ -12,32 +12,34 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/util/concurrent"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"path"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
 // NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:  option.Make(Option{}.Default(), settings...),
-		register: make(map[string]uint64),
-		leases:   make(map[string]etcd_client.LeaseID),
+		options:   option.Make(Option{}.Default(), settings...),
+		registers: concurrent.MakeLockedMap[string, _Register](0),
 	}
 }
 
+type _Register struct {
+	Hash    uint64
+	LeaseId etcd_client.LeaseID
+}
+
 type _Registry struct {
-	options  RegistryOptions
-	servCtx  service.Context
-	client   *etcd_client.Client
-	register map[string]uint64
-	leases   map[string]etcd_client.LeaseID
-	mutex    sync.RWMutex
+	options   RegistryOptions
+	servCtx   service.Context
+	client    *etcd_client.Client
+	registers concurrent.LockedMap[string, _Register]
 }
 
 // InitSP 初始化服务插件
@@ -311,11 +313,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
 	// check existing lease cache
-	r.mutex.RLock()
-	leaseID, ok := r.leases[nodePath]
-	r.mutex.RUnlock()
-
-	// missing lease, check if the key exists
+	register, ok := r.registers.Get(nodePath)
 	if !ok {
 		// look for the existing key
 		rsp, err := r.client.Get(ctx, nodePath, etcd_client.WithSerializable())
@@ -347,14 +345,13 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 					continue
 				}
 
-				leaseID = kvLeaseID
+				register = _Register{
+					Hash:    hv,
+					LeaseId: kvLeaseID,
+				}
 
 				// save the info
-				r.mutex.Lock()
-				r.leases[nodePath] = leaseID
-				r.register[nodePath] = hv
-				r.mutex.Unlock()
-
+				r.registers.Insert(nodePath, register)
 				break
 			}
 		}
@@ -363,38 +360,25 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 	var leaseNotFound bool
 
 	// renew the lease if it exists
-	if leaseID != etcd_client.NoLease {
-		log.Debugf(r.servCtx, "renewing existing lease %d for %q", leaseID, service.Name)
+	if register.LeaseId != etcd_client.NoLease {
+		log.Debugf(r.servCtx, "renewing existing lease %d for %q", register.LeaseId, service.Name)
 
-		_, err = r.client.KeepAliveOnce(ctx, leaseID)
+		_, err = r.client.KeepAliveOnce(ctx, register.LeaseId)
 		if err != nil {
 			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
 				return err
 			}
-			log.Debugf(r.servCtx, "lease %d not found for %q", leaseID, service.Name)
-			// lease not found do register
+			log.Debugf(r.servCtx, "lease %d not found for %q", register.LeaseId, service.Name)
+			// lease not found do registers
 			leaseNotFound = true
 		}
 	}
 
-	// get existing hash for the service node
-	r.mutex.RLock()
-	v, ok := r.register[nodePath]
-	r.mutex.RUnlock()
-
-	// the service is unchanged, skip registering
-	if ok && v == hv && !leaseNotFound {
+	// get existing hash for the service node, if the service is unchanged, skip registering
+	register, ok = r.registers.Get(nodePath)
+	if ok && register.Hash == hv && !leaseNotFound {
 		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
-	}
-
-	var lgr *etcd_client.LeaseGrantResponse
-	if ttl.Seconds() > 0 {
-		// get a lease used to expire keys since we have a ttl
-		lgr, err = r.client.Grant(ctx, int64(ttl.Seconds()))
-		if err != nil {
-			return err
-		}
 	}
 
 	serviceNode := service
@@ -402,25 +386,39 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 	serviceNodeData := encodeService(serviceNode)
 
 	// create an entry for the node
-	if lgr != nil {
+	if ttl.Seconds() > 0 {
+		// get a lease used to expire keys since we have a ttl
+		lgr, err := r.client.Grant(ctx, int64(ttl.Seconds()))
+		if err != nil {
+			return err
+		}
+
 		log.Debugf(r.servCtx, "registering service %q node %q content %q with lease %q and leaseID %d and ttl %q", serviceNode.Name, node.Id, serviceNodeData, lgr, lgr.ID, ttl)
+
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData, etcd_client.WithLease(lgr.ID))
+		if err != nil {
+			return err
+		}
+
+		// save register info
+		register.Hash = hv
+		register.LeaseId = lgr.ID
+
 	} else {
 		log.Debugf(r.servCtx, "registering service %q node %q content %q", serviceNode.Name, node.Id, serviceNodeData)
+
 		_, err = r.client.Put(ctx, nodePath, serviceNodeData)
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		// save register info
+		register.Hash = hv
+		register.LeaseId = etcd_client.NoLease
 	}
 
-	r.mutex.Lock()
-	// save our hash of the service
-	r.register[nodePath] = hv
-	// save our leaseID of the service
-	if lgr != nil {
-		r.leases[nodePath] = lgr.ID
-	}
-	r.mutex.Unlock()
+	// save our register of the service
+	r.registers.Insert(nodePath, register)
 
 	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 
@@ -432,12 +430,8 @@ func (r *_Registry) deregisterNode(ctx context.Context, service *discovery.Servi
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
-	r.mutex.Lock()
-	// delete our hash of the service
-	delete(r.register, nodePath)
-	// delete our lease of the service
-	delete(r.leases, nodePath)
-	r.mutex.Unlock()
+	// delete our register of the service
+	r.registers.Delete(nodePath)
 
 	if _, err := r.client.Delete(ctx, nodePath); err != nil {
 		return err

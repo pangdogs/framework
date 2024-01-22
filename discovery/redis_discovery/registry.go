@@ -11,28 +11,27 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
+	"git.golaxy.org/plugins/util/concurrent"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
 // NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:  option.Make(Option{}.Default(), settings...),
-		register: map[string]uint64{},
+		options:   option.Make(Option{}.Default(), settings...),
+		registers: concurrent.MakeLockedMap[string, uint64](0),
 	}
 }
 
 type _Registry struct {
-	options  RegistryOptions
-	servCtx  service.Context
-	client   *redis.Client
-	register map[string]uint64
-	mutex    sync.RWMutex
+	options   RegistryOptions
+	servCtx   service.Context
+	client    *redis.Client
+	registers concurrent.LockedMap[string, uint64]
 }
 
 // InitSP 初始化服务插件
@@ -320,10 +319,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
 	}
 
-	r.mutex.RLock()
-	rhv, ok := r.register[nodePath]
-	r.mutex.RUnlock()
-
+	rhv, ok := r.registers.Get(nodePath)
 	if ok && rhv == hv && keepAlive {
 		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
 		return nil
@@ -340,9 +336,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 		return err
 	}
 
-	r.mutex.Lock()
-	r.register[nodePath] = hv
-	r.mutex.Unlock()
+	r.registers.Insert(nodePath, hv)
 
 	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 
@@ -354,9 +348,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service *discovery.Servi
 
 	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
 
-	r.mutex.Lock()
-	delete(r.register, nodePath)
-	r.mutex.Unlock()
+	r.registers.Delete(nodePath)
 
 	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
 		return err
