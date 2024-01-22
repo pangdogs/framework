@@ -5,7 +5,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
-func (d *_Distributed) newMsgWatcher(ctx context.Context, handler RecvMsgHandler) *_MsgWatcher {
+func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler) *_MsgWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -31,7 +31,7 @@ type _MsgWatcher struct {
 	context.Context
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
-	distributed *_Distributed
+	distributed *_DistService
 	handler     RecvMsgHandler
 }
 

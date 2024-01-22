@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package
-package registry
+package discovery
 
 import (
 	"context"

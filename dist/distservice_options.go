@@ -16,8 +16,8 @@ type (
 	RecvMsgHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息的处理器
 )
 
-// DistributedOptions 所有选项
-type DistributedOptions struct {
+// DistServiceOptions 所有选项
+type DistServiceOptions struct {
 	Version           string            // 服务版本号
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
 	Domain            string            // 服务地址域
@@ -28,8 +28,8 @@ type DistributedOptions struct {
 }
 
 // Default 默认值
-func (Option) Default() option.Setting[DistributedOptions] {
-	return func(options *DistributedOptions) {
+func (Option) Default() option.Setting[DistServiceOptions] {
+	return func(options *DistServiceOptions) {
 		Option{}.Version("")(options)
 		Option{}.Meta(nil)(options)
 		Option{}.Domain("service")(options)
@@ -41,29 +41,29 @@ func (Option) Default() option.Setting[DistributedOptions] {
 }
 
 // Version 服务版本号
-func (Option) Version(version string) option.Setting[DistributedOptions] {
-	return func(o *DistributedOptions) {
+func (Option) Version(version string) option.Setting[DistServiceOptions] {
+	return func(o *DistServiceOptions) {
 		o.Version = version
 	}
 }
 
 // Meta 服务元数据，以键值对的形式保存附加信息
-func (Option) Meta(meta map[string]string) option.Setting[DistributedOptions] {
-	return func(o *DistributedOptions) {
+func (Option) Meta(meta map[string]string) option.Setting[DistServiceOptions] {
+	return func(o *DistServiceOptions) {
 		o.Meta = meta
 	}
 }
 
 // Domain 服务地址域
-func (Option) Domain(domain string) option.Setting[DistributedOptions] {
-	return func(o *DistributedOptions) {
+func (Option) Domain(domain string) option.Setting[DistServiceOptions] {
+	return func(o *DistServiceOptions) {
 		o.Domain = domain
 	}
 }
 
 // RefreshInterval 服务信息刷新间隔
-func (Option) RefreshInterval(d time.Duration) option.Setting[DistributedOptions] {
-	return func(o *DistributedOptions) {
+func (Option) RefreshInterval(d time.Duration) option.Setting[DistServiceOptions] {
+	return func(o *DistServiceOptions) {
 		if d <= 0 {
 			panic(fmt.Errorf("%w: option RefreshInterval can't be set to a value less equal 0", core.ErrArgs))
 		}
@@ -72,8 +72,8 @@ func (Option) RefreshInterval(d time.Duration) option.Setting[DistributedOptions
 }
 
 // FutureTimeout 异步模型Future超时时间
-func (Option) FutureTimeout(d time.Duration) option.Setting[DistributedOptions] {
-	return func(options *DistributedOptions) {
+func (Option) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
+	return func(options *DistServiceOptions) {
 		if d <= 0 {
 			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs))
 		}
@@ -82,8 +82,8 @@ func (Option) FutureTimeout(d time.Duration) option.Setting[DistributedOptions] 
 }
 
 // DecoderMsgCreator 消息包解码器的消息构建器
-func (Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistributedOptions] {
-	return func(options *DistributedOptions) {
+func (Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistServiceOptions] {
+	return func(options *DistServiceOptions) {
 		if mc == nil {
 			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
 		}
@@ -92,8 +92,8 @@ func (Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistributedOp
 }
 
 // RecvMsgHandler 接收消息的处理器
-func (Option) RecvMsgHandler(handler RecvMsgHandler) option.Setting[DistributedOptions] {
-	return func(options *DistributedOptions) {
+func (Option) RecvMsgHandler(handler RecvMsgHandler) option.Setting[DistServiceOptions] {
+	return func(options *DistServiceOptions) {
 		options.RecvMsgHandler = handler
 	}
 }

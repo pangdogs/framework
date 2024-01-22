@@ -1,4 +1,4 @@
-package cache_registry
+package cache_discovery
 
 import (
 	"context"
@@ -7,29 +7,28 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
-	"reflect"
 	"sync"
 )
 
-func newRegistry(settings ...option.Setting[RegistryOptions]) registry.IRegistry {
+func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:        option.Make(Option{}.Default(), settings...),
-		serviceMap:     map[string]*[]registry.Service{},
-		serviceNodeMap: map[[2]string]*registry.Service{},
+		serviceMap:     map[string]*[]discovery.Service{},
+		serviceNodeMap: map[[2]string]*discovery.Service{},
 	}
 }
 
 type _Registry struct {
-	registry.IRegistry
+	discovery.IRegistry
 	ctx            context.Context
 	cancel         context.CancelFunc
 	options        RegistryOptions
 	servCtx        service.Context
 	wg             sync.WaitGroup
-	serviceMap     map[string]*[]registry.Service
-	serviceNodeMap map[[2]string]*registry.Service
+	serviceMap     map[string]*[]discovery.Service
+	serviceNodeMap map[[2]string]*discovery.Service
 	mutex          sync.RWMutex
 }
 
@@ -43,7 +42,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.servCtx = ctx
 
-	log.Infof(r.servCtx, "init service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.IRegistry).Elem()))
+	log.Infof(r.servCtx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
 		init.InitSP(r.servCtx)
@@ -64,7 +63,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 			node := &service.Nodes[j]
 
 			serviceNode := *service
-			serviceNode.Nodes = []registry.Node{*node}
+			serviceNode.Nodes = []discovery.Node{*node}
 
 			r.serviceNodeMap[[2]string{service.Name, node.Id}] = &serviceNode
 		}
@@ -81,7 +80,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:[%s,%s]", plugin.Name, types.AnyFullName(*r), types.TypeFullName(reflect.TypeOf(r.IRegistry).Elem()))
+	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	r.cancel()
 	r.wg.Wait()
@@ -92,29 +91,29 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 }
 
 // GetServiceNode 查询服务节点
-func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*registry.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	serviceNode, ok := r.serviceNodeMap[[2]string{serviceName, nodeId}]
 	if !ok {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
 	return serviceNode.DeepCopy(), nil
 }
 
 // GetService 查询服务
-func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]registry.Service, error) {
+func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]discovery.Service, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	versions, ok := r.serviceMap[serviceName]
 	if !ok {
-		return nil, registry.ErrNotFound
+		return nil, discovery.ErrNotFound
 	}
 
-	versionsCopy := make([]registry.Service, 0, len(*versions))
+	versionsCopy := make([]discovery.Service, 0, len(*versions))
 
 	for _, service := range *versions {
 		versionsCopy = append(versionsCopy, *service.DeepCopy())
@@ -124,11 +123,11 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]regis
 }
 
 // ListServices 查询所有服务
-func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error) {
+func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	servicesCopy := make([]registry.Service, 0, len(r.serviceNodeMap))
+	servicesCopy := make([]discovery.Service, 0, len(r.serviceNodeMap))
 
 	for _, versions := range r.serviceMap {
 		for _, service := range *versions {
@@ -139,16 +138,16 @@ func (r *_Registry) ListServices(ctx context.Context) ([]registry.Service, error
 	return servicesCopy, nil
 }
 
-func (r *_Registry) getServiceVersions(serviceName string) *[]registry.Service {
+func (r *_Registry) getServiceVersions(serviceName string) *[]discovery.Service {
 	services, ok := r.serviceMap[serviceName]
 	if !ok {
-		services = &[]registry.Service{}
+		services = &[]discovery.Service{}
 		r.serviceMap[serviceName] = services
 	}
 	return services
 }
 
-func (r *_Registry) mainLoop(watcher registry.IWatcher) {
+func (r *_Registry) mainLoop(watcher discovery.IWatcher) {
 	defer r.wg.Done()
 
 	log.Debug(r.servCtx, "watching service changes started")
@@ -157,7 +156,7 @@ loop:
 	for {
 		event, err := watcher.Next()
 		if err != nil {
-			if errors.Is(err, registry.ErrStoppedWatching) {
+			if errors.Is(err, discovery.ErrStoppedWatching) {
 				break loop
 			}
 			log.Errorf(r.servCtx, "watching service changes failed, %s", err)
@@ -170,7 +169,7 @@ loop:
 
 			eventNode := event.Service.Nodes[0]
 
-			removeNode := func(versions *[]registry.Service, versionIdx int, service *registry.Service) {
+			removeNode := func(versions *[]discovery.Service, versionIdx int, service *discovery.Service) {
 				for i := len(service.Nodes) - 1; i >= 0; i-- {
 					node := &service.Nodes[i]
 
@@ -185,7 +184,7 @@ loop:
 			}
 
 			switch event.Type {
-			case registry.Create, registry.Update:
+			case discovery.Create, discovery.Update:
 				r.serviceNodeMap[[2]string{event.Service.Name, eventNode.Id}] = event.Service
 
 				versions := r.getServiceVersions(event.Service.Name)
@@ -223,7 +222,7 @@ loop:
 				*versions = append(*versions, *event.Service)
 				return
 
-			case registry.Delete:
+			case discovery.Delete:
 				delete(r.serviceNodeMap, [2]string{event.Service.Name, eventNode.Id})
 
 				versions, ok := r.serviceMap[event.Service.Name]

@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/plugins/broker"
+	"git.golaxy.org/plugins/discovery"
 	"git.golaxy.org/plugins/log"
-	"git.golaxy.org/plugins/registry"
 	"time"
 )
 
-func (d *_Distributed) mainLoop(serviceNode *registry.Service, subs []broker.ISubscriber) {
+func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.ISubscriber) {
 	defer d.wg.Done()
 
 	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
@@ -50,7 +50,7 @@ loop:
 	log.Infof(d.servCtx, "service %q node %q stopped", d.servCtx.GetName(), d.servCtx.GetId())
 }
 
-func (d *_Distributed) watchingService(watcher registry.IWatcher) {
+func (d *_DistService) watchingService(watcher discovery.IWatcher) {
 	defer d.wg.Done()
 
 	log.Debug(d.servCtx, "watching service changes started")
@@ -59,7 +59,7 @@ loop:
 	for {
 		e, err := watcher.Next()
 		if err != nil {
-			if errors.Is(err, registry.ErrStoppedWatching) {
+			if errors.Is(err, discovery.ErrStoppedWatching) {
 				break loop
 			}
 			log.Errorf(d.servCtx, "watching service changes failed, %s", err)
@@ -67,7 +67,7 @@ loop:
 		}
 
 		switch e.Type {
-		case registry.Delete:
+		case discovery.Delete:
 			for _, node := range e.Service.Nodes {
 				d.deduplication.Remove(node.Address)
 			}
@@ -80,7 +80,7 @@ loop:
 	log.Debug(d.servCtx, "watching service changes stopped")
 }
 
-func (d *_Distributed) handleEvent(e broker.IEvent) error {
+func (d *_DistService) handleEvent(e broker.IEvent) error {
 	mp, err := d.decoder.DecodeBytes(e.Message())
 	if err != nil {
 		return err

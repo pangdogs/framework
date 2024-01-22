@@ -1,11 +1,11 @@
-package etcd_registry
+package cache_discovery
 
 import (
 	"git.golaxy.org/core/define"
 )
 
 var (
-	plugin    = define.DefineServicePlugin(NewRegistry)
+	plugin    = define.DefineServicePlugin(newRegistry)
 	Install   = plugin.Install
 	Uninstall = plugin.Uninstall
 )

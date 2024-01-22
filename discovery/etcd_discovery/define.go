@@ -1,4 +1,4 @@
-package redis_registry
+package etcd_discovery
 
 import (
 	"git.golaxy.org/core/define"
