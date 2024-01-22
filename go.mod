@@ -3,7 +3,7 @@ module git.golaxy.org/plugins
 go 1.20
 
 require (
-	git.golaxy.org/core v0.2.21
+	git.golaxy.org/core v0.2.22
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fufuok/bytespool v1.3.2
