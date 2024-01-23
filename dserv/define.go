@@ -1,4 +1,4 @@
-package dist
+package dserv
 
 import (
 	"git.golaxy.org/core/define"

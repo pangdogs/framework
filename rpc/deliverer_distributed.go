@@ -4,7 +4,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/plugins/dist"
+	"git.golaxy.org/plugins/dserv"
 	"git.golaxy.org/plugins/gap"
 	"git.golaxy.org/plugins/gap/variant"
 	"git.golaxy.org/plugins/log"
@@ -15,13 +15,13 @@ import (
 // DistributedDeliverer 分布式服务的RPC投递器
 type DistributedDeliverer struct {
 	servCtx service.Context
-	dist    dist.IDistService
+	dist    dserv.IDistService
 }
 
 // Init 初始化
 func (d *DistributedDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
-	d.dist = dist.Using(ctx)
+	d.dist = dserv.Using(ctx)
 
 	log.Debugf(d.servCtx, "rpc deliverer %q started", types.AnyFullName(*d))
 }

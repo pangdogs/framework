@@ -11,7 +11,7 @@ import (
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/core/util/uid"
-	"git.golaxy.org/plugins/dist"
+	"git.golaxy.org/plugins/dserv"
 	"git.golaxy.org/plugins/gap"
 	"git.golaxy.org/plugins/gap/variant"
 	"git.golaxy.org/plugins/log"
@@ -32,14 +32,14 @@ var (
 // DistributedDispatcher 分布式服务的RPC分发器
 type DistributedDispatcher struct {
 	servCtx service.Context
-	dist    dist.IDistService
-	watcher dist.IWatcher
+	dist    dserv.IDistService
+	watcher dserv.IWatcher
 }
 
 // Init 初始化
 func (d *DistributedDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
-	d.dist = dist.Using(ctx)
+	d.dist = dserv.Using(ctx)
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))
