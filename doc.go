@@ -1,3 +1,2 @@
-// Package plugins GOLAXY分布式服务框架内置的一些插件。
-//   - 如果插件间需要相互引用，那么可以将插件需要暴露的接口、结构、常量与枚举定义等，放在在同一个包内。但是不建议采用该方式，组件间应该尽量保持独立或单向依赖。
-package plugins
+// Package framework Golaxy分布式服务开发框架。
+package framework
