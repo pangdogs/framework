@@ -1,9 +1,11 @@
 module git.golaxy.org/framework
 
-go 1.20
+go 1.21
+
+toolchain go1.21.6
 
 require (
-	git.golaxy.org/core v0.2.23
+	git.golaxy.org/core v0.2.26
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fufuok/bytespool v1.3.2
