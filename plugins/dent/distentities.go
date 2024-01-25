@@ -37,7 +37,7 @@ type _DistEntities struct {
 
 // InitRP 初始化运行时插件
 func (d *_DistEntities) InitRP(ctx runtime.Context) {
-	log.Infof(d.rtCtx, "init runtime plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
+	log.Infof(d.rtCtx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
 
 	d.rtCtx = ctx
 
@@ -58,7 +58,10 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	}
 
 	// 申请租约
-	d.grantLease()
+	if err := d.grantLease(); err != nil {
+		log.Panicf(d.rtCtx, "grant lease failed, %s", err)
+	}
+	log.Debugf(d.rtCtx, "grant lease %d", d.leaseId)
 
 	// 租约心跳
 	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(d.rtCtx, d.keepAliveLease)
@@ -70,7 +73,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 
 // ShutRP 关闭运行时插件
 func (d *_DistEntities) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut runtime plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
+	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
 
 	// 解绑定事件
 	for i := range d.hooks {
@@ -153,21 +156,25 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, arg
 	log.Warnf(d.rtCtx, "lease %d not found, try grant a new lease", d.leaseId)
 
 	// 重新申请租约
-	d.grantLease()
+	if err := d.grantLease(); err != nil {
+		log.Errorf(d.rtCtx, "grant new lease failed, %s", err)
+		return
+	}
+	log.Debugf(d.rtCtx, "grant new lease %d", d.leaseId)
 }
 
-func (d *_DistEntities) grantLease() {
+func (d *_DistEntities) grantLease() error {
 	// 申请租约
 	lgr, err := d.client.Grant(d.rtCtx, int64(math.Ceil(d.options.TTL.Seconds())))
 	if err != nil {
-		log.Panicf(d.rtCtx, "grant lease failed, %s", err)
+		return err
 	}
 	d.leaseId = lgr.ID
 
 	// 刷新实体信息
 	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 
-	log.Debugf(d.rtCtx, "grant lease %d", d.leaseId)
+	return nil
 }
 
 func (d *_DistEntities) configure() etcd_client.Config {

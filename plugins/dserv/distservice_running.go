@@ -15,7 +15,7 @@ func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.IS
 
 	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
 
-	ticker := time.NewTicker(d.options.RefreshInterval)
+	ticker := time.NewTicker(d.options.TTL / 2)
 	defer ticker.Stop()
 
 loop:
@@ -23,7 +23,7 @@ loop:
 		select {
 		case <-ticker.C:
 			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, serviceNode, d.options.RefreshInterval*2); err != nil {
+			if err := d.registry.Register(d.ctx, serviceNode, d.options.TTL); err != nil {
 				log.Errorf(d.servCtx, "refresh service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
 				continue
 			}
@@ -50,20 +50,42 @@ loop:
 	log.Infof(d.servCtx, "service %q node %q stopped", d.servCtx.GetName(), d.servCtx.GetId())
 }
 
-func (d *_DistService) watchingService(watcher discovery.IWatcher) {
+func (d *_DistService) watchingService() {
 	defer d.wg.Done()
 
 	log.Debug(d.servCtx, "watching service changes started")
 
-loop:
+retry:
+	var watcher discovery.IWatcher
+	var err error
+	retryInterval := 3 * time.Second
+
+	select {
+	case <-d.ctx.Done():
+		goto end
+	default:
+	}
+
+	// 监控服务节点变化
+	watcher, err = d.registry.Watch(d.ctx, "")
+	if err != nil {
+		log.Errorf(d.servCtx, "watching service changes failed, %s", err)
+		time.Sleep(retryInterval)
+		goto retry
+	}
+
 	for {
 		e, err := watcher.Next()
 		if err != nil {
 			if errors.Is(err, discovery.ErrStoppedWatching) {
-				break loop
+				time.Sleep(retryInterval)
+				goto retry
 			}
+
 			log.Errorf(d.servCtx, "watching service changes failed, %s", err)
-			continue
+			<-watcher.Stop()
+			time.Sleep(retryInterval)
+			goto retry
 		}
 
 		switch e.Type {
@@ -74,8 +96,10 @@ loop:
 		}
 	}
 
-	// 停止监听服务节点
-	<-watcher.Stop()
+end:
+	if watcher != nil {
+		<-watcher.Stop()
+	}
 
 	log.Debug(d.servCtx, "watching service changes stopped")
 }

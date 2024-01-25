@@ -74,7 +74,7 @@ func (Option) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
 func (Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		if size < 0 {
-			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", core.ErrArgs))
+			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs))
 		}
 		o.WatchChanSize = size
 	}

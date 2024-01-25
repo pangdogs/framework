@@ -20,7 +20,6 @@ type DistEntitiesOptions struct {
 	EtcdConfig    *clientv3.Config
 	KeyPrefix     string
 	TTL           time.Duration
-	WatchChanSize int
 	CustUsername  string
 	CustPassword  string
 	CustAddresses []string
@@ -35,7 +34,6 @@ func (Option) Default() option.Setting[DistEntitiesOptions] {
 		Option{}.EtcdConfig(nil)(options)
 		Option{}.KeyPrefix("/golaxy/entities/")(options)
 		Option{}.TTL(time.Minute)(options)
-		Option{}.WatchChanSize(128)(options)
 		Option{}.CustAuth("", "")(options)
 		Option{}.CustAddresses("127.0.0.1:2379")(options)
 		Option{}.CustSecure(false)(options)
@@ -67,23 +65,13 @@ func (Option) KeyPrefix(prefix string) option.Setting[DistEntitiesOptions] {
 	}
 }
 
-// TTL 租约超时时间
+// TTL 实体信息过期时间
 func (Option) TTL(ttl time.Duration) option.Setting[DistEntitiesOptions] {
 	return func(options *DistEntitiesOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option TTL can't be set to a value less then 3 second", core.ErrArgs))
+			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
 		}
 		options.TTL = ttl
-	}
-}
-
-// WatchChanSize 监控实体变化的channel大小
-func (Option) WatchChanSize(size int) option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
-		if size < 0 {
-			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less then 0", core.ErrArgs))
-		}
-		options.WatchChanSize = size
 	}
 }
 

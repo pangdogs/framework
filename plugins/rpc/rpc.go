@@ -32,7 +32,7 @@ type _RPC struct {
 
 // InitSP 初始化服务插件
 func (r *_RPC) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	r.servCtx = ctx
 
@@ -65,7 +65,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_RPC) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut service plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	for i := range r.deliverers {
 		r.deliverers[i].AutoLock(func(d *IDeliverer) {

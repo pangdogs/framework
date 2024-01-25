@@ -21,7 +21,7 @@ type DistServiceOptions struct {
 	Version           string            // 服务版本号
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
 	Domain            string            // 服务地址域
-	RefreshInterval   time.Duration     // 服务信息刷新间隔
+	TTL               time.Duration     // 服务信息过期时间
 	FutureTimeout     time.Duration     // 异步模型Future超时时间
 	DecoderMsgCreator gap.IMsgCreator   // 消息包解码器的消息构建器
 	RecvMsgHandler    RecvMsgHandler    // 接收消息的处理器（优先级低于监控器）
@@ -33,7 +33,7 @@ func (Option) Default() option.Setting[DistServiceOptions] {
 		Option{}.Version("")(options)
 		Option{}.Meta(nil)(options)
 		Option{}.Domain("service")(options)
-		Option{}.RefreshInterval(3 * time.Second)(options)
+		Option{}.TTL(10 * time.Second)(options)
 		Option{}.FutureTimeout(5 * time.Second)(options)
 		Option{}.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
 		Option{}.RecvMsgHandler(nil)(options)
@@ -61,13 +61,13 @@ func (Option) Domain(domain string) option.Setting[DistServiceOptions] {
 	}
 }
 
-// RefreshInterval 服务信息刷新间隔
-func (Option) RefreshInterval(d time.Duration) option.Setting[DistServiceOptions] {
+// TTL 服务信息过期时间
+func (Option) TTL(ttl time.Duration) option.Setting[DistServiceOptions] {
 	return func(o *DistServiceOptions) {
-		if d <= 0 {
-			panic(fmt.Errorf("%w: option RefreshInterval can't be set to a value less equal 0", core.ErrArgs))
+		if ttl < 3*time.Second {
+			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
 		}
-		o.RefreshInterval = d
+		o.TTL = ttl
 	}
 }
 
