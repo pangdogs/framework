@@ -34,7 +34,6 @@ type _DistEntities struct {
 	rtCtx   runtime.Context
 	client  *etcd_client.Client
 	leaseId etcd_client.LeaseID
-	hooks   [2]event.Hook
 }
 
 // InitRP 初始化运行时插件
@@ -73,18 +72,15 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(d.rtCtx, d.keepAliveLease)
 
 	// 绑定事件
-	d.hooks[0] = runtime.BindEventEntityMgrAddEntity(ctx.GetEntityMgr(), d, 1000)
-	d.hooks[1] = runtime.BindEventEntityMgrRemovingEntity(ctx.GetEntityMgr(), d, -1000)
+	d.rtCtx.ManagedHooks(
+		runtime.BindEventEntityMgrAddEntity(ctx.GetEntityMgr(), d, 1000),
+		runtime.BindEventEntityMgrRemovingEntity(ctx.GetEntityMgr(), d, -1000),
+	)
 }
 
 // ShutRP 关闭运行时插件
 func (d *_DistEntities) ShutRP(ctx runtime.Context) {
 	log.Infof(ctx, "shut plugin %q", plugin.Name)
-
-	// 解绑定事件
-	for i := range d.hooks {
-		d.hooks[i].Unbind()
-	}
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
