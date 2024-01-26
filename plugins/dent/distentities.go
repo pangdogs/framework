@@ -17,8 +17,10 @@ import (
 	"path"
 )
 
-// IDistEntities 分布式实体支持
-type IDistEntities any
+// IDistEntities 分布式实体支持，会将全局可以访问的实体注册为分布式实体
+type IDistEntities interface {
+	IDistEntitiesEventTab
+}
 
 func newDistEntities(settings ...option.Setting[DistEntitiesOptions]) IDistEntities {
 	return &_DistEntities{
@@ -27,6 +29,7 @@ func newDistEntities(settings ...option.Setting[DistEntitiesOptions]) IDistEntit
 }
 
 type _DistEntities struct {
+	DistEntitiesEventTab
 	options DistEntitiesOptions
 	rtCtx   runtime.Context
 	client  *etcd_client.Client
@@ -39,6 +42,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	log.Infof(d.rtCtx, "init plugin %q", plugin.Name)
 
 	d.rtCtx = ctx
+	d.rtCtx.ActivateEvent(&d.DistEntitiesEventTab, event.EventRecursion_Allow)
 
 	if d.options.EtcdClient == nil {
 		cli, err := etcd_client.New(d.configure())
@@ -61,6 +65,9 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 		log.Panicf(d.rtCtx, "grant lease failed, %s", err)
 	}
 	log.Debugf(d.rtCtx, "grant lease %d", d.leaseId)
+
+	// 刷新实体信息
+	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 
 	// 租约心跳
 	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(d.rtCtx, d.keepAliveLease)
@@ -115,6 +122,9 @@ func (d *_DistEntities) register(entity ec.Entity) bool {
 	}
 
 	log.Debugf(d.rtCtx, "put %q with lease %d ok", key, d.leaseId)
+
+	// 通知分布式实体上线
+	emitEventDistEntityOnline(d, entity)
 	return true
 }
 
@@ -132,6 +142,9 @@ func (d *_DistEntities) deregister(entity ec.Entity) {
 	}
 
 	log.Debugf(d.rtCtx, "delete %q ok", key)
+
+	// 通知分布式实体下线
+	emitEventDistEntityOffline(d, entity)
 }
 
 func (d *_DistEntities) getEntityPath(entity ec.Entity) string {
@@ -152,6 +165,14 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, arg
 		return
 	}
 
+	// 通知所有分布式实体下线
+	d.rtCtx.GetEntityMgr().RangeEntities(func(entity ec.Entity) bool {
+		if entity.GetScope() == ec.Scope_Global {
+			emitEventDistEntityOffline(d, entity)
+		}
+		return true
+	})
+
 	log.Warnf(d.rtCtx, "lease %d not found, try grant a new lease", d.leaseId)
 
 	// 重新申请租约
@@ -160,6 +181,9 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, arg
 		return
 	}
 	log.Debugf(d.rtCtx, "grant new lease %d", d.leaseId)
+
+	// 刷新实体信息
+	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 }
 
 func (d *_DistEntities) grantLease() error {
@@ -169,9 +193,6 @@ func (d *_DistEntities) grantLease() error {
 		return err
 	}
 	d.leaseId = lgr.ID
-
-	// 刷新实体信息
-	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 
 	return nil
 }
