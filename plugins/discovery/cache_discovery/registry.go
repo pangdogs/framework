@@ -188,17 +188,13 @@ func (r *_Registry) refreshCache() error {
 		return err
 	}
 
-	for i := range services {
-		service := &services[i]
-
+	for _, service := range services {
 		versions := r.getServiceVersions(service.Name)
-		*versions = append(*versions, *service)
+		*versions = append(*versions, service)
 
-		for j := range service.Nodes {
-			node := &service.Nodes[j]
-
-			serviceNode := *service
-			serviceNode.Nodes = []discovery.Node{*node}
+		for _, node := range service.Nodes {
+			serviceNode := service
+			serviceNode.Nodes = []discovery.Node{node}
 
 			r.serviceNodeMap[[2]string{service.Name, node.Id}] = &serviceNode
 		}
