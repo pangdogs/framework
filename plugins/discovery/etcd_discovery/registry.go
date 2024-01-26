@@ -9,7 +9,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/util/concurrent"
@@ -45,7 +44,7 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	r.servCtx = ctx
 
@@ -68,7 +67,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {
@@ -274,13 +273,13 @@ func (r *_Registry) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: r.options.CustAddresses,
-		Username:  r.options.CustUsername,
-		Password:  r.options.CustPassword,
+		Endpoints: r.options.CustomAddresses,
+		Username:  r.options.CustomUsername,
+		Password:  r.options.CustomPassword,
 	}
 
-	if r.options.CustSecure || r.options.CustTLSConfig != nil {
-		tlsConfig := r.options.CustTLSConfig
+	if r.options.CustomSecure || r.options.CustomTLSConfig != nil {
+		tlsConfig := r.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{
 				InsecureSkipVerify: true,

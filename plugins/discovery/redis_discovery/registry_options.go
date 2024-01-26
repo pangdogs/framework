@@ -14,15 +14,15 @@ type Option struct{}
 
 // RegistryOptions 所有选项
 type RegistryOptions struct {
-	RedisClient   *redis.Client
-	RedisConfig   *redis.Options
-	RedisURL      string
-	KeyPrefix     string
-	WatchChanSize int
-	CustUsername  string
-	CustPassword  string
-	CustAddress   string
-	CustDB        int
+	RedisClient    *redis.Client
+	RedisConfig    *redis.Options
+	RedisURL       string
+	KeyPrefix      string
+	WatchChanSize  int
+	CustomUsername string
+	CustomPassword string
+	CustomAddress  string
+	CustomDB       int
 }
 
 // Default 默认值
@@ -33,9 +33,9 @@ func (Option) Default() option.Setting[RegistryOptions] {
 		Option{}.RedisURL("")(options)
 		Option{}.KeyPrefix("golaxy:registry:")(options)
 		Option{}.WatchChanSize(128)(options)
-		Option{}.CustAuth("", "")(options)
-		Option{}.CustAddress("127.0.0.1:6379")(options)
-		Option{}.CustDB(0)(options)
+		Option{}.CustomAuth("", "")(options)
+		Option{}.CustomAddress("127.0.0.1:6379")(options)
+		Option{}.CustomDB(0)(options)
 	}
 }
 
@@ -80,27 +80,27 @@ func (Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	}
 }
 
-// CustAuth 自定义设置redis鉴权信息
-func (Option) CustAuth(username, password string) option.Setting[RegistryOptions] {
+// CustomAuth 自定义设置redis鉴权信息
+func (Option) CustomAuth(username, password string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
-		options.CustUsername = username
-		options.CustPassword = password
+		options.CustomUsername = username
+		options.CustomPassword = password
 	}
 }
 
-// CustAddress 自定义设置redis服务地址
-func (Option) CustAddress(addr string) option.Setting[RegistryOptions] {
+// CustomAddress 自定义设置redis服务地址
+func (Option) CustomAddress(addr string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 		}
-		options.CustAddress = addr
+		options.CustomAddress = addr
 	}
 }
 
-// CustDB 自定义设置redis db
-func (Option) CustDB(db int) option.Setting[RegistryOptions] {
+// CustomDB 自定义设置redis db
+func (Option) CustomDB(db int) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
-		options.CustDB = db
+		options.CustomDB = db
 	}
 }

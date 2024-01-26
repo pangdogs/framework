@@ -8,7 +8,6 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/dsync"
@@ -83,7 +82,7 @@ type _DistService struct {
 
 // InitSP 初始化服务插件
 func (d *_DistService) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", Name, types.AnyFullName(*d))
+	log.Infof(ctx, "init plugin %q", Name)
 
 	d.ctx, d.cancel = context.WithCancel(context.Background())
 	d.servCtx = ctx
@@ -179,7 +178,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (d *_DistService) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	d.cancel()
 	d.wg.Wait()

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	etcd_client "go.etcd.io/etcd/client/v3"
@@ -24,7 +23,7 @@ type _DistSync struct {
 
 // InitSP 初始化服务插件
 func (s *_DistSync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	s.servCtx = ctx
 
@@ -47,7 +46,7 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (s *_DistSync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	if s.options.EtcdClient == nil {
 		if s.client != nil {
@@ -72,13 +71,13 @@ func (s *_DistSync) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: s.options.CustAddresses,
-		Username:  s.options.CustUsername,
-		Password:  s.options.CustPassword,
+		Endpoints: s.options.CustomAddresses,
+		Username:  s.options.CustomUsername,
+		Password:  s.options.CustomPassword,
 	}
 
-	if s.options.CustSecure || s.options.CustTLSConfig != nil {
-		tlsConfig := s.options.CustTLSConfig
+	if s.options.CustomSecure || s.options.CustomTLSConfig != nil {
+		tlsConfig := s.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{
 				InsecureSkipVerify: true,

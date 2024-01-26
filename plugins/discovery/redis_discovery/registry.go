@@ -8,7 +8,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/util/concurrent"
@@ -36,7 +35,7 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	r.servCtx = ctx
 
@@ -59,7 +58,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	if r.options.RedisClient == nil {
 		if r.client != nil {
@@ -282,10 +281,10 @@ func (r *_Registry) configure() *redis.Options {
 	}
 
 	conf := &redis.Options{}
-	conf.Username = r.options.CustUsername
-	conf.Password = r.options.CustPassword
-	conf.Addr = r.options.CustAddress
-	conf.DB = r.options.CustDB
+	conf.Username = r.options.CustomUsername
+	conf.Password = r.options.CustomPassword
+	conf.Addr = r.options.CustomAddress
+	conf.DB = r.options.CustomDB
 
 	return conf
 }

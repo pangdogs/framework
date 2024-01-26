@@ -12,14 +12,14 @@ type Option struct{}
 
 // DSyncOptions contains various options for configuring distributed locking using redis.
 type DSyncOptions struct {
-	RedisClient  *redis.Client
-	RedisConfig  *redis.Options
-	RedisURL     string
-	KeyPrefix    string
-	CustUsername string
-	CustPassword string
-	CustAddress  string
-	CustDB       int
+	RedisClient    *redis.Client
+	RedisConfig    *redis.Options
+	RedisURL       string
+	KeyPrefix      string
+	CustomUsername string
+	CustomPassword string
+	CustomAddress  string
+	CustomDB       int
 }
 
 // Default sets default values for DSyncOptions.
@@ -29,9 +29,9 @@ func (Option) Default() option.Setting[DSyncOptions] {
 		Option{}.RedisConfig(nil)(options)
 		Option{}.RedisURL("")(options)
 		Option{}.KeyPrefix("golaxy:mutex:")(options)
-		Option{}.CustAuth("", "")(options)
-		Option{}.CustAddress("127.0.0.1:6379")(options)
-		Option{}.CustDB(0)(options)
+		Option{}.CustomAuth("", "")(options)
+		Option{}.CustomAddress("127.0.0.1:6379")(options)
+		Option{}.CustomDB(0)(options)
 	}
 }
 
@@ -66,27 +66,27 @@ func (Option) KeyPrefix(prefix string) option.Setting[DSyncOptions] {
 	}
 }
 
-// CustAuth sets the username and password for authentication in DSyncOptions.
-func (Option) CustAuth(username, password string) option.Setting[DSyncOptions] {
+// CustomAuth sets the username and password for authentication in DSyncOptions.
+func (Option) CustomAuth(username, password string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
-		options.CustUsername = username
-		options.CustPassword = password
+		options.CustomUsername = username
+		options.CustomPassword = password
 	}
 }
 
-// CustAddress sets the Redis server address in DSyncOptions.
-func (Option) CustAddress(addr string) option.Setting[DSyncOptions] {
+// CustomAddress sets the Redis server address in DSyncOptions.
+func (Option) CustomAddress(addr string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			panic(err)
 		}
-		options.CustAddress = addr
+		options.CustomAddress = addr
 	}
 }
 
-// CustDB sets the Redis database index in DSyncOptions.
-func (Option) CustDB(db int) option.Setting[DSyncOptions] {
+// CustomDB sets the Redis database index in DSyncOptions.
+func (Option) CustomDB(db int) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
-		options.CustDB = db
+		options.CustomDB = db
 	}
 }

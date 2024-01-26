@@ -3,7 +3,6 @@ package redis_dsync
 import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/go-redsync/redsync/v4"
@@ -26,7 +25,7 @@ type _DistSync struct {
 
 // InitSP 初始化服务插件
 func (s *_DistSync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	s.servCtx = ctx
 
@@ -46,7 +45,7 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (s *_DistSync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*s))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	if s.options.RedisClient == nil {
 		if s.client != nil {
@@ -79,10 +78,10 @@ func (s *_DistSync) configure() *redis.Options {
 	}
 
 	conf := &redis.Options{}
-	conf.Username = s.options.CustUsername
-	conf.Password = s.options.CustPassword
-	conf.Addr = s.options.CustAddress
-	conf.DB = s.options.CustDB
+	conf.Username = s.options.CustomUsername
+	conf.Password = s.options.CustomPassword
+	conf.Addr = s.options.CustomAddress
+	conf.DB = s.options.CustomDB
 
 	return conf
 }

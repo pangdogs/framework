@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/nats-io/nats.go"
@@ -30,15 +29,15 @@ type _Broker struct {
 
 // InitSP 初始化服务插件
 func (b *_Broker) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	b.ctx, b.cancel = context.WithCancel(context.Background())
 	b.servCtx = ctx
 
 	if b.options.NatsClient == nil {
-		client, err := nats.Connect(strings.Join(b.options.CustAddresses, ","), nats.UserInfo(b.options.CustUsername, b.options.CustPassword), nats.Name(ctx.String()))
+		client, err := nats.Connect(strings.Join(b.options.CustomAddresses, ","), nats.UserInfo(b.options.CustomUsername, b.options.CustomPassword), nats.Name(ctx.String()))
 		if err != nil {
-			log.Panicf(ctx, "connect nats %q failed, %s", b.options.CustAddresses, err)
+			log.Panicf(ctx, "connect nats %q failed, %s", b.options.CustomAddresses, err)
 		}
 		b.client = client
 	} else {
@@ -52,7 +51,7 @@ func (b *_Broker) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (b *_Broker) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*b))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	b.cancel()
 	b.wg.Wait()

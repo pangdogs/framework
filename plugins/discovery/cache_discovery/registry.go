@@ -6,7 +6,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"sync"
@@ -33,6 +32,8 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
+	log.Infof(r.servCtx, "init plugin %q", plugin.Name)
+
 	if r.options.Registry == nil {
 		log.Panic(ctx, "wrap registry is nil, must be set before init")
 	}
@@ -40,8 +41,6 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.servCtx = ctx
-
-	log.Infof(r.servCtx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
 
 	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
 		init.InitSP(r.servCtx)
@@ -57,7 +56,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	r.cancel()
 	r.wg.Wait()

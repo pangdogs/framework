@@ -10,7 +10,6 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/log"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcd_client "go.etcd.io/etcd/client/v3"
@@ -37,7 +36,7 @@ type _DistEntities struct {
 
 // InitRP 初始化运行时插件
 func (d *_DistEntities) InitRP(ctx runtime.Context) {
-	log.Infof(d.rtCtx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
+	log.Infof(d.rtCtx, "init plugin %q", plugin.Name)
 
 	d.rtCtx = ctx
 
@@ -73,7 +72,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 
 // ShutRP 关闭运行时插件
 func (d *_DistEntities) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*d))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	// 解绑定事件
 	for i := range d.hooks {
@@ -183,13 +182,13 @@ func (d *_DistEntities) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: d.options.CustAddresses,
-		Username:  d.options.CustUsername,
-		Password:  d.options.CustPassword,
+		Endpoints: d.options.CustomAddresses,
+		Username:  d.options.CustomUsername,
+		Password:  d.options.CustomPassword,
 	}
 
-	if d.options.CustSecure || d.options.CustTLSConfig != nil {
-		tlsConfig := d.options.CustTLSConfig
+	if d.options.CustomSecure || d.options.CustomTLSConfig != nil {
+		tlsConfig := d.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{
 				InsecureSkipVerify: true,

@@ -4,7 +4,6 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/util/concurrent"
 )
@@ -32,7 +31,7 @@ type _RPC struct {
 
 // InitSP 初始化服务插件
 func (r *_RPC) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	r.servCtx = ctx
 
@@ -65,7 +64,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_RPC) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin <%s>:[%s]", plugin.Name, types.AnyFullName(*r))
+	log.Infof(ctx, "shut plugin %q", plugin.Name)
 
 	for i := range r.deliverers {
 		r.deliverers[i].AutoLock(func(d *IDeliverer) {

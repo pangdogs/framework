@@ -15,15 +15,15 @@ type Option struct{}
 
 // RegistryOptions 所有选项
 type RegistryOptions struct {
-	EtcdClient    *clientv3.Client
-	EtcdConfig    *clientv3.Config
-	KeyPrefix     string
-	WatchChanSize int
-	CustUsername  string
-	CustPassword  string
-	CustAddresses []string
-	CustSecure    bool
-	CustTLSConfig *tls.Config
+	EtcdClient      *clientv3.Client
+	EtcdConfig      *clientv3.Config
+	KeyPrefix       string
+	WatchChanSize   int
+	CustomUsername  string
+	CustomPassword  string
+	CustomAddresses []string
+	CustomSecure    bool
+	CustomTLSConfig *tls.Config
 }
 
 // Default 默认值
@@ -33,10 +33,10 @@ func (Option) Default() option.Setting[RegistryOptions] {
 		Option{}.EtcdConfig(nil)(options)
 		Option{}.KeyPrefix("/golaxy/registry/")(options)
 		Option{}.WatchChanSize(128)(options)
-		Option{}.CustAuth("", "")(options)
-		Option{}.CustAddresses("127.0.0.1:2379")(options)
-		Option{}.CustSecure(false)(options)
-		Option{}.CustTLSConfig(nil)(options)
+		Option{}.CustomAuth("", "")(options)
+		Option{}.CustomAddresses("127.0.0.1:2379")(options)
+		Option{}.CustomSecure(false)(options)
+		Option{}.CustomTLSConfig(nil)(options)
 	}
 }
 
@@ -74,36 +74,36 @@ func (Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	}
 }
 
-// CustAuth 自定义设置etcd鉴权信息
-func (Option) CustAuth(username, password string) option.Setting[RegistryOptions] {
+// CustomAuth 自定义设置etcd鉴权信息
+func (Option) CustomAuth(username, password string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
-		options.CustUsername = username
-		options.CustPassword = password
+		options.CustomUsername = username
+		options.CustomPassword = password
 	}
 }
 
-// CustAddresses 自定义设置etcd服务地址
-func (Option) CustAddresses(addrs ...string) option.Setting[RegistryOptions] {
+// CustomAddresses 自定义设置etcd服务地址
+func (Option) CustomAddresses(addrs ...string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
 				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 			}
 		}
-		options.CustAddresses = addrs
+		options.CustomAddresses = addrs
 	}
 }
 
-// CustSecure 自定义设置是否加密etcd连接
-func (Option) CustSecure(secure bool) option.Setting[RegistryOptions] {
+// CustomSecure 自定义设置是否加密etcd连接
+func (Option) CustomSecure(secure bool) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
-		o.CustSecure = secure
+		o.CustomSecure = secure
 	}
 }
 
-// CustTLSConfig 自定义设置加密etcd连接的配置
-func (Option) CustTLSConfig(conf *tls.Config) option.Setting[RegistryOptions] {
+// CustomTLSConfig 自定义设置加密etcd连接的配置
+func (Option) CustomTLSConfig(conf *tls.Config) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
-		o.CustTLSConfig = conf
+		o.CustomTLSConfig = conf
 	}
 }
