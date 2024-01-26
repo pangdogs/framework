@@ -91,6 +91,8 @@ func (d *_DistEntities) ShutRP(ctx runtime.Context) {
 	if err != nil {
 		log.Errorf(d.rtCtx, "revoke lease %d failed, %s", d.leaseId, err)
 	}
+
+	d.DistEntitiesEventTab.Close()
 }
 
 // OnEntityMgrAddEntity 实体管理器添加实体
