@@ -69,7 +69,7 @@ retry:
 	// 监控服务节点变化
 	watcher, err = d.registry.Watch(d.ctx, "")
 	if err != nil {
-		log.Errorf(d.servCtx, "watching service changes failed, %s", err)
+		log.Errorf(d.servCtx, "watching service changes failed, %s, retry it", err)
 		time.Sleep(retryInterval)
 		goto retry
 	}
@@ -82,7 +82,7 @@ retry:
 				goto retry
 			}
 
-			log.Errorf(d.servCtx, "watching service changes failed, %s", err)
+			log.Errorf(d.servCtx, "watching service changes failed, %s, retry it", err)
 			<-watcher.Stop()
 			time.Sleep(retryInterval)
 			goto retry

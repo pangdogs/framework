@@ -140,13 +140,13 @@ retry:
 
 	watcher, err = r.IRegistry.Watch(r.ctx, "")
 	if err != nil {
-		log.Errorf(r.servCtx, "watching service changes failed, %s", err)
+		log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
 		time.Sleep(r.options.RetryInterval)
 		goto retry
 	}
 
 	if err := r.refreshCache(); err != nil {
-		log.Errorf(r.servCtx, "refresh cache failed, %s", err)
+		log.Errorf(r.servCtx, "refresh cache failed, %s, retry it", err)
 		time.Sleep(r.options.RetryInterval)
 		goto retry
 	}
@@ -159,7 +159,7 @@ retry:
 				goto retry
 			}
 
-			log.Errorf(r.servCtx, "watching service changes failed, %s", err)
+			log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
 			<-watcher.Stop()
 			time.Sleep(r.options.RetryInterval)
 			goto retry
@@ -173,7 +173,7 @@ end:
 		<-watcher.Stop()
 	}
 
-	log.Debugf(r.servCtx, "watching service changes stopped")
+	log.Debug(r.servCtx, "watching service changes stopped")
 }
 
 func (r *_Registry) refreshCache() error {
