@@ -29,7 +29,7 @@ func newDistEntities(settings ...option.Setting[DistEntitiesOptions]) IDistEntit
 }
 
 type _DistEntities struct {
-	DistEntitiesEventTab
+	distEntitiesEventTab
 	options DistEntitiesOptions
 	rtCtx   runtime.Context
 	client  *etcd_client.Client
@@ -41,7 +41,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	log.Infof(d.rtCtx, "init plugin %q", plugin.Name)
 
 	d.rtCtx = ctx
-	d.rtCtx.ActivateEvent(&d.DistEntitiesEventTab, event.EventRecursion_Allow)
+	d.rtCtx.ActivateEvent(&d.distEntitiesEventTab, event.EventRecursion_Allow)
 
 	if d.options.EtcdClient == nil {
 		cli, err := etcd_client.New(d.configure())
@@ -88,7 +88,7 @@ func (d *_DistEntities) ShutRP(ctx runtime.Context) {
 		log.Errorf(d.rtCtx, "revoke lease %d failed, %s", d.leaseId, err)
 	}
 
-	d.DistEntitiesEventTab.Close()
+	d.distEntitiesEventTab.Close()
 }
 
 // OnEntityMgrAddEntity 实体管理器添加实体
