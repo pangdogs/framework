@@ -19,8 +19,9 @@ import (
 
 // DistEntity 分布式实体信息
 type DistEntity struct {
-	Id    uid.Id `json:"id"`    // 实体Id
-	Nodes []Node `json:"nodes"` // 实体节点
+	Id        uid.Id `json:"id"`        // 实体Id
+	Nodes     []Node `json:"nodes"`     // 实体节点
+	Reversion int64  `json:"reversion"` // 数据版本号
 }
 
 // Node 实体节点信息
@@ -111,10 +112,15 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	}
 
 	entity := &DistEntity{
-		Id: id,
+		Id:    id,
+		Nodes: make([]Node, 0, len(rsp.Kvs)),
 	}
 
 	for _, kv := range rsp.Kvs {
+		if entity.Reversion <= kv.ModRevision {
+			entity.Reversion = kv.ModRevision
+		}
+
 		subs := strings.Split(strings.TrimPrefix(string(kv.Key), d.options.KeyPrefix), "/")
 		if len(subs) != 3 {
 			continue
