@@ -38,7 +38,7 @@ type _DistEntities struct {
 
 // InitRP 初始化运行时插件
 func (d *_DistEntities) InitRP(ctx runtime.Context) {
-	log.Infof(d.rtCtx, "init plugin %q", plugin.Name)
+	log.Infof(ctx, "init plugin %q", plugin.Name)
 
 	d.rtCtx = ctx
 	d.rtCtx.ActivateEvent(&d.distEntitiesEventTab, event.EventRecursion_Allow)
