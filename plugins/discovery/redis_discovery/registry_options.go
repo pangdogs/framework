@@ -31,7 +31,7 @@ func (Option) Default() option.Setting[RegistryOptions] {
 		Option{}.RedisClient(nil)(options)
 		Option{}.RedisConfig(nil)(options)
 		Option{}.RedisURL("")(options)
-		Option{}.KeyPrefix("golaxy:registry:")(options)
+		Option{}.KeyPrefix("golaxy:services:")(options)
 		Option{}.WatchChanSize(128)(options)
 		Option{}.CustomAuth("", "")(options)
 		Option{}.CustomAddress("127.0.0.1:6379")(options)

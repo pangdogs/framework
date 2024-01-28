@@ -31,7 +31,7 @@ func (Option) Default() option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		Option{}.EtcdClient(nil)(options)
 		Option{}.EtcdConfig(nil)(options)
-		Option{}.KeyPrefix("/golaxy/registry/")(options)
+		Option{}.KeyPrefix("/golaxy/services/")(options)
 		Option{}.WatchChanSize(128)(options)
 		Option{}.CustomAuth("", "")(options)
 		Option{}.CustomAddresses("127.0.0.1:2379")(options)
