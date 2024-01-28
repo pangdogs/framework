@@ -26,9 +26,9 @@ func makeErr(err error) (asyncRet chan runtime.Ret) {
 }
 
 // ProxyEntity 代理实体
-func ProxyEntity(ctx service.Context, id uid.Id) EntityProxied {
+func ProxyEntity(servCtx service.Context, id uid.Id) EntityProxied {
 	return EntityProxied{
-		Context: ctx,
+		Context: servCtx,
 		Id:      id,
 	}
 }
