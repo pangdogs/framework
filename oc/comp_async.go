@@ -62,3 +62,8 @@ func (c *ComponentBehavior) TimeAt(at time.Time) runtime.AsyncRet {
 func (c *ComponentBehavior) TimeTick(dur time.Duration) runtime.AsyncRet {
 	return core.TimeTick(c.GetRtCtx(), dur)
 }
+
+// ReadChan 读取channel
+func ReadChan[T any](cb *ComponentBehavior, ch <-chan T) runtime.AsyncRet {
+	return core.ReadChan(cb.GetRtCtx(), ch)
+}

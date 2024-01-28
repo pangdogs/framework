@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/core/service"
 )
 
+// ComponentBehavior 组件行为，需要在开发新组件时，匿名嵌入至组件结构体中
 type ComponentBehavior struct {
 	ec.ComponentBehavior
 }
