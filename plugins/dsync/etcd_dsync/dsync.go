@@ -7,6 +7,7 @@ import (
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	etcd_client "go.etcd.io/etcd/client/v3"
+	"time"
 )
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
@@ -71,9 +72,10 @@ func (s *_DistSync) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: s.options.CustomAddresses,
-		Username:  s.options.CustomUsername,
-		Password:  s.options.CustomPassword,
+		Endpoints:   s.options.CustomAddresses,
+		Username:    s.options.CustomUsername,
+		Password:    s.options.CustomPassword,
+		DialTimeout: 3 * time.Second,
 	}
 
 	if s.options.CustomSecure || s.options.CustomTLSConfig != nil {

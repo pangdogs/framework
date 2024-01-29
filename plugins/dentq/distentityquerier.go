@@ -205,9 +205,10 @@ func (d *_DistEntityQuerier) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: d.options.CustomAddresses,
-		Username:  d.options.CustomUsername,
-		Password:  d.options.CustomPassword,
+		Endpoints:   d.options.CustomAddresses,
+		Username:    d.options.CustomUsername,
+		Password:    d.options.CustomPassword,
+		DialTimeout: 3 * time.Second,
 	}
 
 	if d.options.CustomSecure || d.options.CustomTLSConfig != nil {

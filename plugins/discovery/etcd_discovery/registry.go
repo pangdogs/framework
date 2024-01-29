@@ -273,9 +273,10 @@ func (r *_Registry) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: r.options.CustomAddresses,
-		Username:  r.options.CustomUsername,
-		Password:  r.options.CustomPassword,
+		Endpoints:   r.options.CustomAddresses,
+		Username:    r.options.CustomUsername,
+		Password:    r.options.CustomPassword,
+		DialTimeout: 3 * time.Second,
 	}
 
 	if r.options.CustomSecure || r.options.CustomTLSConfig != nil {

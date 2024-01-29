@@ -15,6 +15,7 @@ import (
 	etcd_client "go.etcd.io/etcd/client/v3"
 	"math"
 	"path"
+	"time"
 )
 
 // IDistEntities 分布式实体支持，会将全局可以访问的实体注册为分布式实体
@@ -201,9 +202,10 @@ func (d *_DistEntities) configure() etcd_client.Config {
 	}
 
 	config := etcd_client.Config{
-		Endpoints: d.options.CustomAddresses,
-		Username:  d.options.CustomUsername,
-		Password:  d.options.CustomPassword,
+		Endpoints:   d.options.CustomAddresses,
+		Username:    d.options.CustomUsername,
+		Password:    d.options.CustomPassword,
+		DialTimeout: 3 * time.Second,
 	}
 
 	if d.options.CustomSecure || d.options.CustomTLSConfig != nil {
