@@ -115,7 +115,7 @@ func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
 		var err error
 
 		r.deliverers[i].AutoRLock(func(d *IDeliverer) {
-			if !(*d).Match(r.servCtx, dst, path, false) {
+			if !(*d).Match(r.servCtx, dst, path, true) {
 				return
 			}
 
