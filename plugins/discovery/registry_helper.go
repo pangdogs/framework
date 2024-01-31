@@ -17,7 +17,7 @@ func Deregister(servCtx service.Context, ctx context.Context, service *Service) 
 }
 
 // GetService 查询服务
-func GetService(servCtx service.Context, ctx context.Context, serviceName string) ([]Service, error) {
+func GetService(servCtx service.Context, ctx context.Context, serviceName string) (*Service, error) {
 	return Using(servCtx).GetService(ctx, serviceName)
 }
 
