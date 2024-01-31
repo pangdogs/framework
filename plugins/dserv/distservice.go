@@ -146,13 +146,13 @@ func (d *_DistService) InitSP(ctx service.Context) {
 
 	// 服务节点信息
 	serviceNode := &discovery.Service{
-		Name:    d.servCtx.GetName(),
-		Version: d.options.Version,
-		Meta:    d.options.Meta,
+		Name: d.servCtx.GetName(),
 		Nodes: []discovery.Node{
 			{
 				Id:      d.servCtx.GetId().String(),
 				Address: d.address.LocalAddr,
+				Version: d.options.Version,
+				Meta:    d.options.Meta,
 			},
 		},
 	}
