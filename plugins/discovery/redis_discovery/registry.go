@@ -8,9 +8,11 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/util/concurrent"
+	"github.com/elliotchance/pie/v2"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
 	"sort"
@@ -86,7 +88,7 @@ func (r *_Registry) Register(ctx context.Context, service *discovery.Service, tt
 	for i := range service.Nodes {
 		node := &service.Nodes[i]
 
-		if err := r.registerNode(ctx, service, node, ttl); err != nil {
+		if err := r.registerNode(ctx, service.Name, node, ttl); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
 	}
@@ -117,7 +119,7 @@ func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) 
 	for i := range service.Nodes {
 		node := &service.Nodes[i]
 
-		if err := r.deregisterNode(ctx, service, node); err != nil {
+		if err := r.deregisterNode(ctx, service.Name, node); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
 		}
 	}
@@ -151,7 +153,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId stri
 }
 
 // GetService 查询服务
-func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]discovery.Service, error) {
+func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -174,35 +176,41 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]disco
 		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
-	serviceMap := map[string]*discovery.Service{}
+	serviceList := make([]*discovery.Service, 0, len(nodeVals))
 
 	for _, v := range nodeVals {
-		service, err := decodeService([]byte(v.(string)))
+		service, err := decodeService(types.String2Bytes(v.(string)))
 		if err != nil {
 			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
-		s, ok := serviceMap[service.Version]
-		if !ok {
-			serviceMap[s.Version] = service
+		if len(service.Nodes) <= 0 {
+			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", v)
 			continue
 		}
 
-		s.Nodes = append(s.Nodes, service.Nodes...)
+		serviceList = append(serviceList, service)
 	}
 
-	services := make([]discovery.Service, 0, len(serviceMap))
-	for _, service := range serviceMap {
-		services = append(services, *service)
-	}
-
-	// sort the services
-	sort.Slice(services, func(i, j int) bool {
-		return services[i].Version < services[j].Version
+	sort.Slice(serviceList, func(i, j int) bool {
+		return serviceList[i].Revision > serviceList[j].Revision
 	})
 
-	return services, nil
+	service := &discovery.Service{
+		Name:  serviceName,
+		Nodes: make([]discovery.Node, 0, len(serviceList)),
+	}
+
+	if len(serviceList) > 0 {
+		service.Revision = serviceList[0].Revision
+	}
+
+	for i := range serviceList {
+		service.Nodes = append(service.Nodes, serviceList[i].Nodes...)
+	}
+
+	return service, nil
 }
 
 // ListServices 查询所有服务
@@ -225,45 +233,54 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
 
-	versions := make(map[string]*discovery.Service)
+	services := make([]*discovery.Service, 0, len(nodeVals))
 
 	for _, v := range nodeVals {
-		service, err := decodeService([]byte(v.(string)))
+		service, err := decodeService(types.String2Bytes(v.(string)))
 		if err != nil {
 			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
-		version := service.Name + ":" + service.Version
-
-		s, ok := versions[version]
-		if !ok {
-			versions[version] = service
+		if len(service.Nodes) <= 0 {
+			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", v)
 			continue
 		}
 
-		// append to service:version nodes
-		s.Nodes = append(s.Nodes, service.Nodes...)
+		services = append(services, service)
 	}
 
-	services := make([]discovery.Service, 0, len(versions))
-	for _, service := range versions {
-		services = append(services, *service)
-	}
-
-	// sort the services
 	sort.Slice(services, func(i, j int) bool {
-		if services[i].Name == services[j].Name {
-			return services[i].Version < services[j].Version
-		}
-		return services[i].Name < services[j].Name
+		return services[i].Revision > services[j].Revision
 	})
 
-	return services, nil
+	var rets []discovery.Service
+
+	for i := range services {
+		service := services[i]
+
+		idx := pie.FindFirstUsing(rets, func(value discovery.Service) bool {
+			return value.Name == service.Name
+		})
+		if idx < 0 {
+			rets = append(rets, *service)
+			continue
+		}
+
+		ret := &rets[idx]
+
+		if ret.Revision < service.Revision {
+			ret.Revision = service.Revision
+		}
+
+		ret.Nodes = append(ret.Nodes, service.Nodes...)
+	}
+
+	return rets, nil
 }
 
 // Watch 获取服务监听器
-func (r *_Registry) Watch(ctx context.Context, pattern string) (discovery.IWatcher, error) {
+func (r *_Registry) Watch(ctx context.Context, pattern string, revision ...int64) (discovery.IWatcher, error) {
 	return r.newWatcher(ctx, pattern)
 }
 
@@ -289,8 +306,8 @@ func (r *_Registry) configure() *redis.Options {
 	return conf
 }
 
-func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service, node *discovery.Node, ttl time.Duration) error {
-	if service.Name == "" {
+func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration) error {
+	if serviceName == "" {
 		return errors.New("service name can't empty")
 	}
 
@@ -307,7 +324,7 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 		return err
 	}
 
-	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
+	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 	var keepAlive bool
 
 	if ttl.Seconds() > 0 {
@@ -315,17 +332,20 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 		if err != nil {
 			return err
 		}
-		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", service.Name, node.Id, ttl, keepAlive)
+		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", serviceName, node.Id, ttl, keepAlive)
 	}
 
 	rhv, ok := r.registers.Get(nodePath)
 	if ok && rhv == hv && keepAlive {
-		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", service.Name, node.Id)
+		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", serviceName, node.Id)
 		return nil
 	}
 
-	serviceNode := service
-	serviceNode.Nodes = []discovery.Node{*node}
+	serviceNode := &discovery.Service{
+		Name:     serviceName,
+		Nodes:    []discovery.Node{*node},
+		Revision: time.Now().UnixMicro(),
+	}
 	serviceNodeData := encodeService(serviceNode)
 
 	log.Debugf(r.servCtx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
@@ -342,10 +362,10 @@ func (r *_Registry) registerNode(ctx context.Context, service *discovery.Service
 	return nil
 }
 
-func (r *_Registry) deregisterNode(ctx context.Context, service *discovery.Service, node *discovery.Node) error {
-	log.Debugf(r.servCtx, "deregistering service %q node %q", service.Name, node.Id)
+func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
+	log.Debugf(r.servCtx, "deregistering service %q node %q", serviceName, node.Id)
 
-	nodePath := getNodePath(r.options.KeyPrefix, service.Name, node.Id)
+	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 
 	r.registers.Delete(nodePath)
 
@@ -353,7 +373,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, service *discovery.Servi
 		return err
 	}
 
-	log.Debugf(r.servCtx, "deregister service %q node %q success", service.Name, node.Id)
+	log.Debugf(r.servCtx, "deregister service %q node %q success", serviceName, node.Id)
 
 	return nil
 }

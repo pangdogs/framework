@@ -1,3 +1,4 @@
+// +k8s:deepcopy-gen=package
 package dentq
 
 import (
@@ -18,13 +19,15 @@ import (
 )
 
 // DistEntity 分布式实体信息
+// +k8s:deepcopy-gen=true
 type DistEntity struct {
-	Id        uid.Id `json:"id"`        // 实体Id
-	Nodes     []Node `json:"nodes"`     // 实体节点
-	Reversion int64  `json:"reversion"` // 数据版本号
+	Id       uid.Id `json:"id"`       // 实体Id
+	Nodes    []Node `json:"nodes"`    // 实体节点
+	Revision int64  `json:"revision"` // 数据版本号
 }
 
 // Node 实体节点信息
+// +k8s:deepcopy-gen=true
 type Node struct {
 	Service       string `json:"service"`        // 服务名称
 	Id            string `json:"id"`             // 服务Id
@@ -117,8 +120,8 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	}
 
 	for _, kv := range rsp.Kvs {
-		if entity.Reversion <= kv.ModRevision {
-			entity.Reversion = kv.ModRevision
+		if entity.Revision <= kv.ModRevision {
+			entity.Revision = kv.ModRevision
 		}
 
 		subs := strings.Split(strings.TrimPrefix(string(kv.Key), d.options.KeyPrefix), "/")

@@ -8,26 +8,28 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/util/concurrent"
+	"github.com/elliotchance/pie/v2"
 	"sync"
 	"time"
 )
 
 func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options: option.Make(Option{}.Default(), settings...),
+		options:    option.Make(Option{}.Default(), settings...),
+		serviceMap: concurrent.MakeLockedMap[string, *discovery.Service](0),
 	}
 }
 
 type _Registry struct {
 	discovery.IRegistry
-	ctx            context.Context
-	cancel         context.CancelFunc
-	options        RegistryOptions
-	servCtx        service.Context
-	wg             sync.WaitGroup
-	serviceMap     map[string]*[]discovery.Service
-	serviceNodeMap map[[2]string]*discovery.Service
-	mutex          sync.RWMutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	options    RegistryOptions
+	servCtx    service.Context
+	wg         sync.WaitGroup
+	serviceMap concurrent.LockedMap[string, *discovery.Service]
+	revision   int64
 }
 
 // InitSP 初始化服务插件
@@ -68,59 +70,48 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 
 // GetServiceNode 查询服务节点
 func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	serviceNode, ok := r.serviceNodeMap[[2]string{serviceName, nodeId}]
+	services, ok := r.serviceMap.Get(serviceName)
 	if !ok {
 		return nil, discovery.ErrNotFound
 	}
 
-	return serviceNode.DeepCopy(), nil
+	idx := pie.FindFirstUsing(services.Nodes, func(value discovery.Node) bool {
+		return value.Id == nodeId
+	})
+	if idx < 0 {
+		return nil, discovery.ErrNotFound
+	}
+
+	service := &discovery.Service{
+		Name:     services.Name,
+		Nodes:    []discovery.Node{services.Nodes[idx]},
+		Revision: services.Revision,
+	}
+
+	return service, nil
 }
 
 // GetService 查询服务
-func (r *_Registry) GetService(ctx context.Context, serviceName string) ([]discovery.Service, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	versions, ok := r.serviceMap[serviceName]
+func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discovery.Service, error) {
+	services, ok := r.serviceMap.Get(serviceName)
 	if !ok {
 		return nil, discovery.ErrNotFound
 	}
 
-	versionsCopy := make([]discovery.Service, 0, len(*versions))
-
-	for _, service := range *versions {
-		versionsCopy = append(versionsCopy, *service.DeepCopy())
-	}
-
-	return versionsCopy, nil
+	return services, nil
 }
 
 // ListServices 查询所有服务
 func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	allServices := make([]discovery.Service, 0, r.serviceMap.Len())
 
-	servicesCopy := make([]discovery.Service, 0, len(r.serviceNodeMap))
-
-	for _, versions := range r.serviceMap {
-		for _, service := range *versions {
-			servicesCopy = append(servicesCopy, *service.DeepCopy())
+	r.serviceMap.AutoRLock(func(allServicesMap *map[string]*discovery.Service) {
+		for _, value := range *allServicesMap {
+			allServices = append(allServices, *value)
 		}
-	}
+	})
 
-	return servicesCopy, nil
-}
-
-func (r *_Registry) getServiceVersions(serviceName string) *[]discovery.Service {
-	services, ok := r.serviceMap[serviceName]
-	if !ok {
-		services = &[]discovery.Service{}
-		r.serviceMap[serviceName] = services
-	}
-	return services
+	return allServices, nil
 }
 
 func (r *_Registry) mainLoop() {
@@ -131,6 +122,7 @@ func (r *_Registry) mainLoop() {
 retry:
 	var watcher discovery.IWatcher
 	var err error
+	retryInterval := 3 * time.Second
 
 	select {
 	case <-r.ctx.Done():
@@ -138,16 +130,10 @@ retry:
 	default:
 	}
 
-	watcher, err = r.IRegistry.Watch(r.ctx, "")
+	watcher, err = r.IRegistry.Watch(r.ctx, "", r.revision)
 	if err != nil {
 		log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
-		time.Sleep(r.options.RetryInterval)
-		goto retry
-	}
-
-	if err := r.refreshCache(); err != nil {
-		log.Errorf(r.servCtx, "refresh cache failed, %s, retry it", err)
-		time.Sleep(r.options.RetryInterval)
+		time.Sleep(retryInterval)
 		goto retry
 	}
 
@@ -155,13 +141,13 @@ retry:
 		event, err := watcher.Next()
 		if err != nil {
 			if errors.Is(err, discovery.ErrStoppedWatching) {
-				time.Sleep(r.options.RetryInterval)
+				time.Sleep(retryInterval)
 				goto retry
 			}
 
 			log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
 			<-watcher.Stop()
-			time.Sleep(r.options.RetryInterval)
+			time.Sleep(retryInterval)
 			goto retry
 		}
 
@@ -177,107 +163,66 @@ end:
 }
 
 func (r *_Registry) refreshCache() error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	r.serviceMap = make(map[string]*[]discovery.Service)
-	r.serviceNodeMap = make(map[[2]string]*discovery.Service)
-
 	services, err := r.IRegistry.ListServices(r.servCtx)
 	if err != nil {
 		return err
 	}
 
 	for _, service := range services {
-		versions := r.getServiceVersions(service.Name)
-		*versions = append(*versions, service)
-
-		for _, node := range service.Nodes {
-			serviceNode := service
-			serviceNode.Nodes = []discovery.Node{node}
-
-			r.serviceNodeMap[[2]string{service.Name, node.Id}] = &serviceNode
+		if r.revision < service.Revision {
+			r.revision = service.Revision
 		}
+		r.serviceMap.Insert(service.Name, &service)
 	}
 
 	return nil
 }
 
 func (r *_Registry) updateCache(event *discovery.Event) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	eventNode := event.Service.Nodes[0]
-
-	removeNode := func(versions *[]discovery.Service, versionIdx int, service *discovery.Service) {
-		for i := len(service.Nodes) - 1; i >= 0; i-- {
-			node := &service.Nodes[i]
-
-			if node.Id == eventNode.Id {
-				service.Nodes = append(service.Nodes[:i], service.Nodes[i+1:]...)
-			}
-		}
-
-		if len(service.Nodes) <= 0 {
-			*versions = append((*versions)[:versionIdx], (*versions)[versionIdx+1:]...)
-		}
+	if r.revision < event.Service.Revision {
+		r.revision = event.Service.Revision
 	}
 
 	switch event.Type {
 	case discovery.Create, discovery.Update:
-		r.serviceNodeMap[[2]string{event.Service.Name, eventNode.Id}] = event.Service
-
-		versions := r.getServiceVersions(event.Service.Name)
-
-		for i := len(*versions) - 1; i >= 0; i-- {
-			service := &(*versions)[i]
-
-			if service.Version == event.Service.Version {
-				continue
-			}
-
-			removeNode(versions, i, service)
-		}
-
-		for i := range *versions {
-			service := &(*versions)[i]
-
-			if service.Version != event.Service.Version {
-				continue
-			}
-
-			for j := range service.Nodes {
-				node := &service.Nodes[j]
-
-				if node.Id == eventNode.Id {
-					*node = eventNode
-					return
-				}
-			}
-
-			service.Nodes = append(service.Nodes, eventNode)
+		service, ok := r.serviceMap.Get(event.Service.Name)
+		if !ok {
+			r.serviceMap.Insert(event.Service.Name, event.Service)
 			return
 		}
 
-		*versions = append(*versions, *event.Service)
+		serviceCopy := service.DeepCopy()
+
+		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(value discovery.Node) bool {
+			return value.Id == event.Service.Nodes[0].Id
+		})
+		if idx < 0 {
+			serviceCopy.Nodes = append(serviceCopy.Nodes, event.Service.Nodes[0])
+			r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
+			return
+		}
+
+		serviceCopy.Nodes[idx] = event.Service.Nodes[0]
+		r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
 		return
 
 	case discovery.Delete:
-		delete(r.serviceNodeMap, [2]string{event.Service.Name, eventNode.Id})
-
-		versions, ok := r.serviceMap[event.Service.Name]
+		service, ok := r.serviceMap.Get(event.Service.Name)
 		if !ok {
 			return
 		}
 
-		for i := len(*versions) - 1; i >= 0; i-- {
-			service := &(*versions)[i]
+		serviceCopy := service.DeepCopy()
 
-			if service.Version != event.Service.Version {
-				continue
-			}
-
-			removeNode(versions, i, service)
+		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(value discovery.Node) bool {
+			return value.Id == event.Service.Nodes[0].Id
+		})
+		if idx < 0 {
+			return
 		}
+
+		pie.Delete(serviceCopy.Nodes, idx)
+		r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
+		return
 	}
 }

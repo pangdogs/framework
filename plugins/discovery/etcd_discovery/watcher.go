@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (r *_Registry) newWatcher(ctx context.Context, pattern string) (*_Watcher, error) {
+func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...int64) (*_Watcher, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -20,13 +20,18 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (*_Watcher, 
 		watchKey = getServicePath(r.options.KeyPrefix, pattern)
 	}
 
+	watchOpts := []etcd_client.OpOption{etcd_client.WithPrefix(), etcd_client.WithPrevKV()}
+	if len(revision) > 0 {
+		watchOpts = append(watchOpts, etcd_client.WithRev(revision[0]))
+	}
+
 	watcher := &_Watcher{
 		registry:    r,
 		ctx:         ctx,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
 		pattern:     pattern,
-		watchChan:   r.client.Watch(ctx, watchKey, etcd_client.WithPrefix(), etcd_client.WithPrevKV()),
+		watchChan:   r.client.Watch(ctx, watchKey, watchOpts...),
 		eventChan:   make(chan *discovery.Event, r.options.WatchChanSize),
 	}
 
@@ -121,6 +126,8 @@ func (w *_Watcher) mainLoop() {
 				log.Warnf(w.registry.servCtx, "event service %q node is empty, discard it", event.Service.Name)
 				continue
 			}
+
+			event.Service.Revision = etcdEvent.Kv.ModRevision
 
 			select {
 			case w.eventChan <- event:
