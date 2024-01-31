@@ -27,6 +27,6 @@ func ListServices(servCtx service.Context, ctx context.Context) ([]Service, erro
 }
 
 // Watch 获取服务监听器
-func Watch(servCtx service.Context, ctx context.Context, serviceName string) (IWatcher, error) {
-	return Using(servCtx).Watch(ctx, serviceName)
+func Watch(servCtx service.Context, ctx context.Context, pattern string, revision ...int64) (IWatcher, error) {
+	return Using(servCtx).Watch(ctx, pattern, revision...)
 }
