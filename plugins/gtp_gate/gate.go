@@ -45,7 +45,7 @@ type _Gate struct {
 
 // InitSP 初始化服务插件
 func (g *_Gate) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin <%s>", plugin.Name)
+	log.Infof(ctx, "init plugin %q", self.Name)
 
 	g.ctx, g.cancel = context.WithCancelCause(context.Background())
 	g.servCtx = ctx
@@ -97,7 +97,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (g *_Gate) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", plugin.Name)
+	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	g.cancel(&transport.RstError{
 		Code:    gtp.Code_Shutdown,

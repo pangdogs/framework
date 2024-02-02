@@ -3,8 +3,6 @@ package transport
 import (
 	"context"
 	"errors"
-	"fmt"
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/framework/plugins/gtp"
 )
@@ -51,14 +49,18 @@ func (d *EventDispatcher) Dispatching() error {
 }
 
 // Run 运行
-func (d *EventDispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
-	if d.Transceiver == nil {
-		errorHandler.Invoke(nil, errors.New("setting Transceiver is nil"))
-		return
+func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	if ctx == nil {
-		errorHandler.Invoke(nil, fmt.Errorf("%w: ctx is nil", core.ErrArgs))
+	var _errorHandler ErrorHandler
+	if len(errorHandler) > 0 {
+		_errorHandler = errorHandler[0]
+	}
+
+	if d.Transceiver == nil {
+		_errorHandler.Invoke(nil, errors.New("setting Transceiver is nil"))
 		return
 	}
 
@@ -72,7 +74,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ErrorHandler) {
 		}
 
 		if err := d.Dispatching(); err != nil {
-			errorHandler.Invoke(nil, err)
+			_errorHandler.Invoke(nil, err)
 		}
 	}
 }

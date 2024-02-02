@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin(newDistService)
-	Name      = plugin.Name
-	Using     = plugin.Using
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefineServicePlugin(newDistService)
+	Name      = self.Name
+	Using     = self.Using
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )

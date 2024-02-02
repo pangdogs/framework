@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin(newRegistry)
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefineServicePlugin(newRegistry)
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )

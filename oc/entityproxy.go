@@ -67,7 +67,7 @@ func (ep EntityProxied) RPC(service, comp, method string, args ...any) runtime.A
 		Method:    method,
 	}
 
-	return rpc.RPC(ep.Context, distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(ep.Context).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
@@ -98,7 +98,7 @@ func (ep EntityProxied) BalanceRPC(service, comp, method string, args ...any) ru
 		Method:    method,
 	}
 
-	return rpc.RPC(ep.Context, distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(ep.Context).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
@@ -127,7 +127,7 @@ func (ep EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) runti
 		Method:    method,
 	}
 
-	return rpc.RPC(ep.Context, dst, cp.String(), args...)
+	return rpc.Using(ep.Context).RPC(dst, cp.String(), args...)
 }
 
 // OneWayRPC 向分布式实体目标服务发送单向RPC
@@ -158,7 +158,7 @@ func (ep EntityProxied) OneWayRPC(service, comp, method string, args ...any) err
 		Method:    method,
 	}
 
-	return rpc.OneWayRPC(ep.Context, distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(ep.Context).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
 }
 
 // BalanceOneWayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
@@ -189,7 +189,7 @@ func (ep EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...a
 		Method:    method,
 	}
 
-	return rpc.OneWayRPC(ep.Context, distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(ep.Context).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
@@ -218,7 +218,7 @@ func (ep EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any)
 		Method:    method,
 	}
 
-	return rpc.OneWayRPC(ep.Context, dst, cp.String(), args...)
+	return rpc.Using(ep.Context).OneWayRPC(dst, cp.String(), args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
@@ -249,7 +249,7 @@ func (ep EntityProxied) BroadcastOneWayRPC(service, comp, method string, args ..
 		Method:    method,
 	}
 
-	return rpc.OneWayRPC(ep.Context, distEntity.Nodes[nodeIdx].BroadcastAddr, cp.String(), args...)
+	return rpc.Using(ep.Context).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cp.String(), args...)
 }
 
 // GlobalBroadcastOneWayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
@@ -269,5 +269,5 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 		Method:    method,
 	}
 
-	return rpc.OneWayRPC(ep.Context, dst, cp.String(), args...)
+	return rpc.Using(ep.Context).OneWayRPC(dst, cp.String(), args...)
 }

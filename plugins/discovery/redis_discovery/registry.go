@@ -37,7 +37,7 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", plugin.Name)
+	log.Infof(ctx, "init plugin %q", self.Name)
 
 	r.servCtx = ctx
 
@@ -60,7 +60,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", plugin.Name)
+	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	if r.options.RedisClient == nil {
 		if r.client != nil {

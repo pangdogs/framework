@@ -59,7 +59,7 @@ type _DistEntityQuerier struct {
 
 // InitSP 初始化服务插件
 func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", plugin.Name)
+	log.Infof(ctx, "init plugin %q", self.Name)
 
 	d.servCtx = ctx
 	d.distServ = dserv.Using(d.servCtx)
@@ -80,7 +80,7 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 		}
 	}
 
-	d.cache = cache2go.Cache(plugin.Name)
+	d.cache = cache2go.Cache(self.Name)
 
 	d.wg.Add(1)
 	go d.mainLoop()
@@ -88,7 +88,7 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (d *_DistEntityQuerier) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", plugin.Name)
+	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	d.wg.Wait()
 

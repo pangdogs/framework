@@ -39,7 +39,7 @@ type _DistEntities struct {
 
 // InitRP 初始化运行时插件
 func (d *_DistEntities) InitRP(ctx runtime.Context) {
-	log.Infof(ctx, "init plugin %q", plugin.Name)
+	log.Infof(ctx, "init plugin %q", self.Name)
 
 	d.rtCtx = ctx
 	d.rtCtx.ActivateEvent(&d.distEntitiesEventTab, event.EventRecursion_Allow)
@@ -81,7 +81,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 
 // ShutRP 关闭运行时插件
 func (d *_DistEntities) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut plugin %q", plugin.Name)
+	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)

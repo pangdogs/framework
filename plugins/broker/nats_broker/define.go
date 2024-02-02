@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin(newBroker)
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefineServicePlugin(newBroker)
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )

@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin(newDSync)
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefineServicePlugin(newDSync)
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )

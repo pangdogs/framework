@@ -34,7 +34,7 @@ type _Registry struct {
 
 // InitSP 初始化服务插件
 func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", plugin.Name)
+	log.Infof(ctx, "init self %q", self.Name)
 
 	if r.options.Registry == nil {
 		log.Panic(ctx, "wrap registry is nil, must be set before init")
@@ -58,7 +58,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 // ShutSP 关闭服务插件
 func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", plugin.Name)
+	log.Infof(ctx, "shut self %q", self.Name)
 
 	r.cancel()
 	r.wg.Wait()

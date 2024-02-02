@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plugin    = define.DefinePlugin(newLogger)
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefinePlugin(newLogger)
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )

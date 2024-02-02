@@ -3,7 +3,7 @@ package dsync
 import "git.golaxy.org/core/define"
 
 var (
-	plugin = define.DefineServicePluginInterface[IDistSync]()
-	Name   = plugin.Name
-	Using  = plugin.Using
+	self  = define.DefineServicePluginInterface[IDistSync]()
+	Name  = self.Name
+	Using = self.Using
 )

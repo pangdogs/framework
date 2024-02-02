@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	plugin    = define.DefineServicePlugin(newGate)
-	Name      = plugin.Name
-	Using     = plugin.Using
-	Install   = plugin.Install
-	Uninstall = plugin.Uninstall
+	self      = define.DefineServicePlugin(newGate)
+	Name      = self.Name
+	Using     = self.Using
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )
