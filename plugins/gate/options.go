@@ -1,4 +1,4 @@
-package gtp_gate
+package gate
 
 type Option struct {
 	Gate    _GateOption

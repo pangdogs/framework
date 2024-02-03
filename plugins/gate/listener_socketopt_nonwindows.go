@@ -1,13 +1,13 @@
 //go:build !windows
 
-package gtp_cli
+package gate
 
 import (
 	"net"
 	"syscall"
 )
 
-func newDialer(options *ClientOptions) *net.Dialer {
+func newListenConfig(options *GateOptions) *net.ListenConfig {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
 		noDelay = types.New(types.Bool2Int[int](*options.TCPNoDelay))
@@ -22,7 +22,7 @@ func newDialer(options *ClientOptions) *net.Dialer {
 	sendBuf := options.TCPSendBuf
 	lingerSec := options.TCPLinger
 
-	return &net.Dialer{
+	return &net.ListenConfig{
 		Control: func(network, address string, conn syscall.RawConn) error {
 			return conn.Control(func(fd uintptr) {
 				if noDelay != nil {

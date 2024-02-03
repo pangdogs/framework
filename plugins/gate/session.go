@@ -1,5 +1,5 @@
 //go:generate stringer -type SessionState
-package gtp_gate
+package gate
 
 import (
 	"context"

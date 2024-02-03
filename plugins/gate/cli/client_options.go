@@ -1,4 +1,4 @@
-package gtp_cli
+package cli
 
 import (
 	"crypto"

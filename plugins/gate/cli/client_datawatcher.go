@@ -1,11 +1,11 @@
-package gtp_gate
+package cli
 
 import (
 	"context"
 	"github.com/elliotchance/pie/v2"
 )
 
-func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {
+func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -16,12 +16,12 @@ func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) 
 		Context:     ctx,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
-		session:     s,
+		client:      c,
 		handler:     handler,
 	}
-	s.dataWatchers.Append(watcher)
+	c.dataWatchers.Append(watcher)
 
-	s.gate.wg.Add(1)
+	c.wg.Add(1)
 	go watcher.mainLoop()
 
 	return watcher
@@ -31,7 +31,7 @@ type _DataWatcher struct {
 	context.Context
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
-	session     *_Session
+	client      *Client
 	handler     RecvDataHandler
 }
 
@@ -43,16 +43,16 @@ func (w *_DataWatcher) Stop() <-chan struct{} {
 func (w *_DataWatcher) mainLoop() {
 	defer func() {
 		w.cancel()
-		w.session.gate.wg.Done()
+		w.client.wg.Done()
 		close(w.stoppedChan)
 	}()
 
 	select {
 	case <-w.Done():
-	case <-w.session.Done():
+	case <-w.client.Done():
 	}
 
-	w.session.dataWatchers.AutoLock(func(watchers *[]*_DataWatcher) {
+	w.client.dataWatchers.AutoLock(func(watchers *[]*_DataWatcher) {
 		*watchers = pie.DropWhile(*watchers, func(other *_DataWatcher) bool {
 			return other == w
 		})

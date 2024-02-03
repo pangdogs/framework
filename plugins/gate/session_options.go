@@ -1,4 +1,4 @@
-package gtp_gate
+package gate
 
 import (
 	"git.golaxy.org/core/util/generic"

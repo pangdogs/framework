@@ -1,4 +1,4 @@
-package gtp_gate
+package gate
 
 import (
 	"context"

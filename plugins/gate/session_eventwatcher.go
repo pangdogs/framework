@@ -1,11 +1,11 @@
-package gtp_cli
+package gate
 
 import (
 	"context"
 	"github.com/elliotchance/pie/v2"
 )
 
-func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) *_EventWatcher {
+func (s *_Session) newEventWatcher(ctx context.Context, handler RecvEventHandler) *_EventWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -16,12 +16,12 @@ func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) 
 		Context:     ctx,
 		cancel:      cancel,
 		stoppedChan: make(chan struct{}),
-		client:      c,
+		session:     s,
 		handler:     handler,
 	}
-	c.eventWatchers.Append(watcher)
+	s.eventWatchers.Append(watcher)
 
-	c.wg.Add(1)
+	s.gate.wg.Add(1)
 	go watcher.mainLoop()
 
 	return watcher
@@ -31,7 +31,7 @@ type _EventWatcher struct {
 	context.Context
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
-	client      *Client
+	session     *_Session
 	handler     RecvEventHandler
 }
 
@@ -43,16 +43,16 @@ func (w *_EventWatcher) Stop() <-chan struct{} {
 func (w *_EventWatcher) mainLoop() {
 	defer func() {
 		w.cancel()
-		w.client.wg.Done()
+		w.session.gate.wg.Done()
 		close(w.stoppedChan)
 	}()
 
 	select {
 	case <-w.Done():
-	case <-w.client.Done():
+	case <-w.session.Done():
 	}
 
-	w.client.eventWatchers.AutoLock(func(watchers *[]*_EventWatcher) {
+	w.session.eventWatchers.AutoLock(func(watchers *[]*_EventWatcher) {
 		*watchers = pie.DropWhile(*watchers, func(other *_EventWatcher) bool {
 			return other == w
 		})
