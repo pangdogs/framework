@@ -4,7 +4,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/framework/plugins/gap/variant"
+	"git.golaxy.org/framework/net/gap/variant"
 )
 
 var (

@@ -3,9 +3,9 @@ package gtp_cli
 import (
 	"context"
 	"fmt"
-	"git.golaxy.org/framework/plugins/gtp"
-	"git.golaxy.org/framework/plugins/gtp/transport"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/util/concurrent"
 	"go.uber.org/zap"
 	"net"
 	"sync"

@@ -5,7 +5,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/util/concurrent"
 )
 
 // IRPC RPC支持

@@ -5,7 +5,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/framework/plugins/gap"
+	"git.golaxy.org/framework/net/gap"
 	"time"
 )
 

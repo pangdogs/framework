@@ -4,11 +4,11 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/framework/net/gap"
+	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/dserv"
-	"git.golaxy.org/framework/plugins/gap"
-	"git.golaxy.org/framework/plugins/gap/variant"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/util/concurrent"
 	"strings"
 )
 

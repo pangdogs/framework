@@ -11,7 +11,7 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/util/concurrent"
 	"github.com/elliotchance/pie/v2"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// NewRegistry 创建registry插件，可以配合cache registry将数据缓存本地，提高查询效率
+// NewRegistry 创建registry插件，可以配合registry cache将数据缓存本地，提高查询效率
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:   option.Make(Option{}.Default(), settings...),

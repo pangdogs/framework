@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"git.golaxy.org/core/util/generic"
-	"git.golaxy.org/framework/plugins/gtp/codec"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/net/gtp/codec"
+	"git.golaxy.org/framework/util/concurrent"
 	"github.com/segmentio/ksuid"
 	"net"
 )

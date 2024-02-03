@@ -8,12 +8,13 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/util/concurrent"
+	"git.golaxy.org/framework/util/concurrent"
 	"github.com/elliotchance/pie/v2"
 	"sync"
 	"time"
 )
 
+// newRegistry 创建registry cache插件，在本地缓存其他registry插件返回的数据
 func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:    option.Make(Option{}.Default(), settings...),
