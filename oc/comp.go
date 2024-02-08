@@ -11,10 +11,10 @@ type ComponentBehavior struct {
 	ec.ComponentBehavior
 }
 
-func (c *ComponentBehavior) GetRuntimeCtx() runtime.Context {
-	return runtime.Current(c)
+func (c *ComponentBehavior) GetRuntimeCtx() RuntimeCtx {
+	return RuntimeCtx{Context: runtime.Current(c)}
 }
 
-func (c *ComponentBehavior) GetServiceCtx() service.Context {
-	return service.Current(c)
+func (c *ComponentBehavior) GetServiceCtx() ServiceCtx {
+	return ServiceCtx{Context: service.Current(c)}
 }

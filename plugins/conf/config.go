@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/log"
@@ -10,8 +11,8 @@ import (
 
 // IConfig 配置接口
 type IConfig interface {
-	All() *viper.Viper
-	Service() *viper.Viper
+	IVisitConf
+	Whole() IVisitConf
 }
 
 func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
@@ -21,16 +22,27 @@ func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
 }
 
 type _Config struct {
-	options           ConfigOptions
-	allConf, servConf *viper.Viper
+	options ConfigOptions
+	IVisitConf
+	whole IVisitConf
 }
 
 // InitSP 初始化服务插件
 func (c *_Config) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	c.allConf = viper.New()
-	c.servConf = c.allConf.Sub(ctx.GetName())
+	vp := viper.New()
+
+	if c.options.AutoUpdate {
+		vp.WatchConfig()
+	}
+
+	c.IVisitConf = &_VisitConf{
+		Viper: vp.Sub(ctx.GetName()),
+	}
+	c.whole = &_VisitConf{
+		Viper: vp,
+	}
 }
 
 // ShutSP 关闭服务插件
@@ -39,10 +51,16 @@ func (c *_Config) ShutSP(ctx service.Context) {
 
 }
 
-func (c *_Config) All() *viper.Viper {
-	return c.allConf
+// InitRP 初始化运行时插件
+func (c *_Config) InitRP(ctx runtime.Context) {
+	log.Infof(ctx, "init plugin %q", self.Name)
 }
 
-func (c *_Config) Service() *viper.Viper {
-	return c.servConf
+// ShutRP 关闭运行时插件
+func (c *_Config) ShutRP(ctx runtime.Context) {
+	log.Infof(ctx, "shut plugin %q", self.Name)
+}
+
+func (c *_Config) Whole() IVisitConf {
+	return c.whole
 }
