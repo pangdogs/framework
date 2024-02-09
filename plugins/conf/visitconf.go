@@ -27,6 +27,8 @@ type IVisitConf interface {
 	GetStringMapString(key string) map[string]string
 	GetStringMapStringSlice(key string) map[string][]string
 	GetSizeInBytes(key string) uint
+	GetAllKeys() []string
+	GetAllSettings() map[string]any
 }
 
 type _VisitConf struct {
@@ -37,4 +39,12 @@ func (vc *_VisitConf) Sub(key string) IVisitConf {
 	return &_VisitConf{
 		Viper: vc.Viper.Sub(key),
 	}
+}
+
+func (vc *_VisitConf) GetAllKeys() []string {
+	return vc.AllKeys()
+}
+
+func (vc *_VisitConf) GetAllSettings() map[string]any {
+	return vc.AllSettings()
 }

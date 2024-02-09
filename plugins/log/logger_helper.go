@@ -11,7 +11,6 @@ func Trace(pluginProvider plugin.PluginProvider, v ...interface{}) {
 	if logger := Using(pluginProvider); logger != nil {
 		logger.Log(TraceLevel, v...)
 	}
-
 }
 
 // Traceln logs a message at TraceLevel, spaces are always added between operands and a newline is appended.

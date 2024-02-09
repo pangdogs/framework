@@ -11,11 +11,11 @@ type Option struct{}
 type ConfigOptions struct {
 	Format         string         // 配置格式（json,yaml,ini...）
 	LocalPath      string         // 本地配置文件路径
-	RemoteType     string         // 远端配置类型（etcd3,consul...）
+	RemoteProvider string         // 远端配置类型（etcd3,consul...）
 	RemoteEndpoint string         // 远端地址
 	RemotePath     string         // 远端路径
 	AutoUpdate     bool           // 是否热更新
-	Defaults       map[string]any // 默认配置
+	DefaultKVs     map[string]any // 默认配置
 }
 
 // Default 默认值
@@ -25,7 +25,7 @@ func (Option) Default() option.Setting[ConfigOptions] {
 		Option{}.LocalPath("")(options)
 		Option{}.Remote("", "", "")(options)
 		Option{}.AutoUpdate(false)(options)
-		Option{}.Defaults(nil)(options)
+		Option{}.DefaultKVs(nil)(options)
 	}
 }
 
@@ -44,9 +44,9 @@ func (Option) LocalPath(path string) option.Setting[ConfigOptions] {
 }
 
 // Remote 远端配置
-func (Option) Remote(ty, endpoint, path string) option.Setting[ConfigOptions] {
+func (Option) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
-		o.RemoteType = ty
+		o.RemoteProvider = provider
 		o.RemoteEndpoint = endpoint
 		o.RemotePath = path
 	}
@@ -59,9 +59,9 @@ func (Option) AutoUpdate(b bool) option.Setting[ConfigOptions] {
 	}
 }
 
-// Defaults 默认配置
-func (Option) Defaults(kv map[string]any) option.Setting[ConfigOptions] {
+// DefaultKVs 默认配置
+func (Option) DefaultKVs(kvs map[string]any) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
-		o.Defaults = kv
+		o.DefaultKVs = kvs
 	}
 }
