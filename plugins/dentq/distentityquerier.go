@@ -2,6 +2,7 @@
 package dentq
 
 import (
+	"context"
 	"crypto/tls"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
@@ -75,9 +76,14 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 	}
 
 	for _, ep := range d.client.Endpoints() {
-		if _, err := d.client.Status(ctx, ep); err != nil {
-			log.Panicf(ctx, "status etcd %q failed, %s", ep, err)
-		}
+		func() {
+			ctx, cancel := context.WithTimeout(d.servCtx, 3*time.Second)
+			defer cancel()
+
+			if _, err := d.client.Status(ctx, ep); err != nil {
+				log.Panicf(d.servCtx, "status etcd %q failed, %s", ep, err)
+			}
+		}()
 	}
 
 	d.cache = cache2go.Cache(self.Name)

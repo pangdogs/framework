@@ -1,6 +1,7 @@
 package etcd_dsync
 
 import (
+	"context"
 	"crypto/tls"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
@@ -39,9 +40,14 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 	}
 
 	for _, ep := range s.client.Endpoints() {
-		if _, err := s.client.Status(ctx, ep); err != nil {
-			log.Panicf(ctx, "status etcd %q failed, %s", ep, err)
-		}
+		func() {
+			ctx, cancel := context.WithTimeout(s.servCtx, 3*time.Second)
+			defer cancel()
+
+			if _, err := s.client.Status(ctx, ep); err != nil {
+				log.Panicf(s.servCtx, "status etcd %q failed, %s", ep, err)
+			}
+		}()
 	}
 }
 

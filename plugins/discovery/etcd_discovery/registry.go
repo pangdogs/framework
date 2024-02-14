@@ -59,9 +59,14 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 
 	for _, ep := range r.client.Endpoints() {
-		if _, err := r.client.Status(r.servCtx, ep); err != nil {
-			log.Panicf(r.servCtx, "status etcd %q failed, %s", ep, err)
-		}
+		func() {
+			ctx, cancel := context.WithTimeout(r.servCtx, 3*time.Second)
+			defer cancel()
+
+			if _, err := r.client.Status(ctx, ep); err != nil {
+				log.Panicf(r.servCtx, "status etcd %q failed, %s", ep, err)
+			}
+		}()
 	}
 }
 

@@ -55,9 +55,14 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	}
 
 	for _, ep := range d.client.Endpoints() {
-		if _, err := d.client.Status(d.rtCtx, ep); err != nil {
-			log.Panicf(d.rtCtx, "status etcd %q failed, %s", ep, err)
-		}
+		func() {
+			ctx, cancel := context.WithTimeout(d.rtCtx, 3*time.Second)
+			defer cancel()
+
+			if _, err := d.client.Status(ctx, ep); err != nil {
+				log.Panicf(d.rtCtx, "status etcd %q failed, %s", ep, err)
+			}
+		}()
 	}
 
 	// 申请租约
