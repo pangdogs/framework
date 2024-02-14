@@ -51,7 +51,7 @@ func (app *App) Setup(name string, serv any, num ...int) *App {
 	if len(num) > 0 {
 		_num = num[0]
 	}
-	if _num < 0 {
+	if _num <= 0 {
 		_num = 1
 	}
 
