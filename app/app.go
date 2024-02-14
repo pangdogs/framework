@@ -43,7 +43,7 @@ func (app *App) Setup(name string, serv any, num ...int) *App {
 	}
 
 	_serv, ok := serv.(_IService)
-	if ok {
+	if !ok {
 		panic(fmt.Errorf("%w: incorrect serv type", core.ErrArgs))
 	}
 
