@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/service"
@@ -23,7 +24,7 @@ import (
 
 type _IService interface {
 	init(app *App, name string, composite any)
-	generate() service.Context
+	generate(ctx context.Context) service.Context
 }
 
 type ServiceBehavior struct {
@@ -38,8 +39,9 @@ func (sb *ServiceBehavior) init(app *App, name string, composite any) {
 	sb.composite = composite
 }
 
-func (sb *ServiceBehavior) generate() service.Context {
+func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	servCtx := service.NewContext(
+		service.Option{}.Context(ctx),
 		service.Option{}.Name(sb.GetName()),
 		service.Option{}.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
 		service.Option{}.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {

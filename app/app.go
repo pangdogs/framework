@@ -1,14 +1,17 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"git.golaxy.org/core"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -114,6 +117,18 @@ func (app *App) Run() {
 		}
 	}
 
+	// 监听退出信号
+	ctx, cancel := context.WithCancel(context.Background())
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
+	// 启动服务
 	wg := &sync.WaitGroup{}
 
 	for _, si := range app.servInfos {
@@ -121,7 +136,7 @@ func (app *App) Run() {
 			wg.Add(1)
 			go func(serv _IService) {
 				defer wg.Done()
-				<-core.NewService(serv.generate()).Run()
+				<-core.NewService(serv.generate(ctx)).Run()
 			}(si.serv)
 		}
 	}
