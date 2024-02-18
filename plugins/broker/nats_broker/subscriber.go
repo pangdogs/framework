@@ -34,7 +34,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		cancel:              cancel,
 		stoppedChan:         make(chan struct{}),
 		broker:              b,
-		unsubscribedHandler: opts.UnsubscribedHandler,
+		unsubscribedHandler: opts.UnsubscribedCB,
 	}
 
 	var handleMsg nats.MsgHandler
@@ -80,7 +80,7 @@ type _Subscriber struct {
 	natsSub             *nats.Subscription
 	eventChan           chan broker.IEvent
 	eventHandler        broker.EventHandler
-	unsubscribedHandler broker.UnsubscribedHandler
+	unsubscribedHandler broker.UnsubscribedCB
 }
 
 // Pattern returns the subscription pattern used to create the subscriber.

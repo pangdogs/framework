@@ -1,35 +1,35 @@
-package app
+package framework
 
 import "git.golaxy.org/core/service"
 
-type InstallLogger interface {
+type InstallServiceLogger interface {
 	InstallLogger(ctx service.Context)
 }
 
-type InstallConfig interface {
+type InstallServiceConfig interface {
 	InstallConfig(ctx service.Context)
 }
 
-type InstallBroker interface {
+type InstallServiceBroker interface {
 	InstallBroker(ctx service.Context)
 }
 
-type InstallRegistry interface {
+type InstallServiceRegistry interface {
 	InstallRegistry(ctx service.Context)
 }
 
-type InstallDistSync interface {
+type InstallServiceDistSync interface {
 	InstallDistSync(ctx service.Context)
 }
 
-type InstallDistService interface {
+type InstallServiceDistService interface {
 	InstallDistService(ctx service.Context)
 }
 
-type InstallRPC interface {
+type InstallServiceRPC interface {
 	InstallRPC(ctx service.Context)
 }
 
-type InstallDistEntityQuerier interface {
+type InstallServiceDistEntityQuerier interface {
 	InstallDistEntityQuerier(ctx service.Context)
 }

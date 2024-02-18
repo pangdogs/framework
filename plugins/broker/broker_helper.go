@@ -82,7 +82,7 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 				return fmt.Errorf("read chan is full, nak: %v", nakErr)
 			}
 		})),
-		Option{}.UnsubscribedHandler(generic.CastDelegateAction1(func(sub ISubscriber) {
+		Option{}.UnsubscribedCB(generic.CastDelegateAction1(func(sub ISubscriber) {
 			close(ch)
 		})))
 	if err != nil {

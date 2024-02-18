@@ -1,8 +1,9 @@
-package app
+package framework
 
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
@@ -19,14 +20,21 @@ import (
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"git.golaxy.org/framework/plugins/rpc"
 	"github.com/spf13/viper"
+	etcd_client "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 )
 
 type _IService interface {
 	init(app *App, name string, composite any)
-	generate(ctx context.Context) service.Context
+	generate(ctx context.Context) core.Service
 }
 
+// ServiceBehavior 服务行为，在开发新服务时，匿名嵌入至服务结构体中
 type ServiceBehavior struct {
 	app       *App
 	name      string
@@ -39,7 +47,14 @@ func (sb *ServiceBehavior) init(app *App, name string, composite any) {
 	sb.composite = composite
 }
 
-func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
+func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
+	startupConf := sb.GetStartupConf()
+
+	memKVs := &sync.Map{}
+	memKVs.Store("startup.conf", startupConf)
+
+	ctx = context.WithValue(ctx, "mem_kvs", memKVs)
+
 	servCtx := service.NewContext(
 		service.Option{}.Context(ctx),
 		service.Option{}.Name(sb.GetName()),
@@ -67,28 +82,38 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 				if cb, ok := sb.composite.(LifecycleServiceTerminated); ok {
 					cb.Terminated(ctx)
 				}
+
+				if v, ok := memKVs.Load("zap.logger"); ok {
+					v.(*zap.Logger).Sync()
+				}
+
+				if v, ok := memKVs.Load("etcd.client"); ok {
+					v.(*etcd_client.Client).Close()
+				}
 			}
 		})),
 	)
 
-	startupConf := sb.GetStartupConf()
-
 	// 安装日志插件
-	if cb, ok := sb.composite.(InstallLogger); ok {
+	if cb, ok := sb.composite.(InstallServiceLogger); ok {
 		cb.InstallLogger(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(log.Name); !ok {
 		level, err := zapcore.ParseLevel(startupConf.GetString("log.level"))
 		if err != nil {
-			panic(fmt.Errorf("parse log.level failed, %s", err))
+			panic(fmt.Errorf("parse startup config log.level failed, %s", err))
 		}
 
-		zapLogger, _ := zap_log.NewJsonZapLogger(level,
-			startupConf.GetString("log.file"),
+		zapLogger, zapAtomicLevel := zap_log.NewJsonZapLogger(
+			level,
+			filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s.%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName())),
 			startupConf.GetInt("log.size"),
 			startupConf.GetBool("log.stdout"),
 			startupConf.GetBool("log.development"),
 		)
+
+		memKVs.Store("zap.logger", zapLogger)
+		memKVs.Store("zap.atomic_level", zapAtomicLevel)
 
 		zap_log.Install(servCtx,
 			zap_log.Option{}.ZapLogger(zapLogger),
@@ -97,7 +122,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装配置插件
-	if cb, ok := sb.composite.(InstallConfig); ok {
+	if cb, ok := sb.composite.(InstallServiceConfig); ok {
 		cb.InstallConfig(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(conf.Name); !ok {
@@ -114,7 +139,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装分布式broker插件
-	if cb, ok := sb.composite.(InstallBroker); ok {
+	if cb, ok := sb.composite.(InstallServiceBroker); ok {
 		cb.InstallBroker(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(broker.Name); !ok {
@@ -128,7 +153,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装分布式服务发现插件
-	if cb, ok := sb.composite.(InstallRegistry); ok {
+	if cb, ok := sb.composite.(InstallServiceRegistry); ok {
 		cb.InstallRegistry(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(discovery.Name); !ok {
@@ -142,7 +167,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装分布式同步插件
-	if cb, ok := sb.composite.(InstallDistSync); ok {
+	if cb, ok := sb.composite.(InstallServiceDistSync); ok {
 		cb.InstallDistSync(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dsync.Name); !ok {
@@ -156,7 +181,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装分布式服务插件
-	if cb, ok := sb.composite.(InstallDistService); ok {
+	if cb, ok := sb.composite.(InstallServiceDistService); ok {
 		cb.InstallDistService(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dserv.Name); !ok {
@@ -169,7 +194,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装RPC支持插件
-	if cb, ok := sb.composite.(InstallRPC); ok {
+	if cb, ok := sb.composite.(InstallServiceRPC); ok {
 		cb.InstallRPC(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(rpc.Name); !ok {
@@ -177,7 +202,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 	}
 
 	// 安装分布式实体查询插件
-	if cb, ok := sb.composite.(InstallDistEntityQuerier); ok {
+	if cb, ok := sb.composite.(InstallServiceDistEntityQuerier); ok {
 		cb.InstallDistEntityQuerier(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dentq.Name); !ok {
@@ -190,18 +215,33 @@ func (sb *ServiceBehavior) generate(ctx context.Context) service.Context {
 		)
 	}
 
+	// etcd连接初始化函数
+	memKVs.Store("etcd.init_client", sync.OnceFunc(func() {
+		cli, err := etcd_client.New(etcd_client.Config{
+			Endpoints: []string{startupConf.GetString("etcd.address")},
+			Username:  startupConf.GetString("etcd.username"),
+			Password:  startupConf.GetString("etcd.password"),
+		})
+		if err != nil {
+			panic(fmt.Errorf("new etcd client failed, %s", err))
+		}
+		memKVs.Store("etcd.client", cli)
+	}))
+
 	// 初始化回调
 	if cb, ok := sb.composite.(LifecycleServiceInit); ok {
 		cb.Init(servCtx)
 	}
 
-	return servCtx
+	return core.NewService(servCtx)
 }
 
+// GetName 获取服务名称
 func (sb *ServiceBehavior) GetName() string {
 	return sb.name
 }
 
+// GetStartupConf 获取启动参数配置
 func (sb *ServiceBehavior) GetStartupConf() *viper.Viper {
 	return sb.app.startupConf
 }

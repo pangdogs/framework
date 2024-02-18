@@ -12,8 +12,8 @@ type (
 	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
 	// message and optional Ack method to acknowledge receipt of the message.
 	EventHandler = generic.DelegateFunc1[IEvent, error]
-	// UnsubscribedHandler Unsubscribed callback method.
-	UnsubscribedHandler = generic.DelegateAction1[ISubscriber]
+	// UnsubscribedCB Unsubscribed callback method.
+	UnsubscribedCB = generic.DelegateAction1[ISubscriber]
 )
 
 // SubscriberOptions represents the options for subscribe topic.
@@ -26,8 +26,8 @@ type SubscriberOptions struct {
 	EventHandler EventHandler
 	// EventChanSize specifies the size of the event channel used for received synchronously event.
 	EventChanSize int
-	// UnsubscribedHandler Unsubscribed callback method.
-	UnsubscribedHandler UnsubscribedHandler
+	// UnsubscribedCB Unsubscribed callback method.
+	UnsubscribedCB UnsubscribedCB
 }
 
 // Default sets the default options for subscribe topic.
@@ -37,7 +37,7 @@ func (Option) Default() option.Setting[SubscriberOptions] {
 		Option{}.Queue("")(options)
 		Option{}.EventHandler(nil)(options)
 		Option{}.EventChanSize(128)(options)
-		Option{}.UnsubscribedHandler(nil)(options)
+		Option{}.UnsubscribedCB(nil)(options)
 	}
 }
 
@@ -70,9 +70,9 @@ func (Option) EventChanSize(size int) option.Setting[SubscriberOptions] {
 	}
 }
 
-// UnsubscribedHandler Unsubscribed callback method.
-func (Option) UnsubscribedHandler(handler UnsubscribedHandler) option.Setting[SubscriberOptions] {
+// UnsubscribedCB Unsubscribed callback method.
+func (Option) UnsubscribedCB(handler UnsubscribedCB) option.Setting[SubscriberOptions] {
 	return func(o *SubscriberOptions) {
-		o.UnsubscribedHandler = handler
+		o.UnsubscribedCB = handler
 	}
 }

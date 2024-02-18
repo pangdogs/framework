@@ -1,4 +1,4 @@
-package app
+package framework
 
 import "git.golaxy.org/core/service"
 

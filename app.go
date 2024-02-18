@@ -1,20 +1,20 @@
-package app
+package framework
 
 import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/generic"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 )
 
+// NewApp 创建应用
 func NewApp() *App {
 	return &App{}
 }
@@ -24,9 +24,11 @@ type _ServInfo struct {
 	num  int
 }
 
+// App 应用
 type App struct {
-	servInfos   map[string]*_ServInfo
-	startupConf *viper.Viper
+	servInfos                     map[string]*_ServInfo
+	startupConf                   *viper.Viper
+	initCB, startingCB, stoppedCB generic.DelegateAction1[*App]
 }
 
 func (app *App) lazyInit() {
@@ -38,6 +40,7 @@ func (app *App) lazyInit() {
 	}
 }
 
+// Setup 安装服务
 func (app *App) Setup(name string, serv any, num ...int) *App {
 	app.lazyInit()
 
@@ -67,12 +70,31 @@ func (app *App) Setup(name string, serv any, num ...int) *App {
 	return app
 }
 
+// InitCB 初始化回调
+func (app *App) InitCB(cb generic.DelegateAction1[*App]) *App {
+	app.initCB = cb
+	return app
+}
+
+// StartingCB 启动回调
+func (app *App) StartingCB(cb generic.DelegateAction1[*App]) *App {
+	app.startingCB = cb
+	return app
+}
+
+// StoppedCB 停止回调
+func (app *App) StoppedCB(cb generic.DelegateAction1[*App]) *App {
+	app.stoppedCB = cb
+	return app
+}
+
+// Run 回调
 func (app *App) Run() {
 	app.lazyInit()
 
 	// 日志参数
 	pflag.String("log.level", "info", "logging level")
-	pflag.String("log.file", filepath.Join("./log/", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0]))+".log"), "log file path")
+	pflag.String("log.dir", "./log/", "logging directory path")
 	pflag.Int("log.size", 100*1024*1024, "log file splitting size")
 	pflag.Bool("log.stdout", false, "logging output to stdout")
 	pflag.Bool("log.development", false, "logging in development mode")
@@ -99,8 +121,12 @@ func (app *App) Run() {
 	// 分布式服务参数
 	pflag.Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
 	pflag.Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
+	pflag.Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
 
-	// 启动
+	// 初始化回调
+	app.initCB.Exec(nil, app)
+
+	// 解析启动参数
 	pflag.Parse()
 
 	// 合并启动参数配置
@@ -116,6 +142,9 @@ func (app *App) Run() {
 			panic(fmt.Errorf("read startup config file failed, %s", err))
 		}
 	}
+
+	// 启动回调
+	app.startingCB.Exec(nil, app)
 
 	// 监听退出信号
 	ctx, cancel := context.WithCancel(context.Background())
@@ -136,10 +165,18 @@ func (app *App) Run() {
 			wg.Add(1)
 			go func(serv _IService) {
 				defer wg.Done()
-				<-core.NewService(serv.generate(ctx)).Run()
+				<-serv.generate(ctx).Run()
 			}(si.serv)
 		}
 	}
 
 	wg.Wait()
+
+	// 结束回调
+	app.stoppedCB.Exec(nil, app)
+}
+
+// GetStartupConf 获取启动参数配置
+func (app *App) GetStartupConf() *viper.Viper {
+	return app.startupConf
 }
