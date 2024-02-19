@@ -30,19 +30,19 @@ import (
 )
 
 type _IService interface {
-	init(app *App, name string, composite any)
+	init(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context) core.Service
 }
 
 // ServiceBehavior 服务行为，在开发新服务时，匿名嵌入至服务结构体中
 type ServiceBehavior struct {
-	app       *App
-	name      string
-	composite any
+	startupConf *viper.Viper
+	name        string
+	composite   any
 }
 
-func (sb *ServiceBehavior) init(app *App, name string, composite any) {
-	sb.app = app
+func (sb *ServiceBehavior) init(startupConf *viper.Viper, name string, composite any) {
+	sb.startupConf = startupConf
 	sb.name = name
 	sb.composite = composite
 }
@@ -243,5 +243,5 @@ func (sb *ServiceBehavior) GetName() string {
 
 // GetStartupConf 获取启动参数配置
 func (sb *ServiceBehavior) GetStartupConf() *viper.Viper {
-	return sb.app.startupConf
+	return sb.startupConf
 }

@@ -15,27 +15,38 @@ import (
 )
 
 type _IRuntime interface {
-	init(runtimeCreator *RuntimeCreator, composite any)
-	generate() core.Runtime
+	init(servCtx service.Context, composite any)
+	generate(settings _RuntimeSettings) core.Runtime
 }
 
+type _RuntimeSettings struct {
+	Name                 string
+	AutoRecover          bool
+	ReportError          chan error
+	FrameFPS             float32
+	FrameBlink           bool
+	AutoRun              bool
+	ProcessQueueCapacity int
+}
+
+// RuntimeBehavior 运行时行为，开发新运行环境时，匿名嵌入至新运行时结构体中
 type RuntimeBehavior struct {
-	runtimeCreator *RuntimeCreator
-	composite      any
+	servCtx   service.Context
+	composite any
 }
 
-func (rb *RuntimeBehavior) init(runtimeCreator *RuntimeCreator, composite any) {
-	rb.runtimeCreator = runtimeCreator
+func (rb *RuntimeBehavior) init(servCtx service.Context, composite any) {
+	rb.servCtx = servCtx
 	rb.composite = composite
 }
 
-func (rb *RuntimeBehavior) generate() core.Runtime {
+func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 	startupConf := rb.GetStartupConf()
 
 	rtCtx := runtime.NewContext(rb.GetServiceCtx(),
-		runtime.Option{}.Context.Name(rb.runtimeCreator.name),
-		runtime.Option{}.Context.AutoRecover(rb.runtimeCreator.autoRecover),
-		runtime.Option{}.Context.ReportError(rb.runtimeCreator.reportError),
+		runtime.Option{}.Context.Name(settings.Name),
+		runtime.Option{}.Context.AutoRecover(settings.AutoRecover),
+		runtime.Option{}.Context.ReportError(settings.ReportError),
 		runtime.Option{}.Context.RunningHandler(generic.CastDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
 			switch state {
 			case runtime.RunningState_Birth:
@@ -139,23 +150,25 @@ func (rb *RuntimeBehavior) generate() core.Runtime {
 
 	return core.NewRuntime(rtCtx,
 		core.Option{}.Runtime.Frame(func() runtime.Frame {
-			if rb.runtimeCreator.frameFPS <= 0 {
+			if settings.FrameFPS <= 0 {
 				return nil
 			}
 			return runtime.NewFrame(
-				runtime.Option{}.Frame.TargetFPS(rb.runtimeCreator.frameFPS),
-				runtime.Option{}.Frame.Blink(rb.runtimeCreator.frameBlink),
+				runtime.Option{}.Frame.TargetFPS(settings.FrameFPS),
+				runtime.Option{}.Frame.Blink(settings.FrameBlink),
 			)
 		}()),
-		core.Option{}.Runtime.AutoRun(rb.runtimeCreator.autoRun),
-		core.Option{}.Runtime.ProcessQueueCapacity(rb.runtimeCreator.processQueueCapacity),
+		core.Option{}.Runtime.AutoRun(settings.AutoRun),
+		core.Option{}.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
 	)
 }
 
+// GetServiceCtx 获取服务上下文
 func (rb *RuntimeBehavior) GetServiceCtx() service.Context {
-	return rb.runtimeCreator.servCtx
+	return rb.servCtx
 }
 
+// GetStartupConf 获取启动参数配置
 func (rb *RuntimeBehavior) GetStartupConf() *viper.Viper {
 	v, _ := rb.GetMemKVs().Load("startup.conf")
 	if v == nil {
@@ -164,6 +177,7 @@ func (rb *RuntimeBehavior) GetStartupConf() *viper.Viper {
 	return v.(*viper.Viper)
 }
 
+// GetMemKVs 获取服务内存KV数据库
 func (rb *RuntimeBehavior) GetMemKVs() *sync.Map {
 	memKVs, _ := rb.GetServiceCtx().Value("mem_kvs").(*sync.Map)
 	if memKVs == nil {

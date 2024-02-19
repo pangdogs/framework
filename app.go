@@ -65,7 +65,7 @@ func (app *App) Setup(name string, serv any, num ...int) *App {
 		serv: _serv,
 		num:  _num,
 	}
-	_serv.init(app, name, serv)
+	_serv.init(app.startupConf, name, serv)
 
 	return app
 }
