@@ -10,7 +10,7 @@ import (
 // Connect 连接服务端
 func Connect(ctx context.Context, endpoint string, settings ...option.Setting[ClientOptions]) (*Client, error) {
 	connector := _Connector{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 	return connector.connect(ctx, endpoint)
 }

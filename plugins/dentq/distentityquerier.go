@@ -45,7 +45,7 @@ type IDistEntityQuerier interface {
 
 func newDistEntityQuerier(settings ...option.Setting[DistEntityQuerierOptions]) IDistEntityQuerier {
 	return &_DistEntityQuerier{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

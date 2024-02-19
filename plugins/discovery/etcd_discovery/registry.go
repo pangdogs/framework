@@ -25,7 +25,7 @@ import (
 // NewRegistry 创建registry插件，可以配合registry cache将数据缓存本地，提高查询效率
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:   option.Make(Option{}.Default(), settings...),
+		options:   option.Make(With.Default(), settings...),
 		registers: concurrent.MakeLockedMap[string, _Register](0),
 	}
 }

@@ -25,7 +25,7 @@ type IDistEntities interface {
 
 func newDistEntities(settings ...option.Setting[DistEntitiesOptions]) IDistEntities {
 	return &_DistEntities{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

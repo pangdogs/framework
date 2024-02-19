@@ -44,10 +44,9 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 	startupConf := rb.GetStartupConf()
 
 	rtCtx := runtime.NewContext(rb.GetServiceCtx(),
-		runtime.Option{}.Context.Name(settings.Name),
-		runtime.Option{}.Context.AutoRecover(settings.AutoRecover),
-		runtime.Option{}.Context.ReportError(settings.ReportError),
-		runtime.Option{}.Context.RunningHandler(generic.CastDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
+		runtime.With.Context.Name(settings.Name),
+		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
+		runtime.With.Context.RunningHandler(generic.CastDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
 			switch state {
 			case runtime.RunningState_Birth:
 				if cb, ok := rb.composite.(LifecycleRuntimeBirth); ok {
@@ -112,9 +111,9 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 	if _, ok := rtCtx.GetPluginBundle().Get(log.Name); !ok {
 		if v, _ := rb.GetMemKVs().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
-				zap_log.Option{}.ZapLogger(v.(*zap.Logger)),
-				zap_log.Option{}.ServiceInfo(true),
-				zap_log.Option{}.RuntimeInfo(true),
+				zap_log.With.ZapLogger(v.(*zap.Logger)),
+				zap_log.With.ServiceInfo(true),
+				zap_log.With.RuntimeInfo(true),
 			)
 		}
 	}
@@ -138,8 +137,8 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 		}
 
 		dent.Install(rtCtx,
-			dent.Option{}.EtcdClient(cli),
-			dent.Option{}.TTL(startupConf.GetDuration("service.dent_ttl")),
+			dent.With.EtcdClient(cli),
+			dent.With.TTL(startupConf.GetDuration("service.dent_ttl")),
 		)
 	}
 
@@ -149,17 +148,17 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 	}
 
 	return core.NewRuntime(rtCtx,
-		core.Option{}.Runtime.Frame(func() runtime.Frame {
+		core.With.Runtime.Frame(func() runtime.Frame {
 			if settings.FrameFPS <= 0 {
 				return nil
 			}
 			return runtime.NewFrame(
-				runtime.Option{}.Frame.TargetFPS(settings.FrameFPS),
-				runtime.Option{}.Frame.Blink(settings.FrameBlink),
+				runtime.With.Frame.TargetFPS(settings.FrameFPS),
+				runtime.With.Frame.Blink(settings.FrameBlink),
 			)
 		}()),
-		core.Option{}.Runtime.AutoRun(settings.AutoRun),
-		core.Option{}.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
+		core.With.Runtime.AutoRun(settings.AutoRun),
+		core.With.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
 	)
 }
 

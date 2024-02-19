@@ -45,11 +45,11 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	session.transceiver.Conn = conn
 
 	// 初始化会话默认选项
-	_SessionOption{}.Default()(&session.options)
-	_SessionOption{}.SendDataChanSize(acc.options.SessionSendDataChanSize)(&session.options)
-	_SessionOption{}.RecvDataChanSize(acc.options.SessionRecvDataChanSize)(&session.options)
-	_SessionOption{}.SendEventChanSize(acc.options.SessionSendEventChanSize)(&session.options)
-	_SessionOption{}.RecvEventChanSize(acc.options.SessionRecvEventChanSize)(&session.options)
+	With.Session.Default()(&session.options)
+	With.Session.SendDataChanSize(acc.options.SessionSendDataChanSize)(&session.options)
+	With.Session.RecvDataChanSize(acc.options.SessionRecvDataChanSize)(&session.options)
+	With.Session.SendEventChanSize(acc.options.SessionSendEventChanSize)(&session.options)
+	With.Session.RecvEventChanSize(acc.options.SessionRecvEventChanSize)(&session.options)
 
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver

@@ -18,7 +18,7 @@ type IRPC interface {
 
 func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 	return &_RPC{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

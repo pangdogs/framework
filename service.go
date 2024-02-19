@@ -63,12 +63,11 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	servCtx := service.NewContext(
-		service.Option{}.Context(ctx),
-		service.Option{}.Name(sb.GetName()),
-		service.Option{}.AutoRecover(autoRecover),
-		service.Option{}.ReportError(reportError),
-		service.Option{}.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.Option{}.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
+		service.With.Context(ctx),
+		service.With.Name(sb.GetName()),
+		service.With.PanicHandling(autoRecover, reportError),
+		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
+		service.With.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
 			// 状态变化回调
 			switch state {
 			case service.RunningState_Birth:
@@ -125,8 +124,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		memKVs.Store("zap.atomic_level", zapAtomicLevel)
 
 		zap_log.Install(servCtx,
-			zap_log.Option{}.ZapLogger(zapLogger),
-			zap_log.Option{}.ServiceInfo(true),
+			zap_log.With.ZapLogger(zapLogger),
+			zap_log.With.ServiceInfo(true),
 		)
 	}
 
@@ -136,14 +135,14 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(conf.Name); !ok {
 		conf.Install(servCtx,
-			conf.Option{}.Format(startupConf.GetString("conf.format")),
-			conf.Option{}.LocalPath(startupConf.GetString("conf.local_path")),
-			conf.Option{}.Remote(
+			conf.With.Format(startupConf.GetString("conf.format")),
+			conf.With.LocalPath(startupConf.GetString("conf.local_path")),
+			conf.With.Remote(
 				startupConf.GetString("conf.remote_provider"),
 				startupConf.GetString("conf.remote_endpoint"),
 				startupConf.GetString("conf.remote_path"),
 			),
-			conf.Option{}.AutoUpdate(startupConf.GetBool("conf.auto_update")),
+			conf.With.AutoUpdate(startupConf.GetBool("conf.auto_update")),
 		)
 	}
 
@@ -153,8 +152,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(broker.Name); !ok {
 		nats_broker.Install(servCtx,
-			nats_broker.Option{}.CustomAddresses(startupConf.GetString("nats.address")),
-			nats_broker.Option{}.CustomAuth(
+			nats_broker.With.CustomAddresses(startupConf.GetString("nats.address")),
+			nats_broker.With.CustomAuth(
 				startupConf.GetString("nats.username"),
 				startupConf.GetString("nats.password"),
 			),
@@ -167,8 +166,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(discovery.Name); !ok {
 		etcd_discovery.Install(servCtx,
-			etcd_discovery.Option{}.CustomAddresses(startupConf.GetString("etcd.address")),
-			etcd_discovery.Option{}.CustomAuth(
+			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			etcd_discovery.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
 				startupConf.GetString("etcd.password"),
 			),
@@ -181,8 +180,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dsync.Name); !ok {
 		etcd_dsync.Install(servCtx,
-			etcd_dsync.Option{}.CustomAddresses(startupConf.GetString("etcd.address")),
-			etcd_dsync.Option{}.CustomAuth(
+			etcd_dsync.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			etcd_dsync.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
 				startupConf.GetString("etcd.password"),
 			),
@@ -195,10 +194,10 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dserv.Name); !ok {
 		dserv.Install(servCtx,
-			dserv.Option{}.Version(startupConf.GetString(fmt.Sprintf("%s.version", sb.GetName()))),
-			dserv.Option{}.Meta(startupConf.GetStringMapString(fmt.Sprintf("%s.meta", sb.GetName()))),
-			dserv.Option{}.TTL(startupConf.GetDuration("service.ttl")),
-			dserv.Option{}.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
+			dserv.With.Version(startupConf.GetString(fmt.Sprintf("%s.version", sb.GetName()))),
+			dserv.With.Meta(startupConf.GetStringMapString(fmt.Sprintf("%s.meta", sb.GetName()))),
+			dserv.With.TTL(startupConf.GetDuration("service.ttl")),
+			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
 		)
 	}
 
@@ -216,8 +215,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dentq.Name); !ok {
 		dentq.Install(servCtx,
-			dentq.Option{}.CustomAddresses(startupConf.GetString("etcd.address")),
-			dentq.Option{}.CustomAuth(
+			dentq.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			dentq.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
 				startupConf.GetString("etcd.password"),
 			),

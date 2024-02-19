@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-type _GateOption struct{}
-
 type (
 	AuthClientHandler          = generic.DelegateFunc5[IGate, net.Conn, string, string, []byte, error] // 客户端鉴权处理器
 	SessionStateChangedHandler = generic.DelegateAction3[ISession, SessionState, SessionState]         // 会话状态变化的处理器
@@ -58,50 +56,52 @@ type GateOptions struct {
 	FutureTimeout                  time.Duration              // 异步模型Future超时时间
 }
 
+type _GateOption struct{}
+
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		_GateOption{}.Endpoints("0.0.0.0:0")(options)
-		_GateOption{}.TLSConfig(nil)(options)
-		_GateOption{}.TCPNoDelay(nil)(options)
-		_GateOption{}.TCPQuickAck(nil)(options)
-		_GateOption{}.TCPRecvBuf(nil)(options)
-		_GateOption{}.TCPSendBuf(nil)(options)
-		_GateOption{}.TCPLinger(nil)(options)
-		_GateOption{}.IOTimeout(3 * time.Second)(options)
-		_GateOption{}.IORetryTimes(3)(options)
-		_GateOption{}.IOBufferCap(1024 * 128)(options)
-		_GateOption{}.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
-		_GateOption{}.AgreeClientEncryptionProposal(false)(options)
-		_GateOption{}.EncCipherSuite(gtp.CipherSuite{
+		With.Gate.Endpoints("0.0.0.0:0")(options)
+		With.Gate.TLSConfig(nil)(options)
+		With.Gate.TCPNoDelay(nil)(options)
+		With.Gate.TCPQuickAck(nil)(options)
+		With.Gate.TCPRecvBuf(nil)(options)
+		With.Gate.TCPSendBuf(nil)(options)
+		With.Gate.TCPLinger(nil)(options)
+		With.Gate.IOTimeout(3 * time.Second)(options)
+		With.Gate.IORetryTimes(3)(options)
+		With.Gate.IOBufferCap(1024 * 128)(options)
+		With.Gate.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
+		With.Gate.AgreeClientEncryptionProposal(false)(options)
+		With.Gate.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: gtp.SymmetricEncryption_AES,
 			BlockCipherMode:     gtp.BlockCipherMode_CTR,
 			PaddingMode:         gtp.PaddingMode_None,
 			MACHash:             gtp.Hash_Fnv1a32,
 		})(options)
-		_GateOption{}.EncNonceStep(big.NewInt(1))(options)
-		_GateOption{}.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
-		_GateOption{}.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
+		With.Gate.EncNonceStep(big.NewInt(1))(options)
+		With.Gate.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
+		With.Gate.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
 			AsymmetricEncryption: gtp.AsymmetricEncryption_None,
 			PaddingMode:          gtp.PaddingMode_None,
 			Hash:                 gtp.Hash_None,
 		})(options)
-		_GateOption{}.EncSignaturePrivateKey(nil)(options)
-		_GateOption{}.EncVerifyClientSignature(false)(options)
-		_GateOption{}.EncVerifySignaturePublicKey(nil)(options)
-		_GateOption{}.AgreeClientCompressionProposal(false)(options)
-		_GateOption{}.Compression(gtp.Compression_Brotli)(options)
-		_GateOption{}.CompressedSize(1024 * 32)(options)
-		_GateOption{}.AuthClientHandler(nil)(options)
-		_GateOption{}.SessionInactiveTimeout(60 * time.Second)(options)
-		_GateOption{}.SessionStateChangedHandler(nil)(options)
-		_GateOption{}.SessionSendDataChanSize(0)(options)
-		_GateOption{}.SessionRecvDataChanSize(0)(options)
-		_GateOption{}.SessionSendEventChanSize(0)(options)
-		_GateOption{}.SessionRecvEventChanSize(0)(options)
-		_GateOption{}.SessionRecvDataHandler(nil)(options)
-		_GateOption{}.SessionRecvEventHandler(nil)(options)
-		_GateOption{}.FutureTimeout(5 * time.Second)(options)
+		With.Gate.EncSignaturePrivateKey(nil)(options)
+		With.Gate.EncVerifyClientSignature(false)(options)
+		With.Gate.EncVerifySignaturePublicKey(nil)(options)
+		With.Gate.AgreeClientCompressionProposal(false)(options)
+		With.Gate.Compression(gtp.Compression_Brotli)(options)
+		With.Gate.CompressedSize(1024 * 32)(options)
+		With.Gate.AuthClientHandler(nil)(options)
+		With.Gate.SessionInactiveTimeout(60 * time.Second)(options)
+		With.Gate.SessionStateChangedHandler(nil)(options)
+		With.Gate.SessionSendDataChanSize(0)(options)
+		With.Gate.SessionRecvDataChanSize(0)(options)
+		With.Gate.SessionSendEventChanSize(0)(options)
+		With.Gate.SessionRecvEventChanSize(0)(options)
+		With.Gate.SessionRecvDataHandler(nil)(options)
+		With.Gate.SessionRecvEventHandler(nil)(options)
+		With.Gate.FutureTimeout(5 * time.Second)(options)
 	}
 }
 

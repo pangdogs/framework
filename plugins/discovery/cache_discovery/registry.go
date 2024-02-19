@@ -17,7 +17,7 @@ import (
 // newRegistry 创建registry cache插件，在本地缓存其他registry插件返回的数据
 func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:    option.Make(Option{}.Default(), settings...),
+		options:    option.Make(With.Default(), settings...),
 		serviceMap: concurrent.MakeLockedMap[string, *discovery.Service](0),
 	}
 }

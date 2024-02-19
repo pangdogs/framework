@@ -15,7 +15,7 @@ import (
 
 func newLogger(settings ...option.Setting[LoggerOptions]) log.ILogger {
 	return &_Logger{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

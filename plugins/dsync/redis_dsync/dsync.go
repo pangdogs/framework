@@ -12,7 +12,7 @@ import (
 
 func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 	return &_DistSync{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 
@@ -56,7 +56,7 @@ func (s *_DistSync) ShutSP(ctx service.Context) {
 
 // NewMutex returns a new distributed mutex with given name.
 func (s *_DistSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
-	return s.newMutex(name, option.Make(dsync.Option{}.Default(), settings...))
+	return s.newMutex(name, option.Make(dsync.With.Default(), settings...))
 }
 
 // GetSeparator return name path separator.

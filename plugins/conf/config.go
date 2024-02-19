@@ -17,7 +17,7 @@ type IConfig interface {
 
 func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
 	return &_Config{
-		options: option.Make(Option{}.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

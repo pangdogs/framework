@@ -7,8 +7,6 @@ import (
 	"git.golaxy.org/framework/net/gtp/transport"
 )
 
-type _SessionOption struct{}
-
 type (
 	StateChangedHandler = generic.DelegateAction2[SessionState, SessionState]    // 会话状态变化的处理器
 	RecvDataHandler     = generic.DelegateFunc1[[]byte, error]                   // 会话接收的数据的处理器
@@ -25,15 +23,17 @@ type SessionOptions struct {
 	RecvEventChan       chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
 }
 
+type _SessionOption struct{}
+
 func (_SessionOption) Default() option.Setting[SessionOptions] {
 	return func(options *SessionOptions) {
-		_SessionOption{}.StateChangedHandler(nil)(options)
-		_SessionOption{}.RecvDataHandler(nil)(options)
-		_SessionOption{}.RecvEventHandler(nil)(options)
-		_SessionOption{}.SendDataChanSize(0)(options)
-		_SessionOption{}.RecvDataChanSize(0)(options)
-		_SessionOption{}.SendEventChanSize(0)(options)
-		_SessionOption{}.RecvEventChanSize(0)(options)
+		With.Session.StateChangedHandler(nil)(options)
+		With.Session.RecvDataHandler(nil)(options)
+		With.Session.RecvEventHandler(nil)(options)
+		With.Session.SendDataChanSize(0)(options)
+		With.Session.RecvDataChanSize(0)(options)
+		With.Session.SendEventChanSize(0)(options)
+		With.Session.RecvEventChanSize(0)(options)
 	}
 }
 

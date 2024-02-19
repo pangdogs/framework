@@ -1,6 +1,8 @@
 package gate
 
-type Option struct {
+var With _Option
+
+type _Option struct {
 	Gate    _GateOption
 	Session _SessionOption
 }

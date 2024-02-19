@@ -58,7 +58,7 @@ type IDistService interface {
 
 func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
 	return &_DistService{
-		options: option.Make(Option{}.Default(), setting...),
+		options: option.Make(With.Default(), setting...),
 	}
 }
 
@@ -243,8 +243,8 @@ func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWa
 
 func (d *_DistService) subscribe(topic, queue string) broker.ISubscriber {
 	sub, err := d.broker.Subscribe(d.ctx, topic,
-		broker.Option{}.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
-		broker.Option{}.Queue(queue))
+		broker.With.EventHandler(generic.CastDelegateFunc1(d.handleEvent)),
+		broker.With.Queue(queue))
 	if err != nil {
 		log.Panicf(d.servCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
 	}

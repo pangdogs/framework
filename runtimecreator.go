@@ -26,8 +26,8 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 }
 
 type RuntimeCreator struct {
-	context service.Context
-	runtime _IRuntime
+	context  service.Context
+	runtime  _IRuntime
 	settings _RuntimeSettings
 }
 
@@ -61,7 +61,7 @@ func (c RuntimeCreator) PanicHandling(autoRecover bool, reportError chan error) 
 	return c
 }
 
-func (c RuntimeCreator) Frames(fps float32, blink bool) RuntimeCreator {
+func (c RuntimeCreator) Frame(fps float32, blink bool) RuntimeCreator {
 	c.settings.FrameFPS = fps
 	c.settings.FrameBlink = blink
 	return c
