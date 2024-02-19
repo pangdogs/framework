@@ -242,7 +242,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 自动恢复时，打印panic信息
-	if servCtx.GetAutoRecover() {
+	if servCtx.GetAutoRecover() && servCtx.GetReportError() != nil {
 		go func() {
 			for {
 				select {
