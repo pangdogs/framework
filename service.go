@@ -248,7 +248,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 			for {
 				select {
 				case err := <-servCtx.GetReportError():
-					log.Errorf(servCtx, "recover: %s", err)
+					log.Errorf(servCtx, "recover:\n%s", err)
 				case <-servCtx.Done():
 					return
 				}
