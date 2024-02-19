@@ -32,7 +32,7 @@ func (l *_Logger) InitSP(ctx service.Context) {
 func (l *_Logger) InitRP(ctx runtime.Context) {
 	options := []zap.Option{zap.AddCallerSkip(l.options.CallerSkip)}
 	if l.options.ServiceInfo {
-		options = append(options, zap.Fields(zap.String("service", ctx.String())))
+		options = append(options, zap.Fields(zap.String("service", service.Current(ctx).String())))
 	}
 	if l.options.RuntimeInfo {
 		options = append(options, zap.Fields(zap.String("runtime", ctx.String())))
