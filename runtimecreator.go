@@ -11,7 +11,7 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 		panic(fmt.Errorf("%w: ctx is nil", core.ErrArgs))
 	}
 	return RuntimeCreator{
-		context: ctx,
+		servCtx: ctx,
 		runtime: nil,
 		settings: _RuntimeSettings{
 			Name:                 "",
@@ -25,14 +25,14 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 }
 
 type RuntimeCreator struct {
-	context  service.Context
+	servCtx  service.Context
 	runtime  _IRuntime
 	settings _RuntimeSettings
 }
 
 func (c RuntimeCreator) Setup(rt any) RuntimeCreator {
-	if c.context == nil {
-		panic("setting context is nil")
+	if c.servCtx == nil {
+		panic("setting servCtx is nil")
 	}
 
 	if rt == nil {
@@ -45,7 +45,7 @@ func (c RuntimeCreator) Setup(rt any) RuntimeCreator {
 	}
 
 	c.runtime = _rt
-	c.runtime.init(c.context, _rt)
+	c.runtime.init(c.servCtx, _rt)
 	return c
 }
 
@@ -76,15 +76,15 @@ func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 }
 
 func (c RuntimeCreator) Spawn() core.Runtime {
-	if c.context == nil {
-		panic("setting context is nil")
+	if c.servCtx == nil {
+		panic("setting servCtx is nil")
 	}
 
 	rt := c.runtime
 
 	if rt == nil {
 		rt = &RuntimeBehavior{}
-		rt.init(c.context, c.runtime)
+		rt.init(c.servCtx, c.runtime)
 	}
 
 	return rt.generate(c.settings)
