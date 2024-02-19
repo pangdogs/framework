@@ -76,6 +76,10 @@ func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 }
 
 func (c RuntimeCreator) Spawn() core.Runtime {
+	if c.context == nil {
+		panic("setting context is nil")
+	}
+
 	rt := c.runtime
 
 	if rt == nil {
