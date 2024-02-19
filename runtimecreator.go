@@ -17,8 +17,7 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 			Name:                 "",
 			AutoRecover:          ctx.GetAutoRecover(),
 			ReportError:          ctx.GetReportError(),
-			FrameFPS:             0,
-			FrameBlink:           false,
+			FPS:                  0,
 			AutoRun:              true,
 			ProcessQueueCapacity: 128,
 		},
@@ -61,9 +60,8 @@ func (c RuntimeCreator) PanicHandling(autoRecover bool, reportError chan error) 
 	return c
 }
 
-func (c RuntimeCreator) Frame(fps float32, blink bool) RuntimeCreator {
-	c.settings.FrameFPS = fps
-	c.settings.FrameBlink = blink
+func (c RuntimeCreator) FPS(fps float32) RuntimeCreator {
+	c.settings.FPS = fps
 	return c
 }
 

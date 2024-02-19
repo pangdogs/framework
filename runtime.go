@@ -23,8 +23,7 @@ type _RuntimeSettings struct {
 	Name                 string
 	AutoRecover          bool
 	ReportError          chan error
-	FrameFPS             float32
-	FrameBlink           bool
+	FPS                  float32
 	AutoRun              bool
 	ProcessQueueCapacity int
 }
@@ -149,12 +148,11 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 
 	return core.NewRuntime(rtCtx,
 		core.With.Runtime.Frame(func() runtime.Frame {
-			if settings.FrameFPS <= 0 {
+			if settings.FPS <= 0 {
 				return nil
 			}
 			return runtime.NewFrame(
-				runtime.With.Frame.TargetFPS(settings.FrameFPS),
-				runtime.With.Frame.Blink(settings.FrameBlink),
+				runtime.With.Frame.TargetFPS(settings.FPS),
 			)
 		}()),
 		core.With.Runtime.AutoRun(settings.AutoRun),
