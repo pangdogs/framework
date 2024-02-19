@@ -15,8 +15,8 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 		runtime: nil,
 		settings: _RuntimeSettings{
 			Name:                 "",
-			AutoRecover:          false,
-			ReportError:          nil,
+			AutoRecover:          ctx.GetAutoRecover(),
+			ReportError:          ctx.GetReportError(),
 			FrameFPS:             0,
 			FrameBlink:           false,
 			AutoRun:              true,
@@ -51,7 +51,7 @@ func (c RuntimeCreator) Name(name string) RuntimeCreator {
 	return c
 }
 
-func (c RuntimeCreator) ErrorHandling(autoRecover bool, reportError chan error) RuntimeCreator {
+func (c RuntimeCreator) PanicHandling(autoRecover bool, reportError chan error) RuntimeCreator {
 	c.settings.AutoRecover = autoRecover
 	c.settings.ReportError = reportError
 	return c

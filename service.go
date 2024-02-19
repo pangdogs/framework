@@ -55,9 +55,18 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 
 	ctx = context.WithValue(ctx, "mem_kvs", memKVs)
 
+	autoRecover := startupConf.GetBool("service.auto_recover")
+	var reportError chan error
+
+	if autoRecover {
+		reportError = make(chan error, 128)
+	}
+
 	servCtx := service.NewContext(
 		service.Option{}.Context(ctx),
 		service.Option{}.Name(sb.GetName()),
+		service.Option{}.AutoRecover(autoRecover),
+		service.Option{}.ReportError(reportError),
 		service.Option{}.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
 		service.Option{}.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
 			// 状态变化回调
@@ -231,6 +240,20 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	// 初始化回调
 	if cb, ok := sb.composite.(LifecycleServiceInit); ok {
 		cb.Init(servCtx)
+	}
+
+	// 自动恢复时，打印panic信息
+	if servCtx.GetAutoRecover() {
+		go func() {
+			for {
+				select {
+				case err := <-servCtx.GetReportError():
+					log.Errorf(servCtx, "recover: %s", err)
+				case <-servCtx.Done():
+					return
+				}
+			}
+		}()
 	}
 
 	return core.NewService(servCtx)

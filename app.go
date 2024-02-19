@@ -122,6 +122,7 @@ func (app *App) Run() {
 	pflag.Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
 	pflag.Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
 	pflag.Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
+	pflag.Bool("service.auto_recover", false, "enable panic auto recover")
 
 	// 初始化回调
 	app.initCB.Exec(nil, app)
