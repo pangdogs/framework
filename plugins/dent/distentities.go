@@ -94,6 +94,12 @@ func (d *_DistEntities) ShutRP(ctx runtime.Context) {
 		log.Errorf(d.rtCtx, "revoke lease %d failed, %s", d.leaseId, err)
 	}
 
+	if d.options.EtcdClient == nil {
+		if d.client != nil {
+			d.client.Close()
+		}
+	}
+
 	d.distEntitiesEventTab.Close()
 }
 
