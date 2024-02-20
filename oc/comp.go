@@ -11,10 +11,12 @@ type ComponentBehavior struct {
 	ec.ComponentBehavior
 }
 
+// GetRuntimeCtx 获取运行时上下文
 func (c *ComponentBehavior) GetRuntimeCtx() RuntimeCtx {
 	return RuntimeCtx{Context: runtime.Current(c)}
 }
 
+// GetServiceCtx 获取服务上下文
 func (c *ComponentBehavior) GetServiceCtx() ServiceCtx {
 	return ServiceCtx{Context: service.Current(c)}
 }

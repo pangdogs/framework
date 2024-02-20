@@ -13,38 +13,47 @@ import (
 	"sync"
 )
 
+// ServiceCtx 服务上下文
 type ServiceCtx struct {
 	service.Context
 }
 
+// GetConf 获取配置插件
 func (ctx ServiceCtx) GetConf() conf.IVisitConf {
 	return conf.Using(ctx.Context)
 }
 
+// GetRegistry 获取服务发现插件
 func (ctx ServiceCtx) GetRegistry() discovery.IRegistry {
 	return discovery.Using(ctx.Context)
 }
 
+// GetBroker 获取broker插件
 func (ctx ServiceCtx) GetBroker() broker.IBroker {
 	return broker.Using(ctx.Context)
 }
 
+// GetDistSync 获取分布式同步插件
 func (ctx ServiceCtx) GetDistSync() dsync.IDistSync {
 	return dsync.Using(ctx.Context)
 }
 
+// GetDistService 获取分布式服务插件
 func (ctx ServiceCtx) GetDistService() dserv.IDistService {
 	return dserv.Using(ctx.Context)
 }
 
+// GetDistEntityQuerier 获取分布式实体查询插件
 func (ctx ServiceCtx) GetDistEntityQuerier() dentq.IDistEntityQuerier {
 	return dentq.Using(ctx.Context)
 }
 
+// GetRPC 获取RPC支持插件
 func (ctx ServiceCtx) GetRPC() rpc.IRPC {
 	return rpc.Using(ctx.Context)
 }
 
+// GetStartupConf 获取启动参数配置
 func (ctx ServiceCtx) GetStartupConf() *viper.Viper {
 	v, _ := ctx.GetMemKVs().Load("startup.conf")
 	if v == nil {
@@ -53,6 +62,7 @@ func (ctx ServiceCtx) GetStartupConf() *viper.Viper {
 	return v.(*viper.Viper)
 }
 
+// GetMemKVs 获取服务内存KV数据库
 func (ctx ServiceCtx) GetMemKVs() *sync.Map {
 	memKVs, _ := ctx.Value("mem_kvs").(*sync.Map)
 	if memKVs == nil {

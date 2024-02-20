@@ -146,7 +146,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		)
 	}
 
-	// 安装分布式broker插件
+	// 安装broker插件
 	if cb, ok := sb.composite.(InstallServiceBroker); ok {
 		cb.InstallBroker(servCtx)
 	}
@@ -160,7 +160,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		)
 	}
 
-	// 安装分布式服务发现插件
+	// 安装服务发现插件
 	if cb, ok := sb.composite.(InstallServiceRegistry); ok {
 		cb.InstallRegistry(servCtx)
 	}
