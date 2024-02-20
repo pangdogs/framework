@@ -9,6 +9,8 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/rpc"
+	"github.com/spf13/viper"
+	"sync"
 )
 
 type ServiceCtx struct {
@@ -41,4 +43,20 @@ func (ctx ServiceCtx) GetDistEntityQuerier() dentq.IDistEntityQuerier {
 
 func (ctx ServiceCtx) GetRPC() rpc.IRPC {
 	return rpc.Using(ctx.Context)
+}
+
+func (ctx ServiceCtx) GetStartupConf() *viper.Viper {
+	v, _ := ctx.GetMemKVs().Load("startup.conf")
+	if v == nil {
+		panic("service memory startup.conf not existed")
+	}
+	return v.(*viper.Viper)
+}
+
+func (ctx ServiceCtx) GetMemKVs() *sync.Map {
+	memKVs, _ := ctx.Value("mem_kvs").(*sync.Map)
+	if memKVs == nil {
+		panic("service memory not existed")
+	}
+	return memKVs
 }
