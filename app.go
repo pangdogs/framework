@@ -126,7 +126,7 @@ func (app *App) Run() {
 			ret[n] = strconv.Itoa(si.num)
 		}
 		return ret
-	}(), "startup service list")
+	}(), "instances required for each service to start")
 
 	// 初始化回调
 	app.initCB.Exec(nil, app)
