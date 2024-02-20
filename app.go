@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -41,7 +42,7 @@ func (app *App) lazyInit() {
 }
 
 // Setup 安装服务
-func (app *App) Setup(name string, serv any, num ...int) *App {
+func (app *App) Setup(name string, serv any) *App {
 	app.lazyInit()
 
 	if serv == nil {
@@ -53,17 +54,9 @@ func (app *App) Setup(name string, serv any, num ...int) *App {
 		panic(fmt.Errorf("%w: incorrect serv type", core.ErrArgs))
 	}
 
-	var _num int
-	if len(num) > 0 {
-		_num = num[0]
-	}
-	if _num <= 0 {
-		_num = 1
-	}
-
 	app.servInfos[name] = &_ServInfo{
 		serv: _serv,
-		num:  _num,
+		num:  1,
 	}
 	_serv.init(app.startupConf, name, serv)
 
@@ -119,10 +112,21 @@ func (app *App) Run() {
 	pflag.String("etcd.password", "", "etcd auth password")
 
 	// 分布式服务参数
+	pflag.String("service.version", "v0.0.0", "service version info")
+	pflag.StringToString("service.meta", map[string]string{}, "service meta info")
 	pflag.Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
 	pflag.Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
 	pflag.Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
 	pflag.Bool("service.auto_recover", false, "enable panic auto recover")
+
+	// 启动的服务列表
+	pflag.StringToString("startup_services", func() map[string]string {
+		ret := map[string]string{}
+		for n, si := range app.servInfos {
+			ret[n] = strconv.Itoa(si.num)
+		}
+		return ret
+	}(), "startup service list")
 
 	// 初始化回调
 	app.initCB.Exec(nil, app)
@@ -160,6 +164,13 @@ func (app *App) Run() {
 
 	// 启动服务
 	wg := &sync.WaitGroup{}
+
+	for _, si := range app.servInfos {
+		si.num = 0
+	}
+	for n, si := range startupConf.GetStringMapString("startup_services") {
+		app.servInfos[n].num, _ = strconv.Atoi(si)
+	}
 
 	for _, si := range app.servInfos {
 		for i := 0; i < si.num; i++ {

@@ -114,7 +114,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 
 		zapLogger, zapAtomicLevel := zap_log.NewJsonZapLogger(
 			level,
-			filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s.%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName())),
+			filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName(), servCtx.GetId())),
 			startupConf.GetInt("log.size"),
 			startupConf.GetBool("log.stdout"),
 			startupConf.GetBool("log.development"),
@@ -194,8 +194,8 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dserv.Name); !ok {
 		dserv.Install(servCtx,
-			dserv.With.Version(startupConf.GetString(fmt.Sprintf("%s.version", sb.GetName()))),
-			dserv.With.Meta(startupConf.GetStringMapString(fmt.Sprintf("%s.meta", sb.GetName()))),
+			dserv.With.Version(startupConf.GetString("service.version")),
+			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
 			dserv.With.TTL(startupConf.GetDuration("service.ttl")),
 			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
 		)
