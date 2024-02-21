@@ -93,7 +93,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.Gate.Compression(gtp.Compression_Brotli)(options)
 		With.Gate.CompressedSize(1024 * 32)(options)
 		With.Gate.AuthClientHandler(nil)(options)
-		With.Gate.SessionInactiveTimeout(60 * time.Second)(options)
+		With.Gate.SessionInactiveTimeout(time.Minute)(options)
 		With.Gate.SessionStateChangedHandler(nil)(options)
 		With.Gate.SessionSendDataChanSize(0)(options)
 		With.Gate.SessionRecvDataChanSize(0)(options)

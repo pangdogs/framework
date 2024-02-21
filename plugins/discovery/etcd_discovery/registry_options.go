@@ -19,7 +19,6 @@ type RegistryOptions struct {
 	CustomUsername  string
 	CustomPassword  string
 	CustomAddresses []string
-	CustomSecure    bool
 	CustomTLSConfig *tls.Config
 }
 
@@ -36,7 +35,6 @@ func (_Option) Default() option.Setting[RegistryOptions] {
 		With.WatchChanSize(128)(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
-		With.CustomSecure(false)(options)
 		With.CustomTLSConfig(nil)(options)
 	}
 }
@@ -92,13 +90,6 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RegistryOptions] 
 			}
 		}
 		options.CustomAddresses = addrs
-	}
-}
-
-// CustomSecure 自定义设置是否加密etcd连接
-func (_Option) CustomSecure(secure bool) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
-		o.CustomSecure = secure
 	}
 }
 

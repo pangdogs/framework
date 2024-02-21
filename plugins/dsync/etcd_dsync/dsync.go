@@ -84,7 +84,7 @@ func (s *_DistSync) configure() etcd_client.Config {
 		DialTimeout: 3 * time.Second,
 	}
 
-	if s.options.CustomSecure || s.options.CustomTLSConfig != nil {
+	if s.options.CustomTLSConfig != nil {
 		tlsConfig := s.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{

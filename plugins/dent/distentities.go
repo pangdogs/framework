@@ -219,7 +219,7 @@ func (d *_DistEntities) configure() etcd_client.Config {
 		DialTimeout: 3 * time.Second,
 	}
 
-	if d.options.CustomSecure || d.options.CustomTLSConfig != nil {
+	if d.options.CustomTLSConfig != nil {
 		tlsConfig := d.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{

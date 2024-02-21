@@ -20,7 +20,6 @@ type DistEntityQuerierOptions struct {
 	CustomUsername  string
 	CustomPassword  string
 	CustomAddresses []string
-	CustomSecure    bool
 	CustomTLSConfig *tls.Config
 }
 
@@ -37,7 +36,6 @@ func (_Option) Default() option.Setting[DistEntityQuerierOptions] {
 		With.CacheExpiry(10 * time.Minute)(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
-		With.CustomSecure(false)(options)
 		With.CustomTLSConfig(nil)(options)
 	}
 }
@@ -90,13 +88,6 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityQuerier
 			}
 		}
 		options.CustomAddresses = addrs
-	}
-}
-
-// CustomSecure 自定义设置是否加密etcd连接
-func (_Option) CustomSecure(secure bool) option.Setting[DistEntityQuerierOptions] {
-	return func(o *DistEntityQuerierOptions) {
-		o.CustomSecure = secure
 	}
 }
 

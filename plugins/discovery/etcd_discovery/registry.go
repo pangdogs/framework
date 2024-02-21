@@ -286,7 +286,7 @@ func (r *_Registry) configure() etcd_client.Config {
 		DialTimeout: 3 * time.Second,
 	}
 
-	if r.options.CustomSecure || r.options.CustomTLSConfig != nil {
+	if r.options.CustomTLSConfig != nil {
 		tlsConfig := r.options.CustomTLSConfig
 		if tlsConfig == nil {
 			tlsConfig = &tls.Config{

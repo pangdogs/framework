@@ -17,7 +17,6 @@ type DSyncOptions struct {
 	CustomUsername  string
 	CustomPassword  string
 	CustomAddresses []string
-	CustomSecure    bool
 	CustomTLSConfig *tls.Config
 }
 
@@ -33,7 +32,6 @@ func (_Option) Default() option.Setting[DSyncOptions] {
 		With.KeyPrefix("/golaxy/mutex/")(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
-		With.CustomSecure(false)(options)
 		With.CustomTLSConfig(nil)(options)
 	}
 }
@@ -79,13 +77,6 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DSyncOptions] {
 			}
 		}
 		options.CustomAddresses = addrs
-	}
-}
-
-// CustomSecure sets whether to use a secure connection (HTTPS) in DSyncOptions.
-func (_Option) CustomSecure(secure bool) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.CustomSecure = secure
 	}
 }
 
