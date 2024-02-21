@@ -120,7 +120,7 @@ func (app *App) Run() {
 	pflag.Bool("service.auto_recover", false, "enable panic auto recover")
 
 	// 启动的服务列表
-	pflag.StringToString("startup_services", func() map[string]string {
+	pflag.StringToString("startup.services", func() map[string]string {
 		ret := map[string]string{}
 		for sn, si := range app.servInfos {
 			ret[sn] = strconv.Itoa(si.num)
@@ -168,7 +168,7 @@ func (app *App) Run() {
 	for _, si := range app.servInfos {
 		si.num = 0
 	}
-	for sn, num := range startupConf.GetStringMapString("startup_services") {
+	for sn, num := range startupConf.GetStringMapString("startup.services") {
 		app.servInfos[sn].num, _ = strconv.Atoi(num)
 	}
 
