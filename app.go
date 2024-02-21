@@ -81,7 +81,7 @@ func (app *App) StoppedCB(cb generic.DelegateAction1[*App]) *App {
 	return app
 }
 
-// Run 回调
+// Run 运行
 func (app *App) Run() {
 	app.lazyInit()
 
@@ -122,8 +122,8 @@ func (app *App) Run() {
 	// 启动的服务列表
 	pflag.StringToString("startup_services", func() map[string]string {
 		ret := map[string]string{}
-		for n, si := range app.servInfos {
-			ret[n] = strconv.Itoa(si.num)
+		for sn, si := range app.servInfos {
+			ret[sn] = strconv.Itoa(si.num)
 		}
 		return ret
 	}(), "instances required for each service to start")
@@ -168,8 +168,8 @@ func (app *App) Run() {
 	for _, si := range app.servInfos {
 		si.num = 0
 	}
-	for n, si := range startupConf.GetStringMapString("startup_services") {
-		app.servInfos[n].num, _ = strconv.Atoi(si)
+	for sn, num := range startupConf.GetStringMapString("startup_services") {
+		app.servInfos[sn].num, _ = strconv.Atoi(num)
 	}
 
 	for _, si := range app.servInfos {
