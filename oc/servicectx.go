@@ -2,6 +2,7 @@ package oc
 
 import (
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/framework"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dentq"
@@ -69,4 +70,9 @@ func (ctx ServiceCtx) GetMemKVs() *sync.Map {
 		panic("service memory not existed")
 	}
 	return memKVs
+}
+
+// CreateRuntime 创建运行时
+func (ctx ServiceCtx) CreateRuntime() framework.RuntimeCreator {
+	return framework.CreateRuntime(ctx)
 }
