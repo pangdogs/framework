@@ -19,7 +19,7 @@ import (
 func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	// 编解码器构建器
 	acc.encoderCreator = codec.CreateEncoder()
-	acc.decoderCreator = codec.CreateDecoder(acc.options.DecoderMsgCreator)
+	acc.decoderCreator = codec.CreateDecoder(acc.gate.options.DecoderMsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
@@ -27,10 +27,10 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 			Conn:         conn,
 			Encoder:      acc.encoderCreator.Spawn(),
 			Decoder:      acc.decoderCreator.Spawn(),
-			Timeout:      acc.options.IOTimeout,
+			Timeout:      acc.gate.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},
-		RetryTimes: acc.options.IORetryTimes,
+		RetryTimes: acc.gate.options.IORetryTimes,
 	}
 	defer handshake.Transceiver.Clean()
 
@@ -92,17 +92,17 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 		}
 
 		// 检查是否同意使用客户端建议的加密方案
-		if acc.options.AgreeClientEncryptionProposal {
+		if acc.gate.options.AgreeClientEncryptionProposal {
 			cs = cliHello.Msg.CipherSuite
 		} else {
-			cs = acc.options.EncCipherSuite
+			cs = acc.gate.options.EncCipherSuite
 		}
 
 		// 检查是否同意使用客户端建议的压缩方案
-		if acc.options.AgreeClientCompressionProposal {
+		if acc.gate.options.AgreeClientCompressionProposal {
 			cm = cliHello.Msg.Compression
 		} else {
-			cm = acc.options.Compression
+			cm = acc.gate.options.Compression
 		}
 
 		// 开启加密时，需要交换随机数
@@ -143,7 +143,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 			},
 		}
 
-		authFlow = len(acc.options.AuthClientHandler) > 0
+		authFlow = len(acc.gate.options.AuthClientHandler) > 0
 
 		// 标记是否开启加密
 		servHello.Flags.Set(gtp.Flag_Encryption, encryptionFlow)
@@ -206,7 +206,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 				}
 			}
 
-			err := acc.options.AuthClientHandler.Exec(func(err, _ error) bool {
+			err := acc.gate.options.AuthClientHandler.Exec(func(err, _ error) bool {
 				return err != nil
 			}, acc.gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
@@ -327,7 +327,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
 		// 创建曲线
-		curve, err := method.NewNamedCurve(acc.options.EncECDHENamedCurve)
+		curve, err := method.NewNamedCurve(acc.gate.options.EncECDHENamedCurve)
 		if err != nil {
 			return err
 		}
@@ -382,9 +382,9 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 
 		if nonce != nil {
 			nonceBytes = nonce.Bytes()
-			nonceStepBytes = acc.options.EncNonceStep.Bytes()
-			fetchNonce[0] = acc.makeFetchNonce(nonce, acc.options.EncNonceStep)
-			fetchNonce[1] = acc.makeFetchNonce(nonce, acc.options.EncNonceStep)
+			nonceStepBytes = acc.gate.options.EncNonceStep.Bytes()
+			fetchNonce[0] = acc.makeFetchNonce(nonce, acc.gate.options.EncNonceStep)
+			fetchNonce[1] = acc.makeFetchNonce(nonce, acc.gate.options.EncNonceStep)
 		}
 
 		// 临时共享秘钥
@@ -399,18 +399,18 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 			transport.Event[gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
 				Msg: gtp.MsgECDHESecretKeyExchange{
-					NamedCurve:         acc.options.EncECDHENamedCurve,
+					NamedCurve:         acc.gate.options.EncECDHENamedCurve,
 					PublicKey:          servPubBytes,
 					IV:                 ivBytes,
 					Nonce:              nonceBytes,
 					NonceStep:          nonceStepBytes,
-					SignatureAlgorithm: acc.options.EncSignatureAlgorithm,
+					SignatureAlgorithm: acc.gate.options.EncSignatureAlgorithm,
 					Signature:          signature,
 				},
 			},
 			func(cliECDHE transport.Event[gtp.MsgECDHESecretKeyExchange]) (transport.Event[gtp.MsgChangeCipherSpec], error) {
 				// 检查客户端曲线类型
-				if cliECDHE.Msg.NamedCurve != acc.options.EncECDHENamedCurve {
+				if cliECDHE.Msg.NamedCurve != acc.gate.options.EncECDHENamedCurve {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve' %d is incorrect", cliECDHE.Msg.NamedCurve),
@@ -418,7 +418,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 				}
 
 				// 验证客户端签名
-				if acc.options.EncVerifyClientSignature {
+				if acc.gate.options.EncVerifyClientSignature {
 					if !cliECDHE.Flags.Is(gtp.Flag_Signature) {
 						return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
@@ -694,26 +694,26 @@ func (acc *_Acceptor) makeCompressionModule(compression gtp.Compression) (codec.
 		return nil, 0, err
 	}
 
-	return codec.NewCompressionModule(compressionStream), acc.options.CompressedSize, err
+	return codec.NewCompressionModule(compressionStream), acc.gate.options.CompressedSize, err
 }
 
 // sign 签名
 func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) ([]byte, error) {
 	// 无需签名
-	if acc.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
+	if acc.gate.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
 
 	// 必须设置私钥才能签名
-	if acc.options.EncSignaturePrivateKey == nil {
+	if acc.gate.options.EncSignaturePrivateKey == nil {
 		return nil, errors.New("option EncSignaturePrivateKey is nil, unable to perform the signing operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		acc.options.EncSignatureAlgorithm.AsymmetricEncryption,
-		acc.options.EncSignatureAlgorithm.PaddingMode,
-		acc.options.EncSignatureAlgorithm.Hash)
+		acc.gate.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		acc.gate.options.EncSignatureAlgorithm.PaddingMode,
+		acc.gate.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -728,7 +728,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 	signBuf.Write(servPubBytes)
 
 	// 生成签名
-	signature, err := signer.Sign(acc.options.EncSignaturePrivateKey, signBuf.Bytes())
+	signature, err := signer.Sign(acc.gate.options.EncSignaturePrivateKey, signBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +739,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 // verify 验证签名
 func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
-	if acc.options.EncVerifySignaturePublicKey == nil {
+	if acc.gate.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
 	}
 
@@ -761,5 +761,5 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 	signBuf.WriteString(sessionId)
 	signBuf.Write(cliPubBytes)
 
-	return signer.Verify(acc.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
+	return signer.Verify(acc.gate.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
 }

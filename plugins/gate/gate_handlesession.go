@@ -25,8 +25,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 
 	// 网络连接接受器
 	acceptor := _Acceptor{
-		gate:    g,
-		options: &g.options,
+		gate: g,
 	}
 
 	// 接受网络连接

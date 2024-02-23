@@ -13,7 +13,6 @@ import (
 // _Acceptor 网络连接接受器
 type _Acceptor struct {
 	gate           *_Gate
-	options        *GateOptions
 	encoderCreator codec.EncoderCreator
 	decoderCreator codec.DecoderCreator
 }
@@ -46,10 +45,10 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 
 	// 初始化会话默认选项
 	sessionWith.Default()(&session.options)
-	sessionWith.SendDataChanSize(acc.options.SessionSendDataChanSize)(&session.options)
-	sessionWith.RecvDataChanSize(acc.options.SessionRecvDataChanSize)(&session.options)
-	sessionWith.SendEventChanSize(acc.options.SessionSendEventChanSize)(&session.options)
-	sessionWith.RecvEventChanSize(acc.options.SessionRecvEventChanSize)(&session.options)
+	sessionWith.SendDataChanSize(acc.gate.options.SessionSendDataChanSize)(&session.options)
+	sessionWith.RecvDataChanSize(acc.gate.options.SessionRecvDataChanSize)(&session.options)
+	sessionWith.SendEventChanSize(acc.gate.options.SessionSendEventChanSize)(&session.options)
+	sessionWith.RecvEventChanSize(acc.gate.options.SessionRecvEventChanSize)(&session.options)
 
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver
