@@ -3,10 +3,8 @@ package gate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
@@ -37,8 +35,6 @@ type IWatcher interface {
 type ISession interface {
 	context.Context
 	fmt.Stringer
-	// Settings 设置会话选项（在会话状态Handshake与Confirmed时可用）
-	Settings(settings ...option.Setting[SessionOptions]) error
 	// GetContext 获取服务上下文
 	GetContext() service.Context
 	// GetId 获取会话Id
@@ -51,14 +47,16 @@ type ISession interface {
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
+	// GetSettings 获取配置
+	GetSettings() SessionSettings
 	// SendData 发送数据
 	SendData(data []byte) error
 	// WatchData 监听数据
-	WatchData(ctx context.Context, handler RecvDataHandler) IWatcher
+	WatchData(ctx context.Context, handler SessionRecvDataHandler) IWatcher
 	// SendEvent 发送自定义事件
 	SendEvent(event transport.Event[gtp.MsgReader]) error
 	// WatchEvent 监听自定义事件
-	WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher
+	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- []byte
 	// RecvDataChan 接收数据的channel
@@ -76,7 +74,7 @@ type _Session struct {
 	sync.Mutex
 	cancel          context.CancelCauseFunc
 	closedChan      chan struct{}
-	options         SessionOptions
+	options         _SessionOptions
 	gate            *_Gate
 	id              string
 	token           string
@@ -93,23 +91,6 @@ type _Session struct {
 // String implements fmt.Stringer
 func (s *_Session) String() string {
 	return fmt.Sprintf(`{"id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
-}
-
-// Settings 设置会话选项（在会话状态Handshake与Confirmed时可用）
-func (s *_Session) Settings(settings ...option.Setting[SessionOptions]) error {
-	s.Lock()
-	defer s.Unlock()
-
-	switch s.state {
-	case SessionState_Handshake, SessionState_Confirmed:
-		break
-	default:
-		return errors.New("incorrect session state")
-	}
-
-	option.Change(&s.options, settings...)
-
-	return nil
 }
 
 // GetContext 获取服务上下文
@@ -148,13 +129,18 @@ func (s *_Session) GetRemoteAddr() net.Addr {
 	return s.transceiver.Conn.RemoteAddr()
 }
 
+// GetSettings 获取设置
+func (s *_Session) GetSettings() SessionSettings {
+	return SessionSettings{session: s}
+}
+
 // SendData 发送数据
 func (s *_Session) SendData(data []byte) error {
 	return s.trans.SendData(data)
 }
 
 // WatchData 监听数据
-func (s *_Session) WatchData(ctx context.Context, handler RecvDataHandler) IWatcher {
+func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler) IWatcher {
 	return s.newDataWatcher(ctx, handler)
 }
 
@@ -167,7 +153,7 @@ func (s *_Session) SendEvent(event transport.Event[gtp.MsgReader]) error {
 }
 
 // WatchEvent 监听自定义事件
-func (s *_Session) WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher {
+func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher {
 	return s.newEventWatcher(ctx, handler)
 }
 

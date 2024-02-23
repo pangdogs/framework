@@ -5,7 +5,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
-func (s *_Session) newEventWatcher(ctx context.Context, handler RecvEventHandler) *_EventWatcher {
+func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEventHandler) *_EventWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -32,7 +32,7 @@ type _EventWatcher struct {
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
 	session     *_Session
-	handler     RecvEventHandler
+	handler     SessionRecvEventHandler
 }
 
 func (w *_EventWatcher) Stop() <-chan struct{} {

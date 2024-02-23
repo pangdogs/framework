@@ -5,7 +5,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
-func (s *_Session) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {
+func (s *_Session) newDataWatcher(ctx context.Context, handler SessionRecvDataHandler) *_DataWatcher {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -32,7 +32,7 @@ type _DataWatcher struct {
 	cancel      context.CancelFunc
 	stoppedChan chan struct{}
 	session     *_Session
-	handler     RecvDataHandler
+	handler     SessionRecvDataHandler
 }
 
 func (w *_DataWatcher) Stop() <-chan struct{} {

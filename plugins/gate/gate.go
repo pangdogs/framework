@@ -26,7 +26,7 @@ type IGate interface {
 
 func newGate(settings ...option.Setting[GateOptions]) IGate {
 	return &_Gate{
-		options: option.Make(With.Gate.Default(), settings...),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 

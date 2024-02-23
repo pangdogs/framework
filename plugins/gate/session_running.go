@@ -233,7 +233,10 @@ func (s *_Session) setState(state SessionState) bool {
 		return false
 	}
 
-	s.options.StateChangedHandler.Invoke(interrupt, old, state)
+	// 回调会话状态变化
+	s.options.StateChangedHandler.Invoke(interrupt, s, old, state)
+
+	// 回调网关会话状态变化
 	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, old, state)
 
 	return true
@@ -269,12 +272,12 @@ func (s *_Session) handleEventProcess(event transport.Event[gtp.Msg]) error {
 	// 回调监控器
 	s.eventWatchers.AutoRLock(func(watchers *[]*_EventWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, event)
+			(*watchers)[i].handler.Exec(interrupt, s, event)
 		}
 	})
 
 	// 回调会话处理器
-	s.options.RecvEventHandler.Exec(interrupt, event)
+	s.options.RecvEventHandler.Exec(interrupt, s, event)
 
 	// 回调网关处理器
 	s.gate.options.SessionRecvEventHandler.Exec(interrupt, s, event)
@@ -313,12 +316,12 @@ func (s *_Session) handlePayloadProcess(event transport.Event[gtp.MsgPayload]) e
 	// 回调监控器
 	s.dataWatchers.AutoRLock(func(watchers *[]*_DataWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, event.Msg.Data)
+			(*watchers)[i].handler.Exec(interrupt, s, event.Msg.Data)
 		}
 	})
 
 	// 回调会话处理器
-	s.options.RecvDataHandler.Invoke(interrupt, event.Msg.Data)
+	s.options.RecvDataHandler.Invoke(interrupt, s, event.Msg.Data)
 
 	// 回调网关处理器
 	s.gate.options.SessionRecvDataHandler.Invoke(interrupt, s, event.Msg.Data)

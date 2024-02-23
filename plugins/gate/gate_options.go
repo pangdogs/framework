@@ -47,59 +47,61 @@ type GateOptions struct {
 	AuthClientHandler              AuthClientHandler          // 客户端鉴权鉴权处理器
 	SessionInactiveTimeout         time.Duration              // 会话不活跃后的超时时间
 	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
-	SessionSendDataChanSize        int                        // 会话发送数据的channel的大小，<=0表示不使用channel
-	SessionRecvDataChanSize        int                        // 会话接收数据的channel的大小，<=0表示不使用channel
-	SessionSendEventChanSize       int                        // 会话发送自定义事件的channel的大小，<=0表示不使用channel
-	SessionRecvEventChanSize       int                        // 会话接收自定义事件的channel的大小，<=0表示不使用channel
+	SessionSendDataChanSize        int                        // 会话默认发送数据的channel的大小，<=0表示不使用channel
+	SessionRecvDataChanSize        int                        // 会话默认接收数据的channel的大小，<=0表示不使用channel
+	SessionSendEventChanSize       int                        // 会话默认发送自定义事件的channel的大小，<=0表示不使用channel
+	SessionRecvEventChanSize       int                        // 会话默认接收自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级低于会话的处理器）
 	SessionRecvEventHandler        SessionRecvEventHandler    // 会话接收的自定义事件的处理器（优先级低于会话的处理器）
 }
+
+var With _GateOption
 
 type _GateOption struct{}
 
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		With.Gate.Endpoints("0.0.0.0:0")(options)
-		With.Gate.TLSConfig(nil)(options)
-		With.Gate.TCPNoDelay(nil)(options)
-		With.Gate.TCPQuickAck(nil)(options)
-		With.Gate.TCPRecvBuf(nil)(options)
-		With.Gate.TCPSendBuf(nil)(options)
-		With.Gate.TCPLinger(nil)(options)
-		With.Gate.IOTimeout(3 * time.Second)(options)
-		With.Gate.IORetryTimes(3)(options)
-		With.Gate.IOBufferCap(1024 * 128)(options)
-		With.Gate.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
-		With.Gate.AgreeClientEncryptionProposal(false)(options)
-		With.Gate.EncCipherSuite(gtp.CipherSuite{
+		With.Endpoints("0.0.0.0:0")(options)
+		With.TLSConfig(nil)(options)
+		With.TCPNoDelay(nil)(options)
+		With.TCPQuickAck(nil)(options)
+		With.TCPRecvBuf(nil)(options)
+		With.TCPSendBuf(nil)(options)
+		With.TCPLinger(nil)(options)
+		With.IOTimeout(3 * time.Second)(options)
+		With.IORetryTimes(3)(options)
+		With.IOBufferCap(1024 * 128)(options)
+		With.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
+		With.AgreeClientEncryptionProposal(false)(options)
+		With.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: gtp.SymmetricEncryption_AES,
 			BlockCipherMode:     gtp.BlockCipherMode_CTR,
 			PaddingMode:         gtp.PaddingMode_None,
 			MACHash:             gtp.Hash_Fnv1a32,
 		})(options)
-		With.Gate.EncNonceStep(big.NewInt(1))(options)
-		With.Gate.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
-		With.Gate.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
+		With.EncNonceStep(big.NewInt(1))(options)
+		With.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
+		With.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
 			AsymmetricEncryption: gtp.AsymmetricEncryption_None,
 			PaddingMode:          gtp.PaddingMode_None,
 			Hash:                 gtp.Hash_None,
 		})(options)
-		With.Gate.EncSignaturePrivateKey(nil)(options)
-		With.Gate.EncVerifyClientSignature(false)(options)
-		With.Gate.EncVerifySignaturePublicKey(nil)(options)
-		With.Gate.AgreeClientCompressionProposal(false)(options)
-		With.Gate.Compression(gtp.Compression_Brotli)(options)
-		With.Gate.CompressedSize(1024 * 32)(options)
-		With.Gate.AuthClientHandler(nil)(options)
-		With.Gate.SessionInactiveTimeout(time.Minute)(options)
-		With.Gate.SessionStateChangedHandler(nil)(options)
-		With.Gate.SessionSendDataChanSize(0)(options)
-		With.Gate.SessionRecvDataChanSize(0)(options)
-		With.Gate.SessionSendEventChanSize(0)(options)
-		With.Gate.SessionRecvEventChanSize(0)(options)
-		With.Gate.SessionRecvDataHandler(nil)(options)
-		With.Gate.SessionRecvEventHandler(nil)(options)
+		With.EncSignaturePrivateKey(nil)(options)
+		With.EncVerifyClientSignature(false)(options)
+		With.EncVerifySignaturePublicKey(nil)(options)
+		With.AgreeClientCompressionProposal(false)(options)
+		With.Compression(gtp.Compression_Brotli)(options)
+		With.CompressedSize(1024 * 32)(options)
+		With.AuthClientHandler(nil)(options)
+		With.SessionInactiveTimeout(time.Minute)(options)
+		With.SessionStateChangedHandler(nil)(options)
+		With.SessionSendDataChanSize(0)(options)
+		With.SessionRecvDataChanSize(0)(options)
+		With.SessionSendEventChanSize(0)(options)
+		With.SessionRecvEventChanSize(0)(options)
+		With.SessionRecvDataHandler(nil)(options)
+		With.SessionRecvEventHandler(nil)(options)
 	}
 }
 
