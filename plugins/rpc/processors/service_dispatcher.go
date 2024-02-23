@@ -1,4 +1,4 @@
-package rpc
+package processors
 
 import (
 	"context"
@@ -29,15 +29,15 @@ var (
 	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")
 )
 
-// DistributedDispatcher 分布式服务的RPC分发器
-type DistributedDispatcher struct {
+// ServiceDispatcher 分布式服务间的RPC分发器
+type ServiceDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService
 	watcher dserv.IWatcher
 }
 
 // Init 初始化
-func (d *DistributedDispatcher) Init(ctx service.Context) {
+func (d *ServiceDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
@@ -46,13 +46,13 @@ func (d *DistributedDispatcher) Init(ctx service.Context) {
 }
 
 // Shut 结束
-func (d *DistributedDispatcher) Shut(ctx service.Context) {
+func (d *ServiceDispatcher) Shut(ctx service.Context) {
 	<-d.watcher.Stop()
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q stopped", types.AnyFullName(*d))
 }
 
-func (d *DistributedDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
+func (d *ServiceDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	addr := d.dist.GetAddress()
 
 	if !strings.HasPrefix(mp.Head.Src, addr.Domain) {
@@ -73,7 +73,7 @@ func (d *DistributedDispatcher) handleMsg(topic string, mp gap.MsgPacket) error 
 	return nil
 }
 
-func (d *DistributedDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
+func (d *ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
@@ -132,7 +132,7 @@ func (d *DistributedDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	return nil
 }
 
-func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) error {
+func (d *ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
@@ -201,7 +201,7 @@ func (d *DistributedDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest
 	return nil
 }
 
-func (d *DistributedDispatcher) callService(plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
+func (d *ServiceDispatcher) callService(plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -226,7 +226,7 @@ func (d *DistributedDispatcher) callService(plugin, method string, args variant.
 	return methodRV.Call(argsRV), nil
 }
 
-func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func (d *ServiceDispatcher) callRuntime(entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -258,7 +258,7 @@ func (d *DistributedDispatcher) callRuntime(entityId uid.Id, plugin, method stri
 	}, plugin, method, args), nil
 }
 
-func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func (d *ServiceDispatcher) callEntity(entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -290,7 +290,7 @@ func (d *DistributedDispatcher) callEntity(entityId uid.Id, component, method st
 	}, component, method, args), nil
 }
 
-func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (d *ServiceDispatcher) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
 	}
@@ -315,7 +315,7 @@ func (d *DistributedDispatcher) reply(src string, corrId int64, retsRV []reflect
 	log.Debugf(d.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
 }
 
-func (d *DistributedDispatcher) resolve(reply *gap.MsgRPCReply) error {
+func (d *ServiceDispatcher) resolve(reply *gap.MsgRPCReply) error {
 	ret := concurrent.Ret[any]{}
 
 	if reply.Error.OK() {

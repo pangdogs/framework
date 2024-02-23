@@ -25,8 +25,8 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 type _RPC struct {
 	options     RPCOptions
 	servCtx     service.Context
-	deliverers  []concurrent.RWLocked[IDeliverer]
-	dispatchers []concurrent.RWLocked[IDispatcher]
+	deliverers  []concurrent.RWLocked[IProcessorDeliverer]
+	dispatchers []concurrent.RWLocked[IProcessorDispatcher]
 }
 
 // InitSP 初始化服务插件
@@ -44,8 +44,8 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	}
 
 	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *IDeliverer) {
-			init, ok := (*d).(LifecycleInit)
+		r.deliverers[i].AutoLock(func(d *IProcessorDeliverer) {
+			init, ok := (*d).(LifecycleProcessorInit)
 			if ok {
 				init.Init(r.servCtx)
 			}
@@ -53,8 +53,8 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	}
 
 	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *IDispatcher) {
-			init, ok := (*d).(LifecycleInit)
+		r.dispatchers[i].AutoLock(func(d *IProcessorDispatcher) {
+			init, ok := (*d).(LifecycleProcessorInit)
 			if ok {
 				init.Init(r.servCtx)
 			}
@@ -67,8 +67,8 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *IDeliverer) {
-			shut, ok := (*d).(LifecycleShut)
+		r.deliverers[i].AutoLock(func(d *IProcessorDeliverer) {
+			shut, ok := (*d).(LifecycleProcessorShut)
 			if ok {
 				shut.Shut(r.servCtx)
 			}
@@ -76,8 +76,8 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 	}
 
 	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *IDispatcher) {
-			shut, ok := (*d).(LifecycleShut)
+		r.dispatchers[i].AutoLock(func(d *IProcessorDispatcher) {
+			shut, ok := (*d).(LifecycleProcessorShut)
 			if ok {
 				shut.Shut(r.servCtx)
 			}
@@ -90,7 +90,7 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 	for i := range r.deliverers {
 		var ret runtime.AsyncRet
 
-		r.deliverers[i].AutoRLock(func(d *IDeliverer) {
+		r.deliverers[i].AutoRLock(func(d *IProcessorDeliverer) {
 			if !(*d).Match(r.servCtx, dst, path, false) {
 				return
 			}
@@ -114,7 +114,7 @@ func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
 		var b bool
 		var err error
 
-		r.deliverers[i].AutoRLock(func(d *IDeliverer) {
+		r.deliverers[i].AutoRLock(func(d *IProcessorDeliverer) {
 			if !(*d).Match(r.servCtx, dst, path, true) {
 				return
 			}
