@@ -9,7 +9,6 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/util/concurrent"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -40,7 +39,6 @@ type _Gate struct {
 	listeners    []net.Listener
 	sessionMap   sync.Map
 	sessionCount int64
-	futures      concurrent.Futures
 }
 
 // InitSP 初始化服务插件
@@ -49,9 +47,6 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 	g.ctx, g.cancel = context.WithCancelCause(context.Background())
 	g.servCtx = ctx
-
-	// 初始化异步模型Future
-	g.futures = concurrent.MakeFutures(g.ctx, g.options.FutureTimeout)
 
 	if len(g.options.Endpoints) <= 0 {
 		log.Panic(g.servCtx, "no endpoints need to listen")

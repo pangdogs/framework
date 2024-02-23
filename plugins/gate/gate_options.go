@@ -53,7 +53,6 @@ type GateOptions struct {
 	SessionRecvEventChanSize       int                        // 会话接收自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级低于会话的处理器）
 	SessionRecvEventHandler        SessionRecvEventHandler    // 会话接收的自定义事件的处理器（优先级低于会话的处理器）
-	FutureTimeout                  time.Duration              // 异步模型Future超时时间
 }
 
 type _GateOption struct{}
@@ -101,7 +100,6 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.Gate.SessionRecvEventChanSize(0)(options)
 		With.Gate.SessionRecvDataHandler(nil)(options)
 		With.Gate.SessionRecvEventHandler(nil)(options)
-		With.Gate.FutureTimeout(5 * time.Second)(options)
 	}
 }
 
@@ -296,14 +294,5 @@ func (_GateOption) SessionRecvDataHandler(handler SessionRecvDataHandler) option
 func (_GateOption) SessionRecvEventHandler(handler SessionRecvEventHandler) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.SessionRecvEventHandler = handler
-	}
-}
-
-func (_GateOption) FutureTimeout(d time.Duration) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		if d <= 0 {
-			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs))
-		}
-		options.FutureTimeout = d
 	}
 }

@@ -51,8 +51,6 @@ type ISession interface {
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
-	// GetFutures 获取异步模型Future控制器
-	GetFutures() concurrent.IFutures
 	// SendData 发送数据
 	SendData(data []byte) error
 	// WatchData 监听数据
@@ -148,11 +146,6 @@ func (s *_Session) GetRemoteAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.RemoteAddr()
-}
-
-// GetFutures 获取异步模型Future控制器
-func (s *_Session) GetFutures() concurrent.IFutures {
-	return &s.gate.futures
 }
 
 // SendData 发送数据
