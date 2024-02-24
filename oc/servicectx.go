@@ -1,6 +1,7 @@
 package oc
 
 import (
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/framework"
 	"git.golaxy.org/framework/plugins/broker"
@@ -75,4 +76,9 @@ func (ctx ServiceCtx) GetMemKVs() *sync.Map {
 // CreateRuntime 创建运行时
 func (ctx ServiceCtx) CreateRuntime() framework.RuntimeCreator {
 	return framework.CreateRuntime(ctx)
+}
+
+// CreateEntityPT 创建实体原型
+func (ctx ServiceCtx) CreateEntityPT() core.EntityPTCreator {
+	return core.CreateEntityPT(ctx)
 }
