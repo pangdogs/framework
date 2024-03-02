@@ -75,10 +75,10 @@ func (ctx ServiceCtx) GetMemKVs() *sync.Map {
 
 // CreateRuntime 创建运行时
 func (ctx ServiceCtx) CreateRuntime() framework.RuntimeCreator {
-	return framework.CreateRuntime(ctx)
+	return framework.CreateRuntime(ctx.Context)
 }
 
 // CreateEntityPT 创建实体原型
 func (ctx ServiceCtx) CreateEntityPT() core.EntityPTCreator {
-	return core.CreateEntityPT(ctx)
+	return core.CreateEntityPT(ctx.Context)
 }

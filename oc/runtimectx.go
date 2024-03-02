@@ -18,5 +18,5 @@ func (ctx RuntimeCtx) GetDistEntities() dent.IDistEntities {
 
 // CreateEntity 创建实体
 func (ctx RuntimeCtx) CreateEntity() core.EntityCreator {
-	return core.CreateEntity(ctx)
+	return core.CreateEntity(ctx.Context)
 }
