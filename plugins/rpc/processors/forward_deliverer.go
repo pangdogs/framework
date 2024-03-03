@@ -110,18 +110,17 @@ func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args [
 
 // Notify 通知
 func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
-	var forwardAddr string
-
-	if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptNodeSubdomain) {
-		var err error
-		forwardAddr, err = d.getForwardAddr(uid.From(pathutil.Base(d.AcceptPathSeparator, dst)))
-		if err != nil {
-			return err
+	forwardAddr, err := func() (string, error) {
+		if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptNodeSubdomain) {
+			return d.getForwardAddr(uid.From(pathutil.Base(d.AcceptPathSeparator, dst)))
+		} else if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptMulticastSubdomain) {
+			return d.forwardBCAddr, nil
+		} else {
+			return "", ErrIncorrectDestAddress
 		}
-	} else if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptMulticastSubdomain) {
-		forwardAddr = d.forwardBCAddr
-	} else {
-		return ErrIncorrectDestAddress
+	}()
+	if err != nil {
+		return err
 	}
 
 	vargs, err := variant.MakeArray(args)
