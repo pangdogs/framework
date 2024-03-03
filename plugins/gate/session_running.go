@@ -234,10 +234,10 @@ func (s *_Session) setState(state SessionState) bool {
 	}
 
 	// 回调会话状态变化
-	s.options.StateChangedHandler.Invoke(interrupt, s, old, state)
+	s.options.StateChangedHandler.Invoke(interrupt, s, state, old)
 
 	// 回调网关会话状态变化
-	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, old, state)
+	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, state, old)
 
 	return true
 }

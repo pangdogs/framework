@@ -13,8 +13,8 @@ var (
 )
 
 const (
-	ClientDomain             = "client"
-	ClientNodeSubdomain      = "client.node"
-	ClientMulticastSubdomain = "client.multicast"
-	ClientPathSeparator      = "."
+	ClientDomain             = "client"           // 客户端主域
+	ClientNodeSubdomain      = "client.node"      // 客户端节点地址子域
+	ClientMulticastSubdomain = "client.multicast" // 客户端组播地址子域
+	ClientPathSeparator      = "."                // 客户端地址路径分隔符
 )

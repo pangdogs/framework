@@ -29,7 +29,7 @@ type ForwardDeliverer struct {
 	AcceptNodeSubdomain      string // 需要转发的节点地址子域
 	AcceptMulticastSubdomain string // 需要转发的组播地址子域
 	AcceptPathSeparator      string // 需要转发的地址路径分隔符
-	ForwardTo                string // 转发的目标服务
+	ForwardTo                string // 转发目的服务
 	servCtx                  service.Context
 	dist                     dserv.IDistService
 	dentq                    dentq.IDistEntityQuerier
