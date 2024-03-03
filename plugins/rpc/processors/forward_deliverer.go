@@ -113,14 +113,12 @@ func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []
 	var forwardAddr string
 
 	if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptNodeSubdomain) {
-		// 单播地址
 		var err error
 		forwardAddr, err = d.getForwardAddr(uid.From(pathutil.Base(d.AcceptPathSeparator, dst)))
 		if err != nil {
 			return err
 		}
 	} else if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptMulticastSubdomain) {
-		// 广播地址
 		forwardAddr = d.forwardBCAddr
 	} else {
 		return ErrIncorrectDestAddress
