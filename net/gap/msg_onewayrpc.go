@@ -5,6 +5,7 @@ import (
 	"git.golaxy.org/framework/util/binaryutil"
 )
 
+// MsgOneWayRPC 单程RPC请求
 type MsgOneWayRPC struct {
 	Path string        // 调用路径
 	Args variant.Array // 参数列表

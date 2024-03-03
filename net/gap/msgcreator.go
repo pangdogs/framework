@@ -33,6 +33,7 @@ func init() {
 	DefaultMsgCreator().Register(&MsgRPCRequest{})
 	DefaultMsgCreator().Register(&MsgRPCReply{})
 	DefaultMsgCreator().Register(&MsgOneWayRPC{})
+	DefaultMsgCreator().Register(&MsgForward{})
 }
 
 // NewMsgCreator 创建消息对象构建器

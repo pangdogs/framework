@@ -13,12 +13,13 @@ import (
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/util/pathutil"
 	"reflect"
-	"strings"
 )
 
 var (
@@ -33,6 +34,7 @@ var (
 type ServiceDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService
+	broker  broker.IBroker
 	watcher dserv.IWatcher
 }
 
@@ -40,6 +42,7 @@ type ServiceDispatcher struct {
 func (d *ServiceDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
+	d.broker = broker.Using(ctx)
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))
@@ -55,7 +58,7 @@ func (d *ServiceDispatcher) Shut(ctx service.Context) {
 func (d *ServiceDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	addr := d.dist.GetAddress()
 
-	if !strings.HasPrefix(mp.Head.Src, addr.Domain) {
+	if !pathutil.InDir(d.broker.GetSeparator(), mp.Head.Src, addr.Domain) {
 		return nil
 	}
 
@@ -93,7 +96,7 @@ func (d *ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := d.callRuntime(uid.From(cp.EntityId), cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
 			return nil
@@ -111,7 +114,7 @@ func (d *ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
+		asyncRet, err := d.callEntity(uid.From(cp.EntityId), cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
 			return nil
@@ -156,7 +159,7 @@ func (d *ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) er
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := d.callRuntime(uid.Id(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := d.callRuntime(uid.From(cp.EntityId), cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
 			go d.reply(src, req.CorrId, nil, err)
@@ -177,7 +180,7 @@ func (d *ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) er
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := d.callEntity(uid.Id(cp.EntityId), cp.Component, cp.Method, req.Args)
+		asyncRet, err := d.callEntity(uid.From(cp.EntityId), cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
 			go d.reply(src, req.CorrId, nil, err)

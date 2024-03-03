@@ -6,22 +6,25 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"strings"
+	"git.golaxy.org/framework/util/pathutil"
 )
 
 // ServiceDeliverer 分布式服务间的RPC投递器
 type ServiceDeliverer struct {
 	servCtx service.Context
 	dist    dserv.IDistService
+	broker  broker.IBroker
 }
 
 // Init 初始化
 func (d *ServiceDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
+	d.broker = broker.Using(ctx)
 
 	log.Debugf(d.servCtx, "rpc deliverer %q started", types.AnyFullName(*d))
 }
@@ -34,13 +37,14 @@ func (d *ServiceDeliverer) Shut(ctx service.Context) {
 // Match 是否匹配
 func (d *ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
 	addr := d.dist.GetAddress()
+	sep := d.broker.GetSeparator()
 
-	if !strings.HasPrefix(dst, addr.Domain) {
+	if pathutil.InDir(sep, dst, addr.Domain) {
 		return false
 	}
 
 	if !oneWay {
-		if !strings.HasPrefix(dst, addr.BalanceSubdomain) && !strings.HasPrefix(dst, addr.NodeSubdomain) {
+		if !pathutil.InDir(sep, dst, addr.BalanceSubdomain) && !pathutil.InDir(sep, dst, addr.NodeSubdomain) {
 			return false
 		}
 	}

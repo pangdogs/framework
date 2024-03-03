@@ -11,3 +11,10 @@ var (
 	Install   = self.Install
 	Uninstall = self.Uninstall
 )
+
+const (
+	ClientDomain             = "client"
+	ClientNodeSubdomain      = "client.node"
+	ClientMulticastSubdomain = "client.multicast"
+	ClientPathSeparator      = "."
+)

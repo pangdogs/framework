@@ -5,20 +5,11 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
-	"strings"
 )
 
 type (
 	ErrorHandler = generic.DelegateAction1[error] // 错误处理器
 )
-
-// Path return topic path.
-func Path(broker IBroker, elems ...string) string {
-	if broker == nil {
-		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
-	}
-	return strings.Join(elems, broker.GetSeparator())
-}
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
 func MakeWriteChan(broker IBroker, ctx context.Context, topic string, size int, errorHandler ...ErrorHandler) chan<- []byte {

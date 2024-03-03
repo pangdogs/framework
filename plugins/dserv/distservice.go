@@ -15,6 +15,7 @@ import (
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/util/pathutil"
 	"github.com/josharian/intern"
 	"sync"
 )
@@ -107,9 +108,9 @@ func (d *_DistService) InitSP(ctx service.Context) {
 
 	// 初始化地址信息
 	d.address = Address{Domain: d.options.Domain}
-	d.address.BroadcastSubdomain = intern.String(broker.Path(d.broker, d.address.Domain, "broadcast"))
-	d.address.BalanceSubdomain = intern.String(broker.Path(d.broker, d.address.Domain, "balance"))
-	d.address.NodeSubdomain = intern.String(broker.Path(d.broker, d.address.Domain, "node"))
+	d.address.BroadcastSubdomain = intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.Domain, "broadcast"))
+	d.address.BalanceSubdomain = intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.Domain, "balance"))
+	d.address.NodeSubdomain = intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.Domain, "node"))
 	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
 	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
 	d.address.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
@@ -117,7 +118,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.address.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId().String())
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutex(dsync.Path(d.dsync, "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
+	mutex := d.dsync.NewMutex(pathutil.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
 	if err := mutex.Lock(d.servCtx); err != nil {
 		log.Panicf(d.servCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
@@ -196,12 +197,12 @@ func (d *_DistService) GetFutures() concurrent.IFutures {
 
 // MakeBroadcastAddr 创建服务广播地址
 func (d *_DistService) MakeBroadcastAddr(service string) string {
-	return intern.String(broker.Path(d.broker, d.address.BroadcastSubdomain, service))
+	return intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.BroadcastSubdomain, service))
 }
 
 // MakeBalanceAddr 创建服务负载均衡地址
 func (d *_DistService) MakeBalanceAddr(service string) string {
-	return intern.String(broker.Path(d.broker, d.address.BalanceSubdomain, service))
+	return intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.BalanceSubdomain, service))
 }
 
 // MakeNodeAddr 创建服务节点地址
@@ -209,7 +210,7 @@ func (d *_DistService) MakeNodeAddr(node string) (string, error) {
 	if node == "" {
 		return "", fmt.Errorf("%w: node is empty", core.ErrArgs)
 	}
-	return intern.String(broker.Path(d.broker, d.address.NodeSubdomain, node)), nil
+	return intern.String(pathutil.Path(d.broker.GetSeparator(), d.address.NodeSubdomain, node)), nil
 }
 
 // SendMsg 发送消息
