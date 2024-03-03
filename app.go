@@ -58,7 +58,7 @@ func (app *App) Setup(name string, serv any) *App {
 		serv: _serv,
 		num:  1,
 	}
-	_serv.init(app.startupConf, name, serv)
+	_serv.setup(app.startupConf, name, serv)
 
 	return app
 }

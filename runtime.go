@@ -5,6 +5,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/iface"
 	"git.golaxy.org/framework/plugins/dent"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
@@ -15,7 +16,7 @@ import (
 )
 
 type _IRuntime interface {
-	init(servCtx service.Context, composite any)
+	setup(servCtx service.Context, composite any)
 	generate(settings _RuntimeSettings) core.Runtime
 }
 
@@ -34,7 +35,7 @@ type RuntimeBehavior struct {
 	composite any
 }
 
-func (rb *RuntimeBehavior) init(servCtx service.Context, composite any) {
+func (rb *RuntimeBehavior) setup(servCtx service.Context, composite any) {
 	rb.servCtx = servCtx
 	rb.composite = composite
 }
@@ -42,7 +43,31 @@ func (rb *RuntimeBehavior) init(servCtx service.Context, composite any) {
 func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 	startupConf := rb.GetStartupConf()
 
+	face := iface.Face[runtime.Context]{}
+
+	if cb, ok := rb.composite.(SetupRuntimeContextComposite); ok {
+		face = iface.MakeFace(cb.MakeContextComposite())
+	}
+	ctxFrameLoopBeginCB, _ := face.Iface.(LifecycleRuntimeContextFrameLoopBegin)
+	ctxFrameUpdateBeginCB, _ := face.Iface.(LifecycleRuntimeContextFrameUpdateBegin)
+	ctxFrameUpdateEndCB, _ := face.Iface.(LifecycleRuntimeContextFrameUpdateEnd)
+	ctxFrameLoopEndCB, _ := face.Iface.(LifecycleRuntimeContextFrameLoopEnd)
+	ctxRunCallBeginCB, _ := face.Iface.(LifecycleRuntimeContextRunCallBegin)
+	ctxRunCallEndCB, _ := face.Iface.(LifecycleRuntimeContextRunCallEnd)
+	ctxRunGCBeginCB, _ := face.Iface.(LifecycleRuntimeContextRunGCBegin)
+	ctxRunGCEndCB, _ := face.Iface.(LifecycleRuntimeContextRunGCEnd)
+
+	frameLoopBeginCB, _ := rb.composite.(LifecycleRuntimeFrameLoopBegin)
+	frameUpdateBeginCB, _ := rb.composite.(LifecycleRuntimeFrameUpdateBegin)
+	frameUpdateEndCB, _ := rb.composite.(LifecycleRuntimeFrameUpdateEnd)
+	frameLoopEndCB, _ := rb.composite.(LifecycleRuntimeFrameLoopEnd)
+	runCallBeginCB, _ := rb.composite.(LifecycleRuntimeRunCallBegin)
+	runCallEndCB, _ := rb.composite.(LifecycleRuntimeRunCallEnd)
+	runGCBeginCB, _ := rb.composite.(LifecycleRuntimeRunGCBegin)
+	runGCEndCB, _ := rb.composite.(LifecycleRuntimeRunGCEnd)
+
 	rtCtx := runtime.NewContext(rb.GetServiceCtx(),
+		runtime.With.Context.CompositeFace(face),
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
 		runtime.With.Context.RunningHandler(generic.CastDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
@@ -51,53 +76,92 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rb.composite.(LifecycleRuntimeBirth); ok {
 					cb.Birth(ctx)
 				}
+				if cb, ok := ctx.(LifecycleRuntimeContextBirth); ok {
+					cb.Birth()
+				}
 			case runtime.RunningState_Starting:
 				if cb, ok := rb.composite.(LifecycleRuntimeStarting); ok {
 					cb.Starting(ctx)
+				}
+				if cb, ok := ctx.(LifecycleRuntimeContextStarting); ok {
+					cb.Starting()
 				}
 			case runtime.RunningState_Started:
 				if cb, ok := rb.composite.(LifecycleRuntimeStarted); ok {
 					cb.Started(ctx)
 				}
+				if cb, ok := ctx.(LifecycleRuntimeContextStarted); ok {
+					cb.Started()
+				}
 			case runtime.RunningState_FrameLoopBegin:
-				if cb, ok := rb.composite.(LifecycleRuntimeFrameLoopBegin); ok {
+				if cb := frameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(ctx)
 				}
-			case runtime.RunningState_FrameUpdateEnd:
-				if cb, ok := rb.composite.(LifecycleRuntimeFrameUpdateEnd); ok {
-					cb.FrameUpdateEnd(ctx)
+				if cb := ctxFrameLoopBeginCB; cb != nil {
+					cb.FrameLoopBegin()
 				}
 			case runtime.RunningState_FrameUpdateBegin:
-				if cb, ok := rb.composite.(LifecycleRuntimeFrameUpdateBegin); ok {
+				if cb := frameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(ctx)
 				}
+				if cb := ctxFrameUpdateBeginCB; cb != nil {
+					cb.FrameUpdateBegin()
+				}
+			case runtime.RunningState_FrameUpdateEnd:
+				if cb := frameUpdateEndCB; cb != nil {
+					cb.FrameUpdateEnd(ctx)
+				}
+				if cb := ctxFrameUpdateEndCB; cb != nil {
+					cb.FrameUpdateEnd()
+				}
 			case runtime.RunningState_FrameLoopEnd:
-				if cb, ok := rb.composite.(LifecycleRuntimeFrameLoopEnd); ok {
+				if cb := frameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(ctx)
 				}
+				if cb := ctxFrameLoopEndCB; cb != nil {
+					cb.FrameLoopEnd()
+				}
 			case runtime.RunningState_RunCallBegin:
-				if cb, ok := rb.composite.(LifecycleRuntimeRunCallBegin); ok {
+				if cb := runCallBeginCB; cb != nil {
 					cb.RunCallBegin(ctx)
 				}
+				if cb := ctxRunCallBeginCB; cb != nil {
+					cb.RunCallBegin()
+				}
 			case runtime.RunningState_RunCallEnd:
-				if cb, ok := rb.composite.(LifecycleRuntimeRunCallEnd); ok {
+				if cb := runCallEndCB; cb != nil {
 					cb.RunCallEnd(ctx)
 				}
+				if cb := ctxRunCallEndCB; cb != nil {
+					cb.RunCallEnd()
+				}
 			case runtime.RunningState_RunGCBegin:
-				if cb, ok := rb.composite.(LifecycleRuntimeRunGCBegin); ok {
+				if cb := runGCBeginCB; cb != nil {
 					cb.RunGCBegin(ctx)
 				}
+				if cb := ctxRunGCBeginCB; cb != nil {
+					cb.RunGCBegin()
+				}
 			case runtime.RunningState_RunGCEnd:
-				if cb, ok := rb.composite.(LifecycleRuntimeRunGCEnd); ok {
+				if cb := runGCEndCB; cb != nil {
 					cb.RunGCEnd(ctx)
+				}
+				if cb := ctxRunGCEndCB; cb != nil {
+					cb.RunGCEnd()
 				}
 			case runtime.RunningState_Terminating:
 				if cb, ok := rb.composite.(LifecycleRuntimeTerminating); ok {
 					cb.Terminating(ctx)
 				}
+				if cb, ok := ctx.(LifecycleRuntimeContextTerminating); ok {
+					cb.Terminating()
+				}
 			case runtime.RunningState_Terminated:
 				if cb, ok := rb.composite.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(ctx)
+				}
+				if cb, ok := ctx.(LifecycleRuntimeContextTerminated); ok {
+					cb.Terminated()
 				}
 			}
 		})),

@@ -7,6 +7,7 @@ import (
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/iface"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/broker/nats_broker"
 	"git.golaxy.org/framework/plugins/conf"
@@ -30,7 +31,7 @@ import (
 )
 
 type _IService interface {
-	init(startupConf *viper.Viper, name string, composite any)
+	setup(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context) core.Service
 }
 
@@ -41,7 +42,7 @@ type ServiceBehavior struct {
 	composite   any
 }
 
-func (sb *ServiceBehavior) init(startupConf *viper.Viper, name string, composite any) {
+func (sb *ServiceBehavior) setup(startupConf *viper.Viper, name string, composite any) {
 	sb.startupConf = startupConf
 	sb.name = name
 	sb.composite = composite
@@ -62,33 +63,54 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		reportError = make(chan error, 128)
 	}
 
+	face := iface.Face[service.Context]{}
+
+	if cb, ok := sb.composite.(SetupServiceContextComposite); ok {
+		face = iface.MakeFace(cb.MakeContextComposite())
+	}
+
 	servCtx := service.NewContext(
+		service.With.CompositeFace(face),
 		service.With.Context(ctx),
 		service.With.Name(sb.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
 		service.With.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
-			// 状态变化回调
 			switch state {
 			case service.RunningState_Birth:
 				if cb, ok := sb.composite.(LifecycleServiceBirth); ok {
 					cb.Birth(ctx)
 				}
+				if cb, ok := ctx.(LifecycleServiceContextBirth); ok {
+					cb.Birth()
+				}
 			case service.RunningState_Starting:
 				if cb, ok := sb.composite.(LifecycleServiceStarting); ok {
 					cb.Starting(ctx)
+				}
+				if cb, ok := ctx.(LifecycleServiceContextStarting); ok {
+					cb.Starting()
 				}
 			case service.RunningState_Started:
 				if cb, ok := sb.composite.(LifecycleServiceStarted); ok {
 					cb.Started(ctx)
 				}
+				if cb, ok := ctx.(LifecycleServiceContextStarted); ok {
+					cb.Started()
+				}
 			case service.RunningState_Terminating:
 				if cb, ok := sb.composite.(LifecycleServiceTerminating); ok {
 					cb.Terminating(ctx)
 				}
+				if cb, ok := ctx.(LifecycleServiceContextTerminating); ok {
+					cb.Terminating()
+				}
 			case service.RunningState_Terminated:
 				if cb, ok := sb.composite.(LifecycleServiceTerminated); ok {
 					cb.Terminated(ctx)
+				}
+				if cb, ok := ctx.(LifecycleServiceContextTerminated); ok {
+					cb.Terminated()
 				}
 
 				if v, ok := memKVs.Load("zap.logger"); ok {

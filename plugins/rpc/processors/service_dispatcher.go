@@ -211,12 +211,19 @@ func (d *ServiceDispatcher) callService(plugin, method string, args variant.Arra
 		}
 	}()
 
-	pi, ok := d.servCtx.GetPluginBundle().Get(plugin)
-	if !ok {
-		return nil, ErrPluginNotFound
+	var reflected reflect.Value
+
+	if plugin == "" {
+		reflected = service.UnsafeContext(d.servCtx).GetReflected()
+	} else {
+		pi, ok := d.servCtx.GetPluginBundle().Get(plugin)
+		if !ok {
+			return nil, ErrPluginNotFound
+		}
+		reflected = pi.Reflected
 	}
 
-	methodRV := pi.Reflected.MethodByName(method)
+	methodRV := reflected.MethodByName(method)
 	if !methodRV.IsValid() {
 		return nil, ErrMethodNotFound
 	}
@@ -241,12 +248,19 @@ func (d *ServiceDispatcher) callRuntime(entityId uid.Id, plugin, method string, 
 		method := a[1].(string)
 		args := a[2].(variant.Array)
 
-		pi, ok := runtime.Current(entity).GetPluginBundle().Get(plugin)
-		if !ok {
-			return runtime.MakeRet(nil, ErrPluginNotFound)
+		var reflected reflect.Value
+
+		if plugin == "" {
+			reflected = runtime.UnsafeContext(runtime.Current(entity)).GetReflected()
+		} else {
+			pi, ok := runtime.Current(entity).GetPluginBundle().Get(plugin)
+			if !ok {
+				return runtime.MakeRet(nil, ErrPluginNotFound)
+			}
+			reflected = pi.Reflected
 		}
 
-		methodRV := pi.Reflected.MethodByName(method)
+		methodRV := reflected.MethodByName(method)
 		if !methodRV.IsValid() {
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
