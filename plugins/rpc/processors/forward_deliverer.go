@@ -8,32 +8,29 @@ import (
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
-	"git.golaxy.org/framework/util/pathutil"
 	"github.com/elliotchance/pie/v2"
 )
 
 var (
 	ErrDistEntityNotFound       = errors.New("rpc: distributed entity node not found")
 	ErrForwardToServiceNotFound = errors.New("rpc: the forwarding to the service node is not found")
-	ErrIncorrectDestAddress     = errors.New("rpc: incorrect destination Address")
+	ErrIncorrectDestAddress     = errors.New("rpc: incorrect destination AddressDetails")
 )
 
 // ForwardDeliverer 转发RPC的投递器
 type ForwardDeliverer struct {
-	AcceptDomain             string // 需要转发的主域
-	AcceptNodeSubdomain      string // 需要转发的节点地址子域
-	AcceptMulticastSubdomain string // 需要转发的组播地址子域
-	AcceptPathSeparator      string // 需要转发的地址路径分隔符
-	ForwardTo                string // 转发目的服务
-	servCtx                  service.Context
-	dist                     dserv.IDistService
-	dentq                    dentq.IDistEntityQuerier
-	forwardBCAddr            string
+	AcceptFrom    netpath.AddressDetails // 接受转发的地址信息
+	ForwardTo     string                 // 转发目的服务
+	servCtx       service.Context
+	dist          dserv.IDistService
+	dentq         dentq.IDistEntityQuerier
+	forwardBCAddr string
 }
 
 // Init 初始化
@@ -54,12 +51,12 @@ func (d *ForwardDeliverer) Shut(ctx service.Context) {
 
 // Match 是否匹配
 func (d *ForwardDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	if !pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptDomain) {
+	if !d.AcceptFrom.InDomain(dst) {
 		return false
 	}
 
 	if !oneWay {
-		if !pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptNodeSubdomain) {
+		if !d.AcceptFrom.InNodeSubdomain(dst) {
 			return false
 		}
 	}
@@ -72,7 +69,7 @@ func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args [
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(d.dist.GetFutures(), nil, ret)
 
-	forwardAddr, err := d.getForwardAddr(uid.From(pathutil.Base(d.AcceptPathSeparator, dst)))
+	forwardAddr, err := d.getForwardAddr(uid.From(netpath.Base(d.AcceptFrom.PathSeparator, dst)))
 	if err != nil {
 		future.Cancel(err)
 		return ret.CastAsyncRet()
@@ -111,9 +108,9 @@ func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args [
 // Notify 通知
 func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
 	forwardAddr, err := func() (string, error) {
-		if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptNodeSubdomain) {
-			return d.getForwardAddr(uid.From(pathutil.Base(d.AcceptPathSeparator, dst)))
-		} else if pathutil.InDir(d.AcceptPathSeparator, dst, d.AcceptMulticastSubdomain) {
+		if netpath.InDir(d.AcceptFrom.PathSeparator, dst, d.AcceptFrom.NodeSubdomain) {
+			return d.getForwardAddr(uid.From(netpath.Base(d.AcceptFrom.PathSeparator, dst)))
+		} else if netpath.InDir(d.AcceptFrom.PathSeparator, dst, d.AcceptFrom.MulticastSubdomain) {
 			return d.forwardBCAddr, nil
 		} else {
 			return "", ErrIncorrectDestAddress

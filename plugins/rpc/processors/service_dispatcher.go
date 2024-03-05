@@ -18,7 +18,6 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/util/concurrent"
-	"git.golaxy.org/framework/util/pathutil"
 	"reflect"
 )
 
@@ -56,9 +55,9 @@ func (d *ServiceDispatcher) Shut(ctx service.Context) {
 }
 
 func (d *ServiceDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
-	addr := d.dist.GetAddress()
+	addr := d.dist.GetAddressDetails()
 
-	if !pathutil.InDir(d.broker.GetSeparator(), mp.Head.Src, addr.Domain) {
+	if !addr.InDomain(mp.Head.Src) {
 		return nil
 	}
 

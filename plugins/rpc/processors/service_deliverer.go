@@ -10,7 +10,6 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"git.golaxy.org/framework/util/pathutil"
 )
 
 // ServiceDeliverer 分布式服务间的RPC投递器
@@ -36,15 +35,14 @@ func (d *ServiceDeliverer) Shut(ctx service.Context) {
 
 // Match 是否匹配
 func (d *ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	addr := d.dist.GetAddress()
-	sep := d.broker.GetSeparator()
+	addr := d.dist.GetAddressDetails()
 
-	if pathutil.InDir(sep, dst, addr.Domain) {
+	if addr.InDomain(dst) {
 		return false
 	}
 
 	if !oneWay {
-		if !pathutil.InDir(sep, dst, addr.BalanceSubdomain) && !pathutil.InDir(sep, dst, addr.NodeSubdomain) {
+		if !addr.InBalanceSubdomain(dst) && !addr.InNodeSubdomain(dst) {
 			return false
 		}
 	}

@@ -2,6 +2,7 @@ package gate
 
 import (
 	"git.golaxy.org/core/define"
+	"git.golaxy.org/framework/net/netpath"
 )
 
 var (
@@ -12,9 +13,10 @@ var (
 	Uninstall = self.Uninstall
 )
 
-const (
-	ClientDomain             = "client"           // 客户端主域
-	ClientNodeSubdomain      = "client.node"      // 客户端节点地址子域
-	ClientMulticastSubdomain = "client.multicast" // 客户端组播地址子域
-	ClientPathSeparator      = "."                // 客户端地址路径分隔符
-)
+// ClientAddressDetails 客户端地址信息
+var ClientAddressDetails = netpath.AddressDetails{
+	Domain:             "client",
+	NodeSubdomain:      "client.node",
+	MulticastSubdomain: "client.multicast",
+	PathSeparator:      ".",
+}

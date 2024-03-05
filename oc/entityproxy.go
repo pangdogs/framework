@@ -259,7 +259,7 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 	}
 
 	// 全局广播地址
-	dst := dserv.Using(ep.Context).GetAddress().GlobalBroadcastAddr
+	dst := dserv.Using(ep.Context).GetAddressDetails().GlobalBroadcastAddr
 
 	// 调用路径
 	cp := callpath.CallPath{
