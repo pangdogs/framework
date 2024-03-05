@@ -44,7 +44,7 @@ type GateOptions struct {
 	AgreeClientCompressionProposal bool                       // 是否同意使用客户端建议的压缩方案
 	Compression                    gtp.Compression            // 通信中的压缩函数
 	CompressedSize                 int                        // 通信中启用压缩阀值（字节），<=0表示不开启
-	AuthClientHandler              AuthClientHandler          // 客户端鉴权鉴权处理器
+	AuthClientHandler              AuthClientHandler          // 客户端鉴权处理器
 	SessionInactiveTimeout         time.Duration              // 会话不活跃后的超时时间
 	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
 	SessionSendDataChanSize        int                        // 会话默认发送数据的channel的大小，<=0表示不使用channel
