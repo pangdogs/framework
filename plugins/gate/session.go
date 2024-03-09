@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
@@ -38,7 +39,7 @@ type ISession interface {
 	// GetContext 获取服务上下文
 	GetContext() service.Context
 	// GetId 获取会话Id
-	GetId() string
+	GetId() uid.Id
 	// GetToken 获取token
 	GetToken() string
 	// GetState 获取会话状态
@@ -76,7 +77,7 @@ type _Session struct {
 	closedChan      chan struct{}
 	options         _SessionOptions
 	gate            *_Gate
-	id              string
+	id              uid.Id
 	token           string
 	state           SessionState
 	transceiver     transport.Transceiver
@@ -99,7 +100,7 @@ func (s *_Session) GetContext() service.Context {
 }
 
 // GetId 获取会话Id
-func (s *_Session) GetId() string {
+func (s *_Session) GetId() uid.Id {
 	return s.id
 }
 

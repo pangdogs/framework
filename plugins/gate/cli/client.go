@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/concurrent"
@@ -25,7 +26,7 @@ type Client struct {
 	wg              sync.WaitGroup
 	mutex           sync.Mutex
 	options         ClientOptions
-	sessionId       string
+	sessionId       uid.Id
 	endpoint        string
 	transceiver     transport.Transceiver
 	eventDispatcher transport.EventDispatcher
@@ -45,7 +46,7 @@ func (c *Client) String() string {
 }
 
 // GetSessionId 获取会话Id
-func (c *Client) GetSessionId() string {
+func (c *Client) GetSessionId() uid.Id {
 	return c.sessionId
 }
 

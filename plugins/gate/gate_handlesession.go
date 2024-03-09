@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/plugins/log"
 	"net"
 	"sync/atomic"
@@ -38,7 +39,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 }
 
 // loadSession 查询会话
-func (g *_Gate) loadSession(sessionId string) (*_Session, bool) {
+func (g *_Gate) loadSession(sessionId uid.Id) (*_Session, bool) {
 	v, ok := g.sessionMap.Load(sessionId)
 	if !ok {
 		return nil, false
@@ -53,8 +54,8 @@ func (g *_Gate) storeSession(session *_Session) {
 }
 
 // deleteSession 删除会话
-func (g *_Gate) deleteSession(id string) {
-	g.sessionMap.Delete(id)
+func (g *_Gate) deleteSession(sessionId uid.Id) {
+	g.sessionMap.Delete(sessionId)
 	atomic.AddInt64(&g.sessionCount, -1)
 }
 

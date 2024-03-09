@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -12,7 +13,7 @@ import (
 )
 
 // init 初始化
-func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, remoteSendSeq, remoteRecvSeq uint32, sessionId string) {
+func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, remoteSendSeq, remoteRecvSeq uint32, sessionId uid.Id) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

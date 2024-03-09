@@ -6,6 +6,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
@@ -17,7 +18,7 @@ import (
 // IGate 网关
 type IGate interface {
 	// GetSession 查询会话
-	GetSession(sessionId string) (ISession, bool)
+	GetSession(sessionId uid.Id) (ISession, bool)
 	// RangeSessions 遍历所有会话
 	RangeSessions(fun func(session ISession) bool)
 	// CountSessions 统计所有会话数量
@@ -106,7 +107,7 @@ func (g *_Gate) ShutSP(ctx service.Context) {
 }
 
 // GetSession 查询会话
-func (g *_Gate) GetSession(sessionId string) (ISession, bool) {
+func (g *_Gate) GetSession(sessionId uid.Id) (ISession, bool) {
 	return g.loadSession(sessionId)
 }
 

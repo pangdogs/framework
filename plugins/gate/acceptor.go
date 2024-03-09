@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/segmentio/ksuid"
 	"net"
 )
 
@@ -36,7 +36,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 
 	session := &_Session{
 		gate:  acc.gate,
-		id:    ksuid.New().String(),
+		id:    uid.New(),
 		state: SessionState_Birth,
 	}
 

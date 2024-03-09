@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/method"
@@ -34,7 +35,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	}
 	defer handshake.Transceiver.Clean()
 
-	var sessionId string
+	var sessionId uid.Id
 	cs := ctor.options.EncCipherSuite
 	cm := ctor.options.Compression
 	var cliRandom, servRandom []byte
@@ -67,7 +68,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	cliHello := transport.Event[gtp.MsgHello]{
 		Msg: gtp.MsgHello{
 			Version:     gtp.Version_V1_0,
-			SessionId:   client.GetSessionId(),
+			SessionId:   client.GetSessionId().String(),
 			Random:      cliRandom,
 			CipherSuite: cs,
 			Compression: cm,
@@ -88,7 +89,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 			}
 
 			// 记录握手参数
-			sessionId = strings.Clone(servHello.Msg.SessionId)
+			sessionId = uid.From(strings.Clone(servHello.Msg.SessionId))
 			cs = servHello.Msg.CipherSuite
 			cm = servHello.Msg.Compression
 			continueFlow = servHello.Flags.Is(gtp.Flag_Continue)
@@ -212,7 +213,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 // secretKeyExchange 秘钥交换过程
 func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
-	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId string) error {
+	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId uid.Id) error {
 	// 选择秘钥交换函数，并与客户端交换秘钥
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
@@ -504,7 +505,7 @@ func (ctor *_Connector) makeCompressionModule(compression gtp.Compression) (code
 }
 
 // sign 签名
-func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, cliPubBytes []byte) ([]byte, error) {
+func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) ([]byte, error) {
 	if ctor.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
@@ -529,7 +530,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId)
+	signBuf.WriteString(sessionId.String())
 	signBuf.Write(cliPubBytes)
 
 	// 生成签名
@@ -542,7 +543,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 }
 
 // verify 验证签名
-func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId string, servPubBytes []byte) error {
+func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if ctor.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
@@ -563,7 +564,7 @@ func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signat
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId)
+	signBuf.WriteString(sessionId.String())
 	signBuf.Write(servPubBytes)
 
 	return signer.Verify(ctor.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
