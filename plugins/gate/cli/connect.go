@@ -15,8 +15,8 @@ func Connect(ctx context.Context, endpoint string, settings ...option.Setting[Cl
 	return connector.connect(ctx, endpoint)
 }
 
-// Reonnect 重连服务端
-func Reonnect(client *Client) error {
+// Reconnect 重连服务端
+func Reconnect(client *Client) error {
 	if client == nil {
 		return fmt.Errorf("%w: client is nil", core.ErrArgs)
 	}

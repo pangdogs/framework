@@ -13,7 +13,6 @@ import (
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -33,7 +32,6 @@ var (
 type ServiceDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService
-	broker  broker.IBroker
 	watcher dserv.IWatcher
 }
 
@@ -41,7 +39,6 @@ type ServiceDispatcher struct {
 func (d *ServiceDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
-	d.broker = broker.Using(ctx)
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))

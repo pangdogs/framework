@@ -1,8 +1,13 @@
 package concurrent
 
 import (
+	"git.golaxy.org/core/util/generic"
 	"github.com/elliotchance/pie/v2"
 )
+
+type ISliceEachElement[T any] interface {
+	Each(fun generic.Action1[T])
+}
 
 func MakeLockedSlice[T any](len, cap int) LockedSlice[T] {
 	return LockedSlice[T]{
@@ -43,4 +48,12 @@ func (ls *LockedSlice[T]) Len() (l int) {
 		l = len(*s)
 	})
 	return
+}
+
+func (ls *LockedSlice[T]) Each(fun generic.Action1[T]) {
+	ls.AutoRLock(func(s *[]T) {
+		for i := range *s {
+			fun.Exec((*s)[i])
+		}
+	})
 }

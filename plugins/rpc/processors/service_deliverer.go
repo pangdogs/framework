@@ -6,7 +6,6 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
@@ -16,14 +15,12 @@ import (
 type ServiceDeliverer struct {
 	servCtx service.Context
 	dist    dserv.IDistService
-	broker  broker.IBroker
 }
 
 // Init 初始化
 func (d *ServiceDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
-	d.broker = broker.Using(ctx)
 
 	log.Debugf(d.servCtx, "rpc deliverer %q started", types.AnyFullName(*d))
 }

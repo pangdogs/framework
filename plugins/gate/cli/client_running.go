@@ -245,7 +245,7 @@ func (c *Client) reconnect() {
 		default:
 		}
 
-		if err := Reonnect(c); err != nil {
+		if err := Reconnect(c); err != nil {
 			c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
 
 			// 服务端返回rst拒绝连接，刷新链路失败，这两种情况下不再重试，关闭客户端
