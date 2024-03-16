@@ -12,7 +12,7 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/log"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"math"
 	"path"
 	"time"
@@ -33,8 +33,8 @@ type _DistEntities struct {
 	distEntitiesEventTab
 	options DistEntitiesOptions
 	rtCtx   runtime.Context
-	client  *etcd_client.Client
-	leaseId etcd_client.LeaseID
+	client  *etcdv3.Client
+	leaseId etcdv3.LeaseID
 }
 
 // InitRP 初始化运行时插件
@@ -45,7 +45,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	d.rtCtx.ActivateEvent(&d.distEntitiesEventTab, event.EventRecursion_Allow)
 
 	if d.options.EtcdClient == nil {
-		cli, err := etcd_client.New(d.configure())
+		cli, err := etcdv3.New(d.configure())
 		if err != nil {
 			log.Panicf(d.rtCtx, "new etcd client failed, %s", err)
 		}
@@ -125,7 +125,7 @@ func (d *_DistEntities) register(entity ec.Entity) bool {
 
 	key := d.getEntityPath(entity)
 
-	_, err := d.client.Put(d.rtCtx, key, "", etcd_client.WithLease(d.leaseId))
+	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithLease(d.leaseId))
 	if err != nil {
 		log.Errorf(d.rtCtx, "put %q with lease %d failed, %s", key, d.leaseId, err)
 		return false
@@ -207,12 +207,12 @@ func (d *_DistEntities) grantLease() error {
 	return nil
 }
 
-func (d *_DistEntities) configure() etcd_client.Config {
+func (d *_DistEntities) configure() etcdv3.Config {
 	if d.options.EtcdConfig != nil {
 		return *d.options.EtcdConfig
 	}
 
-	config := etcd_client.Config{
+	config := etcdv3.Config{
 		Endpoints:   d.options.CustomAddresses,
 		Username:    d.options.CustomUsername,
 		Password:    d.options.CustomPassword,

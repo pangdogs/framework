@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/util/binaryutil"
 	"go.uber.org/zap"
 	"time"
 )
@@ -40,8 +41,9 @@ type ClientOptions struct {
 	AutoReconnectInterval       time.Duration                       // 自动重连的时间间隔
 	AutoReconnectRetryTimes     int                                 // 自动重连的重试次数，<=0表示无限重试
 	InactiveTimeout             time.Duration                       // 连接不活跃后的超时时间，开启自动重连后无效
-	SendDataChan                chan []byte                         // 发送数据的channel
-	RecvDataChan                chan []byte                         // 接收数据的channel
+	SendDataChan                chan binaryutil.RecycleBytes        // 发送数据的channel
+	RecvDataChan                chan binaryutil.RecycleBytes        // 接收数据的channel
+	RecvDataChanRecyclable      bool                                // 接收数据的channel中是否使用可回收字节对象
 	SendEventChan               chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
 	RecvEventChan               chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
 	RecvDataHandler             RecvDataHandler                     // 接收的数据的处理器
@@ -91,7 +93,7 @@ func (_Option) Default() option.Setting[ClientOptions] {
 		With.AutoReconnectRetryTimes(100)(options)
 		With.InactiveTimeout(time.Minute)(options)
 		With.SendDataChanSize(0)(options)
-		With.RecvDataChanSize(0)(options)
+		With.RecvDataChanSize(0, false)(options)
 		With.SendEventChanSize(0)(options)
 		With.RecvEventChanSize(0)(options)
 		With.RecvDataHandler(nil)(options)
@@ -236,20 +238,21 @@ func (_Option) InactiveTimeout(d time.Duration) option.Setting[ClientOptions] {
 func (_Option) SendDataChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
-			options.SendDataChan = make(chan []byte, size)
+			options.SendDataChan = make(chan binaryutil.RecycleBytes, size)
 		} else {
 			options.SendDataChan = nil
 		}
 	}
 }
 
-func (_Option) RecvDataChanSize(size int) option.Setting[ClientOptions] {
+func (_Option) RecvDataChanSize(size int, recyclable bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
-			options.RecvDataChan = make(chan []byte, size)
+			options.RecvDataChan = make(chan binaryutil.RecycleBytes, size)
 		} else {
 			options.RecvDataChan = nil
 		}
+		options.RecvDataChanRecyclable = recyclable
 	}
 }
 

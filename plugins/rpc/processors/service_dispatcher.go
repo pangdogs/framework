@@ -267,7 +267,6 @@ func (d *ServiceDispatcher) callRuntime(entityId uid.Id, plugin, method string, 
 		}
 
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
-
 	}, plugin, method, args), nil
 }
 
@@ -299,7 +298,6 @@ func (d *ServiceDispatcher) callEntity(entityId uid.Id, component, method string
 		}
 
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
-
 	}, component, method, args), nil
 }
 

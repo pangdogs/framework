@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
@@ -23,40 +24,38 @@ var (
 	ErrIncorrectDestAddress     = errors.New("rpc: incorrect destination AddressDetails")
 )
 
-// ForwardDeliverer 转发RPC的投递器
-type ForwardDeliverer struct {
-	AcceptFrom    netpath.AddressDetails // 接受转发的地址信息
-	ForwardTo     string                 // 转发目的服务
-	servCtx       service.Context
-	dist          dserv.IDistService
-	dentq         dentq.IDistEntityQuerier
-	forwardBCAddr string
+// ForwardOutDeliverer 出站方向RPC转发器，用于客户端之间的通信
+type ForwardOutDeliverer struct {
+	To              string // 出站方向通信中转服务名
+	servCtx         service.Context
+	dist            dserv.IDistService
+	dentq           dentq.IDistEntityQuerier
+	multicastBCAddr string
 }
 
 // Init 初始化
-func (d *ForwardDeliverer) Init(ctx service.Context) {
+func (d *ForwardOutDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.dentq = dentq.Using(ctx)
-
-	d.forwardBCAddr = d.dist.MakeBroadcastAddr(d.ForwardTo)
+	d.multicastBCAddr = d.dist.MakeBroadcastAddr(d.To)
 
 	log.Debugf(d.servCtx, "rpc deliverer %q started", types.AnyFullName(*d))
 }
 
 // Shut 结束
-func (d *ForwardDeliverer) Shut(ctx service.Context) {
+func (d *ForwardOutDeliverer) Shut(ctx service.Context) {
 	log.Debugf(d.servCtx, "rpc deliverer %q stopped", types.AnyFullName(*d))
 }
 
 // Match 是否匹配
-func (d *ForwardDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	if !d.AcceptFrom.InDomain(dst) {
+func (d *ForwardOutDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
+	if !gate.ClientAddressDetails.InDomain(dst) {
 		return false
 	}
 
 	if !oneWay {
-		if !d.AcceptFrom.InNodeSubdomain(dst) {
+		if !gate.ClientAddressDetails.InNodeSubdomain(dst) {
 			return false
 		}
 	}
@@ -65,11 +64,11 @@ func (d *ForwardDeliverer) Match(ctx service.Context, dst, path string, oneWay b
 }
 
 // Request 请求
-func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
+func (d *ForwardOutDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(d.dist.GetFutures(), nil, ret)
 
-	forwardAddr, err := d.getForwardAddr(uid.From(netpath.Base(d.AcceptFrom.PathSeparator, dst)))
+	forwardAddr, err := d.getForwardAddr(uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, dst)))
 	if err != nil {
 		future.Cancel(err)
 		return ret.CastAsyncRet()
@@ -91,8 +90,10 @@ func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args [
 	defer buf.Release()
 
 	msg := &gap.MsgForward{
-		Dst: dst,
-		Raw: buf.Data(),
+		Dst:     dst,
+		CorrId:  raw.CorrId,
+		RawId:   gap.MsgId_RPC_Request,
+		RawData: buf.Data(),
 	}
 
 	if err = d.dist.SendMsg(forwardAddr, msg); err != nil {
@@ -106,12 +107,14 @@ func (d *ForwardDeliverer) Request(ctx service.Context, dst, path string, args [
 }
 
 // Notify 通知
-func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
+func (d *ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
 	forwardAddr, err := func() (string, error) {
-		if netpath.InDir(d.AcceptFrom.PathSeparator, dst, d.AcceptFrom.NodeSubdomain) {
-			return d.getForwardAddr(uid.From(netpath.Base(d.AcceptFrom.PathSeparator, dst)))
-		} else if netpath.InDir(d.AcceptFrom.PathSeparator, dst, d.AcceptFrom.MulticastSubdomain) {
-			return d.forwardBCAddr, nil
+		if gate.ClientAddressDetails.InNodeSubdomain(dst) {
+			// 目标为单播地址，查询实体的通信中转服务地址
+			return d.getForwardAddr(uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, dst)))
+		} else if gate.ClientAddressDetails.InMulticastSubdomain(dst) {
+			// 目标为组播地址，广播所有的通信中转服务
+			return d.multicastBCAddr, nil
 		} else {
 			return "", ErrIncorrectDestAddress
 		}
@@ -134,8 +137,9 @@ func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []
 	defer buf.Release()
 
 	msg := &gap.MsgForward{
-		Dst: dst,
-		Raw: buf.Data(),
+		Dst:     dst,
+		RawId:   gap.MsgId_OneWayRPC,
+		RawData: buf.Data(),
 	}
 
 	if err = d.dist.SendMsg(forwardAddr, msg); err != nil {
@@ -147,14 +151,14 @@ func (d *ForwardDeliverer) Notify(ctx service.Context, dst, path string, args []
 	return nil
 }
 
-func (d *ForwardDeliverer) getForwardAddr(entId uid.Id) (string, error) {
+func (d *ForwardOutDeliverer) getForwardAddr(entId uid.Id) (string, error) {
 	dent, ok := d.dentq.GetDistEntity(entId)
 	if !ok {
 		return "", ErrDistEntityNotFound
 	}
 
 	idx := pie.FindFirstUsing(dent.Nodes, func(node dentq.Node) bool {
-		return node.Service == d.ForwardTo
+		return node.Service == d.To
 	})
 	if idx < 0 {
 		return "", ErrForwardToServiceNotFound

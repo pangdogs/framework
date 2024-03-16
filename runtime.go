@@ -10,7 +10,7 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"github.com/spf13/viper"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -194,7 +194,7 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 		fun()
 
 		v, _ = rb.GetMemKVs().Load("etcd.client")
-		cli, _ := v.(*etcd_client.Client)
+		cli, _ := v.(*etcdv3.Client)
 		if cli == nil {
 			panic("service memory etcd.client not existed")
 		}

@@ -1,10 +1,12 @@
 package broker
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/framework/util/binaryutil"
 )
 
 type (
@@ -12,13 +14,9 @@ type (
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
-func MakeWriteChan(broker IBroker, ctx context.Context, topic string, size int, errorHandler ...ErrorHandler) chan<- []byte {
+func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...ErrorHandler) chan<- binaryutil.RecycleBytes {
 	if broker == nil {
 		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
 	}
 
 	var _errorHandler ErrorHandler
@@ -26,20 +24,19 @@ func MakeWriteChan(broker IBroker, ctx context.Context, topic string, size int, 
 		_errorHandler = errorHandler[0]
 	}
 
-	ch := make(chan []byte, size)
+	ch := make(chan binaryutil.RecycleBytes, size)
 
 	go func() {
-		for {
-			select {
-			case data, ok := <-ch:
-				if !ok {
-					return
-				}
-				if err := broker.Publish(ctx, topic, data); err != nil {
-					_errorHandler.Invoke(nil, err)
-				}
-			case <-ctx.Done():
-				return
+		defer func() {
+			for bs := range ch {
+				bs.Release()
+			}
+		}()
+		for bs := range ch {
+			err := broker.Publish(context.Background(), topic, bs.Data())
+			bs.Release()
+			if err != nil {
+				_errorHandler.Invoke(nil, err)
 			}
 		}
 	}()
@@ -48,7 +45,7 @@ func MakeWriteChan(broker IBroker, ctx context.Context, topic string, size int, 
 }
 
 // MakeReadChan creates a new channel for receiving data from a specific pattern.
-func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int) (<-chan []byte, error) {
+func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int, recyclable ...bool) (<-chan binaryutil.RecycleBytes, error) {
 	if broker == nil {
 		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
 	}
@@ -57,15 +54,29 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 		ctx = context.Background()
 	}
 
-	ch := make(chan []byte, size)
+	var _recyclable bool
+	if len(recyclable) > 0 {
+		_recyclable = recyclable[0]
+	}
+
+	ch := make(chan binaryutil.RecycleBytes, size)
 
 	_, err := broker.Subscribe(ctx, pattern,
 		With.Queue(queue),
 		With.EventHandler(generic.CastDelegateFunc1(func(e IEvent) error {
+			bs := func() binaryutil.RecycleBytes {
+				if _recyclable {
+					return binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Clone(e.Message()))
+				} else {
+					return binaryutil.MakeNonRecycleBytes(bytes.Clone(e.Message()))
+				}
+			}()
+
 			select {
-			case ch <- e.Message():
+			case ch <- bs:
 				return nil
 			default:
+				bs.Release()
 				var nakErr error
 				if e.Queue() != "" {
 					nakErr = e.Nak(context.Background())

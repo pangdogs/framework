@@ -7,6 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"net"
 	"strings"
+	"time"
 )
 
 // RegistryOptions 所有选项
@@ -16,6 +17,7 @@ type RegistryOptions struct {
 	RedisURL       string
 	KeyPrefix      string
 	WatchChanSize  int
+	TTL            time.Duration
 	CustomUsername string
 	CustomPassword string
 	CustomAddress  string
@@ -34,6 +36,7 @@ func (_Option) Default() option.Setting[RegistryOptions] {
 		With.RedisURL("")(options)
 		With.KeyPrefix("golaxy:services:")(options)
 		With.WatchChanSize(128)(options)
+		With.TTL(10 * time.Second)(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddress("127.0.0.1:6379")(options)
 		With.CustomDB(0)(options)
@@ -78,6 +81,16 @@ func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs))
 		}
 		o.WatchChanSize = size
+	}
+}
+
+// TTL 默认TTL
+func (_Option) TTL(ttl time.Duration) option.Setting[RegistryOptions] {
+	return func(options *RegistryOptions) {
+		if ttl < 3*time.Second {
+			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
+		}
+		options.TTL = ttl
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"net"
 	"sync"
@@ -59,9 +60,9 @@ type ISession interface {
 	// WatchEvent 监听自定义事件
 	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher
 	// SendDataChan 发送数据的channel
-	SendDataChan() chan<- []byte
+	SendDataChan() chan<- binaryutil.RecycleBytes
 	// RecvDataChan 接收数据的channel
-	RecvDataChan() <-chan []byte
+	RecvDataChan() <-chan binaryutil.RecycleBytes
 	// SendEventChan 发送自定义事件的channel
 	SendEventChan() chan<- transport.Event[gtp.MsgReader]
 	// RecvEventChan 接收自定义事件的channel
@@ -159,7 +160,7 @@ func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandl
 }
 
 // SendDataChan 发送数据的channel
-func (s *_Session) SendDataChan() chan<- []byte {
+func (s *_Session) SendDataChan() chan<- binaryutil.RecycleBytes {
 	if s.options.SendDataChan == nil {
 		log.Panicf(s.gate.servCtx, "send data channel size less equal 0, can't be used")
 	}
@@ -167,7 +168,7 @@ func (s *_Session) SendDataChan() chan<- []byte {
 }
 
 // RecvDataChan 接收数据的channel
-func (s *_Session) RecvDataChan() <-chan []byte {
+func (s *_Session) RecvDataChan() <-chan binaryutil.RecycleBytes {
 	if s.options.RecvDataChan == nil {
 		log.Panicf(s.gate.servCtx, "receive data channel size less equal 0, can't be used")
 	}

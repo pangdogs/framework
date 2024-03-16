@@ -49,6 +49,7 @@ type GateOptions struct {
 	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
 	SessionSendDataChanSize        int                        // 会话默认发送数据的channel的大小，<=0表示不使用channel
 	SessionRecvDataChanSize        int                        // 会话默认接收数据的channel的大小，<=0表示不使用channel
+	SessionRecvDataChanRecyclable  bool                       // 会话默认接收数据的channel中是否使用可回收字节对象
 	SessionSendEventChanSize       int                        // 会话默认发送自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvEventChanSize       int                        // 会话默认接收自定义事件的channel的大小，<=0表示不使用channel
 	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级低于会话的处理器）
@@ -97,7 +98,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.SessionInactiveTimeout(time.Minute)(options)
 		With.SessionStateChangedHandler(nil)(options)
 		With.SessionSendDataChanSize(0)(options)
-		With.SessionRecvDataChanSize(0)(options)
+		With.SessionRecvDataChanSize(0, false)(options)
 		With.SessionSendEventChanSize(0)(options)
 		With.SessionRecvEventChanSize(0)(options)
 		With.SessionRecvDataHandler(nil)(options)
@@ -269,9 +270,10 @@ func (_GateOption) SessionSendDataChanSize(size int) option.Setting[GateOptions]
 	}
 }
 
-func (_GateOption) SessionRecvDataChanSize(size int) option.Setting[GateOptions] {
+func (_GateOption) SessionRecvDataChanSize(size int, recyclable bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.SessionRecvDataChanSize = size
+		options.SessionRecvDataChanRecyclable = recyclable
 	}
 }
 

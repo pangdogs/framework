@@ -4,7 +4,7 @@ import (
 	"context"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"strings"
 )
 
@@ -20,15 +20,15 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 		watchKey = getServicePath(r.options.KeyPrefix, pattern)
 	}
 
-	watchOpts := []etcd_client.OpOption{etcd_client.WithPrefix(), etcd_client.WithPrevKV()}
+	watchOpts := []etcdv3.OpOption{etcdv3.WithPrefix(), etcdv3.WithPrevKV()}
 	if len(revision) > 0 {
-		watchOpts = append(watchOpts, etcd_client.WithRev(revision[0]))
+		watchOpts = append(watchOpts, etcdv3.WithRev(revision[0]))
 	}
 
 	watcher := &_Watcher{
 		registry:    r,
 		ctx:         ctx,
-		cancel:      cancel,
+		terminate:   cancel,
 		stoppedChan: make(chan struct{}),
 		pattern:     pattern,
 		watchChan:   r.client.Watch(ctx, watchKey, watchOpts...),
@@ -43,10 +43,10 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 type _Watcher struct {
 	registry    *_Registry
 	ctx         context.Context
-	cancel      context.CancelFunc
+	terminate   context.CancelFunc
 	stoppedChan chan struct{}
 	pattern     string
-	watchChan   etcd_client.WatchChan
+	watchChan   etcdv3.WatchChan
 	eventChan   chan *discovery.Event
 }
 
@@ -65,13 +65,13 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 
 // Stop stop watching
 func (w *_Watcher) Stop() <-chan struct{} {
-	w.cancel()
+	w.terminate()
 	return w.stoppedChan
 }
 
 func (w *_Watcher) mainLoop() {
 	defer func() {
-		w.cancel()
+		w.terminate()
 		close(w.eventChan)
 		close(w.stoppedChan)
 	}()
@@ -93,7 +93,7 @@ func (w *_Watcher) mainLoop() {
 			var err error
 
 			switch etcdEvent.Type {
-			case etcd_client.EventTypePut:
+			case etcdv3.EventTypePut:
 				if etcdEvent.IsCreate() {
 					event.Type = discovery.Create
 				} else if etcdEvent.IsModify() {
@@ -107,7 +107,7 @@ func (w *_Watcher) mainLoop() {
 					continue
 				}
 
-			case etcd_client.EventTypeDelete:
+			case etcdv3.EventTypeDelete:
 				event.Type = discovery.Delete
 
 				// get service from prevKv

@@ -15,7 +15,8 @@ import (
 	"github.com/elliotchance/pie/v2"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
+	"maps"
 	"math"
 	"path"
 	"strings"
@@ -26,20 +27,23 @@ import (
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:   option.Make(With.Default(), settings...),
-		registers: concurrent.MakeLockedMap[string, _Register](0),
+		registers: concurrent.MakeLockedMap[string, *_Register](0),
 	}
 }
 
 type _Register struct {
-	Hash    uint64
-	LeaseId etcd_client.LeaseID
+	ctx       context.Context
+	terminate context.CancelFunc
+	hash      uint64
+	leaseId   etcdv3.LeaseID
+	revision  int64
 }
 
 type _Registry struct {
 	options   RegistryOptions
 	servCtx   service.Context
-	client    *etcd_client.Client
-	registers concurrent.LockedMap[string, _Register]
+	client    *etcdv3.Client
+	registers concurrent.LockedMap[string, *_Register]
 }
 
 // InitSP 初始化服务插件
@@ -49,7 +53,7 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	r.servCtx = ctx
 
 	if r.options.EtcdClient == nil {
-		cli, err := etcd_client.New(r.configure())
+		cli, err := etcdv3.New(r.configure())
 		if err != nil {
 			log.Panicf(r.servCtx, "new etcd client failed, %s", err)
 		}
@@ -143,6 +147,37 @@ func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) 
 	return nil
 }
 
+// RefreshTTL 刷新所有服务TTL
+func (r *_Registry) RefreshTTL(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var copied map[string]*_Register
+
+	r.registers.AutoRLock(func(registers *map[string]*_Register) {
+		copied = maps.Clone(*registers)
+	})
+
+	var errs []error
+
+	for nodePath, register := range copied {
+		if register.leaseId == etcdv3.NoLease {
+			continue
+		}
+		_, err := r.client.KeepAliveOnce(ctx, register.leaseId)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("keeplive %q failed, %w", nodePath, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
+	}
+
+	return nil
+}
+
 // GetServiceNode 查询服务节点
 func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
 	if ctx == nil {
@@ -153,7 +188,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId stri
 		return nil, discovery.ErrNotFound
 	}
 
-	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), etcd_client.WithSerializable())
+	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), etcdv3.WithSerializable())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
@@ -176,10 +211,9 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 	}
 
 	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName),
-		etcd_client.WithPrefix(),
-		etcd_client.WithSort(etcd_client.SortByModRevision, etcd_client.SortDescend),
-		etcd_client.WithSerializable(),
-	)
+		etcdv3.WithPrefix(),
+		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
+		etcdv3.WithSerializable())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
@@ -189,8 +223,9 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 	}
 
 	service := &discovery.Service{
-		Name:  serviceName,
-		Nodes: make([]discovery.Node, 0, len(rsp.Kvs)),
+		Name:     serviceName,
+		Nodes:    make([]discovery.Node, 0, len(rsp.Kvs)),
+		Revision: rsp.Header.Revision,
 	}
 
 	for _, kv := range rsp.Kvs {
@@ -203,10 +238,6 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 		if len(serviceNode.Nodes) <= 0 {
 			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", kv.Value)
 			continue
-		}
-
-		if service.Revision < kv.ModRevision {
-			service.Revision = kv.ModRevision
 		}
 
 		service.Nodes = append(service.Nodes, serviceNode.Nodes...)
@@ -222,9 +253,9 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	}
 
 	rsp, err := r.client.Get(ctx, r.options.KeyPrefix,
-		etcd_client.WithPrefix(),
-		etcd_client.WithSort(etcd_client.SortByModRevision, etcd_client.SortDescend),
-		etcd_client.WithSerializable())
+		etcdv3.WithPrefix(),
+		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
+		etcdv3.WithSerializable())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
 	}
@@ -274,12 +305,12 @@ func (r *_Registry) Watch(ctx context.Context, pattern string, revision ...int64
 	return r.newWatcher(ctx, pattern, revision...)
 }
 
-func (r *_Registry) configure() etcd_client.Config {
+func (r *_Registry) configure() etcdv3.Config {
 	if r.options.EtcdConfig != nil {
 		return *r.options.EtcdConfig
 	}
 
-	config := etcd_client.Config{
+	config := etcdv3.Config{
 		Endpoints:   r.options.CustomAddresses,
 		Username:    r.options.CustomUsername,
 		Password:    r.options.CustomPassword,
@@ -308,147 +339,116 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return errors.New("service node id can't empty")
 	}
 
-	if ttl < 0 {
-		ttl = 0
+	if ttl <= 0 {
+		ttl = r.options.TTL
 	}
 
-	// create hash of service; uint64
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
 		return err
 	}
 
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
+	var leaseId etcdv3.LeaseID
 
-	// check existing lease cache
 	register, ok := r.registers.Get(nodePath)
-	if !ok {
-		// look for the existing key
-		rsp, err := r.client.Get(ctx, nodePath, etcd_client.WithSerializable())
-		if err != nil {
+	if ok {
+		_, err = r.client.KeepAliveOnce(ctx, register.leaseId)
+		if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
 			return err
 		}
-
-		// get the existing lease
-		for _, kv := range rsp.Kvs {
-			kvLeaseID := etcd_client.LeaseID(kv.Lease)
-
-			if kvLeaseID != etcd_client.NoLease {
-				// decode the existing node
-				srv, err := decodeService(kv.Value)
-				if err != nil {
-					log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
-					continue
-				}
-
-				if len(srv.Nodes) <= 0 {
-					log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", kv.Value)
-					continue
-				}
-
-				// create hash of service; uint64
-				hv, err := hash.Hash(srv.Nodes[0], hash.FormatV2, nil)
-				if err != nil {
-					log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
-					continue
-				}
-
-				register = _Register{
-					Hash:    hv,
-					LeaseId: kvLeaseID,
-				}
-
-				// save the info
-				r.registers.Insert(nodePath, register)
-				break
+		if err == nil {
+			if register.hash == hv {
+				log.Debugf(r.servCtx, "service %q node %q unchanged, keep alive lease", serviceName, node.Id)
+				return nil
 			}
+			leaseId = register.leaseId
 		}
 	}
 
-	var leaseNotFound bool
-
-	// renew the lease if it exists
-	if register.LeaseId != etcd_client.NoLease {
-		log.Debugf(r.servCtx, "renewing existing lease %d for %q", register.LeaseId, serviceName)
-
-		_, err = r.client.KeepAliveOnce(ctx, register.LeaseId)
-		if err != nil {
-			if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
-				return err
-			}
-			log.Debugf(r.servCtx, "lease %d not found for %q", register.LeaseId, serviceName)
-			// lease not found do registers
-			leaseNotFound = true
-		}
-	}
-
-	// get existing hash for the service node, if the service is unchanged, skip registering
-	register, ok = r.registers.Get(nodePath)
-	if ok && register.Hash == hv && !leaseNotFound {
-		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", serviceName, node.Id)
-		return nil
-	}
-
-	serviceNode := &discovery.Service{
-		Name:  serviceName,
-		Nodes: []discovery.Node{*node},
-	}
-	serviceNodeData := encodeService(serviceNode)
-
-	// create an entry for the node
-	if ttl.Seconds() > 0 {
-		// get a lease used to expire keys since we have a ttl
+	if leaseId == etcdv3.NoLease {
 		lgr, err := r.client.Grant(ctx, int64(math.Ceil(ttl.Seconds())))
 		if err != nil {
 			return err
 		}
-
-		log.Debugf(r.servCtx, "registering service %q node %q content %q with lease %d", serviceNode.Name, node.Id, serviceNodeData, lgr.ID)
-
-		_, err = r.client.Put(ctx, nodePath, serviceNodeData, etcd_client.WithLease(lgr.ID))
-		if err != nil {
-			return err
-		}
-
-		// save register info
-		register.Hash = hv
-		register.LeaseId = lgr.ID
-
-	} else {
-		log.Debugf(r.servCtx, "registering service %q node %q content %q no lease", serviceNode.Name, node.Id, serviceNodeData)
-
-		_, err = r.client.Put(ctx, nodePath, serviceNodeData)
-		if err != nil {
-			return err
-		}
-
-		// save register info
-		register.Hash = hv
-		register.LeaseId = etcd_client.NoLease
+		leaseId = lgr.ID
 	}
 
-	// save our register of the service
-	r.registers.Insert(nodePath, register)
+	servNode := &discovery.Service{
+		Name:  serviceName,
+		Nodes: []discovery.Node{*node},
+	}
+	servNodeData := encodeService(servNode)
 
-	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
+	rsp, err := r.client.Put(ctx, nodePath, servNodeData, etcdv3.WithLease(leaseId))
+	if err != nil {
+		return err
+	}
 
+	var newer *_Register
+
+	r.registers.AutoLock(func(registers *map[string]*_Register) {
+		register, ok := (*registers)[nodePath]
+		if ok {
+			if register.revision > rsp.Header.Revision {
+				return
+			}
+		}
+
+		ctx, cancel := context.WithCancel(r.servCtx)
+
+		newer = &_Register{
+			ctx:       ctx,
+			terminate: cancel,
+			hash:      hv,
+			leaseId:   leaseId,
+			revision:  rsp.Header.Revision,
+		}
+		(*registers)[nodePath] = newer
+	})
+
+	if newer != nil && r.options.AutoRefreshTTL {
+		rspChan, err := r.client.KeepAlive(newer.ctx, leaseId)
+		if err != nil {
+			return err
+		}
+		go func() {
+			for range rspChan {
+				log.Debugf(r.servCtx, "refresh service %q node %q ttl success", servNode.Name, node.Id)
+			}
+		}()
+	}
+
+	log.Debugf(r.servCtx, "register service %q node %q success", servNode.Name, node.Id)
 	return nil
 }
 
 func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
-	log.Debugf(r.servCtx, "deregistering service %q node %q", serviceName, node.Id)
-
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
+	var old *_Register
 
-	// delete our register of the service
-	r.registers.Delete(nodePath)
+	r.registers.AutoLock(func(registers *map[string]*_Register) {
+		register, ok := (*registers)[nodePath]
+		if ok {
+			old = register
 
-	if _, err := r.client.Delete(ctx, nodePath); err != nil {
-		return err
+			(*registers)[nodePath] = &_Register{
+				hash:     0,
+				leaseId:  etcdv3.NoLease,
+				revision: register.revision,
+			}
+			register.terminate()
+		}
+	})
+
+	if old != nil && old.leaseId != etcdv3.NoLease {
+		_, err := r.client.Revoke(ctx, old.leaseId)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debugf(r.servCtx, "deregister service %q node %q success", serviceName, node.Id)
-
 	return nil
 }
 

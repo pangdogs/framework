@@ -18,7 +18,8 @@ type DistServiceOptions struct {
 	Version           string            // 服务版本号
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
 	Domain            string            // 服务地址域
-	TTL               time.Duration     // 服务信息过期时间
+	TTL               time.Duration     // 服务信息TTL
+	AutoRefreshTTL    bool              // 主动刷新服务信息TTL
 	FutureTimeout     time.Duration     // 异步模型Future超时时间
 	DecoderMsgCreator gap.IMsgCreator   // 消息包解码器的消息构建器
 	RecvMsgHandler    RecvMsgHandler    // 接收消息的处理器（优先级低于监控器）
@@ -34,7 +35,7 @@ func (_Option) Default() option.Setting[DistServiceOptions] {
 		With.Version("")(options)
 		With.Meta(nil)(options)
 		With.Domain("service")(options)
-		With.TTL(10 * time.Second)(options)
+		With.TTL(0, false)(options)
 		With.FutureTimeout(5 * time.Second)(options)
 		With.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
 		With.RecvMsgHandler(nil)(options)
@@ -62,12 +63,9 @@ func (_Option) Domain(domain string) option.Setting[DistServiceOptions] {
 	}
 }
 
-// TTL 服务信息过期时间
-func (_Option) TTL(ttl time.Duration) option.Setting[DistServiceOptions] {
+// TTL 服务信息TTL
+func (_Option) TTL(ttl time.Duration, auto bool) option.Setting[DistServiceOptions] {
 	return func(o *DistServiceOptions) {
-		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
-		}
 		o.TTL = ttl
 	}
 }

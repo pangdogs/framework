@@ -21,7 +21,7 @@ import (
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"git.golaxy.org/framework/plugins/rpc"
 	"github.com/spf13/viper"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
@@ -118,7 +118,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 				}
 
 				if v, ok := memKVs.Load("etcd.client"); ok {
-					v.(*etcd_client.Client).Close()
+					v.(*etcdv3.Client).Close()
 				}
 			}
 		})),
@@ -188,6 +188,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(discovery.Name); !ok {
 		etcd_discovery.Install(servCtx,
+			etcd_discovery.With.TTL(startupConf.GetDuration("service.ttl"), true),
 			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_discovery.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
@@ -218,7 +219,6 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		dserv.Install(servCtx,
 			dserv.With.Version(startupConf.GetString("service.version")),
 			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
-			dserv.With.TTL(startupConf.GetDuration("service.ttl")),
 			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
 		)
 	}
@@ -247,7 +247,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 
 	// etcd连接初始化函数
 	memKVs.Store("etcd.init_client", sync.OnceFunc(func() {
-		cli, err := etcd_client.New(etcd_client.Config{
+		cli, err := etcdv3.New(etcdv3.Config{
 			Endpoints: []string{startupConf.GetString("etcd.address")},
 			Username:  startupConf.GetString("etcd.username"),
 			Password:  startupConf.GetString("etcd.password"),

@@ -42,6 +42,8 @@ type IRegistry interface {
 	Register(ctx context.Context, service *Service, ttl time.Duration) error
 	// Deregister 取消注册服务
 	Deregister(ctx context.Context, service *Service) error
+	// RefreshTTL 刷新所有服务TTL
+	RefreshTTL(ctx context.Context) error
 	// GetServiceNode 查询服务节点
 	GetServiceNode(ctx context.Context, serviceName, nodeId string) (*Service, error)
 	// GetService 查询服务

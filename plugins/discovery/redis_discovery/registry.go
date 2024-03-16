@@ -15,6 +15,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
+	"maps"
 	"sort"
 	"strings"
 	"time"
@@ -24,15 +25,20 @@ import (
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options:   option.Make(With.Default(), settings...),
-		registers: concurrent.MakeLockedMap[string, uint64](0),
+		registers: concurrent.MakeLockedMap[string, *_Register](0),
 	}
+}
+
+type _Register struct {
+	hash uint64
+	ttl  time.Duration
 }
 
 type _Registry struct {
 	options   RegistryOptions
 	servCtx   service.Context
 	client    *redis.Client
-	registers concurrent.LockedMap[string, uint64]
+	registers concurrent.LockedMap[string, *_Register]
 }
 
 // InitSP 初始化服务插件
@@ -121,6 +127,34 @@ func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) 
 
 		if err := r.deregisterNode(ctx, service.Name, node); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", node.Id, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
+	}
+
+	return nil
+}
+
+// RefreshTTL 刷新所有服务TTL
+func (r *_Registry) RefreshTTL(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var copied map[string]*_Register
+
+	r.registers.AutoLock(func(registers *map[string]*_Register) {
+		copied = maps.Clone(*registers)
+	})
+
+	var errs []error
+
+	for nodePath, register := range copied {
+		_, err := r.client.Expire(ctx, nodePath, register.ttl).Result()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("keeplive %q failed, %w", nodePath, err))
 		}
 	}
 
@@ -315,8 +349,8 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return errors.New("service node id can't empty")
 	}
 
-	if ttl < 0 {
-		ttl = 0
+	if ttl <= 0 {
+		ttl = r.options.TTL
 	}
 
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
@@ -327,16 +361,13 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 	var keepAlive bool
 
-	if ttl.Seconds() > 0 {
-		keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
-		if err != nil {
-			return err
-		}
-		log.Debugf(r.servCtx, "renewing existing service %q node %q with ttl %q, result %t", serviceName, node.Id, ttl, keepAlive)
+	keepAlive, err = r.client.Expire(ctx, nodePath, ttl).Result()
+	if err != nil {
+		return err
 	}
 
-	rhv, ok := r.registers.Get(nodePath)
-	if ok && rhv == hv && keepAlive {
+	register, ok := r.registers.Get(nodePath)
+	if ok && register.hash == hv && keepAlive {
 		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", serviceName, node.Id)
 		return nil
 	}
@@ -348,23 +379,21 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 	}
 	serviceNodeData := encodeService(serviceNode)
 
-	log.Debugf(r.servCtx, "registering service %q node %q content %q with ttl %q", serviceNode.Name, node.Id, serviceNodeData, ttl)
-
 	_, err = r.client.Set(ctx, nodePath, serviceNodeData, ttl).Result()
 	if err != nil {
 		return err
 	}
 
-	r.registers.Insert(nodePath, hv)
+	r.registers.Insert(nodePath, &_Register{
+		hash: hv,
+		ttl:  ttl,
+	})
 
 	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
-
 	return nil
 }
 
 func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
-	log.Debugf(r.servCtx, "deregistering service %q node %q", serviceName, node.Id)
-
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 
 	r.registers.Delete(nodePath)
@@ -374,7 +403,6 @@ func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node
 	}
 
 	log.Debugf(r.servCtx, "deregister service %q node %q success", serviceName, node.Id)
-
 	return nil
 }
 

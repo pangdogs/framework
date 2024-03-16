@@ -46,7 +46,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	// 初始化会话默认选项
 	sessionWith.Default()(&session.options)
 	sessionWith.SendDataChanSize(acc.gate.options.SessionSendDataChanSize)(&session.options)
-	sessionWith.RecvDataChanSize(acc.gate.options.SessionRecvDataChanSize)(&session.options)
+	sessionWith.RecvDataChanSize(acc.gate.options.SessionRecvDataChanSize, acc.gate.options.SessionRecvDataChanRecyclable)(&session.options)
 	sessionWith.SendEventChanSize(acc.gate.options.SessionSendEventChanSize)(&session.options)
 	sessionWith.RecvEventChanSize(acc.gate.options.SessionRecvEventChanSize)(&session.options)
 

@@ -7,6 +7,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"net"
 	"time"
@@ -86,10 +87,17 @@ func (c *Client) mainLoop() {
 	// 启动发送数据的线程
 	if c.options.SendDataChan != nil {
 		go func() {
+			defer func() {
+				for bs := range c.options.SendDataChan {
+					bs.Release()
+				}
+			}()
 			for {
 				select {
-				case data := <-c.options.SendDataChan:
-					if err := c.SendData(data); err != nil {
+				case bs := <-c.options.SendDataChan:
+					err := c.SendData(bs.Data())
+					bs.Release()
+					if err != nil {
 						c.logger.Errorf("client %q fetch data from the send data channel for sending failed, %s", c.GetSessionId(), err)
 					}
 				case <-c.Done():
@@ -318,9 +326,18 @@ func (c *Client) handleEventProcess(event transport.Event[gtp.Msg]) error {
 func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error {
 	// 写入channel
 	if c.options.RecvDataChan != nil {
+		bs := func() binaryutil.RecycleBytes {
+			if c.options.RecvDataChanRecyclable {
+				return binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Clone(event.Msg.Data))
+			} else {
+				return binaryutil.MakeNonRecycleBytes(bytes.Clone(event.Msg.Data))
+			}
+		}()
+
 		select {
-		case c.options.RecvDataChan <- bytes.Clone(event.Msg.Data):
+		case c.options.RecvDataChan <- bs:
 		default:
+			bs.Release()
 			return errors.New("receive data channel is full")
 		}
 	}

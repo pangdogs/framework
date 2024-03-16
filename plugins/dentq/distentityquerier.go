@@ -12,7 +12,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 	"github.com/josharian/intern"
 	"github.com/muesli/cache2go"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"path"
 	"strings"
 	"sync"
@@ -53,7 +53,7 @@ type _DistEntityQuerier struct {
 	options  DistEntityQuerierOptions
 	servCtx  service.Context
 	distServ dserv.IDistService
-	client   *etcd_client.Client
+	client   *etcdv3.Client
 	wg       sync.WaitGroup
 	cache    *cache2go.CacheTable
 }
@@ -66,7 +66,7 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 	d.distServ = dserv.Using(d.servCtx)
 
 	if d.options.EtcdClient == nil {
-		cli, err := etcd_client.New(d.configure())
+		cli, err := etcdv3.New(d.configure())
 		if err != nil {
 			log.Panicf(ctx, "new etcd client failed, %s", err)
 		}
@@ -113,23 +113,21 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	}
 
 	rsp, err := d.client.Get(d.servCtx, path.Join(d.options.KeyPrefix, id.String()),
-		etcd_client.WithPrefix(),
-		etcd_client.WithSort(etcd_client.SortByModRevision, etcd_client.SortDescend),
-		etcd_client.WithSerializable())
+		etcdv3.WithPrefix(),
+		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
+		etcdv3.WithIgnoreValue(),
+		etcdv3.WithSerializable())
 	if err != nil {
 		return nil, false
 	}
 
 	entity := &DistEntity{
-		Id:    id,
-		Nodes: make([]Node, 0, len(rsp.Kvs)),
+		Id:       id,
+		Nodes:    make([]Node, 0, len(rsp.Kvs)),
+		Revision: rsp.Header.Revision,
 	}
 
 	for _, kv := range rsp.Kvs {
-		if entity.Revision <= kv.ModRevision {
-			entity.Revision = kv.ModRevision
-		}
-
 		subs := strings.Split(strings.TrimPrefix(string(kv.Key), d.options.KeyPrefix), "/")
 		if len(subs) != 3 {
 			continue
@@ -157,7 +155,7 @@ func (d *_DistEntityQuerier) mainLoop() {
 	log.Debug(d.servCtx, "watching distributed entities changes started")
 
 retry:
-	var watchChan etcd_client.WatchChan
+	var watchChan etcdv3.WatchChan
 	var uniqueList []string
 	retryInterval := 3 * time.Second
 
@@ -167,7 +165,7 @@ retry:
 	default:
 	}
 
-	watchChan = d.client.Watch(d.servCtx, d.options.KeyPrefix, etcd_client.WithPrefix())
+	watchChan = d.client.Watch(d.servCtx, d.options.KeyPrefix, etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
 
 	for watchRsp := range watchChan {
 		if watchRsp.Canceled {
@@ -192,7 +190,7 @@ retry:
 			id := subs[0]
 
 			switch event.Type {
-			case etcd_client.EventTypePut, etcd_client.EventTypeDelete:
+			case etcdv3.EventTypePut, etcdv3.EventTypeDelete:
 				if pie.Contains(uniqueList, id) {
 					continue
 				}
@@ -208,12 +206,12 @@ end:
 	log.Debug(d.servCtx, "watching distributed entities changes stopped")
 }
 
-func (d *_DistEntityQuerier) configure() etcd_client.Config {
+func (d *_DistEntityQuerier) configure() etcdv3.Config {
 	if d.options.EtcdConfig != nil {
 		return *d.options.EtcdConfig
 	}
 
-	config := etcd_client.Config{
+	config := etcdv3.Config{
 		Endpoints:   d.options.CustomAddresses,
 		Username:    d.options.CustomUsername,
 		Password:    d.options.CustomPassword,

@@ -15,24 +15,28 @@ func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.IS
 
 	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
 
-	ticker := time.NewTicker(d.options.TTL / 2)
-	defer ticker.Stop()
+	if d.options.AutoRefreshTTL {
+		ticker := time.NewTicker(d.options.TTL / 2)
+		defer ticker.Stop()
 
-loop:
-	for {
-		select {
-		case <-ticker.C:
-			// 刷新服务节点
-			if err := d.registry.Register(d.ctx, serviceNode, d.options.TTL); err != nil {
-				log.Errorf(d.servCtx, "refresh service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
-				continue
+	loop:
+		for {
+			select {
+			case <-ticker.C:
+				// 刷新服务节点
+				if err := d.registry.Register(d.ctx, serviceNode, d.options.TTL); err != nil {
+					log.Errorf(d.servCtx, "refresh service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
+					continue
+				}
+
+				log.Debugf(d.servCtx, "refresh service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
+
+			case <-d.ctx.Done():
+				break loop
 			}
-
-			log.Debugf(d.servCtx, "refresh service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
-
-		case <-d.ctx.Done():
-			break loop
 		}
+	} else {
+		<-d.ctx.Done()
 	}
 
 	// 取消注册服务节点

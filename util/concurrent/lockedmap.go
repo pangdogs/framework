@@ -55,3 +55,13 @@ func (lm *LockedMap[K, V]) Each(fun generic.Action2[K, V]) {
 		}
 	})
 }
+
+func (lm *LockedMap[K, V]) Range(fun generic.Func2[K, V, bool]) {
+	lm.AutoRLock(func(m *map[K]V) {
+		for k, v := range *m {
+			if !fun.Exec(k, v) {
+				return
+			}
+		}
+	})
+}

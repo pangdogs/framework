@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"go.uber.org/zap"
 	"net"
@@ -103,7 +104,7 @@ func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) Watch
 }
 
 // SendDataChan 发送数据的channel
-func (c *Client) SendDataChan() chan<- []byte {
+func (c *Client) SendDataChan() chan<- binaryutil.RecycleBytes {
 	if c.options.SendDataChan == nil {
 		c.logger.Panic("send data channel size less equal 0, can't be used")
 	}
@@ -111,7 +112,7 @@ func (c *Client) SendDataChan() chan<- []byte {
 }
 
 // RecvDataChan 接收数据的channel
-func (c *Client) RecvDataChan() <-chan []byte {
+func (c *Client) RecvDataChan() <-chan binaryutil.RecycleBytes {
 	if c.options.RecvDataChan == nil {
 		c.logger.Panic("receive data channel size less equal 0, can't be used")
 	}

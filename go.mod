@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	git.golaxy.org/core v0.2.45
+	git.golaxy.org/core v0.2.48
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fufuok/bytespool v1.3.2
@@ -17,7 +17,6 @@ require (
 	github.com/nats-io/nats.go v1.32.0
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/redis/go-redis/v9 v9.4.0
-	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	go.etcd.io/etcd/api/v3 v3.5.11
@@ -73,6 +72,7 @@ require (
 	github.com/sagikazarmark/crypt v0.17.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect

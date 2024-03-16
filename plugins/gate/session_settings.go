@@ -24,8 +24,8 @@ func (s SessionSettings) SendDataChanSize(size int) SessionSettings {
 }
 
 // RecvDataChanSize 接收数据的channel的大小，<=0表示不使用channel
-func (s SessionSettings) RecvDataChanSize(size int) SessionSettings {
-	s.settings = append(s.settings, sessionWith.RecvDataChanSize(size))
+func (s SessionSettings) RecvDataChanSize(size int, recyclable bool) SessionSettings {
+	s.settings = append(s.settings, sessionWith.RecvDataChanSize(size, recyclable))
 	return s
 }
 

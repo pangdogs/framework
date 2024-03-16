@@ -7,7 +7,7 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
-	etcd_client "go.etcd.io/etcd/client/v3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"time"
 )
 
@@ -20,7 +20,7 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 type _DistSync struct {
 	options DSyncOptions
 	servCtx service.Context
-	client  *etcd_client.Client
+	client  *etcdv3.Client
 }
 
 // InitSP 初始化服务插件
@@ -30,7 +30,7 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 	s.servCtx = ctx
 
 	if s.options.EtcdClient == nil {
-		cli, err := etcd_client.New(s.configure())
+		cli, err := etcdv3.New(s.configure())
 		if err != nil {
 			log.Panicf(ctx, "new etcd client failed, %s", err)
 		}
@@ -72,12 +72,12 @@ func (s *_DistSync) GetSeparator() string {
 	return "/"
 }
 
-func (s *_DistSync) configure() etcd_client.Config {
+func (s *_DistSync) configure() etcdv3.Config {
 	if s.options.EtcdConfig != nil {
 		return *s.options.EtcdConfig
 	}
 
-	config := etcd_client.Config{
+	config := etcdv3.Config{
 		Endpoints:   s.options.CustomAddresses,
 		Username:    s.options.CustomUsername,
 		Password:    s.options.CustomPassword,

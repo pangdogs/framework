@@ -95,7 +95,11 @@ func (fs *Futures) Resolve(id int64, ret Ret[any]) error {
 }
 
 func (fs *Futures) makeId() int64 {
-	return atomic.AddInt64(&fs.Id, 1)
+	id := atomic.AddInt64(&fs.Id, 1)
+	if id == 0 {
+		id = atomic.AddInt64(&fs.Id, 1)
+	}
+	return id
 }
 
 func (fs *Futures) ptr() *Futures {

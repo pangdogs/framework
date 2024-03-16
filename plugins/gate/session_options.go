@@ -4,16 +4,18 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/util/binaryutil"
 )
 
 type _SessionOptions struct {
-	StateChangedHandler SessionStateChangedHandler          // 会话状态变化的处理器
-	SendDataChan        chan []byte                         // 发送数据的channel
-	RecvDataChan        chan []byte                         // 接收数据的channel
-	SendEventChan       chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
-	RecvEventChan       chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
-	RecvDataHandler     SessionRecvDataHandler              // 接收数据的处理器（优先级低于监控器）
-	RecvEventHandler    SessionRecvEventHandler             // 接收自定义事件的处理器（优先级低于监控器）
+	StateChangedHandler    SessionStateChangedHandler          // 会话状态变化的处理器
+	SendDataChan           chan binaryutil.RecycleBytes        // 发送数据的channel
+	RecvDataChan           chan binaryutil.RecycleBytes        // 接收数据的channel
+	RecvDataChanRecyclable bool                                // 接收数据的channel中是否使用可回收字节对象
+	SendEventChan          chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
+	RecvEventChan          chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
+	RecvDataHandler        SessionRecvDataHandler              // 接收数据的处理器（优先级低于监控器）
+	RecvEventHandler       SessionRecvEventHandler             // 接收自定义事件的处理器（优先级低于监控器）
 }
 
 var sessionWith _SessionOption
@@ -24,7 +26,7 @@ func (_SessionOption) Default() option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		sessionWith.StateChangedHandler(nil)(options)
 		sessionWith.SendDataChanSize(0)(options)
-		sessionWith.RecvDataChanSize(0)(options)
+		sessionWith.RecvDataChanSize(0, false)(options)
 		sessionWith.SendEventChanSize(0)(options)
 		sessionWith.RecvEventChanSize(0)(options)
 		sessionWith.RecvDataHandler(nil)(options)
@@ -41,20 +43,21 @@ func (_SessionOption) StateChangedHandler(handler SessionStateChangedHandler) op
 func (_SessionOption) SendDataChanSize(size int) option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		if size > 0 {
-			options.SendDataChan = make(chan []byte, size)
+			options.SendDataChan = make(chan binaryutil.RecycleBytes, size)
 		} else {
 			options.SendDataChan = nil
 		}
 	}
 }
 
-func (_SessionOption) RecvDataChanSize(size int) option.Setting[_SessionOptions] {
+func (_SessionOption) RecvDataChanSize(size int, recyclable bool) option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		if size > 0 {
-			options.RecvDataChan = make(chan []byte, size)
+			options.RecvDataChan = make(chan binaryutil.RecycleBytes, size)
 		} else {
 			options.RecvDataChan = nil
 		}
+		options.RecvDataChanRecyclable = recyclable
 	}
 }
 
