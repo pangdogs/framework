@@ -2,7 +2,6 @@ package processors
 
 import (
 	"context"
-	"errors"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
@@ -19,19 +18,13 @@ import (
 	"git.golaxy.org/framework/plugins/router"
 )
 
-var (
-	ErrSessionNotFound = errors.New("rpc: entity routing session not found")
-	ErrGroupChanIsFull = errors.New("rpc: group send data channel is full")
-	ErrGroupNotFound   = errors.New("rpc: group not found")
-)
-
-// NewOutboundDispatcher 创建出站方向RPC分发器，用于客户端之间的通信
-func NewOutboundDispatcher() *_OutboundDispatcher {
-	return &_OutboundDispatcher{}
+// NewForwardInDeliverer 创建出站方向RPC分发器，用于客户端之间的通信
+func NewForwardInDeliverer() *_ForwardInDeliverer {
+	return &_ForwardInDeliverer{}
 }
 
-// _OutboundDispatcher 出站方向RPC分发器，用于客户端之间的通信
-type _OutboundDispatcher struct {
+// _ForwardInDeliverer 出站方向RPC分发器，用于客户端之间的通信
+type _ForwardInDeliverer struct {
 	servCtx service.Context
 	dist    dserv.IDistService
 	router  router.IRouter
@@ -40,7 +33,7 @@ type _OutboundDispatcher struct {
 }
 
 // Init 初始化
-func (d *_OutboundDispatcher) Init(ctx service.Context) {
+func (d *_ForwardInDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.router = router.Using(ctx)
@@ -51,13 +44,13 @@ func (d *_OutboundDispatcher) Init(ctx service.Context) {
 }
 
 // Shut 结束
-func (d *_OutboundDispatcher) Shut(ctx service.Context) {
+func (d *_ForwardInDeliverer) Shut(ctx service.Context) {
 	<-d.watcher.Stop()
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q stopped", types.AnyFullName(*d))
 }
 
-func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
+func (d *_ForwardInDeliverer) handleMsg(topic string, mp gap.MsgPacket) error {
 	addr := d.dist.GetAddressDetails()
 
 	if !addr.InDomain(mp.Head.Src) {
@@ -72,7 +65,7 @@ func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	return nil
 }
 
-func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
+func (d *_ForwardInDeliverer) acceptForward(src string, req *gap.MsgForward) {
 	if gate.ClientAddressDetails.InNodeSubdomain(req.Dst) {
 		// 目标为单播地址，解析实体Id
 		entId := uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, req.Dst))
@@ -140,7 +133,7 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 	}
 }
 
-func (d *_OutboundDispatcher) forwardingFinish(src string, req *gap.MsgForward, err error) {
+func (d *_ForwardInDeliverer) forwardingFinish(src string, req *gap.MsgForward, err error) {
 	if err == nil {
 		if req.CorrId != 0 {
 			log.Debugf(d.servCtx, "forwarding src:%q rpc request(%d) to remote:%q finish", src, req.CorrId, req.Dst)
@@ -157,7 +150,7 @@ func (d *_OutboundDispatcher) forwardingFinish(src string, req *gap.MsgForward, 
 	}
 }
 
-func (d *_OutboundDispatcher) reply(src string, corrId int64, retErr error) {
+func (d *_ForwardInDeliverer) reply(src string, corrId int64, retErr error) {
 	if corrId == 0 || retErr == nil {
 		return
 	}

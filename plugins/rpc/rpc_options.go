@@ -16,8 +16,8 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		With.Deliverers(&processors.ServiceDeliverer{})(options)
-		With.Dispatchers(&processors.ServiceDispatcher{})(options)
+		With.Deliverers(processors.NewServiceDeliverer())(options)
+		With.Dispatchers(processors.NewServiceDispatcher())(options)
 	}
 }
 
