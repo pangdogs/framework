@@ -12,16 +12,18 @@ import (
 )
 
 type RouterOptions struct {
-	EtcdClient          *clientv3.Client
-	EtcdConfig          *clientv3.Config
-	KeyPrefix           string
-	WatchChanSize       int
-	GroupTTL            time.Duration
-	GroupAutoRefreshTTL bool
-	CustomUsername      string
-	CustomPassword      string
-	CustomAddresses     []string
-	CustomTLSConfig     *tls.Config
+	EtcdClient             *clientv3.Client
+	EtcdConfig             *clientv3.Config
+	KeyPrefix              string
+	WatchChanSize          int
+	GroupTTL               time.Duration
+	GroupAutoRefreshTTL    bool
+	GroupSendDataChanSize  int
+	GroupSendEventChanSize int
+	CustomUsername         string
+	CustomPassword         string
+	CustomAddresses        []string
+	CustomTLSConfig        *tls.Config
 }
 
 var With _Option
@@ -36,6 +38,8 @@ func (_Option) Default() option.Setting[RouterOptions] {
 		With.KeyPrefix("/golaxy/groups/")(options)
 		With.WatchChanSize(128)(options)
 		With.GroupTTL(30*time.Second, true)(options)
+		With.GroupSendDataChanSize(128)(options)
+		With.GroupSendEventChanSize(0)(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
 		With.CustomTLSConfig(nil)(options)
@@ -84,6 +88,20 @@ func (_Option) GroupTTL(ttl time.Duration, auto bool) option.Setting[RouterOptio
 		}
 		options.GroupTTL = ttl
 		options.GroupAutoRefreshTTL = auto
+	}
+}
+
+// GroupSendDataChanSize 分组默认发送数据的channel的大小，<=0表示不使用channel
+func (_Option) GroupSendDataChanSize(size int) option.Setting[RouterOptions] {
+	return func(options *RouterOptions) {
+		options.GroupSendDataChanSize = size
+	}
+}
+
+// GroupSendEventChanSize 分组默认发送自定义事件的channel的大小，<=0表示不使用channel
+func (_Option) GroupSendEventChanSize(size int) option.Setting[RouterOptions] {
+	return func(options *RouterOptions) {
+		options.GroupSendEventChanSize = size
 	}
 }
 

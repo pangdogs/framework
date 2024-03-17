@@ -46,19 +46,27 @@ type IGroup interface {
 }
 
 func (r *_Router) newGroup(groupId uid.Id, groupKey string, leaseId etcdv3.LeaseID, revision int64, entIds []uid.Id) *_Group {
-	ctx, cancel := context.WithCancel(r.servCtx)
-
-	return &_Group{
-		Context:   ctx,
-		terminate: cancel,
-		router:    r,
-		deleted:   false,
-		id:        groupId,
-		groupKey:  groupKey,
-		leaseId:   leaseId,
-		revision:  revision,
-		entities:  entIds,
+	group := &_Group{
+		router:   r,
+		deleted:  false,
+		id:       groupId,
+		groupKey: groupKey,
+		leaseId:  leaseId,
+		revision: revision,
+		entities: entIds,
 	}
+
+	group.Context, group.terminate = context.WithCancel(r.servCtx)
+
+	if r.options.GroupSendDataChanSize > 0 {
+		group.sendDataChan = make(chan binaryutil.RecycleBytes, r.options.GroupSendDataChanSize)
+	}
+
+	if r.options.GroupSendEventChanSize > 0 {
+		group.sendEventChan = make(chan transport.Event[gtp.MsgReader], r.options.GroupSendEventChanSize)
+	}
+
+	return group
 }
 
 func (r *_Router) addGroup(group *_Group) (*_Group, error) {
@@ -87,17 +95,7 @@ func (r *_Router) addGroup(group *_Group) (*_Group, error) {
 		err = nil
 	})
 
-	if newer != nil && r.options.GroupAutoRefreshTTL {
-		rspChan, err := r.client.KeepAlive(newer.Context, newer.leaseId)
-		if err != nil {
-			log.Errorf(r.servCtx, "etcd keepalive %q failed, %s", newer.groupKey, err)
-		} else {
-			go func() {
-				for range rspChan {
-				}
-			}()
-		}
-	}
+	r.startGroup(newer)
 
 	return ret, err
 }
@@ -124,10 +122,20 @@ func (r *_Router) getOrAddGroup(group *_Group) (*_Group, error) {
 		err = nil
 	})
 
-	if newer != nil && r.options.GroupAutoRefreshTTL {
-		rspChan, err := r.client.KeepAlive(newer.Context, newer.leaseId)
+	r.startGroup(newer)
+
+	return ret, err
+}
+
+func (r *_Router) startGroup(group *_Group) {
+	if group == nil {
+		return
+	}
+
+	if r.options.GroupAutoRefreshTTL {
+		rspChan, err := r.client.KeepAlive(group.Context, group.leaseId)
 		if err != nil {
-			log.Errorf(r.servCtx, "etcd keepalive %q failed, %s", newer.groupKey, err)
+			log.Errorf(r.servCtx, "etcd keepalive %q failed, %s", group.groupKey, err)
 		} else {
 			go func() {
 				for range rspChan {
@@ -136,20 +144,58 @@ func (r *_Router) getOrAddGroup(group *_Group) (*_Group, error) {
 		}
 	}
 
-	return ret, err
+	if group.sendDataChan != nil {
+		go func() {
+			defer func() {
+				for bs := range group.sendDataChan {
+					bs.Release()
+				}
+			}()
+			for {
+				select {
+				case bs := <-group.sendDataChan:
+					err := group.SendData(bs.Data())
+					bs.Release()
+					if err != nil {
+						log.Errorf(r.servCtx, "group %q fetch data from the send data channel for sending failed, %s", group.GetId(), err)
+					}
+				case <-group.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	if group.sendEventChan != nil {
+		go func() {
+			for {
+				select {
+				case event := <-group.sendEventChan:
+					if err := group.SendEvent(event); err != nil {
+						log.Errorf(r.servCtx, "group %q fetch event from the send event channel for sending failed, %s", group.GetId(), err)
+					}
+				case <-group.Done():
+					return
+				}
+			}
+		}()
+	}
+
 }
 
 type _Group struct {
 	sync.RWMutex
 	context.Context
-	terminate context.CancelFunc
-	router    *_Router
-	deleted   bool
-	id        uid.Id
-	groupKey  string
-	leaseId   etcdv3.LeaseID
-	revision  int64
-	entities  []uid.Id
+	terminate     context.CancelFunc
+	router        *_Router
+	deleted       bool
+	id            uid.Id
+	groupKey      string
+	leaseId       etcdv3.LeaseID
+	revision      int64
+	entities      []uid.Id
+	sendDataChan  chan binaryutil.RecycleBytes
+	sendEventChan chan transport.Event[gtp.MsgReader]
 }
 
 // GetId 获取分组Id
@@ -317,7 +363,11 @@ func (g *_Group) SendData(data []byte) error {
 			if !ok {
 				return
 			}
-			session.SendData(data)
+
+			err := session.SendData(data)
+			if err != nil {
+				log.Errorf(g.router.servCtx, "send data(%d) to session %q remote %q failed, %s", len(data), session.GetId(), session.GetRemoteAddr(), err)
+			}
 		})
 	}
 
@@ -326,15 +376,44 @@ func (g *_Group) SendData(data []byte) error {
 
 // SendEvent 发送自定义事件
 func (g *_Group) SendEvent(event transport.Event[gtp.MsgReader]) error {
+	g.RLock()
+	defer g.RUnlock()
+
+	if g.deleted {
+		return ErrGroupDeleted
+	}
+
+	for i := range g.entities {
+		entId := g.entities[i]
+
+		g.router.servCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
+			session, ok := g.router.LookupSession(entity.GetId())
+			if !ok {
+				return
+			}
+
+			err := session.SendEvent(event)
+			if err != nil {
+				log.Errorf(g.router.servCtx, "send event(%d) to session %q remote %q failed, %s", event.Msg.MsgId(), session.GetId(), session.GetRemoteAddr(), err)
+			}
+		})
+	}
+
 	return nil
 }
 
 // SendDataChan 发送数据的channel
 func (g *_Group) SendDataChan() chan<- binaryutil.RecycleBytes {
-	return nil
+	if g.sendDataChan == nil {
+		log.Panicf(g.router.servCtx, "send data channel size less equal 0, can't be used")
+	}
+	return g.sendDataChan
 }
 
 // SendEventChan 发送自定义事件的channel
 func (g *_Group) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
-	return nil
+	if g.sendEventChan == nil {
+		log.Panicf(g.router.servCtx, "send event channel size less equal 0, can't be used")
+	}
+	return g.sendEventChan
 }
