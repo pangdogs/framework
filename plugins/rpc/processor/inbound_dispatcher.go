@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrEntityNotFound = errors.New("rpc: session routing to entity not found")
+	ErrCantForwarding = errors.New("rpc: message can't be forwarding")
 )
 
 // NewInboundDispatcher 创建入站方向RPC分发器，用于C->S的通信
@@ -81,6 +82,14 @@ func (d *_InboundDispatcher) handleRecvData(session gate.ISession, data []byte) 
 }
 
 func (d *_InboundDispatcher) acceptForward(session gate.ISession, src string, seq int64, req *gap.MsgForward) error {
+	switch req.RawId {
+	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OneWayRPC:
+		break
+	default:
+		go d.forwardingFinish(src, req.Dst, req.CorrId, ErrCantForwarding)
+		return ErrCantForwarding
+	}
+
 	_, ok := d.router.LookupEntity(session.GetId())
 	if !ok {
 		go d.forwardingFinish(src, req.Dst, req.CorrId, ErrEntityNotFound)
