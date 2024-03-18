@@ -282,11 +282,11 @@ func (c *Client) reconnect() {
 func (c *Client) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 	// 写入channel
 	if c.options.RecvEventChan != nil {
-		eventCopy := event
-		eventCopy.Msg = event.Msg.Clone()
+		copied := event
+		copied.Msg = event.Msg.Clone()
 
 		select {
-		case c.options.RecvEventChan <- eventCopy:
+		case c.options.RecvEventChan <- copied:
 		default:
 			return errors.New("receive event channel is full")
 		}

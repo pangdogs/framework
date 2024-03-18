@@ -244,6 +244,13 @@ func (s *_Session) setState(state SessionState) bool {
 	// 回调会话状态变化
 	s.options.StateChangedHandler.Invoke(interrupt, s, state, old)
 
+	// 回调监控器
+	s.gate.sessionWatchers.AutoRLock(func(watchers *[]*_SessionWatcher) {
+		for i := range *watchers {
+			(*watchers)[i].handler.Invoke(interrupt, s, state, old)
+		}
+	})
+
 	// 回调网关会话状态变化
 	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, state, old)
 
@@ -254,11 +261,11 @@ func (s *_Session) setState(state SessionState) bool {
 func (s *_Session) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 	// 写入channel
 	if s.options.RecvEventChan != nil {
-		eventCopy := event
-		eventCopy.Msg = eventCopy.Msg.Clone()
+		copied := event
+		copied.Msg = copied.Msg.Clone()
 
 		select {
-		case s.options.RecvEventChan <- eventCopy:
+		case s.options.RecvEventChan <- copied:
 		default:
 			return errors.New("receive event channel is full")
 		}

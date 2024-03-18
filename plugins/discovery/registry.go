@@ -50,6 +50,6 @@ type IRegistry interface {
 	GetService(ctx context.Context, serviceName string) (*Service, error)
 	// ListServices 查询所有服务
 	ListServices(ctx context.Context) ([]Service, error)
-	// Watch 获取服务监听器
+	// Watch 监听服务变化
 	Watch(ctx context.Context, pattern string, revision ...int64) (IWatcher, error)
 }

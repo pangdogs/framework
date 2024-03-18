@@ -313,7 +313,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	return rets, nil
 }
 
-// Watch 获取服务监听器
+// Watch 监听服务变化
 func (r *_Registry) Watch(ctx context.Context, pattern string, revision ...int64) (discovery.IWatcher, error) {
 	return r.newWatcher(ctx, pattern)
 }

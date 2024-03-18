@@ -12,6 +12,7 @@ import (
 	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"net"
+	"slices"
 	"sync"
 )
 
@@ -26,12 +27,6 @@ const (
 	SessionState_Inactive                      // 客户端不活跃，等待重连恢复中
 	SessionState_Death                         // 已过期
 )
-
-// IWatcher 监听器
-type IWatcher interface {
-	context.Context
-	Stop() <-chan struct{}
-}
 
 // ISession 会话
 type ISession interface {
@@ -133,7 +128,19 @@ func (s *_Session) GetRemoteAddr() net.Addr {
 
 // GetSettings 获取设置
 func (s *_Session) GetSettings() SessionSettings {
-	return SessionSettings{session: s}
+	s.Lock()
+	defer s.Unlock()
+	return SessionSettings{
+		session:                    s,
+		CurrStateChangedHandler:    slices.Clone(s.options.StateChangedHandler),
+		CurrSendDataChanSize:       len(s.options.SendEventChan),
+		CurrRecvDataChanSize:       len(s.options.RecvDataHandler),
+		CurrRecvDataChanRecyclable: s.options.RecvDataChanRecyclable,
+		CurrSendEventChanSize:      len(s.options.SendEventChan),
+		CurrRecvEventChanSize:      len(s.options.RecvEventChan),
+		CurrRecvDataHandler:        slices.Clone(s.options.RecvDataHandler),
+		CurrRecvEventHandler:       slices.Clone(s.options.RecvEventHandler),
+	}
 }
 
 // SendData 发送数据

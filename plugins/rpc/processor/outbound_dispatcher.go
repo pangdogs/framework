@@ -20,14 +20,16 @@ import (
 )
 
 var (
-	ErrSessionNotFound = errors.New("rpc: entity routing session not found")
+	ErrSessionNotFound = errors.New("rpc: entity routing to session not found")
 	ErrGroupChanIsFull = errors.New("rpc: group send data channel is full")
 	ErrGroupNotFound   = errors.New("rpc: group not found")
 )
 
 // NewOutboundDispatcher 创建出站方向RPC分发器，用于客户端之间的通信
 func NewOutboundDispatcher() IDispatcher {
-	return &_OutboundDispatcher{}
+	return &_OutboundDispatcher{
+		encoder: codec.MakeEncoder(),
+	}
 }
 
 // _OutboundDispatcher 出站方向RPC分发器，用于客户端之间的通信
@@ -44,7 +46,6 @@ func (d *_OutboundDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.router = router.Using(ctx)
-	d.encoder = codec.MakeEncoder()
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))

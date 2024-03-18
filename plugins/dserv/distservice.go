@@ -50,6 +50,8 @@ type IDistService interface {
 	MakeNodeAddr(node string) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
+	// ForwardMsg 转发消息
+	ForwardMsg(src, dst string, seq int64, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
 	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
 }
@@ -231,6 +233,21 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 	}
 
 	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, seq, msg)
+	if err != nil {
+		return err
+	}
+	defer mpBuf.Release()
+
+	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
+}
+
+// ForwardMsg 转发消息
+func (d *_DistService) ForwardMsg(src, dst string, seq int64, msg gap.Msg) error {
+	if msg == nil {
+		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
+	}
+
+	mpBuf, err := d.encoder.EncodeBytes(src, seq, msg)
 	if err != nil {
 		return err
 	}
