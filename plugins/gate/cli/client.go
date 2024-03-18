@@ -13,8 +13,8 @@ import (
 	"sync"
 )
 
-// Watcher 监听器
-type Watcher interface {
+// IWatcher 监听器
+type IWatcher interface {
 	context.Context
 	Terminate() <-chan struct{}
 }
@@ -86,7 +86,7 @@ func (c *Client) SendData(data []byte) error {
 }
 
 // WatchData 监听数据
-func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) Watcher {
+func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) IWatcher {
 	return c.newDataWatcher(ctx, handler)
 }
 
@@ -99,7 +99,7 @@ func (c *Client) SendEvent(event transport.Event[gtp.MsgReader]) error {
 }
 
 // WatchEvent 监听自定义事件
-func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) Watcher {
+func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher {
 	return c.newEventWatcher(ctx, handler)
 }
 
