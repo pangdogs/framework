@@ -40,7 +40,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 		state: SessionState_Birth,
 	}
 
-	session.Context, session.cancel = context.WithCancelCause(acc.gate.ctx)
+	session.Context, session.terminate = context.WithCancelCause(acc.gate.ctx)
 	session.transceiver.Conn = conn
 
 	// 初始化会话默认选项

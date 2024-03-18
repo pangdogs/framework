@@ -15,8 +15,8 @@ func newTask[T Resp](fs *Futures, resp T) _ITask {
 			Id:      fs.makeId(),
 			futures: fs,
 		},
-		resp: resp,
-		stop: cancel,
+		resp:      resp,
+		terminate: cancel,
 	}
 	fs.tasks.Store(task.future.Id, task)
 
@@ -30,9 +30,9 @@ type _ITask interface {
 }
 
 type _Task[T Resp] struct {
-	future Future
-	resp   T
-	stop   context.CancelFunc
+	future    Future
+	resp      T
+	terminate context.CancelFunc
 }
 
 func (t *_Task[T]) Future() Future {
@@ -56,7 +56,7 @@ func (t *_Task[T]) Run(ctx context.Context, timeout time.Duration) {
 }
 
 func (t *_Task[T]) Resolve(ret Ret[any]) (retErr error) {
-	t.stop()
+	t.terminate()
 
 	defer func() {
 		if err := types.Panic2Err(recover()); err != nil {

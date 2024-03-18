@@ -71,7 +71,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	watcher = &_Watcher{
 		registry:       r,
 		ctx:            ctx,
-		cancel:         cancel,
+		terminate:      cancel,
 		stoppedChan:    make(chan struct{}),
 		pattern:        keyPath,
 		pathPrefixList: watchPathPrefixList,
@@ -89,7 +89,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 type _Watcher struct {
 	registry       *_Registry
 	ctx            context.Context
-	cancel         context.CancelFunc
+	terminate      context.CancelFunc
 	stoppedChan    chan struct{}
 	pattern        string
 	pathPrefixList []string
@@ -114,13 +114,13 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 
 // Stop stop watching
 func (w *_Watcher) Stop() <-chan struct{} {
-	w.cancel()
+	w.terminate()
 	return w.stoppedChan
 }
 
 func (w *_Watcher) mainLoop() {
 	defer func() {
-		w.cancel()
+		w.terminate()
 		close(w.eventChan)
 		close(w.stoppedChan)
 	}()

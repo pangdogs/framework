@@ -74,7 +74,7 @@ type ISession interface {
 type _Session struct {
 	context.Context
 	sync.Mutex
-	cancel          context.CancelCauseFunc
+	terminate       context.CancelCauseFunc
 	closedChan      chan struct{}
 	options         _SessionOptions
 	gate            *_Gate
@@ -193,6 +193,6 @@ func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 
 // Close 关闭
 func (s *_Session) Close(err error) <-chan struct{} {
-	s.cancel(err)
+	s.terminate(err)
 	return s.closedChan
 }

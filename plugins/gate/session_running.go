@@ -69,7 +69,7 @@ func (s *_Session) continueIO() {
 // mainLoop 主线程
 func (s *_Session) mainLoop() {
 	defer func() {
-		s.cancel(nil)
+		s.terminate(nil)
 
 		// 调整会话状态为已过期
 		s.setState(SessionState_Death)
@@ -139,7 +139,7 @@ loop:
 		// 非活跃状态，检测超时时间
 		if s.state == SessionState_Inactive {
 			if time.Now().After(timeout) {
-				s.cancel(&transport.RstError{
+				s.terminate(&transport.RstError{
 					Code:    gtp.Code_SessionDeath,
 					Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
 				})

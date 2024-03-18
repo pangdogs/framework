@@ -62,7 +62,7 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 
 type _DistService struct {
 	ctx           context.Context
-	cancel        context.CancelFunc
+	terminate     context.CancelFunc
 	servCtx       service.Context
 	wg            sync.WaitGroup
 	options       DistServiceOptions
@@ -82,7 +82,7 @@ type _DistService struct {
 func (d *_DistService) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	d.ctx, d.cancel = context.WithCancel(context.Background())
+	d.ctx, d.terminate = context.WithCancel(context.Background())
 	d.servCtx = ctx
 
 	// 获取依赖的插件
@@ -183,7 +183,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 func (d *_DistService) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
-	d.cancel()
+	d.terminate()
 	d.wg.Wait()
 }
 
@@ -227,7 +227,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
 		d.sendMutex.Lock()
 		defer d.sendMutex.Unlock()
-		seq = d.deduplication.MakeSeq()
+		seq = d.deduplication.Make()
 	}
 
 	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, seq, msg)

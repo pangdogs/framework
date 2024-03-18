@@ -57,10 +57,10 @@ type IRouter interface {
 }
 
 type _Mapping struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	entity  ec.ConcurrentEntity
-	session gate.ISession
+	ctx       context.Context
+	terminate context.CancelFunc
+	entity    ec.ConcurrentEntity
+	session   gate.ISession
 }
 
 func (m *_Mapping) AutoTerminate(router *_Router) {
@@ -159,10 +159,10 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) error {
 		ctx, cancel := context.WithCancel(r.servCtx)
 
 		mapping := &_Mapping{
-			ctx:     ctx,
-			cancel:  cancel,
-			entity:  entity,
-			session: session,
+			ctx:       ctx,
+			terminate: cancel,
+			entity:    entity,
+			session:   session,
 		}
 
 		(*planning)[entityId] = mapping
@@ -187,7 +187,7 @@ func (r *_Router) CleanEntity(entityId uid.Id) {
 			delete(*planning, mapping.session.GetId())
 		}
 
-		mapping.cancel()
+		mapping.terminate()
 	})
 }
 
@@ -204,7 +204,7 @@ func (r *_Router) CleanSession(sessionId uid.Id) {
 			delete(*planning, mapping.entity.GetId())
 		}
 
-		mapping.cancel()
+		mapping.terminate()
 	})
 }
 

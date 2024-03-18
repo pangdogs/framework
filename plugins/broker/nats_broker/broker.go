@@ -19,19 +19,19 @@ func newBroker(settings ...option.Setting[BrokerOptions]) broker.IBroker {
 }
 
 type _Broker struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	servCtx service.Context
-	wg      sync.WaitGroup
-	options BrokerOptions
-	client  *nats.Conn
+	ctx       context.Context
+	terminate context.CancelFunc
+	servCtx   service.Context
+	wg        sync.WaitGroup
+	options   BrokerOptions
+	client    *nats.Conn
 }
 
 // InitSP 初始化服务插件
 func (b *_Broker) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	b.ctx, b.cancel = context.WithCancel(context.Background())
+	b.ctx, b.terminate = context.WithCancel(context.Background())
 	b.servCtx = ctx
 
 	if b.options.NatsClient == nil {
@@ -53,7 +53,7 @@ func (b *_Broker) InitSP(ctx service.Context) {
 func (b *_Broker) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
-	b.cancel()
+	b.terminate()
 	b.wg.Wait()
 
 	if b.options.NatsClient == nil {

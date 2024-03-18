@@ -7,10 +7,10 @@ import (
 
 // IDeduplication 去重器接口
 type IDeduplication interface {
-	// MakeSeq 创建序号
-	MakeSeq() int64
-	// ValidateSeq 验证序号
-	ValidateSeq(remote string, seq int64) bool
+	// Make 创建序号
+	Make() int64
+	// Validate 验证序号
+	Validate(remote string, seq int64) bool
 	// Remove 删除对端
 	Remove(remote string)
 }
@@ -31,13 +31,13 @@ type Deduplication struct {
 	remoteSeqMap LockedMap[string, *_RemoteSeq]
 }
 
-// MakeSeq 创建序号
-func (d *Deduplication) MakeSeq() int64 {
+// Make 创建序号
+func (d *Deduplication) Make() int64 {
 	return atomic.AddInt64(&d.localSeq, 1)
 }
 
-// ValidateSeq 验证序号
-func (d *Deduplication) ValidateSeq(remote string, seq int64) (passed bool) {
+// Validate 验证序号
+func (d *Deduplication) Validate(remote string, seq int64) (passed bool) {
 	remoteSeq, ok := d.remoteSeqMap.Get(remote)
 	if !ok {
 		var firstInsert bool

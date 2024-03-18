@@ -14,7 +14,7 @@ func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 
 	watcher := &_MsgWatcher{
 		Context:     ctx,
-		cancel:      cancel,
+		terminate:   cancel,
 		stoppedChan: make(chan struct{}),
 		distributed: d,
 		handler:     handler,
@@ -29,20 +29,20 @@ func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 
 type _MsgWatcher struct {
 	context.Context
-	cancel      context.CancelFunc
+	terminate   context.CancelFunc
 	stoppedChan chan struct{}
 	distributed *_DistService
 	handler     RecvMsgHandler
 }
 
 func (w *_MsgWatcher) Stop() <-chan struct{} {
-	w.cancel()
+	w.terminate()
 	return w.stoppedChan
 }
 
 func (w *_MsgWatcher) mainLoop() {
 	defer func() {
-		w.cancel()
+		w.terminate()
 		w.distributed.wg.Done()
 		close(w.stoppedChan)
 	}()

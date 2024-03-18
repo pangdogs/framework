@@ -14,7 +14,7 @@ func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_
 
 	watcher := &_DataWatcher{
 		Context:     ctx,
-		cancel:      cancel,
+		terminate:   cancel,
 		stoppedChan: make(chan struct{}),
 		client:      c,
 		handler:     handler,
@@ -29,20 +29,20 @@ func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_
 
 type _DataWatcher struct {
 	context.Context
-	cancel      context.CancelFunc
+	terminate   context.CancelFunc
 	stoppedChan chan struct{}
 	client      *Client
 	handler     RecvDataHandler
 }
 
 func (w *_DataWatcher) Stop() <-chan struct{} {
-	w.cancel()
+	w.terminate()
 	return w.stoppedChan
 }
 
 func (w *_DataWatcher) mainLoop() {
 	defer func() {
-		w.cancel()
+		w.terminate()
 		w.client.wg.Done()
 		close(w.stoppedChan)
 	}()

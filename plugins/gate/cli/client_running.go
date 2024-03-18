@@ -70,7 +70,7 @@ func (c *Client) continueIO() {
 // mainLoop 主线程
 func (c *Client) mainLoop() {
 	defer func() {
-		c.cancel()
+		c.terminate()
 
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
@@ -158,7 +158,7 @@ loop:
 		// 非活跃状态，未开启自动重连，检测超时时间
 		if !active && !c.options.AutoReconnect {
 			if time.Now().After(timeout) {
-				c.cancel()
+				c.terminate()
 			}
 		}
 
@@ -260,7 +260,7 @@ func (c *Client) reconnect() {
 			var rstErr *transport.RstError
 			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenewConn) {
 				c.logger.Errorf("client %q auto reconnect aborted, %s, close client", c.GetSessionId(), err)
-				c.cancel()
+				c.terminate()
 				return
 			}
 
@@ -275,7 +275,7 @@ func (c *Client) reconnect() {
 
 	// 多次重连失败，关闭连接
 	c.logger.Errorf("client %q auto reconnect unsuccessful, close client", c.GetSessionId())
-	c.cancel()
+	c.terminate()
 }
 
 // handleRecvEventChan 接收自定义事件并写入channel

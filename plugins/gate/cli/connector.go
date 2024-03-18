@@ -97,7 +97,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 		logger:   ctor.options.ZapLogger.Sugar(),
 	}
 
-	client.Context, client.cancel = context.WithCancel(ctx)
+	client.Context, client.terminate = context.WithCancel(ctx)
 	client.closedChan = make(chan struct{})
 	client.transceiver.Conn = conn
 
