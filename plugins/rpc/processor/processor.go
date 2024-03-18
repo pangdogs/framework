@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrNoDeliverer = errors.New("rpc: no deliverer") // 没有匹配的投递器
+	ErrNoDeliverer = errors.New("rpc: no deliverer")         // 没有匹配的投递器
+	ErrTerminated  = errors.New("rpc: deliverer terminated") // 已停止投递
 )
 
 // IDeliverer RPC投递器接口，用于将RPC投递至目标

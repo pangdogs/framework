@@ -7,6 +7,7 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/processor"
 	"git.golaxy.org/framework/util/concurrent"
+	"sync/atomic"
 )
 
 // IRPC RPC支持
@@ -26,8 +27,9 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 type _RPC struct {
 	options     RPCOptions
 	servCtx     service.Context
-	deliverers  []concurrent.RWLocked[processor.IDeliverer]
-	dispatchers []concurrent.RWLocked[processor.IDispatcher]
+	stopped     atomic.Bool
+	deliverers  []processor.IDeliverer
+	dispatchers []processor.IDispatcher
 }
 
 // InitSP 初始化服务插件
@@ -37,29 +39,25 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	r.servCtx = ctx
 
 	for _, d := range r.options.Deliverers {
-		r.deliverers = append(r.deliverers, concurrent.MakeRWLocked(d))
+		r.deliverers = append(r.deliverers, d)
 	}
 
 	for _, d := range r.options.Dispatchers {
-		r.dispatchers = append(r.dispatchers, concurrent.MakeRWLocked(d))
+		r.dispatchers = append(r.dispatchers, d)
 	}
 
-	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *processor.IDeliverer) {
-			init, ok := (*d).(processor.LifecycleInit)
-			if ok {
-				init.Init(r.servCtx)
-			}
-		})
+	for _, d := range r.deliverers {
+		init, ok := d.(processor.LifecycleInit)
+		if ok {
+			init.Init(r.servCtx)
+		}
 	}
 
-	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *processor.IDispatcher) {
-			init, ok := (*d).(processor.LifecycleInit)
-			if ok {
-				init.Init(r.servCtx)
-			}
-		})
+	for _, d := range r.dispatchers {
+		init, ok := d.(processor.LifecycleInit)
+		if ok {
+			init.Init(r.servCtx)
+		}
 	}
 }
 
@@ -67,66 +65,60 @@ func (r *_RPC) InitSP(ctx service.Context) {
 func (r *_RPC) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
-	for i := range r.deliverers {
-		r.deliverers[i].AutoLock(func(d *processor.IDeliverer) {
-			shut, ok := (*d).(processor.LifecycleShut)
-			if ok {
-				shut.Shut(r.servCtx)
-			}
-		})
+	r.stopped.Store(true)
+
+	for _, d := range r.deliverers {
+		shut, ok := d.(processor.LifecycleShut)
+		if ok {
+			shut.Shut(r.servCtx)
+		}
 	}
 
-	for i := range r.dispatchers {
-		r.dispatchers[i].AutoLock(func(d *processor.IDispatcher) {
-			shut, ok := (*d).(processor.LifecycleShut)
-			if ok {
-				shut.Shut(r.servCtx)
-			}
-		})
+	for _, d := range r.dispatchers {
+		shut, ok := d.(processor.LifecycleShut)
+		if ok {
+			shut.Shut(r.servCtx)
+		}
 	}
 }
 
 // RPC RPC调用
 func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
+	if r.stopped.Load() {
+		ret := concurrent.MakeRespAsyncRet()
+		ret.Push(concurrent.MakeRet[any](nil, processor.ErrTerminated))
+		return ret.CastAsyncRet()
+	}
+
 	for i := range r.deliverers {
-		var ret runtime.AsyncRet
+		d := r.deliverers[i]
 
-		r.deliverers[i].AutoRLock(func(d *processor.IDeliverer) {
-			if !(*d).Match(r.servCtx, dst, path, false) {
-				return
-			}
-			ret = (*d).Request(r.servCtx, dst, path, args)
-		})
-
-		if ret != nil {
-			return ret
+		if !d.Match(r.servCtx, dst, path, false) {
+			continue
 		}
+
+		return d.Request(r.servCtx, dst, path, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
 	ret.Push(concurrent.MakeRet[any](nil, processor.ErrNoDeliverer))
-
 	return ret.CastAsyncRet()
 }
 
 // OneWayRPC 单向RPC调用
 func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
+	if r.stopped.Load() {
+		return processor.ErrTerminated
+	}
+
 	for i := range r.deliverers {
-		var b bool
-		var err error
+		d := r.deliverers[i]
 
-		r.deliverers[i].AutoRLock(func(d *processor.IDeliverer) {
-			if !(*d).Match(r.servCtx, dst, path, true) {
-				return
-			}
-
-			b = true
-			err = (*d).Notify(r.servCtx, dst, path, args)
-		})
-
-		if b {
-			return err
+		if !d.Match(r.servCtx, dst, path, true) {
+			continue
 		}
+
+		return d.Notify(r.servCtx, dst, path, args)
 	}
 
 	return processor.ErrNoDeliverer
