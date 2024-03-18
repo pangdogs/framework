@@ -5,8 +5,10 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"github.com/elliotchance/pie/v2"
@@ -267,6 +269,44 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 		EntityId:  ep.Id.String(),
 		Component: comp,
 		Method:    method,
+	}
+
+	return rpc.Using(ep.Context).OneWayRPC(dst, cp.String(), args...)
+}
+
+// CRPC 向客户端发送RPC
+func (ep EntityProxied) CRPC(method string, args ...any) runtime.AsyncRet {
+	if ep.Context == nil {
+		panic(errors.New("rpc: setting context is nil"))
+	}
+
+	// 客户端地址
+	dst := netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, ep.Id.String())
+
+	// 调用路径
+	cp := callpath.CallPath{
+		Category: callpath.Client,
+		EntityId: ep.Id.String(),
+		Method:   method,
+	}
+
+	return rpc.Using(ep.Context).RPC(dst, cp.String(), args...)
+}
+
+// OneWayCRPC 向客户端发送单向RPC
+func (ep EntityProxied) OneWayCRPC(method string, args ...any) error {
+	if ep.Context == nil {
+		panic(errors.New("rpc: setting context is nil"))
+	}
+
+	// 客户端地址
+	dst := netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, ep.Id.String())
+
+	// 调用路径
+	cp := callpath.CallPath{
+		Category: callpath.Client,
+		EntityId: ep.Id.String(),
+		Method:   method,
 	}
 
 	return rpc.Using(ep.Context).OneWayRPC(dst, cp.String(), args...)

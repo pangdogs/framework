@@ -43,3 +43,13 @@ func (c *ComponentBehavior) BroadcastOneWayRPC(service, comp, method string, arg
 func (c *ComponentBehavior) GlobalBroadcastOneWayRPC(comp, method string, args ...any) error {
 	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).GlobalBroadcastOneWayRPC(comp, method, args...)
 }
+
+// CRPC 向客户端发送RPC
+func (c *ComponentBehavior) CRPC(method string, args ...any) runtime.AsyncRet {
+	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).CRPC(method, args...)
+}
+
+// OneWayCRPC 向客户端发送单向RPC
+func (c *ComponentBehavior) OneWayCRPC(method string, args ...any) error {
+	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).OneWayCRPC(method, args...)
+}
