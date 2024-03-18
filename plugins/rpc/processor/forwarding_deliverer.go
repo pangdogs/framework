@@ -24,13 +24,13 @@ var (
 	ErrIncorrectDestAddress     = errors.New("rpc: incorrect destination AddressDetails")
 )
 
-// NewForwardOutDeliverer 创建出站方向RPC转发器，用于客户端之间的通信
-func NewForwardOutDeliverer(forwardService string) IDeliverer {
-	return &_ForwardOutDeliverer{forwardService: forwardService}
+// NewForwardingDeliverer RPC转发器，用于S->C的通信
+func NewForwardingDeliverer(forwardService string) IDeliverer {
+	return &_ForwardingDeliverer{forwardService: forwardService}
 }
 
-// _ForwardOutDeliverer 出站方向RPC转发器，用于客户端之间的通信
-type _ForwardOutDeliverer struct {
+// _ForwardingDeliverer RPC转发器，用于S->C的通信
+type _ForwardingDeliverer struct {
 	servCtx         service.Context
 	dist            dserv.IDistService
 	dentq           dentq.IDistEntityQuerier
@@ -39,7 +39,7 @@ type _ForwardOutDeliverer struct {
 }
 
 // Init 初始化
-func (d *_ForwardOutDeliverer) Init(ctx service.Context) {
+func (d *_ForwardingDeliverer) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.dentq = dentq.Using(ctx)
@@ -49,12 +49,12 @@ func (d *_ForwardOutDeliverer) Init(ctx service.Context) {
 }
 
 // Shut 结束
-func (d *_ForwardOutDeliverer) Shut(ctx service.Context) {
+func (d *_ForwardingDeliverer) Shut(ctx service.Context) {
 	log.Debugf(d.servCtx, "rpc deliverer %q stopped", types.AnyFullName(*d))
 }
 
 // Match 是否匹配
-func (d *_ForwardOutDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
+func (d *_ForwardingDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
 	if !gate.ClientAddressDetails.InDomain(dst) {
 		return false
 	}
@@ -69,7 +69,7 @@ func (d *_ForwardOutDeliverer) Match(ctx service.Context, dst, path string, oneW
 }
 
 // Request 请求
-func (d *_ForwardOutDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
+func (d *_ForwardingDeliverer) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(d.dist.GetFutures(), nil, ret)
 
@@ -112,7 +112,7 @@ func (d *_ForwardOutDeliverer) Request(ctx service.Context, dst, path string, ar
 }
 
 // Notify 通知
-func (d *_ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
+func (d *_ForwardingDeliverer) Notify(ctx service.Context, dst, path string, args []any) error {
 	forwardAddr, err := func() (string, error) {
 		if gate.ClientAddressDetails.InNodeSubdomain(dst) {
 			// 目标为单播地址，查询实体的通信中转服务地址
@@ -156,7 +156,7 @@ func (d *_ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, arg
 	return nil
 }
 
-func (d *_ForwardOutDeliverer) getForwardAddr(entId uid.Id) (string, error) {
+func (d *_ForwardingDeliverer) getForwardAddr(entId uid.Id) (string, error) {
 	dent, ok := d.dentq.GetDistEntity(entId)
 	if !ok {
 		return "", ErrDistEntityNotFound

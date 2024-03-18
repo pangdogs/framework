@@ -18,14 +18,14 @@ var (
 	ErrEntityNotFound = errors.New("rpc: session routing to entity not found")
 )
 
-// NewInboundDispatcher 创建入站方向RPC分发器，用于客户端之间的通信
+// NewInboundDispatcher 创建入站方向RPC分发器，用于C->S的通信
 func NewInboundDispatcher(mc gap.IMsgCreator) IDispatcher {
 	return &_InboundDispatcher{
 		decoder: codec.MakeDecoder(mc),
 	}
 }
 
-// _InboundDispatcher 入站方向RPC分发器，用于客户端之间的通信
+// _InboundDispatcher 入站方向RPC分发器，用于C->S的通信
 type _InboundDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService

@@ -25,14 +25,14 @@ var (
 	ErrGroupNotFound   = errors.New("rpc: group not found")
 )
 
-// NewOutboundDispatcher 创建出站方向RPC分发器，用于客户端之间的通信
+// NewOutboundDispatcher 创建出站方向RPC分发器，用于S->C的通信
 func NewOutboundDispatcher() IDispatcher {
 	return &_OutboundDispatcher{
 		encoder: codec.MakeEncoder(),
 	}
 }
 
-// _OutboundDispatcher 出站方向RPC分发器，用于客户端之间的通信
+// _OutboundDispatcher 出站方向RPC分发器，用于S->C的通信
 type _OutboundDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService
