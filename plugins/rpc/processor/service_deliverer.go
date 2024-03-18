@@ -39,7 +39,7 @@ func (d *_ServiceDeliverer) Shut(ctx service.Context) {
 func (d *_ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
 	addr := d.dist.GetAddressDetails()
 
-	if addr.InDomain(dst) {
+	if !addr.InDomain(dst) {
 		return false
 	}
 
