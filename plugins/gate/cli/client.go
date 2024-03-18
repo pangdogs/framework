@@ -23,7 +23,7 @@ type Watcher interface {
 type Client struct {
 	context.Context
 	terminate       context.CancelFunc
-	closedChan      chan struct{}
+	terminatedChan  chan struct{}
 	wg              sync.WaitGroup
 	mutex           sync.Mutex
 	options         ClientOptions
@@ -138,5 +138,5 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 // Close 关闭
 func (c *Client) Close() <-chan struct{} {
 	c.terminate()
-	return c.closedChan
+	return c.terminatedChan
 }

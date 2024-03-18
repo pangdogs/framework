@@ -79,7 +79,7 @@ func (c *Client) mainLoop() {
 
 		c.wg.Done()
 		c.wg.Wait()
-		close(c.closedChan)
+		close(c.terminatedChan)
 	}()
 
 	c.logger.Infof("client %q started, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())

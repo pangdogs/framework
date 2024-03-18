@@ -70,7 +70,7 @@ type _Session struct {
 	context.Context
 	sync.Mutex
 	terminate       context.CancelCauseFunc
-	closedChan      chan struct{}
+	terminatedChan  chan struct{}
 	options         _SessionOptions
 	gate            *_Gate
 	id              uid.Id
@@ -201,5 +201,5 @@ func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 // Close 关闭
 func (s *_Session) Close(err error) <-chan struct{} {
 	s.terminate(err)
-	return s.closedChan
+	return s.terminatedChan
 }

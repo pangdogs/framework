@@ -98,7 +98,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	}
 
 	client.Context, client.terminate = context.WithCancel(ctx)
-	client.closedChan = make(chan struct{})
+	client.terminatedChan = make(chan struct{})
 	client.transceiver.Conn = conn
 
 	// 初始化消息事件分发器
