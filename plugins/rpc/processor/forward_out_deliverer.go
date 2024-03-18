@@ -1,4 +1,4 @@
-package processors
+package processor
 
 import (
 	"errors"
@@ -25,7 +25,7 @@ var (
 )
 
 // NewForwardOutDeliverer 创建出站方向RPC转发器，用于客户端之间的通信
-func NewForwardOutDeliverer(forwardService string) *_ForwardOutDeliverer {
+func NewForwardOutDeliverer(forwardService string) IDeliverer {
 	return &_ForwardOutDeliverer{forwardService: forwardService}
 }
 

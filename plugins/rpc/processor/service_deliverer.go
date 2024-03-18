@@ -1,4 +1,4 @@
-package processors
+package processor
 
 import (
 	"git.golaxy.org/core/runtime"
@@ -12,7 +12,7 @@ import (
 )
 
 // NewServiceDeliverer 创建分布式服务间的RPC投递器
-func NewServiceDeliverer() *_ServiceDeliverer {
+func NewServiceDeliverer() IDeliverer {
 	return &_ServiceDeliverer{}
 }
 

@@ -1,4 +1,4 @@
-package processors
+package processor
 
 import (
 	"context"
@@ -29,7 +29,7 @@ var (
 )
 
 // NewServiceDispatcher 创建分布式服务间的RPC分发器
-func NewServiceDispatcher() *_ServiceDispatcher {
+func NewServiceDispatcher() IDispatcher {
 	return &_ServiceDispatcher{}
 }
 

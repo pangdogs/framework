@@ -1,4 +1,4 @@
-package rpc
+package processor
 
 import (
 	"errors"
@@ -10,8 +10,8 @@ var (
 	ErrNoDeliverer = errors.New("rpc: no deliverer") // 没有匹配的投递器
 )
 
-// IProcessorDeliverer RPC投递器接口，用于将RPC投递至目标
-type IProcessorDeliverer interface {
+// IDeliverer RPC投递器接口，用于将RPC投递至目标
+type IDeliverer interface {
 	// Match 是否匹配
 	Match(ctx service.Context, dst, path string, oneWay bool) bool
 	// Request 请求
@@ -20,5 +20,5 @@ type IProcessorDeliverer interface {
 	Notify(ctx service.Context, dst, path string, args []any) error
 }
 
-// IProcessorDispatcher RPC分发器接口，用于分发RPC请求与响应
-type IProcessorDispatcher any
+// IDispatcher RPC分发器接口，用于分发RPC请求与响应
+type IDispatcher any
