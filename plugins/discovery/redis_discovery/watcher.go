@@ -72,7 +72,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		registry:       r,
 		ctx:            ctx,
 		terminate:      cancel,
-		stoppedChan:    make(chan struct{}),
+		terminatedChan: make(chan struct{}),
 		pattern:        keyPath,
 		pathPrefixList: watchPathPrefixList,
 		pathList:       watchPathList,
@@ -90,7 +90,7 @@ type _Watcher struct {
 	registry       *_Registry
 	ctx            context.Context
 	terminate      context.CancelFunc
-	stoppedChan    chan struct{}
+	terminatedChan chan struct{}
 	pattern        string
 	pathPrefixList []string
 	pathList       []string
@@ -109,20 +109,20 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
-	return nil, discovery.ErrStoppedWatching
+	return nil, discovery.ErrTerminated
 }
 
-// Stop stop watching
-func (w *_Watcher) Stop() <-chan struct{} {
+// Terminate stop watching
+func (w *_Watcher) Terminate() <-chan struct{} {
 	w.terminate()
-	return w.stoppedChan
+	return w.terminatedChan
 }
 
 func (w *_Watcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		close(w.eventChan)
-		close(w.stoppedChan)
+		close(w.terminatedChan)
 	}()
 
 	log.Debugf(w.registry.servCtx, "start watch %q", w.pathList)

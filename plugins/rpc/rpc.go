@@ -27,7 +27,7 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 type _RPC struct {
 	options     RPCOptions
 	servCtx     service.Context
-	stopped     atomic.Bool
+	terminated  atomic.Bool
 	deliverers  []processor.IDeliverer
 	dispatchers []processor.IDispatcher
 }
@@ -65,7 +65,7 @@ func (r *_RPC) InitSP(ctx service.Context) {
 func (r *_RPC) ShutSP(ctx service.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
-	r.stopped.Store(true)
+	r.terminated.Store(true)
 
 	for _, d := range r.deliverers {
 		shut, ok := d.(processor.LifecycleShut)
@@ -84,7 +84,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 
 // RPC RPC调用
 func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
-	if r.stopped.Load() {
+	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
 		ret.Push(concurrent.MakeRet[any](nil, processor.ErrTerminated))
 		return ret.CastAsyncRet()
@@ -107,7 +107,7 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 
 // OneWayRPC 单向RPC调用
 func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
-	if r.stopped.Load() {
+	if r.terminated.Load() {
 		return processor.ErrTerminated
 	}
 

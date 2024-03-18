@@ -48,7 +48,7 @@ func (d *_InboundDispatcher) Init(ctx service.Context) {
 
 // Shut 结束
 func (d *_InboundDispatcher) Shut(ctx service.Context) {
-	<-d.watcher.Stop()
+	<-d.watcher.Terminate()
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q stopped", types.AnyFullName(*d))
 }

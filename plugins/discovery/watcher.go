@@ -12,8 +12,8 @@ type IWatcher interface {
 	Pattern() string
 	// Next is a blocking call
 	Next() (*Event, error)
-	// Stop stop watching
-	Stop() <-chan struct{}
+	// Terminate stop watching
+	Terminate() <-chan struct{}
 }
 
 // Event is returned by a call to Next on the watcher. Type can be create, update, delete

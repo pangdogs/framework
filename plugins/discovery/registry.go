@@ -13,8 +13,8 @@ var (
 	ErrRegistry = errors.New("registry")
 	// ErrNotFound Not found error when IRegistry.GetService or IRegistry.GetServiceNode is called
 	ErrNotFound = fmt.Errorf("%w: service not found", ErrRegistry)
-	// ErrStoppedWatching Stopped watching error when watcher is stopped
-	ErrStoppedWatching = fmt.Errorf("%w: stopped watching", ErrRegistry)
+	// ErrTerminated Stopped watching error when watcher is stopped
+	ErrTerminated = fmt.Errorf("%w: watching terminated", ErrRegistry)
 )
 
 // Service 服务配置

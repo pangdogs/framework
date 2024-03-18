@@ -26,13 +26,13 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 	}
 
 	watcher := &_Watcher{
-		registry:    r,
-		ctx:         ctx,
-		terminate:   cancel,
-		stoppedChan: make(chan struct{}),
-		pattern:     pattern,
-		watchChan:   r.client.Watch(ctx, watchKey, watchOpts...),
-		eventChan:   make(chan *discovery.Event, r.options.WatchChanSize),
+		registry:      r,
+		ctx:           ctx,
+		terminate:     cancel,
+		terminateChan: make(chan struct{}),
+		pattern:       pattern,
+		watchChan:     r.client.Watch(ctx, watchKey, watchOpts...),
+		eventChan:     make(chan *discovery.Event, r.options.WatchChanSize),
 	}
 
 	go watcher.mainLoop()
@@ -41,13 +41,13 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 }
 
 type _Watcher struct {
-	registry    *_Registry
-	ctx         context.Context
-	terminate   context.CancelFunc
-	stoppedChan chan struct{}
-	pattern     string
-	watchChan   etcdv3.WatchChan
-	eventChan   chan *discovery.Event
+	registry      *_Registry
+	ctx           context.Context
+	terminate     context.CancelFunc
+	terminateChan chan struct{}
+	pattern       string
+	watchChan     etcdv3.WatchChan
+	eventChan     chan *discovery.Event
 }
 
 // Pattern watching pattern
@@ -60,20 +60,20 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 	for event := range w.eventChan {
 		return event, nil
 	}
-	return nil, discovery.ErrStoppedWatching
+	return nil, discovery.ErrTerminated
 }
 
-// Stop stop watching
-func (w *_Watcher) Stop() <-chan struct{} {
+// Terminate stop watching
+func (w *_Watcher) Terminate() <-chan struct{} {
 	w.terminate()
-	return w.stoppedChan
+	return w.terminateChan
 }
 
 func (w *_Watcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		close(w.eventChan)
-		close(w.stoppedChan)
+		close(w.terminateChan)
 	}()
 
 	log.Debugf(w.registry.servCtx, "start watch %q", w.pattern)

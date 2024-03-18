@@ -81,13 +81,13 @@ retry:
 	for {
 		e, err := watcher.Next()
 		if err != nil {
-			if errors.Is(err, discovery.ErrStoppedWatching) {
+			if errors.Is(err, discovery.ErrTerminated) {
 				time.Sleep(retryInterval)
 				goto retry
 			}
 
 			log.Errorf(d.servCtx, "watching service changes failed, %s, retry it", err)
-			<-watcher.Stop()
+			<-watcher.Terminate()
 			time.Sleep(retryInterval)
 			goto retry
 		}
@@ -102,7 +102,7 @@ retry:
 
 end:
 	if watcher != nil {
-		<-watcher.Stop()
+		<-watcher.Terminate()
 	}
 
 	log.Debug(d.servCtx, "watching service changes stopped")

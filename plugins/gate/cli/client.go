@@ -16,7 +16,7 @@ import (
 // Watcher 监听器
 type Watcher interface {
 	context.Context
-	Stop() <-chan struct{}
+	Terminate() <-chan struct{}
 }
 
 // Client 客户端

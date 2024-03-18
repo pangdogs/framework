@@ -27,9 +27,9 @@ type _ServInfo struct {
 
 // App 应用
 type App struct {
-	servInfos                     map[string]*_ServInfo
-	startupConf                   *viper.Viper
-	initCB, startingCB, stoppedCB generic.DelegateAction1[*App]
+	servInfos                        map[string]*_ServInfo
+	startupConf                      *viper.Viper
+	initCB, startingCB, terminatedCB generic.DelegateAction1[*App]
 }
 
 func (app *App) lazyInit() {
@@ -75,9 +75,9 @@ func (app *App) StartingCB(cb generic.DelegateAction1[*App]) *App {
 	return app
 }
 
-// StoppedCB 停止回调
-func (app *App) StoppedCB(cb generic.DelegateAction1[*App]) *App {
-	app.stoppedCB = cb
+// TerminateCB 终止回调
+func (app *App) TerminateCB(cb generic.DelegateAction1[*App]) *App {
+	app.terminatedCB = cb
 	return app
 }
 
@@ -185,7 +185,7 @@ func (app *App) Run() {
 	wg.Wait()
 
 	// 结束回调
-	app.stoppedCB.Exec(nil, app)
+	app.terminatedCB.Exec(nil, app)
 }
 
 // GetStartupConf 获取启动参数配置

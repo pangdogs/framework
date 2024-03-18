@@ -13,11 +13,11 @@ func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) 
 	ctx, cancel := context.WithCancel(ctx)
 
 	watcher := &_EventWatcher{
-		Context:     ctx,
-		terminate:   cancel,
-		stoppedChan: make(chan struct{}),
-		client:      c,
-		handler:     handler,
+		Context:        ctx,
+		terminate:      cancel,
+		terminatedChan: make(chan struct{}),
+		client:         c,
+		handler:        handler,
 	}
 	c.eventWatchers.Append(watcher)
 
@@ -29,22 +29,22 @@ func (c *Client) newEventWatcher(ctx context.Context, handler RecvEventHandler) 
 
 type _EventWatcher struct {
 	context.Context
-	terminate   context.CancelFunc
-	stoppedChan chan struct{}
-	client      *Client
-	handler     RecvEventHandler
+	terminate      context.CancelFunc
+	terminatedChan chan struct{}
+	client         *Client
+	handler        RecvEventHandler
 }
 
-func (w *_EventWatcher) Stop() <-chan struct{} {
+func (w *_EventWatcher) Terminate() <-chan struct{} {
 	w.terminate()
-	return w.stoppedChan
+	return w.terminatedChan
 }
 
 func (w *_EventWatcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		w.client.wg.Done()
-		close(w.stoppedChan)
+		close(w.terminatedChan)
 	}()
 
 	select {

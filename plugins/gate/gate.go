@@ -19,7 +19,7 @@ import (
 // IWatcher 监听器
 type IWatcher interface {
 	context.Context
-	Stop() <-chan struct{}
+	Terminate() <-chan struct{}
 }
 
 // IGate 网关
