@@ -9,6 +9,7 @@ const (
 	Service = "S"
 	Runtime = "R"
 	Entity  = "E"
+	Client  = "C"
 )
 
 var (
@@ -58,6 +59,15 @@ func (cp CallPath) Encode() (string, error) {
 
 		return sb.String(), nil
 
+	case Client:
+		sb.WriteString(cp.Category)
+		sb.WriteByte(Sep)
+		sb.WriteString(cp.EntityId)
+		sb.WriteByte(Sep)
+		sb.WriteString(cp.Method)
+
+		return sb.String(), nil
+
 	default:
 		return "", errors.New("rpc: invalid action")
 	}
@@ -87,7 +97,7 @@ loop:
 			cp.Category = field
 
 			switch cp.Category {
-			case Service, Runtime, Entity:
+			case Service, Runtime, Entity, Client:
 			default:
 				return CallPath{}, errors.New("rpc: invalid action")
 			}
@@ -96,13 +106,13 @@ loop:
 			switch cp.Category {
 			case Service:
 				cp.Plugin = field
-			case Runtime, Entity:
+			case Runtime, Entity, Client:
 				cp.EntityId = field
 			}
 
 		case 2:
 			switch cp.Category {
-			case Service:
+			case Service, Client:
 				cp.Method = field
 			case Runtime:
 				cp.Plugin = field
