@@ -104,12 +104,12 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	// 初始化消息事件分发器
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
-	client.eventDispatcher.EventHandler = generic.CastDelegateFunc1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.handleRecvEventChan, client.handleEventProcess)
+	client.eventDispatcher.EventHandler = generic.CastDelegateFunc1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.handleRecvEventChan, client.handleEvent)
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.options.IORetryTimes
-	client.trans.PayloadHandler = generic.CastDelegateFunc1(client.handleRecvDataChan, client.handlePayloadProcess)
+	client.trans.PayloadHandler = generic.CastDelegateFunc1(client.handleRecvDataChan, client.handlePayload)
 
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver

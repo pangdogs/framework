@@ -294,8 +294,8 @@ func (c *Client) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 	return nil
 }
 
-// handleEventProcess 接收自定义事件并回调
-func (c *Client) handleEventProcess(event transport.Event[gtp.Msg]) error {
+// handleEvent 接收自定义事件并回调
+func (c *Client) handleEvent(event transport.Event[gtp.Msg]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -344,8 +344,8 @@ func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error
 	return nil
 }
 
-// handlePayloadProcess 接收Payload消息数据并回调
-func (c *Client) handlePayloadProcess(event transport.Event[gtp.MsgPayload]) error {
+// handlePayload 接收Payload消息数据并回调
+func (c *Client) handlePayload(event transport.Event[gtp.MsgPayload]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
