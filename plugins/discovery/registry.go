@@ -4,17 +4,14 @@ package discovery
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 )
 
 var (
-	// ErrRegistry registry errors.
-	ErrRegistry = errors.New("registry")
 	// ErrNotFound Not found error when IRegistry.GetService or IRegistry.GetServiceNode is called
-	ErrNotFound = fmt.Errorf("%w: service not found", ErrRegistry)
+	ErrNotFound = errors.New("registry: service not found")
 	// ErrTerminated Stopped watching error when watcher is stopped
-	ErrTerminated = fmt.Errorf("%w: watching terminated", ErrRegistry)
+	ErrTerminated = errors.New("registry: watching terminated")
 )
 
 // Service 服务配置

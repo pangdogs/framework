@@ -61,7 +61,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", broker.ErrBroker, err)
+		return nil, fmt.Errorf("broker: %w", err)
 	}
 
 	log.Debugf(b.servCtx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())

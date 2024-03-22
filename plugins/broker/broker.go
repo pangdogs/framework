@@ -3,15 +3,12 @@ package broker
 import (
 	"context"
 	"errors"
-	"fmt"
 	"git.golaxy.org/core/util/option"
 )
 
 var (
-	// ErrBroker broker errors.
-	ErrBroker = errors.New("broker")
 	// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the ISyncSubscriber.Next method when the subscriber has been unsubscribed.
-	ErrUnsubscribed = fmt.Errorf("%w: unsubscribed", ErrBroker)
+	ErrUnsubscribed = errors.New("broker: unsubscribed")
 )
 
 // DeliveryReliability Message delivery reliability.

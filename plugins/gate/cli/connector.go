@@ -104,18 +104,18 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	// 初始化消息事件分发器
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
-	client.eventDispatcher.EventHandler = generic.CastDelegateFunc1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.handleRecvEventChan, client.handleEvent)
+	client.eventDispatcher.EventHandler = generic.CastDelegateFunc1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.handleRecvEventChan, client.handleRecvEvent)
 
 	// 初始化传输协议
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.options.IORetryTimes
-	client.trans.PayloadHandler = generic.CastDelegateFunc1(client.handleRecvDataChan, client.handlePayload)
+	client.trans.PayloadHandler = generic.CastDelegateFunc1(client.handleRecvDataChan, client.handleRecvPayload)
 
 	// 初始化控制协议
 	client.ctrl.Transceiver = &client.transceiver
 	client.ctrl.RetryTimes = ctor.options.IORetryTimes
-	client.ctrl.HeartbeatHandler = generic.CastDelegateFunc1(client.handleHeartbeat)
-	client.ctrl.SyncTimeHandler = generic.CastDelegateFunc1(client.handleSyncTime)
+	client.ctrl.HeartbeatHandler = generic.CastDelegateFunc1(client.handleRecvHeartbeat)
+	client.ctrl.SyncTimeHandler = generic.CastDelegateFunc1(client.handleRecvSyncTime)
 
 	// 初始化异步模型Future控制器
 	client.futures = concurrent.MakeFutures(client.Context, ctor.options.FutureTimeout)

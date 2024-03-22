@@ -43,12 +43,12 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	}()
 
 	if err := pubSub.PSubscribe(ctx, watchPathList...); err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	keys, err := r.client.Keys(ctx, keyPath).Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	keyCache := map[string]string{}
@@ -56,7 +56,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	if len(keys) > 0 {
 		values, err := r.client.MGet(ctx, keys...).Result()
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+			return nil, fmt.Errorf("registry: %w", err)
 		}
 
 		for i, v := range values {

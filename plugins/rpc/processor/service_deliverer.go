@@ -39,17 +39,18 @@ func (d *_ServiceDeliverer) Shut(ctx service.Context) {
 func (d *_ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
 	addr := d.dist.GetAddressDetails()
 
+	// 只支持服务域通信
 	if !addr.InDomain(dst) {
 		return false
 	}
 
-	if !oneWay {
-		if !addr.InBalanceSubdomain(dst) && !addr.InNodeSubdomain(dst) {
-			return false
-		}
+	if oneWay {
+		// 普通请求，支持负载均衡与单播地址
+		return addr.InBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
+	} else {
+		// 单向请求，支持广播、负载均衡、单播地址
+		return addr.InBroadcastSubdomain(dst) || addr.InBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
 	}
-
-	return true
 }
 
 // Request 请求

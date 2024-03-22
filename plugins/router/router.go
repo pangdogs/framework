@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
@@ -37,7 +38,7 @@ type IRouter interface {
 	// CleanSession 清理会话路由信息
 	CleanSession(sessionId uid.Id)
 	// LookupEntity 查找实体
-	LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, bool)
+	LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, string, bool)
 	// LookupSession 查找会话
 	LookupSession(entityId uid.Id) (gate.ISession, bool)
 	// GetGroup 查询分组
@@ -61,6 +62,7 @@ type _Mapping struct {
 	terminate context.CancelFunc
 	entity    ec.ConcurrentEntity
 	session   gate.ISession
+	address   string
 }
 
 func (m *_Mapping) AutoTerminate(router *_Router) {
@@ -163,6 +165,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) error {
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
+			address:   netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, entity.GetId().String()),
 		}
 
 		(*planning)[entityId] = mapping
@@ -209,12 +212,12 @@ func (r *_Router) CleanSession(sessionId uid.Id) {
 }
 
 // LookupEntity 查找实体
-func (r *_Router) LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, bool) {
+func (r *_Router) LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, string, bool) {
 	mapping, ok := r.planning.Get(sessionId)
 	if !ok {
-		return nil, false
+		return nil, "", false
 	}
-	return mapping.entity, true
+	return mapping.entity, mapping.address, true
 }
 
 // LookupSession 查找会话

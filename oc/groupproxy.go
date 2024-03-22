@@ -24,8 +24,8 @@ type GroupProxied struct {
 	Id      uid.Id
 }
 
-// OneWayCRPC 向分组客户端发送单向RPC
-func (gp GroupProxied) OneWayCRPC(entityId uid.Id, method string, args ...any) error {
+// OneWayCliRPC 向分组客户端发送单向RPC
+func (gp GroupProxied) OneWayCliRPC(entityId uid.Id, method string, args ...any) error {
 	if gp.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}

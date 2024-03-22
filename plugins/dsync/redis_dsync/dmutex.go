@@ -49,7 +49,7 @@ func (m *_DistMutex) Lock(ctx context.Context) error {
 	}
 
 	if err := m.LockContext(ctx); err != nil {
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	log.Debugf(m.dsync.servCtx, "dist mutex %q is locked", m.Mutex.Name())
@@ -65,7 +65,7 @@ func (m *_DistMutex) Unlock(ctx context.Context) error {
 
 	ok, err := m.UnlockContext(ctx)
 	if err != nil {
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	if !ok {
@@ -85,7 +85,7 @@ func (m *_DistMutex) Extend(ctx context.Context) error {
 
 	ok, err := m.ExtendContext(ctx)
 	if err != nil {
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	if !ok {
@@ -107,7 +107,7 @@ func (m *_DistMutex) Valid(ctx context.Context) (bool, error) {
 
 	b, err := m.ValidContext(ctx)
 	if err != nil {
-		return b, fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return b, fmt.Errorf("dsync: %w", err)
 	}
 
 	return b, nil

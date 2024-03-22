@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"errors"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
@@ -17,12 +16,6 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/router"
-)
-
-var (
-	ErrSessionNotFound = errors.New("rpc: entity routing to session not found")
-	ErrGroupChanIsFull = errors.New("rpc: group send data channel is full")
-	ErrGroupNotFound   = errors.New("rpc: group not found")
 )
 
 // NewOutboundDispatcher 创建出站方向RPC分发器，用于S->C的通信
@@ -59,9 +52,8 @@ func (d *_OutboundDispatcher) Shut(ctx service.Context) {
 }
 
 func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
-	addr := d.dist.GetAddressDetails()
-
-	if !addr.InDomain(mp.Head.Src) {
+	// 只支持客户端域通信
+	if !d.dist.GetAddressDetails().InDomain(mp.Head.Src) {
 		return nil
 	}
 
@@ -85,12 +77,7 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 				return runtime.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			msg := &gap.MsgRaw{
-				Id:   req.RawId,
-				Data: req.RawData,
-			}
-
-			bs, err := d.encoder.EncodeBytes(src, 0, msg)
+			bs, err := d.encoder.EncodeBytes(src, 0, &gap.MsgRaw{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				return runtime.MakeRet(nil, err)
 			}
@@ -116,12 +103,7 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 			return
 		}
 
-		msg := &gap.MsgRaw{
-			Id:   req.RawId,
-			Data: req.RawData,
-		}
-
-		bs, err := d.encoder.EncodeBytes(src, 0, msg)
+		bs, err := d.encoder.EncodeBytes(src, 0, &gap.MsgRaw{Id: req.TransId, Data: req.TransData})
 		if err != nil {
 			go d.forwardingFinish(src, req, err)
 			return
@@ -132,6 +114,7 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 		case group.SendDataChan() <- bs:
 			go d.forwardingFinish(src, req, nil)
 		default:
+			bs.Release()
 			go d.forwardingFinish(src, req, ErrGroupChanIsFull)
 		}
 		return

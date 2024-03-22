@@ -82,11 +82,11 @@ func (r *_Registry) Register(ctx context.Context, service *discovery.Service, tt
 	}
 
 	if service == nil {
-		return fmt.Errorf("%w: %w: serivce is nil", discovery.ErrRegistry, core.ErrArgs)
+		return fmt.Errorf("registry: %w: serivce is nil", core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
-		return fmt.Errorf("%w: require at least one node", discovery.ErrRegistry)
+		return errors.New("registry: require at least one node")
 	}
 
 	var errs []error
@@ -100,7 +100,7 @@ func (r *_Registry) Register(ctx context.Context, service *discovery.Service, tt
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
+		return fmt.Errorf("registry: %w", errors.Join(errs...))
 	}
 
 	return nil
@@ -113,11 +113,11 @@ func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) 
 	}
 
 	if service == nil {
-		return fmt.Errorf("%w: %w: serivce is nil", discovery.ErrRegistry, core.ErrArgs)
+		return fmt.Errorf("registry: %w: serivce is nil", core.ErrArgs)
 	}
 
 	if len(service.Nodes) <= 0 {
-		return fmt.Errorf("%w: require at least one node", discovery.ErrRegistry)
+		return errors.New("registry: require at least one node")
 	}
 
 	var errs []error
@@ -131,7 +131,7 @@ func (r *_Registry) Deregister(ctx context.Context, service *discovery.Service) 
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
+		return fmt.Errorf("registry: %w", errors.Join(errs...))
 	}
 
 	return nil
@@ -159,7 +159,7 @@ func (r *_Registry) RefreshTTL(ctx context.Context) error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", discovery.ErrRegistry, errors.Join(errs...))
+		return fmt.Errorf("registry: %w", errors.Join(errs...))
 	}
 
 	return nil
@@ -180,7 +180,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId stri
 		if errors.Is(err, redis.Nil) {
 			return nil, discovery.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	return decodeService(nodeVal)
@@ -198,7 +198,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 
 	nodeKeys, err := r.client.Keys(ctx, getServicePath(r.options.KeyPrefix, serviceName)).Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	if len(nodeKeys) <= 0 {
@@ -207,7 +207,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 
 	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	serviceList := make([]*discovery.Service, 0, len(nodeVals))
@@ -255,7 +255,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 
 	nodeKeys, err := r.client.Keys(ctx, r.options.KeyPrefix+"*").Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	if len(nodeKeys) <= 0 {
@@ -264,7 +264,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 
 	nodeVals, err := r.client.MGet(ctx, nodeKeys...).Result()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, fmt.Errorf("registry: %w", err)
 	}
 
 	services := make([]*discovery.Service, 0, len(nodeVals))
@@ -415,7 +415,7 @@ func decodeService(ds []byte) (*discovery.Service, error) {
 	var s *discovery.Service
 
 	if err := json.Unmarshal(ds, &s); err != nil {
-		return nil, fmt.Errorf("%w: %w", discovery.ErrRegistry, err)
+		return nil, err
 	}
 
 	return s, nil

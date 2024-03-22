@@ -6,7 +6,7 @@ type AddressDetails struct {
 	BroadcastSubdomain string // 广播地址子域
 	BalanceSubdomain   string // 负载均衡地址子域
 	MulticastSubdomain string // 组播地址子域
-	NodeSubdomain      string // 服务节点地址子域
+	NodeSubdomain      string // 单播地址子域
 	PathSeparator      string // 地址路径分隔符
 }
 

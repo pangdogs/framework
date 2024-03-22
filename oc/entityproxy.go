@@ -274,8 +274,8 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 	return rpc.Using(ep.Context).OneWayRPC(dst, cp.String(), args...)
 }
 
-// CRPC 向客户端发送RPC
-func (ep EntityProxied) CRPC(method string, args ...any) runtime.AsyncRet {
+// CliRPC 向客户端发送RPC
+func (ep EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
 	if ep.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}
@@ -293,8 +293,8 @@ func (ep EntityProxied) CRPC(method string, args ...any) runtime.AsyncRet {
 	return rpc.Using(ep.Context).RPC(dst, cp.String(), args...)
 }
 
-// OneWayCRPC 向客户端发送单向RPC
-func (ep EntityProxied) OneWayCRPC(method string, args ...any) error {
+// OneWayCliRPC 向客户端发送单向RPC
+func (ep EntityProxied) OneWayCliRPC(method string, args ...any) error {
 	if ep.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}

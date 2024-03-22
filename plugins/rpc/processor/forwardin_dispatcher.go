@@ -8,28 +8,36 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap"
+	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
 
-// NewServiceDispatcher 创建分布式服务间的RPC分发器
-func NewServiceDispatcher() IDispatcher {
-	return &_ServiceDispatcher{}
+// NewForwardInDispatcher RPC内转分发器，用于C->S的通信
+func NewForwardInDispatcher(mc gap.IMsgCreator) IDispatcher {
+	return &_ForwardInDispatcher{
+		encoder: codec.MakeEncoder(),
+		decoder: codec.MakeDecoder(mc),
+	}
 }
 
-// _ServiceDispatcher 分布式服务间的RPC分发器
-type _ServiceDispatcher struct {
+// _ForwardInDispatcher RPC内转分发器，用于C->S的通信
+type _ForwardInDispatcher struct {
 	servCtx service.Context
 	dist    dserv.IDistService
 	watcher dserv.IWatcher
+	encoder codec.Encoder
+	decoder codec.Decoder
 }
 
 // Init 初始化
-func (d *_ServiceDispatcher) Init(ctx service.Context) {
+func (d *_ForwardInDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
 	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
@@ -38,33 +46,61 @@ func (d *_ServiceDispatcher) Init(ctx service.Context) {
 }
 
 // Shut 结束
-func (d *_ServiceDispatcher) Shut(ctx service.Context) {
+func (d *_ForwardInDispatcher) Shut(ctx service.Context) {
 	<-d.watcher.Terminate()
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q stopped", types.AnyFullName(*d))
 }
 
-func (d *_ServiceDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
-	// 只支持服务域通信
-	if !d.dist.GetAddressDetails().InDomain(mp.Head.Src) {
+func (d *_ForwardInDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
+	// 只支持客户端域通信
+	if !gate.ClientAddressDetails.InDomain(mp.Head.Src) {
 		return nil
 	}
 
 	switch mp.Head.MsgId {
-	case gap.MsgId_OneWayRPC:
-		return d.acceptNotify(mp.Msg.(*gap.MsgOneWayRPC))
-
-	case gap.MsgId_RPC_Request:
-		return d.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
-
-	case gap.MsgId_RPC_Reply:
-		return d.resolve(mp.Msg.(*gap.MsgRPCReply))
+	case gap.MsgId_Forward:
+		return d.acceptForward(mp.Head.Src, mp.Msg.(*gap.MsgForward))
 	}
 
 	return nil
 }
 
-func (d *_ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
+func (d *_ForwardInDispatcher) acceptForward(src string, req *gap.MsgForward) error {
+	switch req.TransId {
+	case gap.MsgId_OneWayRPC:
+		msg := &gap.MsgOneWayRPC{}
+
+		if _, err := msg.Write(req.TransData); err != nil {
+			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		}
+
+		return d.acceptNotify(msg)
+
+	case gap.MsgId_RPC_Request:
+		msg := &gap.MsgRPCRequest{}
+
+		if _, err := msg.Write(req.TransData); err != nil {
+			go d.reply(src, req.Gate, req.CorrId, nil, err)
+			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		}
+
+		return d.acceptRequest(src, req.Gate, msg)
+
+	case gap.MsgId_RPC_Reply:
+		msg := &gap.MsgRPCReply{}
+
+		if _, err := msg.Write(req.TransData); err != nil {
+			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		}
+
+		return d.resolve(msg)
+	}
+
+	return nil
+}
+
+func (d *_ForwardInDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
@@ -123,11 +159,11 @@ func (d *_ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	return nil
 }
 
-func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) error {
+func (d *_ForwardInDispatcher) acceptRequest(src, gate string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
-		go d.reply(src, req.CorrId, nil, err)
+		go d.reply(src, gate, req.CorrId, nil, err)
 		return err
 	}
 
@@ -137,11 +173,11 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			retsRV, err := CallService(d.servCtx, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
-				d.reply(src, req.CorrId, nil, err)
+				d.reply(src, gate, req.CorrId, nil, err)
 				return
 			}
 			log.Debugf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
-			d.reply(src, req.CorrId, retsRV, nil)
+			d.reply(src, gate, req.CorrId, retsRV, nil)
 		}()
 
 		return nil
@@ -150,7 +186,7 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 		asyncRet, err := CallRuntime(d.servCtx, uid.From(cp.EntityId), cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
-			go d.reply(src, req.CorrId, nil, err)
+			go d.reply(src, gate, req.CorrId, nil, err)
 			return nil
 		}
 
@@ -158,11 +194,11 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, ret.Error)
-				d.reply(src, req.CorrId, nil, ret.Error)
+				d.reply(src, gate, req.CorrId, nil, ret.Error)
 				return
 			}
 			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
-			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+			d.reply(src, gate, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil
@@ -171,7 +207,7 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 		asyncRet, err := CallEntity(d.servCtx, uid.From(cp.EntityId), cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
-			go d.reply(src, req.CorrId, nil, err)
+			go d.reply(src, gate, req.CorrId, nil, err)
 			return nil
 		}
 
@@ -179,11 +215,11 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, ret.Error)
-				d.reply(src, req.CorrId, nil, ret.Error)
+				d.reply(src, gate, req.CorrId, nil, ret.Error)
 				return
 			}
 			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
-			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+			d.reply(src, gate, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil
@@ -192,7 +228,7 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 	return nil
 }
 
-func (d *_ServiceDispatcher) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (d *_ForwardInDispatcher) reply(src, gate string, corrId int64, retsRV []reflect.Value, retErr error) {
 	if corrId == 0 {
 		return
 	}
@@ -212,7 +248,22 @@ func (d *_ServiceDispatcher) reply(src string, corrId int64, retsRV []reflect.Va
 		msg.Error = *variant.MakeError(retErr)
 	}
 
-	err = d.dist.SendMsg(src, msg)
+	bs := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msg.Size()))
+	defer bs.Release()
+
+	if _, err = msg.Read(bs.Data()); err != nil {
+		log.Errorf(d.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		return
+	}
+
+	forwardMsg := &gap.MsgForward{
+		Dst:       src,
+		CorrId:    corrId,
+		TransId:   msg.MsgId(),
+		TransData: bs.Data(),
+	}
+
+	err = d.dist.SendMsg(gate, forwardMsg)
 	if err != nil {
 		log.Errorf(d.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
@@ -221,7 +272,7 @@ func (d *_ServiceDispatcher) reply(src string, corrId int64, retsRV []reflect.Va
 	log.Debugf(d.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
 }
 
-func (d *_ServiceDispatcher) resolve(reply *gap.MsgRPCReply) error {
+func (d *_ForwardInDispatcher) resolve(reply *gap.MsgRPCReply) error {
 	ret := concurrent.Ret[any]{}
 
 	if reply.Error.OK() {

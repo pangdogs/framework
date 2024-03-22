@@ -72,7 +72,7 @@ func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error 
 	}
 
 	if err := b.client.Publish(topic, data); err != nil {
-		return fmt.Errorf("%w: %w", broker.ErrBroker, err)
+		return fmt.Errorf("broker: %w", err)
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func (b *_Broker) Flush(ctx context.Context) error {
 	}
 
 	if err := b.client.FlushWithContext(ctx); err != nil {
-		return fmt.Errorf("%w: %w", broker.ErrBroker, err)
+		return fmt.Errorf("broker: %w", err)
 	}
 
 	return nil

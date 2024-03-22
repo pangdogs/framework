@@ -273,8 +273,8 @@ func (s *_Session) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 	return nil
 }
 
-// handleEventProcess 接收自定义事件并回调
-func (s *_Session) handleEventProcess(event transport.Event[gtp.Msg]) error {
+// handleRecvEvent 接收自定义事件并回调
+func (s *_Session) handleRecvEvent(event transport.Event[gtp.Msg]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -326,8 +326,8 @@ func (s *_Session) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) err
 	return nil
 }
 
-// handlePayloadProcess 接收Payload消息数据并回调
-func (s *_Session) handlePayloadProcess(event transport.Event[gtp.MsgPayload]) error {
+// handleRecvPayload 接收Payload消息数据并回调
+func (s *_Session) handleRecvPayload(event transport.Event[gtp.MsgPayload]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -357,8 +357,8 @@ func (s *_Session) handlePayloadProcess(event transport.Event[gtp.MsgPayload]) e
 	return nil
 }
 
-// handleHeartbeat Heartbeat消息事件处理器
-func (s *_Session) handleHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
+// handleRecvHeartbeat 接收Heartbeat消息事件
+func (s *_Session) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		log.Debugf(s.gate.servCtx, "session %q receive ping", s.GetId())
 	} else {

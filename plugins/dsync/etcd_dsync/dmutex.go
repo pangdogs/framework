@@ -72,7 +72,7 @@ func (m *_DistMutex) Lock(ctx context.Context) error {
 
 	session, err := etcd_concurrency.NewSession(m.dsync.client, etcd_concurrency.WithTTL(int(math.Ceil(expirySec))))
 	if err != nil {
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	mutex := etcd_concurrency.NewMutex(session, m.name)
@@ -82,13 +82,13 @@ func (m *_DistMutex) Lock(ctx context.Context) error {
 
 	if err = mutex.Lock(ctx); err != nil {
 		session.Close()
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	if _, err = m.dsync.client.KeepAlive(ctx, session.Lease()); err != nil {
 		mutex.Unlock(context.Background())
 		session.Close()
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	m.clean()
@@ -120,7 +120,7 @@ func (m *_DistMutex) Unlock(ctx context.Context) error {
 		if errors.Is(err, rpctypes.ErrKeyNotFound) {
 			return dsync.ErrNotAcquired
 		}
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	log.Debugf(m.dsync.servCtx, "dist mutex %q is unlocked", m.name)
@@ -142,7 +142,7 @@ func (m *_DistMutex) Extend(ctx context.Context) error {
 		if errors.Is(err, rpctypes.ErrLeaseNotFound) {
 			return dsync.ErrNotAcquired
 		}
-		return fmt.Errorf("%w: %w", dsync.ErrDsync, err)
+		return fmt.Errorf("dsync: %w", err)
 	}
 
 	log.Debugf(m.dsync.servCtx, "dist mutex %q is extended", m.name)

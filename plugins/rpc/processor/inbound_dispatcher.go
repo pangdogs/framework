@@ -1,27 +1,24 @@
 package processor
 
 import (
-	"errors"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/router"
-)
-
-var (
-	ErrEntityNotFound = errors.New("rpc: session routing to entity not found")
-	ErrCantForwarding = errors.New("rpc: message can't be forwarding")
+	"github.com/elliotchance/pie/v2"
 )
 
 // NewInboundDispatcher 创建入站方向RPC分发器，用于C->S的通信
 func NewInboundDispatcher(mc gap.IMsgCreator) IDispatcher {
 	return &_InboundDispatcher{
+		encoder: codec.MakeEncoder(),
 		decoder: codec.MakeDecoder(mc),
 	}
 }
@@ -32,7 +29,9 @@ type _InboundDispatcher struct {
 	dist    dserv.IDistService
 	gate    gate.IGate
 	router  router.IRouter
+	dentq   dentq.IDistEntityQuerier
 	watcher gate.IWatcher
+	encoder codec.Encoder
 	decoder codec.Decoder
 }
 
@@ -42,6 +41,7 @@ func (d *_InboundDispatcher) Init(ctx service.Context) {
 	d.dist = dserv.Using(ctx)
 	d.gate = gate.Using(ctx)
 	d.router = router.Using(ctx)
+	d.dentq = dentq.Using(ctx)
 	d.watcher = d.gate.Watch(ctx, generic.CastDelegateAction3(d.handleSessionChanged))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))
@@ -75,66 +75,74 @@ func (d *_InboundDispatcher) handleRecvData(session gate.ISession, data []byte) 
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		return d.acceptForward(session, mp.Head.Src, mp.Head.Seq, mp.Msg.(*gap.MsgForward))
+		return d.acceptForward(session, mp.Head.Seq, mp.Msg.(*gap.MsgForward))
 	}
 
 	return nil
 }
 
-func (d *_InboundDispatcher) acceptForward(session gate.ISession, src string, seq int64, req *gap.MsgForward) error {
-	switch req.RawId {
+func (d *_InboundDispatcher) acceptForward(session gate.ISession, seq int64, req *gap.MsgForward) error {
+	switch req.TransId {
 	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OneWayRPC:
 		break
 	default:
-		go d.forwardingFinish(src, req.Dst, req.CorrId, ErrCantForwarding)
-		return ErrCantForwarding
+		return nil
 	}
 
-	_, ok := d.router.LookupEntity(session.GetId())
+	entity, addr, ok := d.router.LookupEntity(session.GetId())
 	if !ok {
-		go d.forwardingFinish(src, req.Dst, req.CorrId, ErrEntityNotFound)
+		go d.forwardingFinish(session, req.Dst, req.CorrId, ErrEntityNotFound)
 		return ErrEntityNotFound
 	}
 
-	addr := d.dist.GetAddressDetails()
-
-	if addr.InBroadcastSubdomain(req.Dst) || addr.InBalanceSubdomain(req.Dst) || addr.InNodeSubdomain(req.Dst) {
-		msg := &gap.MsgRaw{
-			Id:   req.RawId,
-			Data: req.RawData,
-		}
-
-		if err := d.dist.ForwardMsg(src, req.Dst, seq, msg); err != nil {
-			go d.forwardingFinish(src, req.Dst, req.CorrId, err)
-			return err
-		}
-
-		return nil
-
-	} else {
-		go d.forwardingFinish(src, req.Dst, req.CorrId, ErrIncorrectDestAddress)
-		return ErrIncorrectDestAddress
+	distEntity, ok := d.dentq.GetDistEntity(entity.GetId())
+	if !ok {
+		go d.forwardingFinish(session, req.Dst, req.CorrId, ErrDistEntityNotFound)
+		return ErrDistEntityNotFound
 	}
+
+	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
+		return node.Service == req.Dst
+	})
+	if nodeIdx < 0 {
+		go d.forwardingFinish(session, req.Dst, req.CorrId, ErrDistEntityNodeNotFound)
+		return ErrDistEntityNodeNotFound
+	}
+	node := distEntity.Nodes[nodeIdx]
+
+	msg := &gap.MsgForward{
+		Gate:      d.dist.GetAddressDetails().LocalAddr,
+		TransId:   req.TransId,
+		TransData: req.TransData,
+	}
+
+	if err := d.dist.ForwardMsg(addr, node.RemoteAddr, seq, msg); err != nil {
+		go d.forwardingFinish(session, node.RemoteAddr, req.CorrId, err)
+		return err
+	}
+
+	go d.forwardingFinish(session, req.Dst, req.CorrId, nil)
+	return nil
 }
 
-func (d *_InboundDispatcher) forwardingFinish(src, dst string, corrId int64, err error) {
+func (d *_InboundDispatcher) forwardingFinish(session gate.ISession, dst string, corrId int64, err error) {
 	if err == nil {
 		if corrId != 0 {
-			log.Debugf(d.servCtx, "forwarding src:%q rpc request(%d) to remote:%q finish", src, corrId, dst)
+			log.Debugf(d.servCtx, "forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
 		} else {
-			log.Debugf(d.servCtx, "forwarding src:%q rpc notify to remote:%q finish", src, dst)
+			log.Debugf(d.servCtx, "forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
 		}
 	} else {
 		if corrId != 0 {
-			log.Errorf(d.servCtx, "forwarding src:%q rpc request(%d) to remote:%q failed, %s", src, corrId, dst, err)
-			d.reply(src, corrId, err)
+			log.Errorf(d.servCtx, "forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
+			d.reply(session, corrId, err)
 		} else {
-			log.Errorf(d.servCtx, "forwarding src:%q rpc notify to remote:%q failed, %s", src, dst, err)
+			log.Errorf(d.servCtx, "forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
 		}
 	}
 }
 
-func (d *_InboundDispatcher) reply(src string, corrId int64, retErr error) {
+func (d *_InboundDispatcher) reply(session gate.ISession, corrId int64, retErr error) {
 	if corrId == 0 || retErr == nil {
 		return
 	}
@@ -144,11 +152,18 @@ func (d *_InboundDispatcher) reply(src string, corrId int64, retErr error) {
 		Error:  *variant.MakeError(retErr),
 	}
 
-	err := d.dist.SendMsg(src, msg)
+	bs, err := d.encoder.EncodeBytes(d.dist.GetAddressDetails().LocalAddr, 0, msg)
 	if err != nil {
-		log.Errorf(d.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(d.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
+		return
+	}
+	defer bs.Release()
+
+	err = session.SendData(bs.Data())
+	if err != nil {
+		log.Errorf(d.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return
 	}
 
-	log.Debugf(d.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(d.servCtx, "rpc reply(%d) to session:%q ok", corrId, session.GetId())
 }

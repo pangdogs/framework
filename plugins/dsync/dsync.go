@@ -2,15 +2,12 @@ package dsync
 
 import (
 	"errors"
-	"fmt"
 	"git.golaxy.org/core/util/option"
 )
 
 var (
-	// ErrDsync dsync errors.
-	ErrDsync = errors.New("dsync")
 	// ErrNotAcquired is an error indicating that the distributed lock was not acquired. It is returned by IDistMutex.Unlock and IDistMutex.Extend when the lock was not successfully acquired or has expired.
-	ErrNotAcquired = fmt.Errorf("%w: lock is not acquired", ErrDsync)
+	ErrNotAcquired = errors.New("dsync: lock is not acquired")
 )
 
 // IDistSync represents a distributed synchronization mechanism.
