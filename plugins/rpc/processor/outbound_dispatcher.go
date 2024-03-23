@@ -52,7 +52,7 @@ func (d *_OutboundDispatcher) Shut(ctx service.Context) {
 }
 
 func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
-	// 只支持客户端域通信
+	// 只支持服务域通信
 	if !d.dist.GetAddressDetails().InDomain(mp.Head.Src) {
 		return nil
 	}

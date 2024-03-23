@@ -44,12 +44,12 @@ func (d *_ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay 
 		return false
 	}
 
-	if !oneWay {
-		// 普通请求，支持负载均衡与单播地址
-		return addr.InBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
-	} else {
+	if oneWay {
 		// 单向请求，支持广播、负载均衡、单播地址
-		return addr.InBroadcastSubdomain(dst) || addr.InBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
+		return addr.SameBroadcastSubdomain(dst) || addr.SameBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
+	} else {
+		// 普通请求，支持负载均衡与单播地址
+		return addr.SameBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
 	}
 }
 

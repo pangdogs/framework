@@ -55,12 +55,12 @@ func (d *_ForwardOutDeliverer) Match(ctx service.Context, dst, path string, oneW
 		return false
 	}
 
-	if !oneWay {
-		// 普通请求，支持单播地址
-		return gate.ClientAddressDetails.InNodeSubdomain(dst)
-	} else {
+	if oneWay {
 		// 单向请求，支持组播、单播地址
 		return gate.ClientAddressDetails.InNodeSubdomain(dst) || gate.ClientAddressDetails.InMulticastSubdomain(dst)
+	} else {
+		// 普通请求，支持单播地址
+		return gate.ClientAddressDetails.InNodeSubdomain(dst)
 	}
 }
 

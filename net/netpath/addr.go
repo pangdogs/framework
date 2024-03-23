@@ -14,7 +14,15 @@ func (ad AddressDetails) InDomain(path string) bool {
 	return InDir(ad.PathSeparator, path, ad.Domain)
 }
 
+func (ad AddressDetails) SameDomain(path string) bool {
+	return SameDir(ad.PathSeparator, path, ad.Domain)
+}
+
 func (ad AddressDetails) InBroadcastSubdomain(path string) bool {
+	return InDir(ad.PathSeparator, path, ad.BroadcastSubdomain)
+}
+
+func (ad AddressDetails) SameBroadcastSubdomain(path string) bool {
 	return InDir(ad.PathSeparator, path, ad.BroadcastSubdomain)
 }
 
@@ -22,10 +30,22 @@ func (ad AddressDetails) InBalanceSubdomain(path string) bool {
 	return InDir(ad.PathSeparator, path, ad.BalanceSubdomain)
 }
 
+func (ad AddressDetails) SameBalanceSubdomain(path string) bool {
+	return SameDir(ad.PathSeparator, path, ad.BalanceSubdomain)
+}
+
 func (ad AddressDetails) InMulticastSubdomain(path string) bool {
 	return InDir(ad.PathSeparator, path, ad.MulticastSubdomain)
 }
 
+func (ad AddressDetails) SameMulticastSubdomain(path string) bool {
+	return SameDir(ad.PathSeparator, path, ad.MulticastSubdomain)
+}
+
 func (ad AddressDetails) InNodeSubdomain(path string) bool {
 	return InDir(ad.PathSeparator, path, ad.NodeSubdomain)
+}
+
+func (ad AddressDetails) SameNodeSubdomain(path string) bool {
+	return SameDir(ad.PathSeparator, path, ad.NodeSubdomain)
 }
