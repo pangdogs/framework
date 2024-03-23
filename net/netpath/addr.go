@@ -23,7 +23,7 @@ func (ad AddressDetails) InBroadcastSubdomain(path string) bool {
 }
 
 func (ad AddressDetails) SameBroadcastSubdomain(path string) bool {
-	return InDir(ad.PathSeparator, path, ad.BroadcastSubdomain)
+	return SameDir(ad.PathSeparator, path, ad.BroadcastSubdomain)
 }
 
 func (ad AddressDetails) InBalanceSubdomain(path string) bool {
