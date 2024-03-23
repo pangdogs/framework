@@ -14,7 +14,6 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
-	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
@@ -54,7 +53,7 @@ func (d *_ForwardInDispatcher) Shut(ctx service.Context) {
 
 func (d *_ForwardInDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持客户端域通信
-	if !gate.ClientAddressDetails.InDomain(mp.Head.Src) {
+	if !gate.CliDetails.InDomain(mp.Head.Src) {
 		return nil
 	}
 
@@ -70,87 +69,81 @@ func (d *_ForwardInDispatcher) acceptForward(src string, req *gap.MsgForward) er
 	switch req.TransId {
 	case gap.MsgId_OneWayRPC:
 		msg := &gap.MsgOneWayRPC{}
-
-		if _, err := msg.Write(req.TransData); err != nil {
-			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		if err := gap.Unmarshal(msg, req.TransData); err != nil {
+			return err
 		}
-
-		return d.acceptNotify(msg)
+		return d.acceptNotify(src, req.Dst, req.Transit, msg)
 
 	case gap.MsgId_RPC_Request:
 		msg := &gap.MsgRPCRequest{}
-
-		if _, err := msg.Write(req.TransData); err != nil {
-			go d.reply(src, req.Gate, req.CorrId, nil, err)
-			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		if err := gap.Unmarshal(msg, req.TransData); err != nil {
+			go d.reply(src, req.Transit, req.CorrId, nil, err)
+			return err
 		}
-
-		return d.acceptRequest(src, req.Gate, msg)
+		return d.acceptRequest(src, req.Dst, req.Transit, msg)
 
 	case gap.MsgId_RPC_Reply:
 		msg := &gap.MsgRPCReply{}
-
-		if _, err := msg.Write(req.TransData); err != nil {
-			return fmt.Errorf("unmarshal msg(%d) failed, %s", msg.MsgId(), err)
+		if err := gap.Unmarshal(msg, req.TransData); err != nil {
+			return err
 		}
-
 		return d.resolve(msg)
 	}
 
 	return nil
 }
 
-func (d *_ForwardInDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
-	cp, err := callpath.Parse(req.Path)
+func (d *_ForwardInDispatcher) acceptNotify(src, dst, transit string, req *gap.MsgOneWayRPC) error {
+	cp, err := d.parseCallPath(dst, req.Path)
 	if err != nil {
-		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
+		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 	}
 
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
 			if _, err := CallService(d.servCtx, cp.Plugin, cp.Method, req.Args); err != nil {
-				log.Errorf(d.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
+				log.Errorf(d.servCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
+			log.Debugf(d.servCtx, "rpc notify service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Plugin, cp.Method, src, dst, transit, req.Path)
 			return
 		}()
 
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(d.servCtx, uid.From(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(d.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
+			log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			return nil
 		}
 
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, ret.Error)
+				log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.EntityId, cp.Plugin, cp.Method)
+			log.Debugf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 		}()
 
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(d.servCtx, uid.From(cp.EntityId), cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(d.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
+			log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			return nil
 		}
 
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, ret.Error)
+				log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.EntityId, cp.Component, cp.Method)
+			log.Debugf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path)
 		}()
 
 		return nil
@@ -159,11 +152,11 @@ func (d *_ForwardInDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 	return nil
 }
 
-func (d *_ForwardInDispatcher) acceptRequest(src, gate string, req *gap.MsgRPCRequest) error {
+func (d *_ForwardInDispatcher) acceptRequest(src, dst, transit string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
-		go d.reply(src, gate, req.CorrId, nil, err)
+		err = fmt.Errorf("parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
+		go d.reply(src, transit, req.CorrId, nil, err)
 		return err
 	}
 
@@ -172,54 +165,54 @@ func (d *_ForwardInDispatcher) acceptRequest(src, gate string, req *gap.MsgRPCRe
 		go func() {
 			retsRV, err := CallService(d.servCtx, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
-				d.reply(src, gate, req.CorrId, nil, err)
+				log.Errorf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+				d.reply(src, transit, req.CorrId, nil, err)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
-			d.reply(src, gate, req.CorrId, retsRV, nil)
+			log.Debugf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+			d.reply(src, transit, req.CorrId, retsRV, nil)
 		}()
 
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(d.servCtx, uid.From(cp.EntityId), cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(d.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
-			go d.reply(src, gate, req.CorrId, nil, err)
+			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+			go d.reply(src, transit, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, ret.Error)
-				d.reply(src, gate, req.CorrId, nil, ret.Error)
+				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
+				d.reply(src, transit, req.CorrId, nil, ret.Error)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
-			d.reply(src, gate, req.CorrId, ret.Value.([]reflect.Value), nil)
+			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+			d.reply(src, transit, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(d.servCtx, uid.From(cp.EntityId), cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(d.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
-			go d.reply(src, gate, req.CorrId, nil, err)
+			log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, err)
+			go d.reply(src, transit, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
-				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, ret.Error)
-				d.reply(src, gate, req.CorrId, nil, ret.Error)
+				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
+				d.reply(src, transit, req.CorrId, nil, ret.Error)
 				return
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
-			d.reply(src, gate, req.CorrId, ret.Value.([]reflect.Value), nil)
+			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path)
+			d.reply(src, transit, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil
@@ -228,7 +221,7 @@ func (d *_ForwardInDispatcher) acceptRequest(src, gate string, req *gap.MsgRPCRe
 	return nil
 }
 
-func (d *_ForwardInDispatcher) reply(src, gate string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (d *_ForwardInDispatcher) reply(src, transit string, corrId int64, retsRV []reflect.Value, retErr error) {
 	if corrId == 0 {
 		return
 	}
@@ -248,13 +241,12 @@ func (d *_ForwardInDispatcher) reply(src, gate string, corrId int64, retsRV []re
 		msg.Error = *variant.MakeError(retErr)
 	}
 
-	bs := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msg.Size()))
-	defer bs.Release()
-
-	if _, err = msg.Read(bs.Data()); err != nil {
+	bs, err := gap.Marshal(msg)
+	if err != nil {
 		log.Errorf(d.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
+	defer bs.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       src,
@@ -263,7 +255,7 @@ func (d *_ForwardInDispatcher) reply(src, gate string, corrId int64, retsRV []re
 		TransData: bs.Data(),
 	}
 
-	err = d.dist.SendMsg(gate, forwardMsg)
+	err = d.dist.SendMsg(transit, forwardMsg)
 	if err != nil {
 		log.Errorf(d.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
@@ -284,4 +276,17 @@ func (d *_ForwardInDispatcher) resolve(reply *gap.MsgRPCReply) error {
 	}
 
 	return d.dist.GetFutures().Resolve(reply.CorrId, ret)
+}
+
+func (d *_ForwardInDispatcher) parseCallPath(dst, path string) (callpath.CallPath, error) {
+	cp, err := callpath.Parse(path)
+	if err != nil {
+		return callpath.CallPath{}, err
+	}
+
+	if cp.EntityId.IsNil() {
+		cp.EntityId = uid.From(dst)
+	}
+
+	return cp, nil
 }

@@ -89,7 +89,7 @@ func (d *_InboundDispatcher) acceptForward(session gate.ISession, seq int64, req
 		return nil
 	}
 
-	entity, addr, ok := d.router.LookupEntity(session.GetId())
+	entity, cliAddr, ok := d.router.LookupEntity(session.GetId())
 	if !ok {
 		go d.forwardingFinish(session, req.Dst, req.CorrId, ErrEntityNotFound)
 		return ErrEntityNotFound
@@ -111,12 +111,13 @@ func (d *_InboundDispatcher) acceptForward(session gate.ISession, seq int64, req
 	node := distEntity.Nodes[nodeIdx]
 
 	msg := &gap.MsgForward{
-		Gate:      d.dist.GetAddressDetails().LocalAddr,
+		Transit:   d.dist.GetNodeDetails().LocalAddr,
+		Dst:       entity.GetId().String(),
 		TransId:   req.TransId,
 		TransData: req.TransData,
 	}
 
-	if err := d.dist.ForwardMsg(addr, node.RemoteAddr, seq, msg); err != nil {
+	if err := d.dist.ForwardMsg(cliAddr, node.RemoteAddr, seq, msg); err != nil {
 		go d.forwardingFinish(session, node.RemoteAddr, req.CorrId, err)
 		return err
 	}
@@ -152,7 +153,7 @@ func (d *_InboundDispatcher) reply(session gate.ISession, corrId int64, retErr e
 		Error:  *variant.MakeError(retErr),
 	}
 
-	bs, err := d.encoder.EncodeBytes(d.dist.GetAddressDetails().LocalAddr, 0, msg)
+	bs, err := d.encoder.EncodeBytes(d.dist.GetNodeDetails().LocalAddr, 0, msg)
 	if err != nil {
 		log.Errorf(d.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return

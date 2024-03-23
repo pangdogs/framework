@@ -13,8 +13,8 @@ var (
 	Uninstall = self.Uninstall
 )
 
-// ClientAddressDetails 客户端地址信息
-var ClientAddressDetails = netpath.AddressDetails{
+// CliDetails 客户端地址信息
+var CliDetails = netpath.NodeDetails{
 	Domain:             "client",
 	NodeSubdomain:      "client.node",
 	MulticastSubdomain: "client.multicast",

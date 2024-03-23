@@ -64,7 +64,7 @@ func (ep EntityProxied) RPC(service, comp, method string, args ...any) runtime.A
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -95,7 +95,7 @@ func (ep EntityProxied) BalanceRPC(service, comp, method string, args ...any) ru
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -124,7 +124,7 @@ func (ep EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) runti
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -155,7 +155,7 @@ func (ep EntityProxied) OneWayRPC(service, comp, method string, args ...any) err
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -186,7 +186,7 @@ func (ep EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...a
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -215,7 +215,7 @@ func (ep EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any)
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -246,7 +246,7 @@ func (ep EntityProxied) BroadcastOneWayRPC(service, comp, method string, args ..
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -261,12 +261,12 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 	}
 
 	// 全局广播地址
-	dst := dserv.Using(ep.Context).GetAddressDetails().GlobalBroadcastAddr
+	dst := dserv.Using(ep.Context).GetNodeDetails().GlobalBroadcastAddr
 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  ep.Id.String(),
+		EntityId:  ep.Id,
 		Component: comp,
 		Method:    method,
 	}
@@ -281,12 +281,12 @@ func (ep EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
 	}
 
 	// 客户端地址
-	dst := netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, ep.Id.String())
+	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, ep.Id.String())
 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: ep.Id.String(),
+		EntityId: ep.Id,
 		Method:   method,
 	}
 
@@ -300,12 +300,12 @@ func (ep EntityProxied) OneWayCliRPC(method string, args ...any) error {
 	}
 
 	// 客户端地址
-	dst := netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, ep.Id.String())
+	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, ep.Id.String())
 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: ep.Id.String(),
+		EntityId: ep.Id,
 		Method:   method,
 	}
 

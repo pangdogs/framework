@@ -20,9 +20,9 @@ import (
 	"sync"
 )
 
-// AddressDetails 地址信息
-type AddressDetails struct {
-	netpath.AddressDetails
+// NodeDetails 节点地址信息
+type NodeDetails struct {
+	netpath.NodeDetails
 	GlobalBroadcastAddr string // 全局广播地址
 	GlobalBalanceAddr   string // 全局负载均衡地址
 	BroadcastAddr       string // 服务广播地址
@@ -38,8 +38,8 @@ type IWatcher interface {
 
 // IDistService 分布式服务支持
 type IDistService interface {
-	// GetAddressDetails 获取地址信息
-	GetAddressDetails() AddressDetails
+	// GetNodeDetails 获取节点地址信息
+	GetNodeDetails() NodeDetails
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
 	// MakeBroadcastAddr 创建服务广播地址
@@ -71,7 +71,7 @@ type _DistService struct {
 	registry      discovery.IRegistry
 	broker        broker.IBroker
 	dsync         dsync.IDistSync
-	address       AddressDetails
+	details       NodeDetails
 	encoder       codec.Encoder
 	decoder       codec.Decoder
 	futures       concurrent.Futures
@@ -106,8 +106,8 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
 
 	// 初始化地址信息
-	d.address = AddressDetails{
-		AddressDetails: netpath.AddressDetails{
+	d.details = NodeDetails{
+		NodeDetails: netpath.NodeDetails{
 			Domain:             d.options.Domain,
 			BroadcastSubdomain: intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "broadcast")),
 			BalanceSubdomain:   intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "balance")),
@@ -115,11 +115,11 @@ func (d *_DistService) InitSP(ctx service.Context) {
 			PathSeparator:      d.broker.GetSeparator(),
 		},
 	}
-	d.address.GlobalBroadcastAddr = d.address.BroadcastSubdomain
-	d.address.GlobalBalanceAddr = d.address.BalanceSubdomain
-	d.address.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
-	d.address.BalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
-	d.address.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId().String())
+	d.details.GlobalBroadcastAddr = d.details.BroadcastSubdomain
+	d.details.GlobalBalanceAddr = d.details.BalanceSubdomain
+	d.details.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
+	d.details.BalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
+	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId().String())
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(netpath.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
@@ -140,13 +140,13 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	// 订阅topic
 	subs := []broker.ISubscriber{
 		// 订阅全服topic
-		d.subscribe(d.address.GlobalBroadcastAddr, ""),
-		d.subscribe(d.address.GlobalBalanceAddr, "balance"),
+		d.subscribe(d.details.GlobalBroadcastAddr, ""),
+		d.subscribe(d.details.GlobalBalanceAddr, "balance"),
 		// 订阅服务类型topic
-		d.subscribe(d.address.BroadcastAddr, ""),
-		d.subscribe(d.address.BalanceAddr, "balance"),
+		d.subscribe(d.details.BroadcastAddr, ""),
+		d.subscribe(d.details.BalanceAddr, "balance"),
 		// 订阅服务节点topic
-		d.subscribe(d.address.LocalAddr, ""),
+		d.subscribe(d.details.LocalAddr, ""),
 	}
 
 	// 服务节点信息
@@ -155,7 +155,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 		Nodes: []discovery.Node{
 			{
 				Id:      d.servCtx.GetId().String(),
-				Address: d.address.LocalAddr,
+				Address: d.details.LocalAddr,
 				Version: d.options.Version,
 				Meta:    d.options.Meta,
 			},
@@ -189,9 +189,9 @@ func (d *_DistService) ShutSP(ctx service.Context) {
 	d.wg.Wait()
 }
 
-// GetAddressDetails 获取地址信息
-func (d *_DistService) GetAddressDetails() AddressDetails {
-	return d.address
+// GetNodeDetails 获取节点地址信息
+func (d *_DistService) GetNodeDetails() NodeDetails {
+	return d.details
 }
 
 // GetFutures 获取异步模型Future控制器
@@ -201,12 +201,12 @@ func (d *_DistService) GetFutures() concurrent.IFutures {
 
 // MakeBroadcastAddr 创建服务广播地址
 func (d *_DistService) MakeBroadcastAddr(service string) string {
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.address.BroadcastSubdomain, service))
+	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.BroadcastSubdomain, service))
 }
 
 // MakeBalanceAddr 创建服务负载均衡地址
 func (d *_DistService) MakeBalanceAddr(service string) string {
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.address.BalanceSubdomain, service))
+	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.BalanceSubdomain, service))
 }
 
 // MakeNodeAddr 创建服务节点地址
@@ -214,7 +214,7 @@ func (d *_DistService) MakeNodeAddr(node string) (string, error) {
 	if node == "" {
 		return "", fmt.Errorf("%w: node is empty", core.ErrArgs)
 	}
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.address.NodeSubdomain, node)), nil
+	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.NodeSubdomain, node)), nil
 }
 
 // SendMsg 发送消息
@@ -232,7 +232,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplication.Make()
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(d.address.LocalAddr, seq, msg)
+	mpBuf, err := d.encoder.EncodeBytes(d.details.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}

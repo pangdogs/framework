@@ -2,6 +2,7 @@ package callpath
 
 import (
 	"errors"
+	"git.golaxy.org/core/util/uid"
 	"strings"
 )
 
@@ -18,7 +19,7 @@ var (
 
 type CallPath struct {
 	Category  string
-	EntityId  string
+	EntityId  uid.Id
 	Plugin    string
 	Component string
 	Method    string
@@ -40,7 +41,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Runtime:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId)
+		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
 		sb.WriteByte(Sep)
@@ -51,7 +52,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Entity:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId)
+		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Component)
 		sb.WriteByte(Sep)
@@ -62,7 +63,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Client:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId)
+		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
 
@@ -107,7 +108,7 @@ loop:
 			case Service:
 				cp.Plugin = field
 			case Runtime, Entity, Client:
-				cp.EntityId = field
+				cp.EntityId = uid.From(field)
 			}
 
 		case 2:

@@ -53,7 +53,7 @@ func (d *_OutboundDispatcher) Shut(ctx service.Context) {
 
 func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持服务域通信
-	if !d.dist.GetAddressDetails().InDomain(mp.Head.Src) {
+	if !d.dist.GetNodeDetails().InDomain(mp.Head.Src) {
 		return nil
 	}
 
@@ -66,9 +66,9 @@ func (d *_OutboundDispatcher) handleMsg(topic string, mp gap.MsgPacket) error {
 }
 
 func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
-	if gate.ClientAddressDetails.InNodeSubdomain(req.Dst) {
+	if gate.CliDetails.InNodeSubdomain(req.Dst) {
 		// 目标为单播地址，解析实体Id
-		entId := uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, req.Dst))
+		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
 
 		// 为了保持消息时序，在实体线程中，向对端发送消息
 		asyncRet := d.servCtx.Call(entId, func(entity ec.Entity, _ ...any) runtime.Ret {
@@ -93,9 +93,9 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 		go d.forwardingFinish(src, req, (<-asyncRet).Error)
 		return
 
-	} else if gate.ClientAddressDetails.InMulticastSubdomain(req.Dst) {
+	} else if gate.CliDetails.InMulticastSubdomain(req.Dst) {
 		// 目标为组播地址，解析分组Id
-		groupId := uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, req.Dst))
+		groupId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
 
 		group, ok := d.router.GetGroup(groupId)
 		if !ok {

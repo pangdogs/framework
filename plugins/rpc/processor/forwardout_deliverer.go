@@ -12,7 +12,6 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
 	"github.com/elliotchance/pie/v2"
 )
@@ -51,16 +50,16 @@ func (d *_ForwardOutDeliverer) Shut(ctx service.Context) {
 // Match 是否匹配
 func (d *_ForwardOutDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
 	// 只支持客户端域通信
-	if !gate.ClientAddressDetails.InDomain(dst) {
+	if !gate.CliDetails.InDomain(dst) {
 		return false
 	}
 
 	if oneWay {
 		// 单向请求，支持组播、单播地址
-		return gate.ClientAddressDetails.InNodeSubdomain(dst) || gate.ClientAddressDetails.InMulticastSubdomain(dst)
+		return gate.CliDetails.InNodeSubdomain(dst) || gate.CliDetails.InMulticastSubdomain(dst)
 	} else {
 		// 普通请求，支持单播地址
-		return gate.ClientAddressDetails.InNodeSubdomain(dst)
+		return gate.CliDetails.InNodeSubdomain(dst)
 	}
 }
 
@@ -69,7 +68,7 @@ func (d *_ForwardOutDeliverer) Request(ctx service.Context, dst, path string, ar
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(d.dist.GetFutures(), nil, ret)
 
-	forwardAddr, err := d.getDistEntityForwardAddr(uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, dst)))
+	forwardAddr, err := d.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
 	if err != nil {
 		future.Cancel(err)
 		return ret.CastAsyncRet()
@@ -87,13 +86,12 @@ func (d *_ForwardOutDeliverer) Request(ctx service.Context, dst, path string, ar
 		Args:   vargs,
 	}
 
-	bs := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msg.Size()))
-	defer bs.Release()
-
-	if _, err = msg.Read(bs.Data()); err != nil {
+	bs, err := gap.Marshal(msg)
+	if err != nil {
 		future.Cancel(err)
 		return ret.CastAsyncRet()
 	}
+	defer bs.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       dst,
@@ -129,12 +127,11 @@ func (d *_ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, arg
 		Args: vargs,
 	}
 
-	bs := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msg.Size()))
-	defer bs.Release()
-
-	if _, err = msg.Read(bs.Data()); err != nil {
+	bs, err := gap.Marshal(msg)
+	if err != nil {
 		return err
 	}
+	defer bs.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       dst,
@@ -152,11 +149,11 @@ func (d *_ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, arg
 }
 
 func (d *_ForwardOutDeliverer) getForwardAddr(dst string) (string, error) {
-	if gate.ClientAddressDetails.InNodeSubdomain(dst) {
+	if gate.CliDetails.InNodeSubdomain(dst) {
 		// 目标为单播地址，查询实体的通信中转服务地址
-		return d.getDistEntityForwardAddr(uid.From(netpath.Base(gate.ClientAddressDetails.PathSeparator, dst)))
+		return d.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
 
-	} else if gate.ClientAddressDetails.InMulticastSubdomain(dst) {
+	} else if gate.CliDetails.InMulticastSubdomain(dst) {
 		// 目标为组播地址，广播所有的通信中转服务
 		return d.multicastBCAddr, nil
 

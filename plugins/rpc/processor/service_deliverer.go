@@ -37,19 +37,19 @@ func (d *_ServiceDeliverer) Shut(ctx service.Context) {
 
 // Match 是否匹配
 func (d *_ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	addr := d.dist.GetAddressDetails()
+	details := d.dist.GetNodeDetails()
 
 	// 只支持服务域通信
-	if !addr.InDomain(dst) {
+	if !details.InDomain(dst) {
 		return false
 	}
 
 	if oneWay {
 		// 单向请求，支持广播、负载均衡、单播地址
-		return addr.SameBroadcastSubdomain(dst) || addr.SameBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
+		return details.SameBroadcastSubdomain(dst) || details.SameBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
 	} else {
 		// 普通请求，支持负载均衡与单播地址
-		return addr.SameBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
+		return details.SameBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
 	}
 }
 

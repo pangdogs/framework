@@ -62,7 +62,7 @@ type _Mapping struct {
 	terminate context.CancelFunc
 	entity    ec.ConcurrentEntity
 	session   gate.ISession
-	address   string
+	cliAddr   string
 }
 
 func (m *_Mapping) AutoTerminate(router *_Router) {
@@ -165,7 +165,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) error {
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
-			address:   netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.NodeSubdomain, entity.GetId().String()),
+			cliAddr:   netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, entity.GetId().String()),
 		}
 
 		(*planning)[entityId] = mapping
@@ -217,7 +217,7 @@ func (r *_Router) LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, string, b
 	if !ok {
 		return nil, "", false
 	}
-	return mapping.entity, mapping.address, true
+	return mapping.entity, mapping.cliAddr, true
 }
 
 // LookupSession 查找会话

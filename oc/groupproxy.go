@@ -31,12 +31,12 @@ func (gp GroupProxied) OneWayCliRPC(entityId uid.Id, method string, args ...any)
 	}
 
 	// 客户端组播地址
-	dst := netpath.Path(gate.ClientAddressDetails.PathSeparator, gate.ClientAddressDetails.MulticastSubdomain, gp.Id.String())
+	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, gp.Id.String())
 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: entityId.String(),
+		EntityId: entityId,
 		Method:   method,
 	}
 
