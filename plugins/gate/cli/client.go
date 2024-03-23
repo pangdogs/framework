@@ -80,6 +80,11 @@ func (c *Client) GetFutures() concurrent.IFutures {
 	return &c.futures
 }
 
+// GetLogger 获取logger
+func (c *Client) GetLogger() *zap.SugaredLogger {
+	return c.logger
+}
+
 // SendData 发送数据
 func (c *Client) SendData(data []byte) error {
 	return c.trans.SendData(data)

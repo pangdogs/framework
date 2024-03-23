@@ -44,7 +44,7 @@ func (d *_ServiceDeliverer) Match(ctx service.Context, dst, path string, oneWay 
 		return false
 	}
 
-	if oneWay {
+	if !oneWay {
 		// 普通请求，支持负载均衡与单播地址
 		return addr.InBalanceSubdomain(dst) || addr.InNodeSubdomain(dst)
 	} else {
