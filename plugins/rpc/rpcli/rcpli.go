@@ -136,10 +136,10 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 	return nil
 }
 
-// AddEntity 添加实体
-func (c *RPCli) AddEntity(entityId uid.Id, proc any) error {
-	if entityId.IsNil() {
-		return fmt.Errorf("%w: entityId is nil", core.ErrArgs)
+// AddProc 添加过程
+func (c *RPCli) AddProc(id uid.Id, proc any) error {
+	if id == Main {
+		return fmt.Errorf("%w: id is nil", core.ErrArgs)
 	}
 
 	_proc, ok := proc.(IProc)
@@ -147,19 +147,24 @@ func (c *RPCli) AddEntity(entityId uid.Id, proc any) error {
 		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
 	}
 
-	_proc.setup(c, entityId, proc)
-	c.procs.Insert(entityId, _proc)
+	_proc.setup(c, id, proc)
+	c.procs.Insert(id, _proc)
 
 	return nil
 }
 
-// RemoveEntity 删除实体
-func (c *RPCli) RemoveEntity(entityId uid.Id) error {
-	if entityId.IsNil() {
-		return fmt.Errorf("%w: entityId is nil", core.ErrArgs)
+// RemoveProc 删除过程
+func (c *RPCli) RemoveProc(id uid.Id) error {
+	if id.IsNil() {
+		return fmt.Errorf("%w: id is nil", core.ErrArgs)
 	}
 
-	c.procs.Delete(entityId)
+	c.procs.Delete(id)
 
 	return nil
+}
+
+// GetProc 查询过程
+func (c *RPCli) GetProc(id uid.Id) (IProc, bool) {
+	return c.procs.Get(id)
 }

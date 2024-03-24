@@ -38,7 +38,7 @@ func (c *RPCli) acceptNotify(req *gap.MsgOneWayRPC) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		if _, err := c.callEntity(cp.EntityId, cp.Method, req.Args); err != nil {
+		if _, err := c.callProc(cp.EntityId, cp.Method, req.Args); err != nil {
 			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.EntityId, cp.Method, err)
 		} else {
 			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.EntityId, cp.Method)
@@ -59,7 +59,7 @@ func (c *RPCli) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		retsRV, err := c.callEntity(cp.EntityId, cp.Method, req.Args)
+		retsRV, err := c.callProc(cp.EntityId, cp.Method, req.Args)
 		if err != nil {
 			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Method, err)
 		} else {
@@ -135,7 +135,7 @@ func (c *RPCli) resolve(reply *gap.MsgRPCReply) error {
 	return c.GetFutures().Resolve(reply.CorrId, ret)
 }
 
-func (c *RPCli) callEntity(entityId uid.Id, method string, args variant.Array) (rets []reflect.Value, err error) {
+func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (rets []reflect.Value, err error) {
 	proc, ok := c.procs.Get(entityId)
 	if !ok {
 		return nil, ErrEntityNotFound

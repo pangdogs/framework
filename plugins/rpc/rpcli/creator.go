@@ -193,7 +193,7 @@ func (ctor RPCliCreator) ZapLogger(logger *zap.Logger) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) Setup(proc any) RPCliCreator {
+func (ctor RPCliCreator) MainProc(proc any) RPCliCreator {
 	_proc, ok := proc.(IProc)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect proc type", core.ErrArgs))
@@ -221,8 +221,8 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	}
 
 	if ctor.proc != nil {
-		ctor.proc.setup(rpcli, uid.Nil, ctor.proc)
-		rpcli.procs.Insert(uid.Nil, ctor.proc)
+		ctor.proc.setup(rpcli, Main, ctor.proc)
+		rpcli.procs.Insert(Main, ctor.proc)
 	}
 
 	rpcli.WatchData(context.Background(), generic.CastDelegateFunc1(rpcli.handleRecvData))

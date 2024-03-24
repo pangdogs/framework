@@ -6,6 +6,10 @@ import (
 	"reflect"
 )
 
+var (
+	Main = uid.Nil // 主过程
+)
+
 // IProc 过程接口
 type IProc interface {
 	_IProc
