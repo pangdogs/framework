@@ -2,6 +2,7 @@ package variant
 
 import (
 	"errors"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/util/binaryutil"
 	"reflect"
 )
@@ -139,6 +140,10 @@ retry:
 	case string:
 		return MakeVariant(String(v))
 	case *string:
+		return MakeVariant((*String)(v))
+	case uid.Id:
+		return MakeVariant(String(v))
+	case *uid.Id:
 		return MakeVariant((*String)(v))
 	case nil:
 		return MakeVariant(Null{})
