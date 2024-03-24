@@ -74,9 +74,9 @@ func (d *_ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 		go func() {
 			if _, err := CallService(d.servCtx, cp.Plugin, cp.Method, req.Args); err != nil {
 				log.Errorf(d.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
 			}
-			log.Debugf(d.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
 			return
 		}()
 
@@ -93,9 +93,9 @@ func (d *_ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, ret.Error)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.EntityId, cp.Plugin, cp.Method)
 			}
-			log.Debugf(d.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.EntityId, cp.Plugin, cp.Method)
 		}()
 
 		return nil
@@ -111,9 +111,9 @@ func (d *_ServiceDispatcher) acceptNotify(req *gap.MsgOneWayRPC) error {
 			ret := asyncRet.Wait(d.servCtx)
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, ret.Error)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.EntityId, cp.Component, cp.Method)
 			}
-			log.Debugf(d.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.EntityId, cp.Component, cp.Method)
 		}()
 
 		return nil
@@ -136,11 +136,10 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			retsRV, err := CallService(d.servCtx, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
-				d.reply(src, req.CorrId, nil, err)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
-			d.reply(src, req.CorrId, retsRV, nil)
+			d.reply(src, req.CorrId, retsRV, err)
 		}()
 
 		return nil
@@ -158,10 +157,10 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, ret.Error)
 				d.reply(src, req.CorrId, nil, ret.Error)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
+				d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
-			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil
@@ -179,10 +178,10 @@ func (d *_ServiceDispatcher) acceptRequest(src string, req *gap.MsgRPCRequest) e
 			if !ret.OK() {
 				log.Errorf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, ret.Error)
 				d.reply(src, req.CorrId, nil, ret.Error)
-				return
+			} else {
+				log.Debugf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
+				d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 			}
-			log.Debugf(d.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
-			d.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
 		}()
 
 		return nil

@@ -276,6 +276,11 @@ func (ep EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...an
 
 // CliRPC 向客户端发送RPC
 func (ep EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
+	return ep.CliRPCToEntity(uid.Nil, method, args...)
+}
+
+// CliRPCToEntity 向客户端实体发送RPC
+func (ep EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...any) runtime.AsyncRet {
 	if ep.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}
@@ -286,7 +291,7 @@ func (ep EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: ep.Id,
+		EntityId: entityId,
 		Method:   method,
 	}
 
@@ -295,6 +300,11 @@ func (ep EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
 
 // OneWayCliRPC 向客户端发送单向RPC
 func (ep EntityProxied) OneWayCliRPC(method string, args ...any) error {
+	return ep.OneWayCliRPCToEntity(uid.Nil, method, args...)
+}
+
+// OneWayCliRPCToEntity 向客户端实体发送单向RPC
+func (ep EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
 	if ep.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}
@@ -305,7 +315,7 @@ func (ep EntityProxied) OneWayCliRPC(method string, args ...any) error {
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: ep.Id,
+		EntityId: entityId,
 		Method:   method,
 	}
 
