@@ -223,14 +223,6 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 		)
 	}
 
-	// 安装RPC支持插件
-	if cb, ok := sb.composite.(InstallServiceRPC); ok {
-		cb.InstallRPC(servCtx)
-	}
-	if _, ok := servCtx.GetPluginBundle().Get(rpc.Name); !ok {
-		rpc.Install(servCtx)
-	}
-
 	// 安装分布式实体查询插件
 	if cb, ok := sb.composite.(InstallServiceDistEntityQuerier); ok {
 		cb.InstallDistEntityQuerier(servCtx)
@@ -243,6 +235,14 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 				startupConf.GetString("etcd.password"),
 			),
 		)
+	}
+
+	// 安装RPC支持插件
+	if cb, ok := sb.composite.(InstallServiceRPC); ok {
+		cb.InstallRPC(servCtx)
+	}
+	if _, ok := servCtx.GetPluginBundle().Get(rpc.Name); !ok {
+		rpc.Install(servCtx)
 	}
 
 	// etcd连接初始化函数
