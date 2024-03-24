@@ -2,6 +2,7 @@ package oc
 
 import (
 	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/util/uid"
 )
 
 // RPC 向分布式实体目标服务发送RPC
@@ -49,7 +50,17 @@ func (c *ComponentBehavior) CliRPC(method string, args ...any) runtime.AsyncRet 
 	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).CliRPC(method, args...)
 }
 
+// CliRPCToEntity 向客户端实体发送RPC
+func (c *ComponentBehavior) CliRPCToEntity(entityId uid.Id, method string, args ...any) runtime.AsyncRet {
+	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).CliRPCToEntity(entityId, method, args...)
+}
+
 // OneWayCliRPC 向客户端发送单向RPC
 func (c *ComponentBehavior) OneWayCliRPC(method string, args ...any) error {
 	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).OneWayCliRPC(method, args...)
+}
+
+// OneWayCliRPCToEntity 向客户端实体发送单向RPC
+func (c *ComponentBehavior) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
+	return ProxyEntity(c.GetServiceCtx(), c.GetEntity().GetId()).OneWayCliRPCToEntity(entityId, method, args...)
 }
