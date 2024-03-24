@@ -35,9 +35,10 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	}
 
 	session := &_Session{
-		gate:  acc.gate,
-		id:    uid.New(),
-		state: SessionState_Birth,
+		terminatedChan: make(chan struct{}),
+		gate:           acc.gate,
+		id:             uid.New(),
+		state:          SessionState_Birth,
 	}
 
 	session.Context, session.terminate = context.WithCancelCause(acc.gate.ctx)
