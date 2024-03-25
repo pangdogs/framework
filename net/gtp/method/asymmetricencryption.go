@@ -67,7 +67,11 @@ func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 		return nil, errors.New("invalid hash method")
 	}
 
-	hashed := s.hash.New().Sum(data)
+	hash := s.hash.New()
+	hash.Reset()
+	hash.Write(data)
+
+	hashed := hash.Sum(nil)
 
 	switch s.padding {
 	case gtp.PaddingMode_Pkcs1v15:
@@ -109,7 +113,11 @@ func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, err
 		return nil, errors.New("invalid private key")
 	}
 
-	hashed := s.hash.New().Sum(data)
+	hash := s.hash.New()
+	hash.Reset()
+	hash.Write(data)
+
+	hashed := hash.Sum(data)
 
 	return ecdsa.SignASN1(rand.Reader, ecdsaPriv, hashed)
 }
