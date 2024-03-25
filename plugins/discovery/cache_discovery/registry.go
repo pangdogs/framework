@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
@@ -70,7 +71,7 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 }
 
 // GetServiceNode 查询服务节点
-func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
 	services, ok := r.serviceMap.Get(serviceName)
 	if !ok {
 		return nil, discovery.ErrNotFound

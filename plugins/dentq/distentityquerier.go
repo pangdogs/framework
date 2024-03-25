@@ -31,7 +31,7 @@ type DistEntity struct {
 // +k8s:deepcopy-gen=true
 type Node struct {
 	Service       string `json:"service"`        // 服务名称
-	Id            string `json:"id"`             // 服务Id
+	Id            uid.Id `json:"id"`             // 服务Id
 	BroadcastAddr string `json:"broadcast_addr"` // 服务广播地址
 	BalanceAddr   string `json:"balance_addr"`   // 服务负载均衡地址
 	RemoteAddr    string `json:"remote_addr"`    // 远端服务节点地址
@@ -135,7 +135,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 
 		node := Node{
 			Service: intern.String(subs[1]),
-			Id:      intern.String(subs[2]),
+			Id:      uid.From(intern.String(subs[2])),
 		}
 		node.BroadcastAddr = d.distServ.MakeBroadcastAddr(node.Service)
 		node.BalanceAddr = d.distServ.MakeBalanceAddr(node.Service)

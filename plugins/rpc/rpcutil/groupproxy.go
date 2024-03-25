@@ -1,4 +1,4 @@
-package oc
+package rpcutil
 
 import (
 	"errors"
@@ -25,18 +25,18 @@ type GroupProxied struct {
 }
 
 // OneWayCliRPC 向分组客户端发送单向RPC
-func (gp GroupProxied) OneWayCliRPC(method string, args ...any) error {
-	return gp.OneWayCliRPCToEntity(uid.Nil, method, args...)
+func (p GroupProxied) OneWayCliRPC(method string, args ...any) error {
+	return p.OneWayCliRPCToEntity(uid.Nil, method, args...)
 }
 
 // OneWayCliRPCToEntity 向分组客户端实体发送单向RPC
-func (gp GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
-	if gp.Context == nil {
+func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
+	if p.Context == nil {
 		panic(errors.New("rpc: setting context is nil"))
 	}
 
 	// 客户端组播地址
-	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, gp.Id.String())
+	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.Id.String())
 
 	// 调用路径
 	cp := callpath.CallPath{
@@ -45,5 +45,5 @@ func (gp GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 		Method:   method,
 	}
 
-	return rpc.Using(gp.Context).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.Context).OneWayRPC(dst, cp.String(), args...)
 }

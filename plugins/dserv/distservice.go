@@ -8,6 +8,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/netpath"
@@ -47,7 +48,7 @@ type IDistService interface {
 	// MakeBalanceAddr 创建服务负载均衡地址
 	MakeBalanceAddr(service string) string
 	// MakeNodeAddr 创建服务节点地址
-	MakeNodeAddr(node string) (string, error)
+	MakeNodeAddr(nodeId uid.Id) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// ForwardMsg 转发消息
@@ -119,7 +120,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.details.GlobalBalanceAddr = d.details.BalanceSubdomain
 	d.details.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
 	d.details.BalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
-	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId().String())
+	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId())
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(netpath.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
@@ -129,7 +130,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	defer mutex.Unlock(context.Background())
 
 	// 检查服务节点是否已被注册
-	_, err := d.registry.GetServiceNode(d.servCtx, d.servCtx.GetName(), d.servCtx.GetId().String())
+	_, err := d.registry.GetServiceNode(d.servCtx, d.servCtx.GetName(), d.servCtx.GetId())
 	if err == nil {
 		log.Panicf(d.servCtx, "check service %q node %q failed, already registered", d.servCtx.GetName(), d.servCtx.GetId())
 	}
@@ -154,7 +155,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 		Name: d.servCtx.GetName(),
 		Nodes: []discovery.Node{
 			{
-				Id:      d.servCtx.GetId().String(),
+				Id:      d.servCtx.GetId(),
 				Address: d.details.LocalAddr,
 				Version: d.options.Version,
 				Meta:    d.options.Meta,
@@ -210,11 +211,11 @@ func (d *_DistService) MakeBalanceAddr(service string) string {
 }
 
 // MakeNodeAddr 创建服务节点地址
-func (d *_DistService) MakeNodeAddr(node string) (string, error) {
-	if node == "" {
-		return "", fmt.Errorf("%w: node is empty", core.ErrArgs)
+func (d *_DistService) MakeNodeAddr(nodeId uid.Id) (string, error) {
+	if nodeId.IsNil() {
+		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
 	}
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.NodeSubdomain, node)), nil
+	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.NodeSubdomain, nodeId.String())), nil
 }
 
 // SendMsg 发送消息

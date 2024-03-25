@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
@@ -166,7 +167,7 @@ func (r *_Registry) RefreshTTL(ctx context.Context) error {
 }
 
 // GetServiceNode 查询服务节点
-func (r *_Registry) GetServiceNode(ctx context.Context, serviceName, nodeId string) (*discovery.Service, error) {
+func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -421,9 +422,9 @@ func decodeService(ds []byte) (*discovery.Service, error) {
 	return s, nil
 }
 
-func getNodePath(prefix, s, id string) string {
+func getNodePath(prefix, s string, id uid.Id) string {
 	service := strings.ReplaceAll(s, ":", "-")
-	node := strings.ReplaceAll(id, ":", "-")
+	node := strings.ReplaceAll(id.String(), ":", "-")
 	return fmt.Sprintf("%s%s:%s", prefix, service, node)
 }
 

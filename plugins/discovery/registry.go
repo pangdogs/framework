@@ -4,6 +4,7 @@ package discovery
 import (
 	"context"
 	"errors"
+	"git.golaxy.org/core/util/uid"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type Service struct {
 // Node 服务节点
 // +k8s:deepcopy-gen=true
 type Node struct {
-	Id      string            `json:"id"`      // 节点ID
+	Id      uid.Id            `json:"id"`      // 节点ID
 	Address string            `json:"address"` // 节点的地址
 	Version string            `json:"version"` // 节点的服务版本号
 	Meta    map[string]string `json:"meta"`    // 节点元数据，以键值对的形式保存附加信息
@@ -42,7 +43,7 @@ type IRegistry interface {
 	// RefreshTTL 刷新所有服务TTL
 	RefreshTTL(ctx context.Context) error
 	// GetServiceNode 查询服务节点
-	GetServiceNode(ctx context.Context, serviceName, nodeId string) (*Service, error)
+	GetServiceNode(ctx context.Context, serviceName string, nodeId uid.Id) (*Service, error)
 	// GetService 查询服务
 	GetService(ctx context.Context, serviceName string) (*Service, error)
 	// ListServices 查询所有服务
