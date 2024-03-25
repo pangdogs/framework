@@ -527,7 +527,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	io.Copy(signBuf, cs)
+	io.CopyN(signBuf, cs, int64(cs.Size()))
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
@@ -561,7 +561,7 @@ func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signat
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	io.Copy(signBuf, cs)
+	io.CopyN(signBuf, cs, int64(cs.Size()))
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)

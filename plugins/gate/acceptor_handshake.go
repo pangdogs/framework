@@ -722,7 +722,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	io.Copy(signBuf, cs)
+	io.CopyN(signBuf, cs, int64(cs.Size()))
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
@@ -756,7 +756,7 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	io.Copy(signBuf, cs)
+	io.CopyN(signBuf, cs, int64(cs.Size()))
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
