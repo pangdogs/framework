@@ -63,8 +63,8 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	if err != nil {
 		return err
 	}
-	servRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
-	n.FillBytes(servRandom)
+	cliRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
+	n.FillBytes(cliRandom)
 
 	cliHello := transport.Event[gtp.MsgHello]{
 		Msg: gtp.MsgHello{
