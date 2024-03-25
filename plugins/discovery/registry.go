@@ -18,18 +18,18 @@ var (
 // Service 服务配置
 // +k8s:deepcopy-gen=true
 type Service struct {
-	Name     string `json:"name"`     // 服务名称
-	Nodes    []Node `json:"nodes"`    // 服务节点列表
-	Revision int64  `json:"revision"` // 数据版本号
+	Name     string `json:"name"`               // 服务名称
+	Nodes    []Node `json:"nodes"`              // 服务节点列表
+	Revision int64  `json:"revision,omitempty"` // 数据版本号
 }
 
 // Node 服务节点
 // +k8s:deepcopy-gen=true
 type Node struct {
-	Id      uid.Id            `json:"id"`      // 节点ID
-	Address string            `json:"address"` // 节点的地址
-	Version string            `json:"version"` // 节点的服务版本号
-	Meta    map[string]string `json:"meta"`    // 节点元数据，以键值对的形式保存附加信息
+	Id      uid.Id            `json:"id"`                // 节点ID
+	Address string            `json:"address"`           // 节点的地址
+	Version string            `json:"version,omitempty"` // 节点的服务版本号
+	Meta    map[string]string `json:"meta,omitempty"`    // 节点元数据，以键值对的形式保存附加信息
 }
 
 // The IRegistry provides an interface for service discovery
