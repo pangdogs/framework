@@ -8,7 +8,7 @@ import (
 func Marshal[T Msg](msg T) (binaryutil.RecycleBytes, error) {
 	bs := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msg.Size()))
 
-	if _, err := msg.Write(bs.Data()); err != nil {
+	if _, err := msg.Read(bs.Data()); err != nil {
 		bs.Release()
 		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("marshal msg(%d) failed, %s", msg.MsgId(), err)
 	}
