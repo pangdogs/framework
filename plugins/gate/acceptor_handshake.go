@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/binaryutil"
+	"io"
 	"math/big"
 	"net"
 	"strings"
@@ -721,7 +722,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	signBuf.ReadFrom(&cs)
+	io.Copy(signBuf, cs)
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
@@ -755,7 +756,7 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 
 	// 签名数据
 	signBuf := bytes.NewBuffer(nil)
-	signBuf.ReadFrom(&cs)
+	io.Copy(signBuf, cs)
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
