@@ -117,7 +117,7 @@ func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, err
 	hash.Reset()
 	hash.Write(data)
 
-	hashed := hash.Sum(data)
+	hashed := hash.Sum(nil)
 
 	return ecdsa.SignASN1(rand.Reader, ecdsaPriv, hashed)
 }
