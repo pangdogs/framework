@@ -48,7 +48,6 @@ func (c RuntimeCreator) Setup(rt any) RuntimeCreator {
 	}
 
 	c.runtime = _rt
-	c.runtime.setup(c.servCtx, _rt)
 	return c
 }
 
@@ -90,11 +89,10 @@ func (c RuntimeCreator) Spawn() core.Runtime {
 	}
 
 	rt := c.runtime
-
 	if rt == nil {
 		rt = &RuntimeBehavior{}
-		rt.setup(c.servCtx, c.runtime)
 	}
+	rt.setup(c.servCtx, rt)
 
 	return rt.generate(c.settings)
 }
