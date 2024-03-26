@@ -131,7 +131,7 @@ func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) 
 		decrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
 		return
 	case gtp.BlockCipherMode_GCM:
-		mode, err := cipher.NewGCM(block)
+		mode, err := cipher.NewGCMWithNonceSize(block, block.BlockSize())
 		if err != nil {
 			return nil, nil, err
 		}
