@@ -269,7 +269,7 @@ func (c *Client) reconnect() {
 			continue
 		}
 
-		c.logger.Infof("client %q auto reconnect success, retry %d times, conn %q -> %q", c.GetSessionId(), i+1, c.GetLocalAddr(), c.GetRemoteAddr())
+		c.logger.Infof("client %q auto reconnect success, total retry %d times, conn %q -> %q", c.GetSessionId(), i+1, c.GetLocalAddr(), c.GetRemoteAddr())
 		return
 	}
 
