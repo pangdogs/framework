@@ -68,7 +68,6 @@ func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 	}
 
 	hash := s.hash.New()
-	hash.Reset()
 	hash.Write(data)
 
 	hashed := hash.Sum(nil)
@@ -83,11 +82,16 @@ func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 	}
 }
 
-func (s _RSA256Signer) Verify(pub crypto.PublicKey, hashed, sig []byte) error {
+func (s _RSA256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	rsaPub, ok := pub.(*rsa.PublicKey)
 	if !ok {
 		return errors.New("invalid public key")
 	}
+
+	hash := s.hash.New()
+	hash.Write(data)
+
+	hashed := hash.Sum(nil)
 
 	switch s.padding {
 	case gtp.PaddingMode_Pkcs1v15:
@@ -114,7 +118,6 @@ func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, err
 	}
 
 	hash := s.hash.New()
-	hash.Reset()
 	hash.Write(data)
 
 	hashed := hash.Sum(nil)
@@ -122,9 +125,15 @@ func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, err
 	return ecdsa.SignASN1(rand.Reader, ecdsaPriv, hashed)
 }
 
-func (s _ECDSAP256Signer) Verify(pub crypto.PublicKey, hashed, sig []byte) error {
+func (s _ECDSAP256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
+	hash := s.hash.New()
+	hash.Write(data)
+
+	hashed := hash.Sum(nil)
+
 	if ecdsa.VerifyASN1(pub.(*ecdsa.PublicKey), hashed, sig) {
 		return nil
 	}
+	
 	return errors.New("crypto/ecdsa: verification error")
 }
