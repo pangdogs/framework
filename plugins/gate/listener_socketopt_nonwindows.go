@@ -3,6 +3,7 @@
 package gate
 
 import (
+	"git.golaxy.org/core/util/types"
 	"net"
 	"syscall"
 )
