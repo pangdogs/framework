@@ -175,8 +175,8 @@ func (rb *RuntimeBehavior) generate(settings _RuntimeSettings) core.Runtime {
 		if v, _ := rb.GetMemKVs().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
-				zap_log.With.ServiceInfo(true),
-				zap_log.With.RuntimeInfo(true),
+				zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
+				zap_log.With.RuntimeInfo(startupConf.GetBool("log.runtime_info")),
 			)
 		}
 	}

@@ -164,6 +164,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 
 		zap_log.Install(servCtx,
 			zap_log.With.ZapLogger(zapLogger),
+			zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
 		)
 	}
 

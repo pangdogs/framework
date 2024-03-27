@@ -86,12 +86,14 @@ func (app *App) Run() {
 	app.lazyInit()
 
 	// 日志参数
-	pflag.String("log.format", "console", "logging format (json|console)")
+	pflag.String("log.format", "console", "logging output format (json|console)")
 	pflag.String("log.level", "info", "logging level")
 	pflag.String("log.dir", "./log/", "logging directory path")
 	pflag.Int("log.size", 100*1024*1024, "log file splitting size")
 	pflag.Bool("log.stdout", false, "logging output to stdout")
 	pflag.Bool("log.development", false, "logging in development mode")
+	pflag.Bool("log.service_info", false, "logging output service info")
+	pflag.Bool("log.runtime_info", false, "logging output runtime info")
 
 	// 配置参数
 	pflag.String("conf.format", "json", "config file format")
