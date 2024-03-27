@@ -25,7 +25,9 @@ func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 	default:
 	}
 
-	return acc.handshake(conn)
+	ctx, _ := context.WithTimeout(acc.gate.ctx, acc.gate.options.AcceptTimeout)
+
+	return acc.handshake(ctx, conn)
 }
 
 // newSession 创建会话
