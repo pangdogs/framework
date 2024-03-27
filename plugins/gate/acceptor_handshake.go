@@ -70,7 +70,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 		// 检查客户端要求的会话是否存在，已存在需要走断线重连流程
 		if cliHello.Msg.SessionId != "" {
-			v, ok := acc.gate.loadSession(uid.From(cliHello.Msg.SessionId))
+			v, ok := acc.gate.lookupSession(uid.From(cliHello.Msg.SessionId))
 			if !ok {
 				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,

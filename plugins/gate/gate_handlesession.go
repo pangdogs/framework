@@ -38,8 +38,8 @@ func (g *_Gate) handleSession(conn net.Conn) {
 	log.Infof(g.servCtx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
-// loadSession 查询会话
-func (g *_Gate) loadSession(sessionId uid.Id) (*_Session, bool) {
+// lookupSession 查询会话
+func (g *_Gate) lookupSession(sessionId uid.Id) (*_Session, bool) {
 	v, ok := g.sessionMap.Load(sessionId)
 	if !ok {
 		return nil, false

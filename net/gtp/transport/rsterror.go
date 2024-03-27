@@ -27,8 +27,8 @@ func (err RstError) CastEvent() Event[gtp.MsgRst] {
 }
 
 // CastRstErr Rst错误事件转换为错误提示
-func CastRstErr(e Event[gtp.MsgRst]) RstError {
-	return RstError{
+func CastRstErr(e Event[gtp.MsgRst]) *RstError {
+	return &RstError{
 		Code:    e.Msg.Code,
 		Message: e.Msg.Message,
 	}
