@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/framework/net/gtp"
@@ -116,9 +117,13 @@ func (t *Transceiver) Resend() error {
 }
 
 // Recv 接收消息事件
-func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
+func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.Msg], error) {
 	t.recvMutex.Lock()
 	defer t.recvMutex.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	if t.Conn == nil {
 		return Event[gtp.Msg]{}, errors.New("gtp: setting Conn is nil")
@@ -129,6 +134,12 @@ func (t *Transceiver) Recv() (Event[gtp.Msg], error) {
 	}
 
 	for {
+		select {
+		case <-ctx.Done():
+			return Event[gtp.Msg]{}, fmt.Errorf("gtp: %w", context.Canceled)
+		default:
+		}
+
 		// 解码消息
 		mp, err := t.Decoder.Decode(t.Synchronizer)
 		if err == nil {

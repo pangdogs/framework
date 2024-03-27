@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
@@ -32,7 +33,11 @@ type HandshakeProtocol struct {
 }
 
 // ClientHello 客户端Hello
-func (h *HandshakeProtocol) ClientHello(hello Event[gtp.MsgHello], helloFin HelloFin) (err error) {
+func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[gtp.MsgHello], helloFin HelloFin) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if helloFin == nil {
 		return fmt.Errorf("%w: helloFin is nil", core.ErrArgs)
 	}
@@ -54,7 +59,7 @@ func (h *HandshakeProtocol) ClientHello(hello Event[gtp.MsgHello], helloFin Hell
 		return err
 	}
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -77,7 +82,11 @@ func (h *HandshakeProtocol) ClientHello(hello Event[gtp.MsgHello], helloFin Hell
 }
 
 // ServerHello 服务端Hello
-func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
+func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAccept) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if helloAccept == nil {
 		return fmt.Errorf("%w: helloAccept is nil", core.ErrArgs)
 	}
@@ -97,7 +106,7 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 		trans.GC()
 	}()
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -123,7 +132,11 @@ func (h *HandshakeProtocol) ServerHello(helloAccept HelloAccept) (err error) {
 }
 
 // ClientSecretKeyExchange 客户端交换秘钥
-func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept SecretKeyExchangeAccept, changeCipherSpecAccept ChangeCipherSpecAccept) (err error) {
+func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretKeyExchangeAccept SecretKeyExchangeAccept, changeCipherSpecAccept ChangeCipherSpecAccept) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if secretKeyExchangeAccept == nil {
 		return fmt.Errorf("%w: secretKeyExchangeAccept is nil", core.ErrArgs)
 	}
@@ -144,7 +157,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		trans.GC()
 	}()
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -168,7 +181,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 		return err
 	}
 
-	recv, err = h.retryRecv(trans.Recv())
+	recv, err = h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -196,7 +209,11 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(secretKeyExchangeAccept Secr
 }
 
 // ServerECDHESecretKeyExchange 服务端交换秘钥（ECDHE）
-func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event[gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
+func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, secretKeyExchange Event[gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if secretKeyExchangeFin == nil {
 		return fmt.Errorf("%w: secretKeyExchangeFin is nil", core.ErrArgs)
 	}
@@ -225,7 +242,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return err
 	}
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -247,7 +264,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 		return err
 	}
 
-	recv, err = h.retryRecv(trans.Recv())
+	recv, err = h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -268,7 +285,11 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(secretKeyExchange Event
 }
 
 // ClientAuth 客户端发起鉴权
-func (h *HandshakeProtocol) ClientAuth(auth Event[gtp.MsgAuth]) (err error) {
+func (h *HandshakeProtocol) ClientAuth(ctx context.Context, auth Event[gtp.MsgAuth]) (err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -289,7 +310,7 @@ func (h *HandshakeProtocol) ClientAuth(auth Event[gtp.MsgAuth]) (err error) {
 }
 
 // ServerAuth 服务端验证鉴权
-func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
+func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccept) (err error) {
 	if authAccept == nil {
 		return fmt.Errorf("%w: authAccept is nil", core.ErrArgs)
 	}
@@ -309,7 +330,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 		trans.GC()
 	}()
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -330,7 +351,7 @@ func (h *HandshakeProtocol) ServerAuth(authAccept AuthAccept) (err error) {
 }
 
 // ClientContinue 客户端发起重连
-func (h *HandshakeProtocol) ClientContinue(cont Event[gtp.MsgContinue]) (err error) {
+func (h *HandshakeProtocol) ClientContinue(ctx context.Context, cont Event[gtp.MsgContinue]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -351,7 +372,7 @@ func (h *HandshakeProtocol) ClientContinue(cont Event[gtp.MsgContinue]) (err err
 }
 
 // ServerContinue 服务端处理重连
-func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err error) {
+func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept ContinueAccept) (err error) {
 	if continueAccept == nil {
 		return fmt.Errorf("%w: continueAccept is nil", core.ErrArgs)
 	}
@@ -371,7 +392,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 		trans.GC()
 	}()
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -392,7 +413,7 @@ func (h *HandshakeProtocol) ServerContinue(continueAccept ContinueAccept) (err e
 }
 
 // ClientFinished 客户端握手结束
-func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err error) {
+func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept FinishedAccept) (err error) {
 	if finishedAccept == nil {
 		return fmt.Errorf("%w: finishedAccept is nil", core.ErrArgs)
 	}
@@ -409,7 +430,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 		trans.GC()
 	}()
 
-	recv, err := h.retryRecv(trans.Recv())
+	recv, err := h.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -432,7 +453,7 @@ func (h *HandshakeProtocol) ClientFinished(finishedAccept FinishedAccept) (err e
 }
 
 // ServerFinished 服务端握手结束
-func (h *HandshakeProtocol) ServerFinished(finished Event[gtp.MsgFinished]) (err error) {
+func (h *HandshakeProtocol) ServerFinished(ctx context.Context, finished Event[gtp.MsgFinished]) (err error) {
 	if h.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
@@ -462,9 +483,11 @@ func (h *HandshakeProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-func (h *HandshakeProtocol) retryRecv(e Event[gtp.Msg], err error) (Event[gtp.Msg], error) {
+func (h *HandshakeProtocol) retryRecv(ctx context.Context) (Event[gtp.Msg], error) {
+	e, err := h.Transceiver.Recv(ctx)
 	return Retry{
 		Transceiver: h.Transceiver,
 		Times:       h.RetryTimes,
+		Ctx:         ctx,
 	}.Recv(e, err)
 }

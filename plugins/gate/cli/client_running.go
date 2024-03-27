@@ -173,7 +173,7 @@ loop:
 		}
 
 		// 分发消息事件
-		if err := c.eventDispatcher.Dispatching(); err != nil {
+		if err := c.eventDispatcher.Dispatching(c); err != nil {
 			// 网络io错误
 			if errors.Is(err, transport.ErrNetIO) {
 				// 网络io超时，触发心跳检测，向对方发送ping

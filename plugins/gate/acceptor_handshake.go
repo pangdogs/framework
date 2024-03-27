@@ -59,7 +59,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	}()
 
 	// 与客户端互相hello
-	err := handshake.ServerHello(func(cliHello transport.Event[gtp.MsgHello]) (transport.Event[gtp.MsgHello], error) {
+	err := handshake.ServerHello(acc.gate.ctx, func(cliHello transport.Event[gtp.MsgHello]) (transport.Event[gtp.MsgHello], error) {
 		// 检查协议版本
 		if cliHello.Msg.Version != gtp.Version_V1_0 {
 			return transport.Event[gtp.MsgHello]{}, &transport.RstError{
@@ -197,7 +197,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 	// 开启鉴权时，鉴权客户端
 	if authFlow {
-		err = handshake.ServerAuth(func(e transport.Event[gtp.MsgAuth]) error {
+		err = handshake.ServerAuth(acc.gate.ctx, func(e transport.Event[gtp.MsgAuth]) error {
 			// 断线重连流程，检查会话Id与token是否匹配，防止hack客户端猜测会话Id，恶意通过断线重连登录
 			if continueFlow {
 				if e.Msg.Token != session.GetToken() {
@@ -235,7 +235,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		err = handshake.ServerContinue(func(e transport.Event[gtp.MsgContinue]) error {
+		err = handshake.ServerContinue(acc.gate.ctx, func(e transport.Event[gtp.MsgContinue]) error {
 			// 刷新会话
 			var err error
 			sendSeq, recvSeq, err = session.renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
@@ -259,7 +259,7 @@ func (acc *_Acceptor) handshake(conn net.Conn) (*_Session, error) {
 	}
 
 	// 通知客户端握手结束
-	err = handshake.ServerFinished(transport.Event[gtp.MsgFinished]{
+	err = handshake.ServerFinished(acc.gate.ctx, transport.Event[gtp.MsgFinished]{
 		Flags: gtp.Flags_None().
 			Setd(gtp.Flag_EncryptOK, encryptionFlow).
 			Setd(gtp.Flag_AuthOK, authFlow).
@@ -397,7 +397,7 @@ func (acc *_Acceptor) secretKeyExchange(handshake *transport.HandshakeProtocol, 
 		defer encryptedHello.Release()
 
 		// 与客户端交换秘钥
-		err = handshake.ServerECDHESecretKeyExchange(
+		err = handshake.ServerECDHESecretKeyExchange(acc.gate.ctx,
 			transport.Event[gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
 				Msg: gtp.MsgECDHESecretKeyExchange{

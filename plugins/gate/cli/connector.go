@@ -46,7 +46,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 	client = ctor.newClient(ctx, conn, endpoint)
 
-	err = ctor.handshake(conn, client)
+	err = ctor.handshake(ctx, conn, client)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 		}
 	}()
 
-	err = ctor.handshake(conn, client)
+	err = ctor.handshake(client, conn, client)
 	if err != nil {
 		return err
 	}

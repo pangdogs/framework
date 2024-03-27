@@ -51,7 +51,7 @@ func TestProtocol(t *testing.T) {
 					Transceiver: transceiver,
 				}
 
-				err = handshake.ServerHello(func(e Event[gtp.MsgHello]) (Event[gtp.MsgHello], error) {
+				err = handshake.ServerHello(context.Background(), func(e Event[gtp.MsgHello]) (Event[gtp.MsgHello], error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= hello")
 					return Event[gtp.MsgHello]{Flags: gtp.Flags(gtp.Flag_HelloDone)}, nil
 				})
@@ -59,7 +59,7 @@ func TestProtocol(t *testing.T) {
 					panic(err)
 				}
 
-				err = handshake.ServerFinished(Event[gtp.MsgFinished]{
+				err = handshake.ServerFinished(context.Background(), Event[gtp.MsgFinished]{
 					Msg: gtp.MsgFinished{
 						SendSeq: transceiver.Synchronizer.SendSeq(),
 						RecvSeq: transceiver.Synchronizer.RecvSeq(),
@@ -153,7 +153,7 @@ func TestProtocol(t *testing.T) {
 			Transceiver: transceiver,
 		}
 
-		err = handshake.ClientHello(Event[gtp.MsgHello]{}, func(e Event[gtp.MsgHello]) error {
+		err = handshake.ClientHello(context.Background(), Event[gtp.MsgHello]{}, func(e Event[gtp.MsgHello]) error {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= hello")
 			return nil
 		})
@@ -161,7 +161,7 @@ func TestProtocol(t *testing.T) {
 			panic(err)
 		}
 
-		err = handshake.ClientFinished(func(e Event[gtp.MsgFinished]) error {
+		err = handshake.ClientFinished(context.Background(), func(e Event[gtp.MsgFinished]) error {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= finished", e.Msg.SendSeq, e.Msg.RecvSeq)
 			return nil
 		})

@@ -20,14 +20,18 @@ type EventDispatcher struct {
 }
 
 // Dispatching 分发事件
-func (d *EventDispatcher) Dispatching() error {
+func (d *EventDispatcher) Dispatching(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if d.Transceiver == nil {
 		return errors.New("setting Transceiver is nil")
 	}
 
 	defer d.Transceiver.GC()
 
-	e, err := d.retryRecv(d.Transceiver.Recv())
+	e, err := d.retryRecv(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,15 +77,17 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 		default:
 		}
 
-		if err := d.Dispatching(); err != nil {
+		if err := d.Dispatching(ctx); err != nil {
 			_errorHandler.Invoke(nil, err)
 		}
 	}
 }
 
-func (d *EventDispatcher) retryRecv(e Event[gtp.Msg], err error) (Event[gtp.Msg], error) {
+func (d *EventDispatcher) retryRecv(ctx context.Context) (Event[gtp.Msg], error) {
+	e, err := d.Transceiver.Recv(ctx)
 	return Retry{
 		Transceiver: d.Transceiver,
 		Times:       d.RetryTimes,
+		Ctx:         ctx,
 	}.Recv(e, err)
 }

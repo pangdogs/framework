@@ -154,7 +154,7 @@ loop:
 		}
 
 		// 分发消息事件
-		if err := s.eventDispatcher.Dispatching(); err != nil {
+		if err := s.eventDispatcher.Dispatching(s.gate.ctx); err != nil {
 			// 网络io错误
 			if errors.Is(err, transport.ErrNetIO) {
 				// 网络io超时，触发心跳检测，向对方发送ping

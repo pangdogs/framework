@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ import (
 )
 
 // handshake 握手过程
-func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
+func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Client) error {
 	// 编解码器构建器
 	ctor.encoderCreator = codec.CreateEncoder()
 	ctor.decoderCreator = codec.CreateDecoder(ctor.options.DecoderMsgCreator)
@@ -77,7 +78,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	}
 
 	// 与服务端互相hello
-	err = handshake.ClientHello(cliHello,
+	err = handshake.ClientHello(ctx, cliHello,
 		func(servHello transport.Event[gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
@@ -126,7 +127,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 开启加密时，与服务端交换秘钥
 	if encryptionFlow {
-		err = ctor.secretKeyExchange(handshake, cs, cm, cliRandom, servRandom, cliHelloBytes, servHelloBytes, sessionId)
+		err = ctor.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloBytes, servHelloBytes, sessionId)
 		if err != nil {
 			return err
 		}
@@ -140,7 +141,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 开启鉴权时，向服务端发起鉴权
 	if authFlow {
-		err = handshake.ClientAuth(transport.Event[gtp.MsgAuth]{
+		err = handshake.ClientAuth(ctx, transport.Event[gtp.MsgAuth]{
 			Msg: gtp.MsgAuth{
 				UserId:     ctor.options.AuthUserId,
 				Token:      ctor.options.AuthToken,
@@ -158,7 +159,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		err = handshake.ClientContinue(transport.Event[gtp.MsgContinue]{
+		err = handshake.ClientContinue(ctx, transport.Event[gtp.MsgContinue]{
 			Msg: gtp.MsgContinue{
 				SendSeq: client.transceiver.Synchronizer.SendSeq(),
 				RecvSeq: client.transceiver.Synchronizer.RecvSeq(),
@@ -172,7 +173,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 	var remoteSendSeq, remoteRecvSeq uint32
 
 	// 等待服务端通知握手结束
-	err = handshake.ClientFinished(func(finished transport.Event[gtp.MsgFinished]) error {
+	err = handshake.ClientFinished(ctx, func(finished transport.Event[gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
 			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
 		}
@@ -213,7 +214,7 @@ func (ctor *_Connector) handshake(conn net.Conn, client *Client) error {
 }
 
 // secretKeyExchange 秘钥交换过程
-func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
+func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
 	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId uid.Id) error {
 	// 选择秘钥交换函数，并与客户端交换秘钥
 	switch cs.SecretKeyExchange {
@@ -232,7 +233,7 @@ func (ctor *_Connector) secretKeyExchange(handshake *transport.HandshakeProtocol
 		var encryptionModule [2]codec.IEncryptionModule
 
 		// 与服务端交换秘钥
-		err := handshake.ClientSecretKeyExchange(func(e transport.Event[gtp.Msg]) (transport.Event[gtp.MsgReader], error) {
+		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.Event[gtp.Msg]) (transport.Event[gtp.MsgReader], error) {
 			// 解包ECDHESecretKeyExchange消息事件
 			switch e.Msg.MsgId() {
 			case gtp.MsgId_ECDHESecretKeyExchange:
