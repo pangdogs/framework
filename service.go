@@ -134,20 +134,36 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 			panic(fmt.Errorf("parse startup config log.level failed, %s", err))
 		}
 
-		zapLogger, zapAtomicLevel := zap_log.NewJsonZapLogger(
-			level,
-			filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName(), servCtx.GetId())),
-			startupConf.GetInt("log.size"),
-			startupConf.GetBool("log.stdout"),
-			startupConf.GetBool("log.development"),
-		)
+		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName(), servCtx.GetId()))
+
+		var zapLogger *zap.Logger
+		var zapAtomicLevel zap.AtomicLevel
+
+		switch startupConf.GetString("log.format") {
+		case "json":
+			zapLogger, zapAtomicLevel = zap_log.NewJsonZapLogger(
+				level,
+				filePath,
+				startupConf.GetInt("log.size"),
+				startupConf.GetBool("log.stdout"),
+				startupConf.GetBool("log.development"),
+			)
+		default:
+			zapLogger, zapAtomicLevel = zap_log.NewConsoleZapLogger(
+				level,
+				"\t",
+				filePath,
+				startupConf.GetInt("log.size"),
+				startupConf.GetBool("log.stdout"),
+				startupConf.GetBool("log.development"),
+			)
+		}
 
 		memKVs.Store("zap.logger", zapLogger)
 		memKVs.Store("zap.atomic_level", zapAtomicLevel)
 
 		zap_log.Install(servCtx,
 			zap_log.With.ZapLogger(zapLogger),
-			zap_log.With.ServiceInfo(true),
 		)
 	}
 

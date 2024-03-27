@@ -86,6 +86,7 @@ func (app *App) Run() {
 	app.lazyInit()
 
 	// 日志参数
+	pflag.String("log.format", "console", "logging format (json|console)")
 	pflag.String("log.level", "info", "logging level")
 	pflag.String("log.dir", "./log/", "logging directory path")
 	pflag.Int("log.size", 100*1024*1024, "log file splitting size")
