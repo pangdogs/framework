@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp"
@@ -13,6 +14,11 @@ import (
 	"sync"
 )
 
+var (
+	ErrReconnectFailed = errors.New("reconnect failed")
+	ErrInactiveTimeout = errors.New("inactive timeout")
+)
+
 // IWatcher 监听器
 type IWatcher interface {
 	context.Context
@@ -22,7 +28,7 @@ type IWatcher interface {
 // Client 客户端
 type Client struct {
 	context.Context
-	terminate       context.CancelFunc
+	terminate       context.CancelCauseFunc
 	terminatedChan  chan struct{}
 	wg              sync.WaitGroup
 	mutex           sync.Mutex
@@ -141,7 +147,7 @@ func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
 }
 
 // Close 关闭
-func (c *Client) Close() <-chan struct{} {
-	c.terminate()
+func (c *Client) Close(err error) <-chan struct{} {
+	c.terminate(err)
 	return c.terminatedChan
 }

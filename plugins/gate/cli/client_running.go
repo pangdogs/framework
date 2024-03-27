@@ -70,7 +70,7 @@ func (c *Client) continueIO() {
 // mainLoop 主线程
 func (c *Client) mainLoop() {
 	defer func() {
-		c.terminate()
+		c.terminate(nil)
 
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
@@ -143,6 +143,9 @@ func (c *Client) mainLoop() {
 
 	// 修改活跃状态
 	changeActive := func(b bool) {
+		if active != b && !b {
+			timeout = time.Now().Add(c.options.InactiveTimeout)
+		}
 		active = b
 
 		if !active && c.options.AutoReconnect {
@@ -158,7 +161,7 @@ loop:
 		// 非活跃状态，未开启自动重连，检测超时时间
 		if !active && !c.options.AutoReconnect {
 			if time.Now().After(timeout) {
-				c.terminate()
+				c.terminate(ErrInactiveTimeout)
 			}
 		}
 
@@ -260,7 +263,7 @@ func (c *Client) reconnect() {
 			var rstErr *transport.RstError
 			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenewConn) {
 				c.logger.Errorf("client %q auto reconnect aborted, %s, close client", c.GetSessionId(), err)
-				c.terminate()
+				c.terminate(err)
 				return
 			}
 
@@ -275,7 +278,7 @@ func (c *Client) reconnect() {
 
 	// 多次重连失败，关闭连接
 	c.logger.Errorf("client %q auto reconnect unsuccessful, close client", c.GetSessionId())
-	c.terminate()
+	c.terminate(ErrReconnectFailed)
 }
 
 // handleRecvEventChan 接收自定义事件并写入channel
@@ -392,5 +395,11 @@ func (c *Client) handleRecvSyncTime(event transport.Event[gtp.MsgSyncTime]) erro
 		}
 		return c.futures.Resolve(event.Msg.CorrId, concurrent.MakeRet[any](respTime, nil))
 	}
+	return nil
+}
+
+// handleRecvRst 接收Rst消息事件
+func (c *Client) handleRecvRst(event transport.Event[gtp.MsgRst]) error {
+	c.Close(transport.CastRstErr(event))
 	return nil
 }

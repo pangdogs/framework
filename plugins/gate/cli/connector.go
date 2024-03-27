@@ -97,7 +97,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 		logger:   ctor.options.ZapLogger.Sugar(),
 	}
 
-	client.Context, client.terminate = context.WithCancel(ctx)
+	client.Context, client.terminate = context.WithCancelCause(ctx)
 	client.terminatedChan = make(chan struct{})
 	client.transceiver.Conn = conn
 
@@ -116,6 +116,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.RetryTimes = ctor.options.IORetryTimes
 	client.ctrl.HeartbeatHandler = generic.CastDelegateFunc1(client.handleRecvHeartbeat)
 	client.ctrl.SyncTimeHandler = generic.CastDelegateFunc1(client.handleRecvSyncTime)
+	client.ctrl.RstHandler = generic.CastDelegateFunc1(client.handleRecvRst)
 
 	// 初始化异步模型Future控制器
 	client.futures = concurrent.MakeFutures(client.Context, ctor.options.FutureTimeout)
