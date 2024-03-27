@@ -166,12 +166,12 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, arg
 	// 刷新租约
 	_, err := d.client.KeepAliveOnce(d.rtCtx, d.leaseId)
 	if err == nil {
-		log.Debugf(d.rtCtx, "keep alive lease %q ok", d.leaseId)
+		log.Debugf(d.rtCtx, "keep alive lease %d ok", d.leaseId)
 		return
 	}
 
 	if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
-		log.Errorf(d.rtCtx, "keep alive lease %q failed, %s", d.leaseId, err)
+		log.Errorf(d.rtCtx, "keep alive lease %d failed, %s", d.leaseId, err)
 		return
 	}
 
