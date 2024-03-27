@@ -64,7 +64,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 		return nil, fmt.Errorf("broker: %w", err)
 	}
 
-	log.Debugf(b.servCtx, "subscribe topic pattern %q queue %q success", sub.Queue(), sub.Queue())
+	log.Debugf(b.servCtx, "subscribe topic pattern %q queue %q success", pattern, sub.Queue())
 
 	b.wg.Add(1)
 	go sub.mainLoop()
