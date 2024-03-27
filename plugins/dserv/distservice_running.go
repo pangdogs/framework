@@ -15,7 +15,7 @@ func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.IS
 
 	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
 
-	if d.options.AutoRefreshTTL {
+	if d.options.RefreshTTL {
 		ticker := time.NewTicker(d.options.TTL / 2)
 		defer ticker.Stop()
 

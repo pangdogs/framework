@@ -19,7 +19,7 @@ type DistServiceOptions struct {
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
 	Domain            string            // 服务地址域
 	TTL               time.Duration     // 服务信息TTL
-	AutoRefreshTTL    bool              // 主动刷新服务信息TTL
+	RefreshTTL        bool              // 主动刷新服务信息TTL
 	FutureTimeout     time.Duration     // 异步模型Future超时时间
 	DecoderMsgCreator gap.IMsgCreator   // 消息包解码器的消息构建器
 	RecvMsgHandler    RecvMsgHandler    // 接收消息的处理器（优先级低于监控器）
@@ -64,9 +64,10 @@ func (_Option) Domain(domain string) option.Setting[DistServiceOptions] {
 }
 
 // TTL 服务信息TTL
-func (_Option) TTL(ttl time.Duration, auto bool) option.Setting[DistServiceOptions] {
+func (_Option) TTL(ttl time.Duration, refresh bool) option.Setting[DistServiceOptions] {
 	return func(o *DistServiceOptions) {
 		o.TTL = ttl
+		o.RefreshTTL = refresh
 	}
 }
 
