@@ -106,7 +106,6 @@ func (d *_ForwardOutDeliverer) Request(ctx service.Context, dst, path string, ar
 	}
 
 	log.Debugf(d.servCtx, "rpc request(%d) forwarding to dst:%q, path:%q ok", future.Id, forwardAddr, path)
-
 	return ret.CastAsyncRet()
 }
 
@@ -144,7 +143,6 @@ func (d *_ForwardOutDeliverer) Notify(ctx service.Context, dst, path string, arg
 	}
 
 	log.Debugf(d.servCtx, "rpc notify forwarding to dst:%q, path:%q ok", forwardAddr, path)
-
 	return nil
 }
 

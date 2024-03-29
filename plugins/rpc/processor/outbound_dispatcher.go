@@ -90,7 +90,7 @@ func (d *_OutboundDispatcher) acceptForward(src string, req *gap.MsgForward) {
 
 			return runtime.MakeRet(nil, nil)
 		})
-		go d.forwardingFinish(src, req, (<-asyncRet).Error)
+		go func() { d.forwardingFinish(src, req, (<-asyncRet).Error) }()
 		return
 
 	} else if gate.CliDetails.InMulticastSubdomain(req.Dst) {

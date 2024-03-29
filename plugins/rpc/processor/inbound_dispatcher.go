@@ -111,8 +111,8 @@ func (d *_InboundDispatcher) acceptForward(session gate.ISession, seq int64, req
 	node := distEntity.Nodes[nodeIdx]
 
 	msg := &gap.MsgForward{
-		Transit:   d.dist.GetNodeDetails().LocalAddr,
-		Dst:       entity.GetId().String(),
+		Transit:   d.dist.GetNodeDetails().LocalAddr, // 中转地址
+		Dst:       entity.GetId().String(),           // 目标实体
 		TransId:   req.TransId,
 		TransData: req.TransData,
 	}

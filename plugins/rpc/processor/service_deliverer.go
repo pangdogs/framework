@@ -76,7 +76,6 @@ func (d *_ServiceDeliverer) Request(ctx service.Context, dst, path string, args 
 	}
 
 	log.Debugf(d.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, path)
-
 	return ret.CastAsyncRet()
 }
 
@@ -97,6 +96,5 @@ func (d *_ServiceDeliverer) Notify(ctx service.Context, dst, path string, args [
 	}
 
 	log.Debugf(d.servCtx, "rpc notify to dst:%q, path:%q ok", dst, path)
-
 	return nil
 }
