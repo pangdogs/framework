@@ -35,7 +35,7 @@ func (g *_Gate) handleSession(conn net.Conn) {
 		return
 	}
 
-	log.Infof(g.servCtx, "listener %q accept client %q, handle session success, id: %s, token: %s", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
+	log.Infof(g.servCtx, "listener %q accept client %q, handle session success, id: %q, token: %q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 }
 
 // getSession 查询会话
