@@ -13,7 +13,7 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 	}
 	return RuntimeCreator{
 		servCtx: ctx,
-		runtime: nil,
+		generic: nil,
 		settings: _RuntimeSettings{
 			Name:                 "",
 			AutoRecover:          ctx.GetAutoRecover(),
@@ -28,26 +28,26 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 // RuntimeCreator 运行时构建器
 type RuntimeCreator struct {
 	servCtx  service.Context
-	runtime  _IRuntime
+	generic  _IRuntimeGeneric
 	settings _RuntimeSettings
 }
 
-// Setup 安装运行时
-func (c RuntimeCreator) Setup(rt any) RuntimeCreator {
+// Setup 安装运行时泛化类型
+func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 	if c.servCtx == nil {
 		panic("setting servCtx is nil")
 	}
 
-	if rt == nil {
-		panic(fmt.Errorf("%w: rt is nil", core.ErrArgs))
+	if generic == nil {
+		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_rt, ok := rt.(_IRuntime)
+	_generic, ok := generic.(_IRuntimeGeneric)
 	if !ok {
-		panic(fmt.Errorf("%w: incorrect rt type", core.ErrArgs))
+		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
 
-	c.runtime = _rt
+	c.generic = _generic
 	return c
 }
 
@@ -88,11 +88,11 @@ func (c RuntimeCreator) Spawn() core.Runtime {
 		panic("setting servCtx is nil")
 	}
 
-	rt := c.runtime
-	if rt == nil {
-		rt = &RuntimeBehavior{}
+	generic := c.generic
+	if generic == nil {
+		generic = &RuntimeGeneric{}
 	}
-	rt.setup(c.servCtx, rt)
+	generic.setup(c.servCtx, generic)
 
-	return rt.generate(c.settings)
+	return generic.generate(c.settings)
 }

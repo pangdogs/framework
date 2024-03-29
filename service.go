@@ -30,26 +30,31 @@ import (
 	"sync"
 )
 
-type _IService interface {
+type _IServiceGeneric interface {
 	setup(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context) core.Service
 }
 
-// ServiceBehavior 服务行为，在开发新服务时，匿名嵌入至服务结构体中
-type ServiceBehavior struct {
+// IServiceInstance 服务实例化接口
+type IServiceInstance interface {
+	Instance() service.Context
+}
+
+// ServiceGeneric 服务泛化类型
+type ServiceGeneric struct {
 	startupConf *viper.Viper
 	name        string
 	composite   any
 }
 
-func (sb *ServiceBehavior) setup(startupConf *viper.Viper, name string, composite any) {
-	sb.startupConf = startupConf
-	sb.name = name
-	sb.composite = composite
+func (s *ServiceGeneric) setup(startupConf *viper.Viper, name string, composite any) {
+	s.startupConf = startupConf
+	s.name = name
+	s.composite = composite
 }
 
-func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
-	startupConf := sb.GetStartupConf()
+func (s *ServiceGeneric) generate(ctx context.Context) core.Service {
+	startupConf := s.GetStartupConf()
 
 	memKVs := &sync.Map{}
 	memKVs.Store("startup.conf", startupConf)
@@ -65,52 +70,52 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 
 	face := iface.Face[service.Context]{}
 
-	if cb, ok := sb.composite.(SetupServiceContextComposite); ok {
-		face = iface.MakeFace(cb.MakeContextComposite())
+	if cb, ok := s.composite.(IServiceInstance); ok {
+		face = iface.MakeFace(cb.Instance())
 	}
 
 	servCtx := service.NewContext(
 		service.With.CompositeFace(face),
 		service.With.Context(ctx),
-		service.With.Name(sb.GetName()),
+		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
 		service.With.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
 			switch state {
 			case service.RunningState_Birth:
-				if cb, ok := sb.composite.(LifecycleServiceBirth); ok {
+				if cb, ok := s.composite.(LifecycleServiceBirth); ok {
 					cb.Birth(ctx)
 				}
-				if cb, ok := ctx.(LifecycleServiceContextBirth); ok {
-					cb.Birth()
+				if cb, ok := ctx.(LifecycleServiceBirth); ok {
+					cb.Birth(ctx)
 				}
 			case service.RunningState_Starting:
-				if cb, ok := sb.composite.(LifecycleServiceStarting); ok {
+				if cb, ok := s.composite.(LifecycleServiceStarting); ok {
 					cb.Starting(ctx)
 				}
-				if cb, ok := ctx.(LifecycleServiceContextStarting); ok {
-					cb.Starting()
+				if cb, ok := ctx.(LifecycleServiceStarting); ok {
+					cb.Starting(ctx)
 				}
 			case service.RunningState_Started:
-				if cb, ok := sb.composite.(LifecycleServiceStarted); ok {
+				if cb, ok := s.composite.(LifecycleServiceStarted); ok {
 					cb.Started(ctx)
 				}
-				if cb, ok := ctx.(LifecycleServiceContextStarted); ok {
-					cb.Started()
+				if cb, ok := ctx.(LifecycleServiceStarted); ok {
+					cb.Started(ctx)
 				}
 			case service.RunningState_Terminating:
-				if cb, ok := sb.composite.(LifecycleServiceTerminating); ok {
+				if cb, ok := s.composite.(LifecycleServiceTerminating); ok {
 					cb.Terminating(ctx)
 				}
-				if cb, ok := ctx.(LifecycleServiceContextTerminating); ok {
-					cb.Terminating()
+				if cb, ok := ctx.(LifecycleServiceTerminating); ok {
+					cb.Terminating(ctx)
 				}
 			case service.RunningState_Terminated:
-				if cb, ok := sb.composite.(LifecycleServiceTerminated); ok {
+				if cb, ok := s.composite.(LifecycleServiceTerminated); ok {
 					cb.Terminated(ctx)
 				}
-				if cb, ok := ctx.(LifecycleServiceContextTerminated); ok {
-					cb.Terminated()
+				if cb, ok := ctx.(LifecycleServiceTerminated); ok {
+					cb.Terminated(ctx)
 				}
 
 				if v, ok := memKVs.Load("zap.logger"); ok {
@@ -125,7 +130,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	)
 
 	// 安装日志插件
-	if cb, ok := sb.composite.(InstallServiceLogger); ok {
+	if cb, ok := s.composite.(InstallServiceLogger); ok {
 		cb.InstallLogger(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(log.Name); !ok {
@@ -134,7 +139,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 			panic(fmt.Errorf("parse startup config log.level failed, %s", err))
 		}
 
-		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), sb.GetName(), servCtx.GetId()))
+		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), servCtx.GetId()))
 
 		var zapLogger *zap.Logger
 		var zapAtomicLevel zap.AtomicLevel
@@ -169,7 +174,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装配置插件
-	if cb, ok := sb.composite.(InstallServiceConfig); ok {
+	if cb, ok := s.composite.(InstallServiceConfig); ok {
 		cb.InstallConfig(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(conf.Name); !ok {
@@ -186,7 +191,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装broker插件
-	if cb, ok := sb.composite.(InstallServiceBroker); ok {
+	if cb, ok := s.composite.(InstallServiceBroker); ok {
 		cb.InstallBroker(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(broker.Name); !ok {
@@ -200,7 +205,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装服务发现插件
-	if cb, ok := sb.composite.(InstallServiceRegistry); ok {
+	if cb, ok := s.composite.(InstallServiceRegistry); ok {
 		cb.InstallRegistry(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(discovery.Name); !ok {
@@ -215,7 +220,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装分布式同步插件
-	if cb, ok := sb.composite.(InstallServiceDistSync); ok {
+	if cb, ok := s.composite.(InstallServiceDistSync); ok {
 		cb.InstallDistSync(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dsync.Name); !ok {
@@ -229,7 +234,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装分布式服务插件
-	if cb, ok := sb.composite.(InstallServiceDistService); ok {
+	if cb, ok := s.composite.(InstallServiceDistService); ok {
 		cb.InstallDistService(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dserv.Name); !ok {
@@ -241,7 +246,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装分布式实体查询插件
-	if cb, ok := sb.composite.(InstallServiceDistEntityQuerier); ok {
+	if cb, ok := s.composite.(InstallServiceDistEntityQuerier); ok {
 		cb.InstallDistEntityQuerier(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(dentq.Name); !ok {
@@ -255,7 +260,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}
 
 	// 安装RPC支持插件
-	if cb, ok := sb.composite.(InstallServiceRPC); ok {
+	if cb, ok := s.composite.(InstallServiceRPC); ok {
 		cb.InstallRPC(servCtx)
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(rpc.Name); !ok {
@@ -276,7 +281,7 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 	}))
 
 	// 初始化回调
-	if cb, ok := sb.composite.(LifecycleServiceInit); ok {
+	if cb, ok := s.composite.(LifecycleServiceInit); ok {
 		cb.Init(servCtx)
 	}
 
@@ -298,11 +303,11 @@ func (sb *ServiceBehavior) generate(ctx context.Context) core.Service {
 }
 
 // GetName 获取服务名称
-func (sb *ServiceBehavior) GetName() string {
-	return sb.name
+func (s *ServiceGeneric) GetName() string {
+	return s.name
 }
 
 // GetStartupConf 获取启动参数配置
-func (sb *ServiceBehavior) GetStartupConf() *viper.Viper {
-	return sb.startupConf
+func (s *ServiceGeneric) GetStartupConf() *viper.Viper {
+	return s.startupConf
 }

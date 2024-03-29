@@ -20,45 +20,45 @@ func NewApp() *App {
 	return &App{}
 }
 
-type _ServInfo struct {
-	serv _IService
-	num  int
+type _ServPT struct {
+	generic _IServiceGeneric
+	num     int
 }
 
 // App 应用
 type App struct {
-	servInfos                        map[string]*_ServInfo
+	servicePTs                       map[string]*_ServPT
 	startupConf                      *viper.Viper
 	initCB, startingCB, terminatedCB generic.DelegateAction1[*App]
 }
 
 func (app *App) lazyInit() {
-	if app.servInfos == nil {
-		app.servInfos = make(map[string]*_ServInfo)
+	if app.servicePTs == nil {
+		app.servicePTs = make(map[string]*_ServPT)
 	}
 	if app.startupConf == nil {
 		app.startupConf = viper.New()
 	}
 }
 
-// Setup 安装服务
-func (app *App) Setup(name string, serv any) *App {
+// Setup 安装服务泛化类型
+func (app *App) Setup(name string, generic any) *App {
 	app.lazyInit()
 
-	if serv == nil {
-		panic(fmt.Errorf("%w: serv is nil", core.ErrArgs))
+	if generic == nil {
+		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_serv, ok := serv.(_IService)
+	_generic, ok := generic.(_IServiceGeneric)
 	if !ok {
-		panic(fmt.Errorf("%w: incorrect serv type", core.ErrArgs))
+		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
 
-	app.servInfos[name] = &_ServInfo{
-		serv: _serv,
-		num:  1,
+	app.servicePTs[name] = &_ServPT{
+		generic: _generic,
+		num:     1,
 	}
-	_serv.setup(app.startupConf, name, serv)
+	_generic.setup(app.startupConf, name, generic)
 
 	return app
 }
@@ -93,7 +93,7 @@ func (app *App) Run() {
 	pflag.Bool("log.stdout", false, "logging output to stdout")
 	pflag.Bool("log.development", false, "logging in development mode")
 	pflag.Bool("log.service_info", false, "logging output service info")
-	pflag.Bool("log.runtime_info", false, "logging output runtime info")
+	pflag.Bool("log.runtime_info", false, "logging output generic info")
 
 	// 配置参数
 	pflag.String("conf.format", "json", "config file format")
@@ -125,8 +125,8 @@ func (app *App) Run() {
 	// 启动的服务列表
 	pflag.StringToString("startup.services", func() map[string]string {
 		ret := map[string]string{}
-		for sn, si := range app.servInfos {
-			ret[sn] = strconv.Itoa(si.num)
+		for name, pt := range app.servicePTs {
+			ret[name] = strconv.Itoa(pt.num)
 		}
 		return ret
 	}(), "instances required for each service to start")
@@ -168,20 +168,20 @@ func (app *App) Run() {
 	// 启动服务
 	wg := &sync.WaitGroup{}
 
-	for _, si := range app.servInfos {
-		si.num = 0
+	for _, pt := range app.servicePTs {
+		pt.num = 0
 	}
-	for sn, num := range startupConf.GetStringMapString("startup.services") {
-		app.servInfos[sn].num, _ = strconv.Atoi(num)
+	for name, num := range startupConf.GetStringMapString("startup.services") {
+		app.servicePTs[name].num, _ = strconv.Atoi(num)
 	}
 
-	for _, si := range app.servInfos {
-		for i := 0; i < si.num; i++ {
+	for _, pt := range app.servicePTs {
+		for i := 0; i < pt.num; i++ {
 			wg.Add(1)
-			go func(serv _IService) {
+			go func(generic _IServiceGeneric) {
 				defer wg.Done()
-				<-serv.generate(ctx).Run()
-			}(si.serv)
+				<-generic.generate(ctx).Run()
+			}(pt.generic)
 		}
 	}
 
