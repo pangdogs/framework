@@ -118,7 +118,7 @@ func (g *_Gate) ShutSP(ctx service.Context) {
 
 // GetSession 查询会话
 func (g *_Gate) GetSession(sessionId uid.Id) (ISession, bool) {
-	return g.lookupSession(sessionId)
+	return g.getSession(sessionId)
 }
 
 // RangeSessions 遍历所有会话
