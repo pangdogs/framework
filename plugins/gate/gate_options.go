@@ -16,7 +16,7 @@ import (
 
 type (
 	AuthClientHandler          = generic.DelegateFunc5[IGate, net.Conn, string, string, []byte, error] // 客户端鉴权处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
-	SessionStateChangedHandler = generic.DelegateAction3[ISession, SessionState, SessionState]         // 会话状态变化的处理器（args: [session, newState, oldState]）
+	SessionStateChangedHandler = generic.DelegateAction3[ISession, SessionState, SessionState]         // 会话状态变化的处理器（args: [session, curState, lastState]）
 	SessionRecvDataHandler     = generic.DelegateFunc2[ISession, []byte, error]                        // 会话接收的数据的处理器
 	SessionRecvEventHandler    = generic.DelegateFunc2[ISession, transport.Event[gtp.Msg], error]      // 会话接收的自定义事件的处理器
 )

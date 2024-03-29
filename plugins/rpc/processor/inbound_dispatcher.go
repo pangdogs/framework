@@ -54,8 +54,8 @@ func (d *_InboundDispatcher) Shut(ctx service.Context) {
 	log.Debugf(d.servCtx, "rpc dispatcher %q stopped", types.AnyFullName(*d))
 }
 
-func (d *_InboundDispatcher) handleSessionChanged(session gate.ISession, newState gate.SessionState, oldState gate.SessionState) {
-	switch newState {
+func (d *_InboundDispatcher) handleSessionChanged(session gate.ISession, curState gate.SessionState, lastState gate.SessionState) {
+	switch curState {
 	case gate.SessionState_Confirmed:
 		err := session.GetSettings().
 			RecvDataHandler(append(session.GetSettings().CurrRecvDataHandler, d.handleRecvData)).
