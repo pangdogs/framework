@@ -18,14 +18,16 @@ import (
 	"time"
 )
 
+// CreateRPCli 创建RPC客户端
 func CreateRPCli() RPCliCreator {
 	return RPCliCreator{}
 }
 
+// RPCliCreator RPC客户端构建器
 type RPCliCreator struct {
 	settings []option.Setting[cli.ClientOptions]
-	gapMC    gap.IMsgCreator
-	proc     IProc
+	mc       gap.IMsgCreator
+	proc     IProcedure
 }
 
 func (ctor RPCliCreator) TLSConfig(tlsConfig tls.Config) RPCliCreator {
@@ -164,7 +166,7 @@ func (ctor RPCliCreator) GTPRecvEventHandler(handler cli.RecvEventHandler) RPCli
 }
 
 func (ctor RPCliCreator) GAPDecoderMsgCreator(mc gap.IMsgCreator) RPCliCreator {
-	ctor.gapMC = mc
+	ctor.mc = mc
 	return ctor
 }
 
@@ -193,8 +195,8 @@ func (ctor RPCliCreator) ZapLogger(logger *zap.Logger) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) MainProc(proc any) RPCliCreator {
-	_proc, ok := proc.(IProc)
+func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
+	_proc, ok := proc.(IProcedure)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect proc type", core.ErrArgs))
 	}
@@ -211,11 +213,11 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	rpcli := &RPCli{
 		Client:  client,
 		encoder: codec.MakeEncoder(),
-		procs:   concurrent.MakeLockedMap[uid.Id, IProc](0),
+		procs:   concurrent.MakeLockedMap[uid.Id, IProcedure](0),
 	}
 
-	if ctor.gapMC != nil {
-		rpcli.decoder = codec.MakeDecoder(ctor.gapMC)
+	if ctor.mc != nil {
+		rpcli.decoder = codec.MakeDecoder(ctor.mc)
 	} else {
 		rpcli.decoder = codec.MakeDecoder(gap.DefaultMsgCreator())
 	}

@@ -26,11 +26,11 @@ type RPCli struct {
 	*cli.Client
 	encoder codec.Encoder
 	decoder codec.Decoder
-	procs   concurrent.LockedMap[uid.Id, IProc]
+	procs   concurrent.LockedMap[uid.Id, IProcedure]
 }
 
 // RPC RPC调用
-func (c *RPCli) RPC(entityId uid.Id, service, comp, method string, args ...any) runtime.AsyncRet {
+func (c *RPCli) RPC(service, comp, method string, args ...any) runtime.AsyncRet {
 	return c.RPCToEntity(uid.Nil, service, comp, method, args...)
 }
 
@@ -136,13 +136,13 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 	return nil
 }
 
-// AddProc 添加过程
-func (c *RPCli) AddProc(id uid.Id, proc any) error {
+// AddProcedure 添加过程
+func (c *RPCli) AddProcedure(id uid.Id, proc any) error {
 	if id == Main {
 		return fmt.Errorf("%w: id is nil", core.ErrArgs)
 	}
 
-	_proc, ok := proc.(IProc)
+	_proc, ok := proc.(IProcedure)
 	if !ok {
 		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
 	}
@@ -153,8 +153,8 @@ func (c *RPCli) AddProc(id uid.Id, proc any) error {
 	return nil
 }
 
-// RemoveProc 删除过程
-func (c *RPCli) RemoveProc(id uid.Id) error {
+// RemoveProcedure 删除过程
+func (c *RPCli) RemoveProcedure(id uid.Id) error {
 	if id.IsNil() {
 		return fmt.Errorf("%w: id is nil", core.ErrArgs)
 	}
@@ -164,7 +164,7 @@ func (c *RPCli) RemoveProc(id uid.Id) error {
 	return nil
 }
 
-// GetProc 查询过程
-func (c *RPCli) GetProc(id uid.Id) (IProc, bool) {
+// GetProcedure 查询过程
+func (c *RPCli) GetProcedure(id uid.Id) (IProcedure, bool) {
 	return c.procs.Get(id)
 }
