@@ -11,7 +11,9 @@ import (
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
+	"golang.org/x/net/websocket"
 	"net"
+	"net/http"
 	"sync"
 	"sync/atomic"
 )
@@ -47,6 +49,7 @@ type _Gate struct {
 	servCtx         service.Context
 	wg              sync.WaitGroup
 	tcpListener     net.Listener
+	wsListener      *http.Server
 	sessionMap      sync.Map
 	sessionCount    int64
 	sessionWatchers concurrent.LockedSlice[*_SessionWatcher]
@@ -86,14 +89,32 @@ func (g *_Gate) InitSP(ctx service.Context) {
 				}
 
 				log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.tcpListener.Addr(), conn.RemoteAddr())
-
 				go g.handleSession(conn)
 			}
 		}()
 	}
 
 	if g.options.WebSocketAddress != "" {
-		// todo
+		listener := &http.Server{
+			Addr:         g.options.WebSocketAddress,
+			TLSConfig:    g.options.WebSocketTLSConfig,
+			ReadTimeout:  g.options.IOTimeout,
+			WriteTimeout: g.options.IOTimeout,
+			IdleTimeout:  g.options.IOTimeout,
+		}
+
+		listener.Handler = websocket.Handler(func(conn *websocket.Conn) {
+			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.wsListener.Addr, conn.RemoteAddr())
+			go g.handleSession(conn)
+		})
+
+		g.wsListener = listener
+
+		log.Infof(g.servCtx, "listener %q started", g.wsListener.Addr)
+	}
+
+	if g.tcpListener == nil && g.wsListener == nil {
+		log.Panic(g.servCtx, "no address need to listen")
 	}
 }
 
@@ -110,6 +131,9 @@ func (g *_Gate) ShutSP(ctx service.Context) {
 
 	if g.tcpListener != nil {
 		g.tcpListener.Close()
+	}
+	if g.wsListener != nil {
+		g.wsListener.Close()
 	}
 }
 

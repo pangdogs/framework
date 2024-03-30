@@ -30,6 +30,7 @@ type GateOptions struct {
 	TCPLinger                      *int                       // TCP的PLinger选项，nil表示使用系统默认值
 	TCPTLSConfig                   *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
 	WebSocketAddress               string                     // WebSocket监听地址
+	WebSocketTLSConfig             *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
 	IOTimeout                      time.Duration              // 网络io超时时间
 	IORetryTimes                   int                        // 网络io超时后的重试次数
 	IOBufferCap                    int                        // 网络io缓存容量（字节）
@@ -72,6 +73,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.TCPLinger(nil)(options)
 		With.TCPTLSConfig(nil)(options)
 		With.WebSocketAddress("")(options)
+		With.WebSocketTLSConfig(nil)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
 		With.IOBufferCap(1024 * 128)(options)
@@ -97,7 +99,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.AgreeClientCompressionProposal(false)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressedSize(1024 * 32)(options)
-		With.AcceptTimeout(10 * time.Second)(options)
+		With.AcceptTimeout(5 * time.Second)(options)
 		With.AuthClientHandler(nil)(options)
 		With.SessionInactiveTimeout(time.Minute)(options)
 		With.SessionStateChangedHandler(nil)(options)
@@ -165,6 +167,12 @@ func (_GateOption) WebSocketAddress(addr string) option.Setting[GateOptions] {
 			}
 		}
 		options.WebSocketAddress = addr
+	}
+}
+
+func (_GateOption) WebSocketTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		options.WebSocketTLSConfig = tlsConfig
 	}
 }
 
