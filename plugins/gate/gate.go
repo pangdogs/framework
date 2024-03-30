@@ -46,7 +46,7 @@ type _Gate struct {
 	options         GateOptions
 	servCtx         service.Context
 	wg              sync.WaitGroup
-	listeners       []net.Listener
+	tcpListener     net.Listener
 	sessionMap      sync.Map
 	sessionCount    int64
 	sessionWatchers concurrent.LockedSlice[*_SessionWatcher]
@@ -59,45 +59,41 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	g.ctx, g.terminate = context.WithCancelCause(context.Background())
 	g.servCtx = ctx
 
-	if len(g.options.Endpoints) <= 0 {
-		log.Panic(g.servCtx, "no endpoints need to listen")
-	}
-
-	listenConf := newListenConfig(&g.options)
-
-	for _, endpoint := range g.options.Endpoints {
-		listener, err := listenConf.Listen(context.Background(), "tcp", endpoint)
+	if g.options.TCPAddress != "" {
+		listener, err := newListenConfig(&g.options).Listen(context.Background(), "tcp", g.options.TCPAddress)
 		if err != nil {
-			log.Panicf(g.servCtx, "listen %q failed, %s", endpoint, err)
+			log.Panicf(g.servCtx, "listen tcp %q failed, %s", g.options.TCPAddress, err)
 		}
 
-		if g.options.TLSConfig != nil {
-			listener = tls.NewListener(listener, g.options.TLSConfig)
+		if g.options.TCPTLSConfig != nil {
+			listener = tls.NewListener(listener, g.options.TCPTLSConfig)
 		}
 
-		g.listeners = append(g.listeners, listener)
+		g.tcpListener = listener
 
-		log.Infof(g.servCtx, "listener %q started", listener.Addr())
-	}
+		go func() {
+			log.Infof(g.servCtx, "listener %q started", g.tcpListener.Addr())
 
-	for _, listener := range g.listeners {
-		go func(listener net.Listener) {
 			for {
-				conn, err := listener.Accept()
+				conn, err := g.tcpListener.Accept()
 				if err != nil {
 					if errors.Is(err, net.ErrClosed) {
-						log.Debugf(g.servCtx, "listener %q closed", listener.Addr())
+						log.Debugf(g.servCtx, "listener %q closed", g.tcpListener.Addr())
 						return
 					}
-					log.Errorf(g.servCtx, "listener %q accept a new connection failed, %s", listener.Addr(), err)
+					log.Errorf(g.servCtx, "listener %q accept a new connection failed, %s", g.tcpListener.Addr(), err)
 					continue
 				}
 
-				log.Debugf(g.servCtx, "listener %q accept a new connection, client %q", listener.Addr(), conn.RemoteAddr())
+				log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.tcpListener.Addr(), conn.RemoteAddr())
 
 				go g.handleSession(conn)
 			}
-		}(listener)
+		}()
+	}
+
+	if g.options.WebSocketAddress != "" {
+		// todo
 	}
 }
 
@@ -109,10 +105,11 @@ func (g *_Gate) ShutSP(ctx service.Context) {
 		Code:    gtp.Code_Shutdown,
 		Message: "service shutdown",
 	})
+
 	g.wg.Wait()
 
-	for _, listener := range g.listeners {
-		listener.Close()
+	if g.tcpListener != nil {
+		g.tcpListener.Close()
 	}
 }
 

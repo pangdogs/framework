@@ -22,13 +22,14 @@ type (
 )
 
 type GateOptions struct {
-	Endpoints                      []string                   // 所有监听地址
-	TLSConfig                      *tls.Config                // TLS配置，nil表示不使用TLS加密链路
+	TCPAddress                     string                     // TCP监听地址
 	TCPNoDelay                     *bool                      // TCP的NoDelay选项，nil表示使用系统默认值
 	TCPQuickAck                    *bool                      // TCP的QuickAck选项，nil表示使用系统默认值
 	TCPRecvBuf                     *int                       // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
 	TCPSendBuf                     *int                       // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
 	TCPLinger                      *int                       // TCP的PLinger选项，nil表示使用系统默认值
+	TCPTLSConfig                   *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
+	WebSocketAddress               string                     // WebSocket监听地址
 	IOTimeout                      time.Duration              // 网络io超时时间
 	IORetryTimes                   int                        // 网络io超时后的重试次数
 	IOBufferCap                    int                        // 网络io缓存容量（字节）
@@ -63,13 +64,14 @@ type _GateOption struct{}
 
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		With.Endpoints("0.0.0.0:0")(options)
-		With.TLSConfig(nil)(options)
+		With.TCPAddress("0.0.0.0:0")(options)
 		With.TCPNoDelay(nil)(options)
 		With.TCPQuickAck(nil)(options)
 		With.TCPRecvBuf(nil)(options)
 		With.TCPSendBuf(nil)(options)
 		With.TCPLinger(nil)(options)
+		With.TCPTLSConfig(nil)(options)
+		With.WebSocketAddress("")(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
 		With.IOBufferCap(1024 * 128)(options)
@@ -108,20 +110,14 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 	}
 }
 
-func (_GateOption) Endpoints(endpoints ...string) option.Setting[GateOptions] {
+func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		for _, endpoint := range endpoints {
-			if _, _, err := net.SplitHostPort(endpoint); err != nil {
+		if addr != "" {
+			if _, _, err := net.SplitHostPort(addr); err != nil {
 				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 			}
 		}
-		options.Endpoints = endpoints
-	}
-}
-
-func (_GateOption) TLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		options.TLSConfig = tlsConfig
+		options.TCPAddress = addr
 	}
 }
 
@@ -152,6 +148,23 @@ func (_GateOption) TCPSendBuf(size *int) option.Setting[GateOptions] {
 func (_GateOption) TCPLinger(sec *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPLinger = sec
+	}
+}
+
+func (_GateOption) TCPTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		options.TCPTLSConfig = tlsConfig
+	}
+}
+
+func (_GateOption) WebSocketAddress(addr string) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		if addr != "" {
+			if _, _, err := net.SplitHostPort(addr); err != nil {
+				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+			}
+		}
+		options.WebSocketAddress = addr
 	}
 }
 
