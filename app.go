@@ -167,12 +167,11 @@ func (app *App) Run() {
 	// 启动服务
 	wg := &sync.WaitGroup{}
 
+	serviceNum := startupConf.GetStringMapString("startup.services")
+
 	for name, pt := range app.servicePTs {
 		pt.generic.setup(app.startupConf, name, pt.generic)
-		pt.num = 0
-	}
-	for name, num := range startupConf.GetStringMapString("startup.services") {
-		app.servicePTs[name].num, _ = strconv.Atoi(num)
+		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
 	for _, pt := range app.servicePTs {
