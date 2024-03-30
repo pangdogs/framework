@@ -14,10 +14,15 @@ var (
 type IProcedure interface {
 	_IProcedure
 
+	// GetCli 获取RPC客户端
 	GetCli() *RPCli
+	// GetId 获取实体Id
 	GetId() uid.Id
+	// GetReflected 获取反射值
 	GetReflected() reflect.Value
+	// RPC RPC调用
 	RPC(service, comp, method string, args ...any) runtime.AsyncRet
+	// OneWayRPC 单向RPC调用
 	OneWayRPC(service, comp, method string, args ...any) error
 }
 
