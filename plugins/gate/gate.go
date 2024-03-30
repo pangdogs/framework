@@ -74,9 +74,9 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		g.tcpListener = listener
 
-		go func() {
-			log.Infof(g.servCtx, "listener %q started", g.tcpListener.Addr())
+		log.Infof(g.servCtx, "listener %q started", g.tcpListener.Addr())
 
+		go func() {
 			for {
 				conn, err := g.tcpListener.Accept()
 				if err != nil {
@@ -111,6 +111,8 @@ func (g *_Gate) InitSP(ctx service.Context) {
 		g.wsListener = listener
 
 		log.Infof(g.servCtx, "listener %q started", g.wsListener.Addr)
+		
+		go g.wsListener.ListenAndServe()
 	}
 
 	if g.tcpListener == nil && g.wsListener == nil {
