@@ -14,27 +14,32 @@ import (
 )
 
 // ProxyRuntime 代理运行时
-func ProxyRuntime(servCtx service.Context, entityId uid.Id) RuntimeProxied {
+func ProxyRuntime(ctx service.Context, entityId uid.Id) RuntimeProxied {
 	return RuntimeProxied{
-		Context:  servCtx,
-		EntityId: entityId,
+		servCtx:  ctx,
+		entityId: entityId,
 	}
 }
 
 // RuntimeProxied 运行时代理，用于向实体的运行时发送RPC
 type RuntimeProxied struct {
-	Context  service.Context
-	EntityId uid.Id
+	servCtx  service.Context
+	entityId uid.Id
+}
+
+// GetEntityId 获取实体id
+func (p RuntimeProxied) GetEntityId() uid.Id {
+	return p.entityId
 }
 
 // RPC 向分布式实体目标服务的运行时发送RPC
 func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) runtime.AsyncRet {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return makeErr(ErrDistEntityNotFound)
 	}
@@ -50,22 +55,22 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) runtime
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送RPC
 func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) runtime.AsyncRet {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return makeErr(ErrDistEntityNotFound)
 	}
@@ -81,22 +86,22 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送RPC
 func (p RuntimeProxied) GlobalBalanceRPC(plugin, method string, args ...any) runtime.AsyncRet {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return makeErr(ErrDistEntityNotFound)
 	}
@@ -110,22 +115,22 @@ func (p RuntimeProxied) GlobalBalanceRPC(plugin, method string, args ...any) run
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).RPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, cp.String(), args...)
 }
 
 // OneWayRPC 向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return ErrDistEntityNotFound
 	}
@@ -141,22 +146,22 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
 }
 
 // BalanceOneWayRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return ErrDistEntityNotFound
 	}
@@ -172,22 +177,22 @@ func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ..
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送单向RPC
 func (p RuntimeProxied) GlobalBalanceOneWayRPC(plugin, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return ErrDistEntityNotFound
 	}
@@ -201,22 +206,22 @@ func (p RuntimeProxied) GlobalBalanceOneWayRPC(plugin, method string, args ...an
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) BroadcastOneWayRPC(service, plugin, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.Context).GetDistEntity(p.EntityId)
+	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
 		return ErrDistEntityNotFound
 	}
@@ -232,30 +237,30 @@ func (p RuntimeProxied) BroadcastOneWayRPC(service, plugin, method string, args 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cp.String(), args...)
 }
 
 // GlobalBroadcastOneWayRPC 使用全局广播模式，向分布式实体所有服务的运行时发送单向RPC
 func (p RuntimeProxied) GlobalBroadcastOneWayRPC(plugin, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 全局广播地址
-	dst := dserv.Using(p.Context).GetNodeDetails().GlobalBroadcastAddr
+	dst := dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Entity,
-		EntityId: p.EntityId,
+		EntityId: p.entityId,
 		Plugin:   plugin,
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
 }

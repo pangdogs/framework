@@ -11,17 +11,22 @@ import (
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(servCtx service.Context, id uid.Id) GroupProxied {
+func ProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
 	return GroupProxied{
-		Context: servCtx,
-		Id:      id,
+		servCtx: ctx,
+		id:      id,
 	}
 }
 
 // GroupProxied 分组代理，用于向分组发送RPC
 type GroupProxied struct {
-	Context service.Context
-	Id      uid.Id
+	servCtx service.Context
+	id      uid.Id
+}
+
+// GetId 获取分组id
+func (p GroupProxied) GetId() uid.Id {
+	return p.id
 }
 
 // OneWayCliRPC 向分组客户端发送单向RPC
@@ -31,12 +36,12 @@ func (p GroupProxied) OneWayCliRPC(method string, args ...any) error {
 
 // OneWayCliRPCToEntity 向分组客户端实体发送单向RPC
 func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
-	if p.Context == nil {
-		panic(errors.New("rpc: setting context is nil"))
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
 	}
 
 	// 客户端组播地址
-	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.Id.String())
+	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.id.String())
 
 	// 调用路径
 	cp := callpath.CallPath{
@@ -45,5 +50,5 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 		Method:   method,
 	}
 
-	return rpc.Using(p.Context).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
 }
