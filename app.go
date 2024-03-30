@@ -58,7 +58,6 @@ func (app *App) Setup(name string, generic any) *App {
 		generic: _generic,
 		num:     1,
 	}
-	_generic.setup(app.startupConf, name, generic)
 
 	return app
 }
@@ -168,7 +167,8 @@ func (app *App) Run() {
 	// 启动服务
 	wg := &sync.WaitGroup{}
 
-	for _, pt := range app.servicePTs {
+	for name, pt := range app.servicePTs {
+		pt.generic.setup(app.startupConf, name, pt.generic)
 		pt.num = 0
 	}
 	for name, num := range startupConf.GetStringMapString("startup.services") {
