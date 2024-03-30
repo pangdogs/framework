@@ -75,7 +75,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 
 	// 租约心跳
-	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(d.rtCtx, d.keepAliveLease)
+	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(nil, d.keepAliveLease)
 
 	// 绑定事件
 	d.rtCtx.ManagedHooks(
