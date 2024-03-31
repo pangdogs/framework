@@ -100,13 +100,48 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 		return errors.New("client is nil")
 	}
 
-	conn, err := newDialer(&ctor.options).DialContext(client, "tcp", client.GetEndpoint())
-	if err != nil {
-		return err
-	}
+	var conn net.Conn
 
-	if ctor.options.TLSConfig != nil {
-		conn = tls.Client(conn, ctor.options.TLSConfig)
+	switch ctor.options.NetProtocol {
+	case WebSocket:
+		ep := client.GetEndpoint()
+
+		epURL, err := url.Parse(ep)
+		if err != nil {
+			return err
+		}
+
+		origin := ctor.options.WebSocketOrigin
+		if origin == "" {
+			origin, _ = url.JoinPath(ep, "cli", uid.New().String())
+		}
+
+		conf, err := websocket.NewConfig(ep, origin)
+		if err != nil {
+			return err
+		}
+
+		if strings.EqualFold(epURL.Scheme, "wss") {
+			conf.TlsConfig = ctor.options.TLSConfig
+			if conf.TlsConfig == nil {
+				return errors.New("use HTTPS to listen, need to provide a valid TLS configuration")
+			}
+		}
+
+		conn, err = websocket.DialConfig(conf)
+		if err != nil {
+			return err
+		}
+
+	default:
+		conn, err = newDialer(&ctor.options).DialContext(client, "tcp", client.GetEndpoint())
+		if err != nil {
+			return err
+		}
+
+		if ctor.options.TLSConfig != nil {
+			conn = tls.Client(conn, ctor.options.TLSConfig)
+		}
 	}
 
 	defer func() {
