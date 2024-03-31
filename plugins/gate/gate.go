@@ -94,24 +94,28 @@ func (g *_Gate) InitSP(ctx service.Context) {
 		}()
 	}
 
-	if g.options.WebSocketAddress != "" {
+	if g.options.WebSocketURL != nil {
 		listener := &http.Server{
-			Addr:         g.options.WebSocketAddress,
+			Addr:         g.options.WebSocketURL.Host,
 			TLSConfig:    g.options.WebSocketTLSConfig,
 			ReadTimeout:  g.options.IOTimeout,
 			WriteTimeout: g.options.IOTimeout,
 			IdleTimeout:  g.options.IOTimeout,
 		}
 
-		listener.Handler = websocket.Handler(func(conn *websocket.Conn) {
+		mux := http.NewServeMux()
+		mux.Handle(g.options.WebSocketURL.Path, websocket.Handler(func(conn *websocket.Conn) {
 			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.wsListener.Addr, conn.RemoteAddr())
-			go g.handleSession(conn)
-		})
+			if session, ok := g.handleSession(conn); ok {
+				<-session.Done()
+			}
+		}))
+		listener.Handler = mux
 
 		g.wsListener = listener
 
 		log.Infof(g.servCtx, "listener %q started", g.wsListener.Addr)
-		
+
 		go g.wsListener.ListenAndServe()
 	}
 

@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/framework/net/gtp/transport"
 	"math/big"
 	"net"
+	"net/url"
 	"time"
 )
 
@@ -29,7 +30,7 @@ type GateOptions struct {
 	TCPSendBuf                     *int                       // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
 	TCPLinger                      *int                       // TCP的PLinger选项，nil表示使用系统默认值
 	TCPTLSConfig                   *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
-	WebSocketAddress               string                     // WebSocket监听地址
+	WebSocketURL                   *url.URL                   // WebSocket监听地址
 	WebSocketTLSConfig             *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
 	IOTimeout                      time.Duration              // 网络io超时时间
 	IORetryTimes                   int                        // 网络io超时后的重试次数
@@ -65,14 +66,14 @@ type _GateOption struct{}
 
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		With.TCPAddress("0.0.0.0:0")(options)
+		With.TCPAddress("0.0.0.0:9090")(options)
 		With.TCPNoDelay(nil)(options)
 		With.TCPQuickAck(nil)(options)
 		With.TCPRecvBuf(nil)(options)
 		With.TCPSendBuf(nil)(options)
 		With.TCPLinger(nil)(options)
 		With.TCPTLSConfig(nil)(options)
-		With.WebSocketAddress("")(options)
+		With.WebSocketURL("http://0.0.0.0:80")(options)
 		With.WebSocketTLSConfig(nil)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
@@ -159,14 +160,17 @@ func (_GateOption) TCPTLSConfig(tlsConfig *tls.Config) option.Setting[GateOption
 	}
 }
 
-func (_GateOption) WebSocketAddress(addr string) option.Setting[GateOptions] {
+func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		if addr != "" {
-			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
-			}
+		if raw == "" {
+			options.WebSocketURL = nil
+			return
 		}
-		options.WebSocketAddress = addr
+		url, err := url.Parse(raw)
+		if err != nil {
+			panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+		}
+		options.WebSocketURL = url
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 )
 
 // handleSession 处理会话
-func (g *_Gate) handleSession(conn net.Conn) {
+func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 	var err error
 
 	defer func() {
@@ -32,10 +32,11 @@ func (g *_Gate) handleSession(conn net.Conn) {
 	// 接受网络连接
 	session, err := acceptor.accept(conn)
 	if err != nil {
-		return
+		return nil, false
 	}
 
 	log.Infof(g.servCtx, "listener %q accept remote %q, handle session success, id: %q, token: %q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
+	return session, true
 }
 
 // getSession 查询会话
