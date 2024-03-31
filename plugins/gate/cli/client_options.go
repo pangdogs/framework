@@ -33,7 +33,7 @@ type ClientOptions struct {
 	TCPRecvBuf                  *int                                // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
 	TCPSendBuf                  *int                                // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
 	TCPLinger                   *int                                // TCP的PLinger选项，nil表示使用系统默认值
-	WebSocketOrigin             string                              // WebSocket的Origin地址，不填表示和连接目标地址相同
+	WebSocketOrigin             string                              // WebSocket的Origin地址，不填将会自动生成
 	TLSConfig                   *tls.Config                         // TLS配置，nil表示不使用TLS加密链路
 	IOTimeout                   time.Duration                       // 网络io超时时间
 	IORetryTimes                int                                 // 网络io超时后的重试次数

@@ -11,6 +11,7 @@ require (
 	github.com/fufuok/bytespool v1.3.2
 	github.com/go-redsync/redsync/v4 v4.11.0
 	github.com/golang/snappy v0.0.4
+	github.com/gorilla/websocket v1.5.1
 	github.com/josharian/intern v1.0.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
@@ -23,6 +24,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.11
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.18.0
+	golang.org/x/net v0.20.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -82,7 +84,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
-	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect

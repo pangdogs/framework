@@ -8,6 +8,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/util/concurrent"
 	"golang.org/x/net/websocket"
@@ -40,7 +41,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
-			origin = endpoint
+			origin, _ = url.JoinPath(endpoint, uid.New().String())
 		}
 
 		conf, err := websocket.NewConfig(endpoint, origin)
