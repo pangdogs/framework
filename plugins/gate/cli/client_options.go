@@ -19,13 +19,22 @@ type (
 	RecvEventHandler = transport.EventHandler
 )
 
+type NetProtocol int32
+
+const (
+	TCP NetProtocol = iota
+	WebSocket
+)
+
 type ClientOptions struct {
-	TLSConfig                   *tls.Config                         // TLS配置，nil表示不使用TLS加密链路
+	NetProtocol                 NetProtocol                         // 使用的网络协议（TCP/WebSocket）
 	TCPNoDelay                  *bool                               // TCP的NoDelay选项，nil表示使用系统默认值
 	TCPQuickAck                 *bool                               // TCP的QuickAck选项，nil表示使用系统默认值
 	TCPRecvBuf                  *int                                // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
 	TCPSendBuf                  *int                                // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
 	TCPLinger                   *int                                // TCP的PLinger选项，nil表示使用系统默认值
+	WebSocketOrigin             string                              // WebSocket的Origin地址，不填表示和连接目标地址相同
+	TLSConfig                   *tls.Config                         // TLS配置，nil表示不使用TLS加密链路
 	IOTimeout                   time.Duration                       // 网络io超时时间
 	IORetryTimes                int                                 // 网络io超时后的重试次数
 	IOBufferCap                 int                                 // 网络io缓存容量（字节）
@@ -61,12 +70,14 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		With.TLSConfig(nil)(options)
+		With.NetProtocol(TCP)(options)
 		With.TCPNoDelay(nil)(options)
 		With.TCPQuickAck(nil)(options)
 		With.TCPRecvBuf(nil)(options)
 		With.TCPSendBuf(nil)(options)
 		With.TCPLinger(nil)(options)
+		With.WebSocketOrigin("")(options)
+		With.TLSConfig(nil)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
 		With.IOBufferCap(1024 * 128)(options)
@@ -106,9 +117,9 @@ func (_Option) Default() option.Setting[ClientOptions] {
 	}
 }
 
-func (_Option) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptions] {
+func (_Option) NetProtocol(p NetProtocol) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.TLSConfig = tlsConfig
+		options.NetProtocol = p
 	}
 }
 
@@ -139,6 +150,18 @@ func (_Option) TCPSendBuf(size *int) option.Setting[ClientOptions] {
 func (_Option) TCPLinger(sec *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPLinger = sec
+	}
+}
+
+func (_Option) WebSocketOrigin(origin string) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.WebSocketOrigin = origin
+	}
+}
+
+func (_Option) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.TLSConfig = tlsConfig
 	}
 }
 

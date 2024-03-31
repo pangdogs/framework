@@ -14,6 +14,7 @@ import (
 	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -97,10 +98,16 @@ func (g *_Gate) InitSP(ctx service.Context) {
 	if g.options.WebSocketURL != nil {
 		listener := &http.Server{
 			Addr:         g.options.WebSocketURL.Host,
-			TLSConfig:    g.options.WebSocketTLSConfig,
 			ReadTimeout:  g.options.IOTimeout,
 			WriteTimeout: g.options.IOTimeout,
 			IdleTimeout:  g.options.IOTimeout,
+		}
+
+		if strings.EqualFold(g.options.WebSocketURL.Scheme, "https") || strings.EqualFold(g.options.WebSocketURL.Scheme, "wss") {
+			listener.TLSConfig = g.options.WebSocketTLSConfig
+			if listener.TLSConfig == nil {
+				log.Panicf(g.servCtx, "use HTTPS to listen, need to provide a valid TLS configuration")
+			}
 		}
 
 		mux := http.NewServeMux()
