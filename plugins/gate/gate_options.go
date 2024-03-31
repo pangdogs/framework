@@ -170,6 +170,9 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 		if err != nil {
 			panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
 		}
+		if url.Path == "" {
+			url.Path = "/"
+		}
 		options.WebSocketURL = url
 	}
 }
