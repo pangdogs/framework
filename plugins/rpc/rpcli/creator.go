@@ -30,8 +30,8 @@ type RPCliCreator struct {
 	proc     IProcedure
 }
 
-func (ctor RPCliCreator) TLSConfig(tlsConfig tls.Config) RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.TLSConfig(&tlsConfig))
+func (ctor RPCliCreator) NetProtocol(p cli.NetProtocol) RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.NetProtocol(p))
 	return ctor
 }
 
@@ -57,6 +57,16 @@ func (ctor RPCliCreator) TCPSendBuf(size int) RPCliCreator {
 
 func (ctor RPCliCreator) TCPLinger(sec int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPLinger(&sec))
+	return ctor
+}
+
+func (ctor RPCliCreator) WebSocketOrigin(origin string) RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.WebSocketOrigin(origin))
+	return ctor
+}
+
+func (ctor RPCliCreator) TLSConfig(tlsConfig tls.Config) RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.TLSConfig(&tlsConfig))
 	return ctor
 }
 
