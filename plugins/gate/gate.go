@@ -112,7 +112,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		mux := http.NewServeMux()
 		mux.Handle(g.options.WebSocketURL.Path, websocket.Handler(func(conn *websocket.Conn) {
-			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.options.WebSocketURL, conn.RemoteAddr())
+			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", conn.LocalAddr(), conn.RemoteAddr())
 			if session, ok := g.handleSession(conn); ok {
 				<-session.Done()
 			}
