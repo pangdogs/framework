@@ -41,7 +41,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
-			origin, _ = url.JoinPath(endpoint, uid.New().String())
+			origin, _ = url.JoinPath(endpoint, "cli", uid.New().String())
 		}
 
 		conf, err := websocket.NewConfig(endpoint, origin)
