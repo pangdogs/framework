@@ -11,7 +11,6 @@ require (
 	github.com/fufuok/bytespool v1.3.2
 	github.com/go-redsync/redsync/v4 v4.11.0
 	github.com/golang/snappy v0.0.4
-	github.com/gorilla/websocket v1.5.1
 	github.com/josharian/intern v1.0.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
