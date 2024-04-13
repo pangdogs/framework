@@ -30,6 +30,16 @@ func emitEventDistEntityOnline(auto iAutoEventDistEntityOnline, entity ec.Entity
 	})
 }
 
+func HandleEventDistEntityOnline(fun func(entity ec.Entity)) handleEventDistEntityOnline {
+	return handleEventDistEntityOnline(fun)
+}
+
+type handleEventDistEntityOnline func(entity ec.Entity)
+
+func (handle handleEventDistEntityOnline) OnDistEntityOnline(entity ec.Entity) {
+	handle(entity)
+}
+
 type iAutoEventDistEntityOffline interface {
 	EventDistEntityOffline() event.IEvent
 }
@@ -49,4 +59,14 @@ func emitEventDistEntityOffline(auto iAutoEventDistEntityOffline, entity ec.Enti
 		iface.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
 		return true
 	})
+}
+
+func HandleEventDistEntityOffline(fun func(entity ec.Entity)) handleEventDistEntityOffline {
+	return handleEventDistEntityOffline(fun)
+}
+
+type handleEventDistEntityOffline func(entity ec.Entity)
+
+func (handle handleEventDistEntityOffline) OnDistEntityOffline(entity ec.Entity) {
+	handle(entity)
 }
