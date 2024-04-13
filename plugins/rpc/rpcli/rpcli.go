@@ -138,7 +138,7 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 
 // AddProcedure 添加过程
 func (c *RPCli) AddProcedure(id uid.Id, proc any) error {
-	if id == Main {
+	if id.IsNil() {
 		return fmt.Errorf("%w: id is nil", core.ErrArgs)
 	}
 
