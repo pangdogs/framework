@@ -134,7 +134,7 @@ func (d *_DistEntities) register(entity ec.Entity) bool {
 	log.Debugf(d.rtCtx, "put %q with lease %d ok", key, d.leaseId)
 
 	// 通知分布式实体上线
-	emitEventDistEntityOnline(d, entity)
+	_EmitEventDistEntityOnline(d, entity)
 	return true
 }
 
@@ -154,7 +154,7 @@ func (d *_DistEntities) deregister(entity ec.Entity) {
 	log.Debugf(d.rtCtx, "delete %q ok", key)
 
 	// 通知分布式实体下线
-	emitEventDistEntityOffline(d, entity)
+	_EmitEventDistEntityOffline(d, entity)
 }
 
 func (d *_DistEntities) getEntityPath(entity ec.Entity) string {
@@ -178,7 +178,7 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, arg
 	// 通知所有分布式实体下线
 	d.rtCtx.GetEntityMgr().RangeEntities(func(entity ec.Entity) bool {
 		if entity.GetScope() == ec.Scope_Global {
-			emitEventDistEntityOffline(d, entity)
+			_EmitEventDistEntityOffline(d, entity)
 		}
 		return true
 	})

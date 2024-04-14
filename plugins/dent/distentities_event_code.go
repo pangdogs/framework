@@ -9,18 +9,18 @@ import (
 	"git.golaxy.org/core/ec"
 )
 
-type iAutoEventDistEntityOnline interface {
+type _AutoEventDistEntityOnline interface {
 	EventDistEntityOnline() event.IEvent
 }
 
-func BindEventDistEntityOnline(auto iAutoEventDistEntityOnline, subscriber EventDistEntityOnline, priority ...int32) event.Hook {
+func BindEventDistEntityOnline(auto _AutoEventDistEntityOnline, subscriber EventDistEntityOnline, priority ...int32) event.Hook {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
 	return event.BindEvent[EventDistEntityOnline](auto.EventDistEntityOnline(), subscriber, priority...)
 }
 
-func emitEventDistEntityOnline(auto iAutoEventDistEntityOnline, entity ec.Entity) {
+func _EmitEventDistEntityOnline(auto _AutoEventDistEntityOnline, entity ec.Entity) {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
@@ -30,28 +30,28 @@ func emitEventDistEntityOnline(auto iAutoEventDistEntityOnline, entity ec.Entity
 	})
 }
 
-func HandleEventDistEntityOnline(fun func(entity ec.Entity)) handleEventDistEntityOnline {
-	return handleEventDistEntityOnline(fun)
+func HandleEventDistEntityOnline(fun func(entity ec.Entity)) EventDistEntityOnlineHandler {
+	return EventDistEntityOnlineHandler(fun)
 }
 
-type handleEventDistEntityOnline func(entity ec.Entity)
+type EventDistEntityOnlineHandler func(entity ec.Entity)
 
-func (handle handleEventDistEntityOnline) OnDistEntityOnline(entity ec.Entity) {
-	handle(entity)
+func (h EventDistEntityOnlineHandler) OnDistEntityOnline(entity ec.Entity) {
+	h(entity)
 }
 
-type iAutoEventDistEntityOffline interface {
+type _AutoEventDistEntityOffline interface {
 	EventDistEntityOffline() event.IEvent
 }
 
-func BindEventDistEntityOffline(auto iAutoEventDistEntityOffline, subscriber EventDistEntityOffline, priority ...int32) event.Hook {
+func BindEventDistEntityOffline(auto _AutoEventDistEntityOffline, subscriber EventDistEntityOffline, priority ...int32) event.Hook {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
 	return event.BindEvent[EventDistEntityOffline](auto.EventDistEntityOffline(), subscriber, priority...)
 }
 
-func emitEventDistEntityOffline(auto iAutoEventDistEntityOffline, entity ec.Entity) {
+func _EmitEventDistEntityOffline(auto _AutoEventDistEntityOffline, entity ec.Entity) {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
@@ -61,12 +61,12 @@ func emitEventDistEntityOffline(auto iAutoEventDistEntityOffline, entity ec.Enti
 	})
 }
 
-func HandleEventDistEntityOffline(fun func(entity ec.Entity)) handleEventDistEntityOffline {
-	return handleEventDistEntityOffline(fun)
+func HandleEventDistEntityOffline(fun func(entity ec.Entity)) EventDistEntityOfflineHandler {
+	return EventDistEntityOfflineHandler(fun)
 }
 
-type handleEventDistEntityOffline func(entity ec.Entity)
+type EventDistEntityOfflineHandler func(entity ec.Entity)
 
-func (handle handleEventDistEntityOffline) OnDistEntityOffline(entity ec.Entity) {
-	handle(entity)
+func (h EventDistEntityOfflineHandler) OnDistEntityOffline(entity ec.Entity) {
+	h(entity)
 }
