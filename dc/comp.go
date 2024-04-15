@@ -1,4 +1,4 @@
-package dec
+package dc
 
 import (
 	"git.golaxy.org/core/ec"
