@@ -75,7 +75,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		runtime.With.Context.CompositeFace(face),
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.CastDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
+		runtime.With.Context.RunningHandler(generic.MakeDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
 			switch state {
 			case runtime.RunningState_Birth:
 				if cb, ok := r.composite.(LifecycleRuntimeBirth); ok {

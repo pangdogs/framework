@@ -31,7 +31,7 @@ type _ServiceDispatcher struct {
 func (d *_ServiceDispatcher) Init(ctx service.Context) {
 	d.servCtx = ctx
 	d.dist = dserv.Using(ctx)
-	d.watcher = d.dist.WatchMsg(context.Background(), generic.CastDelegateFunc2(d.handleMsg))
+	d.watcher = d.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(d.handleMsg))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))
 }

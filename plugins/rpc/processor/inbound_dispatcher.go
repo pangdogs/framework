@@ -42,7 +42,7 @@ func (d *_InboundDispatcher) Init(ctx service.Context) {
 	d.gate = gate.Using(ctx)
 	d.router = router.Using(ctx)
 	d.dentq = dentq.Using(ctx)
-	d.watcher = d.gate.Watch(ctx, generic.CastDelegateAction3(d.handleSessionChanged))
+	d.watcher = d.gate.Watch(ctx, generic.MakeDelegateAction3(d.handleSessionChanged))
 
 	log.Debugf(d.servCtx, "rpc dispatcher %q started", types.AnyFullName(*d))
 }

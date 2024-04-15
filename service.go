@@ -80,7 +80,7 @@ func (s *ServiceGeneric) generate(ctx context.Context) core.Service {
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.With.RunningHandler(generic.CastDelegateAction2(func(ctx service.Context, state service.RunningState) {
+		service.With.RunningHandler(generic.MakeDelegateAction2(func(ctx service.Context, state service.RunningState) {
 			switch state {
 			case service.RunningState_Birth:
 				if cb, ok := s.composite.(LifecycleServiceBirth); ok {
