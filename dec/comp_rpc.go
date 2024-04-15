@@ -1,4 +1,4 @@
-package oc
+package dec
 
 import (
 	"git.golaxy.org/core/runtime"
