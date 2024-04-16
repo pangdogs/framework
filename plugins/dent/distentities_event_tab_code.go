@@ -4,7 +4,6 @@ package dent
 
 import (
 	event "git.golaxy.org/core/event"
-	container "git.golaxy.org/core/util/container"
 )
 
 type IDistEntitiesEventTab interface {
@@ -14,9 +13,9 @@ type IDistEntitiesEventTab interface {
 
 type distEntitiesEventTab [2]event.Event
 
-func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan error, recursion event.EventRecursion, hookAllocator container.Allocator[event.Hook], gcCollector container.GCCollector) {
-	(*eventTab)[0].Init(autoRecover, reportError, recursion, hookAllocator, gcCollector)
-	(*eventTab)[1].Init(autoRecover, reportError, recursion, hookAllocator, gcCollector)
+func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan error, recursion event.EventRecursion) {
+	(*eventTab)[0].Init(autoRecover, reportError, recursion)
+	(*eventTab)[1].Init(autoRecover, reportError, recursion)
 }
 
 func (eventTab *distEntitiesEventTab) Get(id int) event.IEvent {
