@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	git.golaxy.org/core v0.2.54
+	git.golaxy.org/core v0.2.55
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fufuok/bytespool v1.3.2
@@ -33,8 +33,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/firestore v1.14.0 // indirect
 	cloud.google.com/go/longrunning v0.5.4 // indirect
-	github.com/alecthomas/kingpin/v2 v2.4.0 // indirect
-	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -80,7 +78,6 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.11 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.10 // indirect
 	go.opencensus.io v0.24.0 // indirect
