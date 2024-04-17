@@ -20,11 +20,6 @@ type _IRuntimeGeneric interface {
 	generate(settings _RuntimeSettings) core.Runtime
 }
 
-// IRuntimeInstance 运行时实例化接口
-type IRuntimeInstance interface {
-	Instance() runtime.Context
-}
-
 type _RuntimeSettings struct {
 	Name                 string
 	AutoRecover          bool
@@ -50,8 +45,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 	face := iface.Face[runtime.Context]{}
 
-	if cb, ok := r.composite.(IRuntimeInstance); ok {
-		face = iface.MakeFace(cb.Instance())
+	if cb, ok := r.composite.(IRuntimeInstantiation); ok {
+		face = iface.MakeFace(cb.Instantiation())
 	}
 	iFrameLoopBeginCB, _ := face.Iface.(LifecycleRuntimeFrameLoopBegin)
 	iFrameUpdateBeginCB, _ := face.Iface.(LifecycleRuntimeFrameUpdateBegin)

@@ -35,11 +35,6 @@ type _IServiceGeneric interface {
 	generate(ctx context.Context) core.Service
 }
 
-// IServiceInstance 服务实例化接口
-type IServiceInstance interface {
-	Instance() service.Context
-}
-
 // ServiceGeneric 服务泛化类型
 type ServiceGeneric struct {
 	startupConf *viper.Viper
@@ -70,8 +65,8 @@ func (s *ServiceGeneric) generate(ctx context.Context) core.Service {
 
 	face := iface.Face[service.Context]{}
 
-	if cb, ok := s.composite.(IServiceInstance); ok {
-		face = iface.MakeFace(cb.Instance())
+	if cb, ok := s.composite.(IServiceInstantiation); ok {
+		face = iface.MakeFace(cb.Instantiation())
 	}
 
 	servCtx := service.NewContext(
