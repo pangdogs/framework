@@ -275,9 +275,12 @@ func (s *ServiceGeneric) generate(ctx context.Context) core.Service {
 		memKVs.Store("etcd.client", cli)
 	}))
 
-	// 初始化回调
-	if cb, ok := s.composite.(LifecycleServiceInit); ok {
-		cb.Init(servCtx)
+	// 组装完成回调回调
+	if cb, ok := s.composite.(LifecycleServiceBuilt); ok {
+		cb.Built(servCtx)
+	}
+	if cb, ok := face.Iface.(LifecycleServiceBuilt); ok {
+		cb.Built(servCtx)
 	}
 
 	// 自动恢复时，打印panic信息

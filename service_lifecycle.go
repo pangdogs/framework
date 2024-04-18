@@ -2,12 +2,12 @@ package framework
 
 import "git.golaxy.org/core/service"
 
-type LifecycleServiceBirth interface {
-	Birth(ctx service.Context)
+type LifecycleServiceBuilt interface {
+	Built(ctx service.Context)
 }
 
-type LifecycleServiceInit interface {
-	Init(ctx service.Context)
+type LifecycleServiceBirth interface {
+	Birth(ctx service.Context)
 }
 
 type LifecycleServiceStarting interface {

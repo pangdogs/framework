@@ -205,9 +205,12 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		)
 	}
 
-	// 初始化回调
-	if cb, ok := r.composite.(LifecycleRuntimeInit); ok {
-		cb.Init(rtCtx)
+	// 组装完成回调回调
+	if cb, ok := r.composite.(LifecycleRuntimeBuilt); ok {
+		cb.Built(rtCtx)
+	}
+	if cb, ok := face.Iface.(LifecycleRuntimeBuilt); ok {
+		cb.Built(rtCtx)
 	}
 
 	return core.NewRuntime(rtCtx,

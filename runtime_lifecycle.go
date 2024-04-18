@@ -2,12 +2,12 @@ package framework
 
 import "git.golaxy.org/core/runtime"
 
-type LifecycleRuntimeBirth interface {
-	Birth(ctx runtime.Context)
+type LifecycleRuntimeBuilt interface {
+	Built(ctx runtime.Context)
 }
 
-type LifecycleRuntimeInit interface {
-	Init(ctx runtime.Context)
+type LifecycleRuntimeBirth interface {
+	Birth(ctx runtime.Context)
 }
 
 type LifecycleRuntimeStarting interface {
