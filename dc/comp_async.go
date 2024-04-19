@@ -36,34 +36,34 @@ func (c *ComponentBehavior) AsyncVoid(fun generic.ActionVar0[any], va ...any) ru
 
 // Go 使用新线程执行代码，有返回值（注意线程安全）
 func (c *ComponentBehavior) Go(fun generic.FuncVar0[any, runtime.Ret], va ...any) runtime.AsyncRet {
-	return core.Go(c.GetRuntimeCtx(), func(_ context.Context, a ...any) runtime.Ret {
+	return core.Go(c.GetRuntime().Ctx, func(_ context.Context, a ...any) runtime.Ret {
 		return fun.Exec(a...)
 	}, va...)
 }
 
 // GoVoid 使用新线程执行代码，无返回值（注意线程安全）
 func (c *ComponentBehavior) GoVoid(fun generic.ActionVar0[any], va ...any) runtime.AsyncRet {
-	return core.GoVoid(c.GetRuntimeCtx(), func(_ context.Context, a ...any) {
+	return core.GoVoid(c.GetRuntime().Ctx, func(_ context.Context, a ...any) {
 		fun.Exec(a...)
 	}, va...)
 }
 
 // TimeAfter 定时器，指定时长
 func (c *ComponentBehavior) TimeAfter(dur time.Duration) runtime.AsyncRet {
-	return core.TimeAfter(c.GetRuntimeCtx(), dur)
+	return core.TimeAfter(c.GetRuntime().Ctx, dur)
 }
 
 // TimeAt 定时器，指定时间点
 func (c *ComponentBehavior) TimeAt(at time.Time) runtime.AsyncRet {
-	return core.TimeAt(c.GetRuntimeCtx(), at)
+	return core.TimeAt(c.GetRuntime().Ctx, at)
 }
 
 // TimeTick 心跳器
 func (c *ComponentBehavior) TimeTick(dur time.Duration) runtime.AsyncRet {
-	return core.TimeTick(c.GetRuntimeCtx(), dur)
+	return core.TimeTick(c.GetRuntime().Ctx, dur)
 }
 
 // ReadChan 读取channel
 func ReadChan[T any](cb *ComponentBehavior, ch <-chan T) runtime.AsyncRet {
-	return core.ReadChan(cb.GetRuntimeCtx(), ch)
+	return core.ReadChan(cb.GetRuntime().Ctx, ch)
 }

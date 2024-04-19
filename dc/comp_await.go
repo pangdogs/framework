@@ -58,6 +58,6 @@ func (ad AwaitDirector) Pipe(ctx context.Context, fun generic.ActionVar1[runtime
 func (c *ComponentBehavior) Await(asyncRet ...runtime.AsyncRet) AwaitDirector {
 	return AwaitDirector{
 		cb:       c,
-		director: core.Await(c.GetRuntimeCtx(), asyncRet...),
+		director: core.Await(c.GetRuntime().Ctx, asyncRet...),
 	}
 }
