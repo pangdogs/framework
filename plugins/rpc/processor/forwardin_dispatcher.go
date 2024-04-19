@@ -105,8 +105,8 @@ func (d *_ForwardInDispatcher) acceptNotify(src, dst, transit string, req *gap.M
 	}
 
 	if len(d.permValidator) > 0 {
-		passed, err := d.permValidator.Invoke(func(b bool, err error) bool {
-			return b && err != nil
+		passed, err := d.permValidator.Invoke(func(passed bool, err error) bool {
+			return !passed || err != nil
 		}, src, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
@@ -178,8 +178,8 @@ func (d *_ForwardInDispatcher) acceptRequest(src, dst, transit string, req *gap.
 	}
 
 	if len(d.permValidator) > 0 {
-		passed, err := d.permValidator.Invoke(func(b bool, err error) bool {
-			return b && err != nil
+		passed, err := d.permValidator.Invoke(func(passed bool, err error) bool {
+			return !passed || err != nil
 		}, src, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
