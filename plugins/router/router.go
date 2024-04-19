@@ -32,7 +32,7 @@ var (
 // IRouter 路由器接口
 type IRouter interface {
 	// Mapping 路由映射
-	Mapping(entityId, sessionId uid.Id) error
+	Mapping(entityId, sessionId uid.Id) (IMapping, error)
 	// CleanEntity 清理实体路由信息
 	CleanEntity(entityId uid.Id)
 	// CleanSession 清理会话路由信息
@@ -55,23 +55,6 @@ type IRouter interface {
 	RangeGroups(fun generic.Func1[IGroup, bool])
 	// CountGroups 统计所有分组数量
 	CountGroups() int
-}
-
-type _Mapping struct {
-	ctx       context.Context
-	terminate context.CancelFunc
-	entity    ec.ConcurrentEntity
-	session   gate.ISession
-	cliAddr   string
-}
-
-func (m *_Mapping) AutoTerminate(router *_Router) {
-	select {
-	case <-m.ctx.Done():
-		return
-	case <-m.session.Done():
-		router.CleanSession(m.session.GetId())
-	}
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
@@ -134,17 +117,18 @@ func (r *_Router) ShutSP(ctx service.Context) {
 }
 
 // Mapping 路由映射
-func (r *_Router) Mapping(entityId, sessionId uid.Id) error {
+func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 	entity, ok := r.servCtx.GetEntityMgr().GetEntity(entityId)
 	if !ok {
-		return errors.New("router: entity not found")
+		return nil, errors.New("router: entity not found")
 	}
 
 	session, ok := r.gate.GetSession(sessionId)
 	if !ok {
-		return errors.New("router: session not found")
+		return nil, errors.New("router: session not found")
 	}
 
+	var ret IMapping
 	var err error
 
 	r.planning.AutoLock(func(planning *map[uid.Id]*_Mapping) {
@@ -161,20 +145,21 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) error {
 		ctx, cancel := context.WithCancel(r.servCtx)
 
 		mapping := &_Mapping{
-			ctx:       ctx,
+			Context:   ctx,
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
 			cliAddr:   netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, entity.GetId().String()),
 		}
+		ret = mapping
 
 		(*planning)[entityId] = mapping
 		(*planning)[sessionId] = mapping
 
-		go mapping.AutoTerminate(r)
+		go mapping.mainLoop(r)
 	})
 
-	return err
+	return ret, err
 }
 
 // CleanEntity 清理实体路由信息
