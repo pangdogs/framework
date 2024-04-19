@@ -99,7 +99,15 @@ func CallEntity(servCtx service.Context, entityId uid.Id, component, method stri
 			return runtime.MakeRet(nil, ErrComponentNotFound)
 		}
 
-		methodRV := ec.UnsafeComponent(comp).GetReflected().MethodByName(method)
+		var reflected reflect.Value
+
+		if compName == "" {
+			reflected = ec.UnsafeEntity(entity).GetReflected()
+		} else {
+			reflected = ec.UnsafeComponent(comp).GetReflected()
+		}
+
+		methodRV := reflected.MethodByName(method)
 		if !methodRV.IsValid() {
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
