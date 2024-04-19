@@ -11,14 +11,14 @@ import (
 )
 
 var (
-	ErrComponentNotWorking = errors.New("async/await: component not working")
+	ErrComponentNotLiving = errors.New("async/await: component not living")
 )
 
 // Async 异步执行代码，有返回值
 func (c *ComponentBehavior) Async(fun generic.FuncVar0[any, runtime.Ret], va ...any) runtime.AsyncRet {
 	return core.Async(c, func(_ runtime.Context, a ...any) runtime.Ret {
 		if c.GetState() > ec.ComponentState_Living {
-			return runtime.MakeRet(nil, ErrComponentNotWorking)
+			return runtime.MakeRet(nil, ErrComponentNotLiving)
 		}
 		return fun.Exec(a...)
 	}, va...)

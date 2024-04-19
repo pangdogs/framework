@@ -21,6 +21,7 @@ var (
 	ErrComponentNotFound            = errors.New("rpc: component not found")                 // 找不到组件
 	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")     // 方法参数数量不匹配
 	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")      // 方法参数类型不匹配
+	ErrPermissionDenied             = errors.New("rpc: permission denied")                   // 权限不足
 )
 
 // IDeliverer RPC投递器接口，用于将RPC投递至目标

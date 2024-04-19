@@ -18,21 +18,26 @@ import (
 	"reflect"
 )
 
+// PermissionValidator 权限验证器
+type PermissionValidator = generic.DelegateFunc2[string, callpath.CallPath, bool]
+
 // NewForwardInDispatcher RPC内转分发器，用于C->S的通信
-func NewForwardInDispatcher(mc gap.IMsgCreator) IDispatcher {
+func NewForwardInDispatcher(mc gap.IMsgCreator, permValidator PermissionValidator) IDispatcher {
 	return &_ForwardInDispatcher{
-		encoder: codec.MakeEncoder(),
-		decoder: codec.MakeDecoder(mc),
+		encoder:       codec.MakeEncoder(),
+		decoder:       codec.MakeDecoder(mc),
+		permValidator: permValidator,
 	}
 }
 
 // _ForwardInDispatcher RPC内转分发器，用于C->S的通信
 type _ForwardInDispatcher struct {
-	servCtx service.Context
-	dist    dserv.IDistService
-	watcher dserv.IWatcher
-	encoder codec.Encoder
-	decoder codec.Decoder
+	servCtx       service.Context
+	dist          dserv.IDistService
+	watcher       dserv.IWatcher
+	encoder       codec.Encoder
+	decoder       codec.Decoder
+	permValidator PermissionValidator
 }
 
 // Init 初始化
@@ -99,6 +104,19 @@ func (d *_ForwardInDispatcher) acceptNotify(src, dst, transit string, req *gap.M
 		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 	}
 
+	if len(d.permValidator) > 0 {
+		passed, err := d.permValidator.Invoke(func(b bool, err error) bool {
+			return b && err != nil
+		}, src, cp)
+		if !passed && err == nil {
+			err = ErrPermissionDenied
+		}
+		if err != nil {
+			log.Errorf(d.servCtx, "rpc notify permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
+			return nil
+		}
+	}
+
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
@@ -157,6 +175,20 @@ func (d *_ForwardInDispatcher) acceptRequest(src, dst, transit string, req *gap.
 		err = fmt.Errorf("parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
 		go d.reply(src, transit, req.CorrId, nil, err)
 		return err
+	}
+
+	if len(d.permValidator) > 0 {
+		passed, err := d.permValidator.Invoke(func(b bool, err error) bool {
+			return b && err != nil
+		}, src, cp)
+		if !passed && err == nil {
+			err = ErrPermissionDenied
+		}
+		if err != nil {
+			log.Errorf(d.servCtx, "rpc request(%d) permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
+			go d.reply(src, transit, req.CorrId, nil, err)
+			return nil
+		}
 	}
 
 	switch cp.Category {

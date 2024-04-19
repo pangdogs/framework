@@ -16,7 +16,7 @@ import (
 )
 
 type (
-	AuthClientHandler          = generic.DelegateFunc5[IGate, net.Conn, string, string, []byte, error] // 客户端鉴权处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
+	Authenticator              = generic.DelegateFunc5[IGate, net.Conn, string, string, []byte, error] // 鉴权客户端处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
 	SessionStateChangedHandler = generic.DelegateAction3[ISession, SessionState, SessionState]         // 会话状态变化的处理器（args: [session, curState, lastState]）
 	SessionRecvDataHandler     = generic.DelegateFunc2[ISession, []byte, error]                        // 会话接收的数据的处理器
 	SessionRecvEventHandler    = generic.DelegateFunc2[ISession, transport.Event[gtp.Msg], error]      // 会话接收的自定义事件的处理器
@@ -48,7 +48,7 @@ type GateOptions struct {
 	Compression                    gtp.Compression            // 通信中的压缩函数
 	CompressedSize                 int                        // 通信中启用压缩阀值（字节），<=0表示不开启
 	AcceptTimeout                  time.Duration              // 接受连接超时时间
-	AuthClientHandler              AuthClientHandler          // 客户端鉴权处理器
+	Authenticator                  Authenticator              // 鉴权客户端处理器
 	SessionInactiveTimeout         time.Duration              // 会话不活跃后的超时时间
 	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
 	SessionSendDataChanSize        int                        // 会话默认发送数据的channel的大小，<=0表示不使用channel
@@ -101,7 +101,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressedSize(1024 * 32)(options)
 		With.AcceptTimeout(5 * time.Second)(options)
-		With.AuthClientHandler(nil)(options)
+		With.Authenticator(nil)(options)
 		With.SessionInactiveTimeout(time.Minute)(options)
 		With.SessionStateChangedHandler(nil)(options)
 		With.SessionSendDataChanSize(0)(options)
@@ -282,9 +282,9 @@ func (_GateOption) AcceptTimeout(d time.Duration) option.Setting[GateOptions] {
 	}
 }
 
-func (_GateOption) AuthClientHandler(handler AuthClientHandler) option.Setting[GateOptions] {
+func (_GateOption) Authenticator(auth Authenticator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.AuthClientHandler = handler
+		options.Authenticator = auth
 	}
 }
 

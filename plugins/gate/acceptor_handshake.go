@@ -146,7 +146,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			},
 		}
 
-		authFlow = len(acc.gate.options.AuthClientHandler) > 0
+		authFlow = len(acc.gate.options.Authenticator) > 0
 
 		// 标记是否开启加密
 		servHello.Flags.Set(gtp.Flag_Encryption, encryptionFlow)
@@ -209,7 +209,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
-			err := acc.gate.options.AuthClientHandler.Exec(func(err, _ error) bool {
+			err := acc.gate.options.Authenticator.Exec(func(err, _ error) bool {
 				return err != nil
 			}, acc.gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
