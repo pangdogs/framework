@@ -115,6 +115,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", conn.LocalAddr(), conn.RemoteAddr())
 			if session, ok := g.handleSession(conn); ok {
 				<-session.Done()
+				<-session.Close(nil)
 			}
 		}))
 		listener.Handler = mux
