@@ -94,16 +94,15 @@ func CallEntity(servCtx service.Context, entityId uid.Id, component, method stri
 		method := a[1].(string)
 		args := a[2].(variant.Array)
 
-		comp := entity.GetComponent(compName)
-		if comp == nil {
-			return runtime.MakeRet(nil, ErrComponentNotFound)
-		}
-
 		var reflected reflect.Value
 
 		if compName == "" {
 			reflected = ec.UnsafeEntity(entity).GetReflected()
 		} else {
+			comp := entity.GetComponent(compName)
+			if comp == nil {
+				return runtime.MakeRet(nil, ErrComponentNotFound)
+			}
 			reflected = ec.UnsafeComponent(comp).GetReflected()
 		}
 
