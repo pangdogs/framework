@@ -1,4 +1,4 @@
-package dc
+package fwec
 
 import (
 	"git.golaxy.org/core/ec"
