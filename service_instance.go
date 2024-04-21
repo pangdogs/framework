@@ -59,6 +59,15 @@ func (instance *ServiceInstance) GetRPC() rpc.IRPC {
 	return rpc.Using(instance)
 }
 
+// GetStartupIdx 获取启动索引
+func (instance *ServiceInstance) GetStartupIdx() int {
+	v, _ := instance.GetMemKVs().Load("startup.idx")
+	if v == nil {
+		panic("service memory startup.idx not existed")
+	}
+	return v.(int)
+}
+
 // GetStartupConf 获取启动参数配置
 func (instance *ServiceInstance) GetStartupConf() *viper.Viper {
 	v, _ := instance.GetMemKVs().Load("startup.conf")
