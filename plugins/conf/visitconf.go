@@ -23,6 +23,7 @@ type IVisitConf interface {
 	GetDuration(key string) time.Duration
 	GetIntSlice(key string) []int
 	GetStringSlice(key string) []string
+	GetStringOrDefault(key, def string) string
 	GetBoolOrDefault(key string, def bool) bool
 	GetIntOrDefault(key string, def int) int
 	GetInt32OrDefault(key string, def int32) int32
@@ -52,6 +53,13 @@ func (vc *_VisitConf) Sub(key string) IVisitConf {
 	return &_VisitConf{
 		Viper: vc.Viper.Sub(key),
 	}
+}
+
+func (vc *_VisitConf) GetStringOrDefault(key, def string) string {
+	if !vc.IsSet(key) {
+		return def
+	}
+	return vc.GetString(key)
 }
 
 func (vc *_VisitConf) GetBoolOrDefault(key string, def bool) bool {
