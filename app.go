@@ -177,10 +177,10 @@ func (app *App) Run() {
 	for _, pt := range app.servicePTs {
 		for i := 0; i < pt.num; i++ {
 			wg.Add(1)
-			go func(generic _IServiceGeneric) {
+			go func(generic _IServiceGeneric, idx int) {
 				defer wg.Done()
-				<-generic.generate(ctx).Run()
-			}(pt.generic)
+				<-generic.generate(ctx, idx).Run()
+			}(pt.generic, i)
 		}
 	}
 

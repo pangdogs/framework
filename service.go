@@ -32,7 +32,7 @@ import (
 
 type _IServiceGeneric interface {
 	setup(startupConf *viper.Viper, name string, composite any)
-	generate(ctx context.Context) core.Service
+	generate(ctx context.Context, idx int) core.Service
 }
 
 // ServiceGeneric 服务泛化类型
@@ -48,10 +48,11 @@ func (s *ServiceGeneric) setup(startupConf *viper.Viper, name string, composite 
 	s.composite = composite
 }
 
-func (s *ServiceGeneric) generate(ctx context.Context) core.Service {
+func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	startupConf := s.GetStartupConf()
 
 	memKVs := &sync.Map{}
+	memKVs.Store("startup.idx", idx)
 	memKVs.Store("startup.conf", startupConf)
 
 	ctx = context.WithValue(ctx, "mem_kvs", memKVs)
