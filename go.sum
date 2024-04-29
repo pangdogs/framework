@@ -11,6 +11,7 @@ cloud.google.com/go/longrunning v0.5.4 h1:w8xEcbZodnA2BbW6sVirkkoC+1gP8wS57EUUgG
 cloud.google.com/go/longrunning v0.5.4/go.mod h1:zqNVncI0BOP8ST6XQD1+VcvuShMmq7+xFSzOL++V0dI=
 git.golaxy.org/core v0.2.58 h1:vi+zhxd8YfNWrOYXG8YQktI9dY/f+AYMvP+X4e1L0Pg=
 git.golaxy.org/core v0.2.58/go.mod h1:ee+AoKF3zn1Rqod6Uevx815yyONvkh0q1mejoAs5zSs=
+git.golaxy.org/core v0.2.59/go.mod h1:ee+AoKF3zn1Rqod6Uevx815yyONvkh0q1mejoAs5zSs=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/alecthomas/kingpin/v2 v2.4.0 h1:f48lwail6p8zpO1bC4TxtqACaGqHYA22qkHjHpqDjYY=
