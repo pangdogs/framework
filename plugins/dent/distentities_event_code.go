@@ -9,22 +9,37 @@ import (
 	"git.golaxy.org/core/ec"
 )
 
-type _AutoEventDistEntityOnline interface {
+type iAutoEventDistEntityOnline interface {
 	EventDistEntityOnline() event.IEvent
 }
 
-func BindEventDistEntityOnline(auto _AutoEventDistEntityOnline, subscriber EventDistEntityOnline, priority ...int32) event.Hook {
+func BindEventDistEntityOnline(auto iAutoEventDistEntityOnline, subscriber EventDistEntityOnline, priority ...int32) event.Hook {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
-	return event.BindEvent[EventDistEntityOnline](auto.EventDistEntityOnline(), subscriber, priority...)
+	return event.Bind[EventDistEntityOnline](auto.EventDistEntityOnline(), subscriber, priority...)
 }
 
-func _EmitEventDistEntityOnline(auto _AutoEventDistEntityOnline, entity ec.Entity) {
+func _EmitEventDistEntityOnline(auto iAutoEventDistEntityOnline, entity ec.Entity) {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
 	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber iface.Cache) bool {
+		iface.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
+		return true
+	})
+}
+
+func _EmitEventDistEntityOnlineWithInterrupt(auto iAutoEventDistEntityOnline, interrupt func(entity ec.Entity) bool, entity ec.Entity) {
+	if auto == nil {
+		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+	}
+	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber iface.Cache) bool {
+		if interrupt != nil {
+			if interrupt(entity) {
+				return false
+			}
+		}
 		iface.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
 		return true
 	})
@@ -40,22 +55,37 @@ func (h EventDistEntityOnlineHandler) OnDistEntityOnline(entity ec.Entity) {
 	h(entity)
 }
 
-type _AutoEventDistEntityOffline interface {
+type iAutoEventDistEntityOffline interface {
 	EventDistEntityOffline() event.IEvent
 }
 
-func BindEventDistEntityOffline(auto _AutoEventDistEntityOffline, subscriber EventDistEntityOffline, priority ...int32) event.Hook {
+func BindEventDistEntityOffline(auto iAutoEventDistEntityOffline, subscriber EventDistEntityOffline, priority ...int32) event.Hook {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
-	return event.BindEvent[EventDistEntityOffline](auto.EventDistEntityOffline(), subscriber, priority...)
+	return event.Bind[EventDistEntityOffline](auto.EventDistEntityOffline(), subscriber, priority...)
 }
 
-func _EmitEventDistEntityOffline(auto _AutoEventDistEntityOffline, entity ec.Entity) {
+func _EmitEventDistEntityOffline(auto iAutoEventDistEntityOffline, entity ec.Entity) {
 	if auto == nil {
 		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
 	}
 	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber iface.Cache) bool {
+		iface.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
+		return true
+	})
+}
+
+func _EmitEventDistEntityOfflineWithInterrupt(auto iAutoEventDistEntityOffline, interrupt func(entity ec.Entity) bool, entity ec.Entity) {
+	if auto == nil {
+		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+	}
+	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber iface.Cache) bool {
+		if interrupt != nil {
+			if interrupt(entity) {
+				return false
+			}
+		}
 		iface.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
 		return true
 	})
