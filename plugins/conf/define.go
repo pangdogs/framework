@@ -3,7 +3,7 @@ package conf
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.DefinePlugin(newConfig)
+	self      = define.Plugin(newConfig)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

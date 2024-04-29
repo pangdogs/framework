@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	self      = define.DefineServicePlugin(newRPC)
+	self      = define.ServicePlugin(newRPC)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

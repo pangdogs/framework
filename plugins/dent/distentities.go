@@ -80,7 +80,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 	// 绑定事件
 	d.rtCtx.ManagedHooks(
 		runtime.BindEventEntityMgrAddEntity(ctx.GetEntityMgr(), d, 1000),
-		runtime.BindEventEntityMgrRemovingEntity(ctx.GetEntityMgr(), d, -1000),
+		runtime.BindEventEntityMgrRemoveEntity(ctx.GetEntityMgr(), d, -1000),
 	)
 }
 
@@ -108,8 +108,8 @@ func (d *_DistEntities) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity
 	d.register(entity)
 }
 
-// OnEntityMgrRemovingEntity 实体管理器开始删除实体
-func (d *_DistEntities) OnEntityMgrRemovingEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+// OnEntityMgrRemoveEntity 实体管理器删除实体
+func (d *_DistEntities) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
 	select {
 	case <-d.rtCtx.Done():
 		return

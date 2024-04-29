@@ -3,7 +3,7 @@ package router
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.DefineServicePlugin(newRouter)
+	self      = define.ServicePlugin(newRouter)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

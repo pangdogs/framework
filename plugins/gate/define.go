@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	self      = define.DefineServicePlugin(newGate)
+	self      = define.ServicePlugin(newGate)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

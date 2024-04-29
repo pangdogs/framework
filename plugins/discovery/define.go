@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	self  = define.DefineServicePluginInterface[IRegistry]()
+	self  = define.ServicePluginInterface[IRegistry]()
 	Name  = self.Name
 	Using = self.Using
 )

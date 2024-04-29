@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	self      = define.DefineServicePlugin(newDistService)
+	self      = define.ServicePlugin(newDistService)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install
