@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/types"
@@ -13,7 +12,6 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/router"
-	"git.golaxy.org/framework/util/concurrent"
 )
 
 // NewGateProcessor 创建网关RPC处理器，用于C<->G的通信
@@ -56,21 +54,4 @@ func (p *_GateProcessor) Shut(ctx service.Context) {
 	<-p.msgWatcher.Terminate()
 
 	log.Debugf(p.servCtx, "rpc processor %q stopped", types.AnyFullName(*p))
-}
-
-// Match 是否匹配
-func (p *_GateProcessor) Match(ctx service.Context, dst, path string, oneWay bool) bool {
-	return false
-}
-
-// Request 请求
-func (p *_GateProcessor) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
-	ret := concurrent.MakeRespAsyncRet()
-	ret.Push(concurrent.MakeRet[any](nil, ErrUndeliverable))
-	return ret.CastAsyncRet()
-}
-
-// Notify 通知
-func (p *_GateProcessor) Notify(ctx service.Context, dst, path string, args []any) error {
-	return ErrUndeliverable
 }
