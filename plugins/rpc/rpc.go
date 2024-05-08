@@ -25,11 +25,10 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 }
 
 type _RPC struct {
-	options     RPCOptions
-	servCtx     service.Context
-	terminated  atomic.Bool
-	deliverers  []processor.IDeliverer
-	dispatchers []processor.IDispatcher
+	options    RPCOptions
+	servCtx    service.Context
+	terminated atomic.Bool
+	deliverers []processor.IDeliverer
 }
 
 // InitSP 初始化服务插件
@@ -38,24 +37,14 @@ func (r *_RPC) InitSP(ctx service.Context) {
 
 	r.servCtx = ctx
 
-	for _, d := range r.options.Deliverers {
-		r.deliverers = append(r.deliverers, d)
-	}
-
-	for _, d := range r.options.Dispatchers {
-		r.dispatchers = append(r.dispatchers, d)
-	}
-
-	for _, d := range r.deliverers {
-		init, ok := d.(processor.LifecycleInit)
-		if ok {
-			init.Init(r.servCtx)
+	for _, p := range r.options.Processors {
+		if deliverer, ok := p.(processor.IDeliverer); ok {
+			r.deliverers = append(r.deliverers, deliverer)
 		}
 	}
 
-	for _, d := range r.dispatchers {
-		init, ok := d.(processor.LifecycleInit)
-		if ok {
+	for _, p := range r.options.Processors {
+		if init, ok := p.(processor.LifecycleInit); ok {
 			init.Init(r.servCtx)
 		}
 	}
@@ -67,16 +56,8 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 
 	r.terminated.Store(true)
 
-	for _, d := range r.deliverers {
-		shut, ok := d.(processor.LifecycleShut)
-		if ok {
-			shut.Shut(r.servCtx)
-		}
-	}
-
-	for _, d := range r.dispatchers {
-		shut, ok := d.(processor.LifecycleShut)
-		if ok {
+	for _, p := range r.options.Processors {
+		if shut, ok := p.(processor.LifecycleShut); ok {
 			shut.Shut(r.servCtx)
 		}
 	}
@@ -91,17 +72,17 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 	}
 
 	for i := range r.deliverers {
-		d := r.deliverers[i]
+		deliverer := r.deliverers[i]
 
-		if !d.Match(r.servCtx, dst, path, false) {
+		if !deliverer.Match(r.servCtx, dst, path, false) {
 			continue
 		}
 
-		return d.Request(r.servCtx, dst, path, args)
+		return deliverer.Request(r.servCtx, dst, path, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
-	ret.Push(concurrent.MakeRet[any](nil, processor.ErrNoDeliverer))
+	ret.Push(concurrent.MakeRet[any](nil, processor.ErrUndeliverable))
 	return ret.CastAsyncRet()
 }
 
@@ -112,14 +93,14 @@ func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
 	}
 
 	for i := range r.deliverers {
-		d := r.deliverers[i]
+		deliverer := r.deliverers[i]
 
-		if !d.Match(r.servCtx, dst, path, true) {
+		if !deliverer.Match(r.servCtx, dst, path, true) {
 			continue
 		}
 
-		return d.Notify(r.servCtx, dst, path, args)
+		return deliverer.Notify(r.servCtx, dst, path, args)
 	}
 
-	return processor.ErrNoDeliverer
+	return processor.ErrUndeliverable
 }
