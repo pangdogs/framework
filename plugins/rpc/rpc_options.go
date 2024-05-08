@@ -15,11 +15,11 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		With.Deliverers(processor.NewServiceProcessor())(options)
+		With.Processors(processor.NewServiceProcessor())(options)
 	}
 }
 
-func (_Option) Deliverers(processors ...any) option.Setting[RPCOptions] {
+func (_Option) Processors(processors ...any) option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
 		options.Processors = processors
 	}
