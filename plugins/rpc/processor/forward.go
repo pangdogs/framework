@@ -9,7 +9,6 @@ import (
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
-	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 )
@@ -32,7 +31,6 @@ type _ForwardProcessor struct {
 	servCtx         service.Context
 	dist            dserv.IDistService
 	dentq           dentq.IDistEntityQuerier
-	gate            gate.IGate
 	encoder         codec.Encoder
 	decoder         codec.Decoder
 	deliverService  string
@@ -46,7 +44,6 @@ func (p *_ForwardProcessor) Init(ctx service.Context) {
 	p.servCtx = ctx
 	p.dist = dserv.Using(ctx)
 	p.dentq = dentq.Using(ctx)
-	p.gate = gate.Using(ctx)
 	p.multicastBCAddr = p.dist.MakeBroadcastAddr(p.deliverService)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
