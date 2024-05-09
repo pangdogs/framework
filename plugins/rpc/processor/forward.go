@@ -17,26 +17,26 @@ import (
 type PermissionValidator = generic.DelegateFunc2[string, callpath.CallPath, bool]
 
 // NewForwardProcessor RPC转发处理器，用于S<->G的通信
-func NewForwardProcessor(deliverService string, mc gap.IMsgCreator, permValidator PermissionValidator) any {
+func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator) any {
 	return &_ForwardProcessor{
 		encoder:        codec.MakeEncoder(),
 		decoder:        codec.MakeDecoder(mc),
-		deliverService: deliverService,
+		transitService: transitService,
 		permValidator:  permValidator,
 	}
 }
 
 // _ForwardProcessor RPC转发处理器，用于S<->G的通信
 type _ForwardProcessor struct {
-	servCtx         service.Context
-	dist            dserv.IDistService
-	dentq           dentq.IDistEntityQuerier
-	encoder         codec.Encoder
-	decoder         codec.Decoder
-	deliverService  string
-	multicastBCAddr string
-	permValidator   PermissionValidator
-	watcher         dserv.IWatcher
+	servCtx                service.Context
+	dist                   dserv.IDistService
+	dentq                  dentq.IDistEntityQuerier
+	encoder                codec.Encoder
+	decoder                codec.Decoder
+	transitService         string
+	transitMulticastBCAddr string
+	permValidator          PermissionValidator
+	watcher                dserv.IWatcher
 }
 
 // Init 初始化
@@ -44,7 +44,7 @@ func (p *_ForwardProcessor) Init(ctx service.Context) {
 	p.servCtx = ctx
 	p.dist = dserv.Using(ctx)
 	p.dentq = dentq.Using(ctx)
-	p.multicastBCAddr = p.dist.MakeBroadcastAddr(p.deliverService)
+	p.transitMulticastBCAddr = p.dist.MakeBroadcastAddr(p.transitService)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
 	log.Debugf(p.servCtx, "rpc processor %q started", types.AnyFullName(*p))

@@ -120,7 +120,7 @@ func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 
 	} else if gate.CliDetails.InMulticastSubdomain(dst) {
 		// 目标为组播地址，广播所有的通信中转服务
-		return p.multicastBCAddr, nil
+		return p.transitMulticastBCAddr, nil
 
 	} else {
 		return "", ErrIncorrectDestAddress
@@ -134,7 +134,7 @@ func (p *_ForwardProcessor) getDistEntityForwardAddr(entId uid.Id) (string, erro
 	}
 
 	idx := pie.FindFirstUsing(dent.Nodes, func(node dentq.Node) bool {
-		return node.Service == p.deliverService
+		return node.Service == p.transitService
 	})
 	if idx < 0 {
 		return "", ErrDistEntityNodeNotFound
