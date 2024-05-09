@@ -120,7 +120,7 @@ func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 
 	} else if gate.CliDetails.InMulticastSubdomain(dst) {
 		// 目标为组播地址，广播所有的通信中转服务
-		return p.transitMulticastBCAddr, nil
+		return p.transitBroadcastAddr, nil
 
 	} else {
 		return "", ErrIncorrectDestAddress
