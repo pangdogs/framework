@@ -1,9 +1,8 @@
-package fwec
+package framework
 
 import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/framework"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dentq"
@@ -74,8 +73,8 @@ func (serv Service) GetMemKVs() *sync.Map {
 }
 
 // CreateRuntime 创建运行时
-func (serv Service) CreateRuntime() framework.RuntimeCreator {
-	return framework.CreateRuntime(serv.Ctx)
+func (serv Service) CreateRuntime() RuntimeCreator {
+	return CreateRuntime(serv.Ctx)
 }
 
 // CreateEntityPT 创建实体原型

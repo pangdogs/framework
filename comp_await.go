@@ -1,4 +1,4 @@
-package fwec
+package framework
 
 import (
 	"context"
