@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	ErrNotVariant    = errors.New("gap: not variant")            // 非可变类型
-	ErrNotRegistered = errors.New("gap: variant not registered") // 类型未注册
+	ErrNotVariant  = errors.New("gap: not variant")          // 非可变类型
+	ErrNotDeclared = errors.New("gap: variant not declared") // 类型未注册
 )
 
 // IVariantCreator 可变类型对象构建器接口
@@ -88,7 +88,7 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
 	rtype, ok := c.variantTypeMap.Get(typeId)
 	if !ok {
-		return reflect.Value{}, ErrNotRegistered
+		return reflect.Value{}, ErrNotDeclared
 	}
 	return reflect.New(rtype), nil
 }

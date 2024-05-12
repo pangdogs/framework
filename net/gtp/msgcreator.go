@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
 
 var (
-	ErrNotRegistered = errors.New("gtp: msg not registered") // 消息未注册
+	ErrNotDeclared = errors.New("gtp: msg not declared") // 消息未注册
 )
 
 // IMsgCreator 消息对象构建器接口
@@ -60,7 +61,12 @@ func (c *_MsgCreator) Declare(msg Msg) {
 		panic(fmt.Errorf("%w: msg is nil", core.ErrArgs))
 	}
 
-	c.msgTypeMap.Insert(msg.MsgId(), reflect.TypeOf(msg).Elem())
+	c.msgTypeMap.AutoLock(func(m *map[MsgId]reflect.Type) {
+		if rtype, ok := (*m)[msg.MsgId()]; ok {
+			panic(fmt.Errorf("msg(%d) has already been declared by %s", msg.MsgId(), types.TypeFullName(rtype)))
+		}
+		(*m)[msg.MsgId()] = reflect.TypeOf(msg).Elem()
+	})
 }
 
 // Undeclare 取消注册消息
@@ -72,7 +78,7 @@ func (c *_MsgCreator) Undeclare(msgId MsgId) {
 func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
 	rtype, ok := c.msgTypeMap.Get(msgId)
 	if !ok {
-		return nil, ErrNotRegistered
+		return nil, ErrNotDeclared
 	}
 	return reflect.New(rtype).Interface().(Msg), nil
 }

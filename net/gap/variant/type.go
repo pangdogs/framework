@@ -1,6 +1,7 @@
 package variant
 
 import (
+	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/util/binaryutil"
 	"hash/fnv"
 	"reflect"
@@ -53,8 +54,6 @@ func MakeTypeId(x any) TypeId {
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(rt.PkgPath()))
-	hash.Write([]byte("."))
-	hash.Write([]byte(rt.Name()))
+	hash.Write([]byte(types.TypeFullName(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
