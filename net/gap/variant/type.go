@@ -2,6 +2,7 @@ package variant
 
 import (
 	"git.golaxy.org/framework/util/binaryutil"
+	"hash/fnv"
 	"reflect"
 )
 
@@ -43,4 +44,12 @@ func (t TypeId) New() (Value, error) {
 // NewReflected 创建反射对象指针
 func (t TypeId) NewReflected() (reflect.Value, error) {
 	return variantCreator.NewReflected(t)
+}
+
+// MakeTypeId 创建类型Id
+func MakeTypeId(x any) TypeId {
+	hash := fnv.New32a()
+	rt := reflect.ValueOf(x).Type()
+	hash.Write([]byte(rt.PkgPath() + "." + rt.Name()))
+	return TypeId(TypeId_Customize + hash.Sum32())
 }
