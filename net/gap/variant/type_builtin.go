@@ -22,5 +22,5 @@ const (
 	TypeId_Array
 	TypeId_Map
 	TypeId_Error
-	TypeId_Customize = 128 // 自定义类型起点
+	TypeId_Customize = 32 // 自定义类型起点
 )
