@@ -50,6 +50,9 @@ func (t TypeId) NewReflected() (reflect.Value, error) {
 func MakeTypeId(x any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(x).Type()
+	if rt.PkgPath() == "" || rt.Name() == "" {
+		panic("unsupported type")
+	}
 	hash.Write([]byte(rt.PkgPath() + "." + rt.Name()))
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
