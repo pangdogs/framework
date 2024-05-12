@@ -53,6 +53,8 @@ func MakeTypeId(x any) TypeId {
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(rt.PkgPath() + "." + rt.Name()))
+	hash.Write([]byte(rt.PkgPath()))
+	hash.Write([]byte("."))
+	hash.Write([]byte(rt.Name()))
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
