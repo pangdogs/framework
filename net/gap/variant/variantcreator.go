@@ -2,6 +2,8 @@ package variant
 
 import (
 	"errors"
+	"fmt"
+	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
@@ -67,7 +69,12 @@ type _VariantCreator struct {
 
 // Declare 注册类型
 func (c *_VariantCreator) Declare(v Value) {
-	c.variantTypeMap.Insert(v.TypeId(), reflect.TypeOf(v).Elem())
+	c.variantTypeMap.AutoLock(func(m *map[TypeId]reflect.Type) {
+		if rtype, ok := (*m)[v.TypeId()]; ok {
+			panic(fmt.Errorf("variant type(%d) has already been declared by %s", v.TypeId(), types.TypeFullName(rtype)))
+		}
+		(*m)[v.TypeId()] = reflect.TypeOf(v).Elem()
+	})
 }
 
 // Undeclare 取消注册类型
