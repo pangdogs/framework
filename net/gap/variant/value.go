@@ -15,8 +15,8 @@ type ValueReader interface {
 	io.Reader
 	// Size 大小
 	Size() int
-	// Type 类型
-	Type() TypeId
+	// TypeId 类型
+	TypeId() TypeId
 	// Indirect 原始值
 	Indirect() any
 }
@@ -26,6 +26,6 @@ type ValueWriter interface {
 	io.Writer
 	// Size 大小
 	Size() int
-	// Type 类型
-	Type() TypeId
+	// TypeId 类型
+	TypeId() TypeId
 }

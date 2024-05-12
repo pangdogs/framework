@@ -32,8 +32,8 @@ func (Int16) Size() int {
 	return binaryutil.SizeofInt16()
 }
 
-// Type 类型
-func (Int16) Type() TypeId {
+// TypeId 类型
+func (Int16) TypeId() TypeId {
 	return TypeId_Int16
 }
 

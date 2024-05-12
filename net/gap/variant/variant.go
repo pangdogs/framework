@@ -72,7 +72,7 @@ func MakeVariant(v ValueReader) (Variant, error) {
 		return Variant{}, errors.New("v is nil")
 	}
 	return Variant{
-		TypeId: v.Type(),
+		TypeId: v.TypeId(),
 		Value:  v,
 	}, nil
 }

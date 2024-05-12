@@ -32,8 +32,8 @@ func (Double) Size() int {
 	return binaryutil.SizeofDouble()
 }
 
-// Type 类型
-func (Double) Type() TypeId {
+// TypeId 类型
+func (Double) TypeId() TypeId {
 	return TypeId_Double
 }
 

@@ -32,8 +32,8 @@ func (Uint32) Size() int {
 	return binaryutil.SizeofUint32()
 }
 
-// Type 类型
-func (Uint32) Type() TypeId {
+// TypeId 类型
+func (Uint32) TypeId() TypeId {
 	return TypeId_Uint32
 }
 

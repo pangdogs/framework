@@ -32,8 +32,8 @@ func (Bool) Size() int {
 	return binaryutil.SizeofBool()
 }
 
-// Type 类型
-func (Bool) Type() TypeId {
+// TypeId 类型
+func (Bool) TypeId() TypeId {
 	return TypeId_Bool
 }
 

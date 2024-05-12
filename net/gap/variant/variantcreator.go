@@ -67,7 +67,7 @@ type _VariantCreator struct {
 
 // Declare 注册类型
 func (c *_VariantCreator) Declare(v Value) {
-	c.variantTypeMap.Insert(v.Type(), reflect.TypeOf(v).Elem())
+	c.variantTypeMap.Insert(v.TypeId(), reflect.TypeOf(v).Elem())
 }
 
 // Undeclare 取消注册类型

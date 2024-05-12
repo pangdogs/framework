@@ -32,8 +32,8 @@ func (v Bytes) Size() int {
 	return binaryutil.SizeofBytes(v)
 }
 
-// Type 类型
-func (Bytes) Type() TypeId {
+// TypeId 类型
+func (Bytes) TypeId() TypeId {
 	return TypeId_Bytes
 }
 

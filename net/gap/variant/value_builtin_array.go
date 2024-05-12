@@ -68,8 +68,8 @@ func (v Array) Size() int {
 	return n
 }
 
-// Type 类型
-func (Array) Type() TypeId {
+// TypeId 类型
+func (Array) TypeId() TypeId {
 	return TypeId_Array
 }
 

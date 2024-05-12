@@ -96,8 +96,8 @@ func (v Map) Size() int {
 	return n
 }
 
-// Type 类型
-func (Map) Type() TypeId {
+// TypeId 类型
+func (Map) TypeId() TypeId {
 	return TypeId_Map
 }
 

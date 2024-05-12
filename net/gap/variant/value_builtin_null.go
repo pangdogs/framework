@@ -18,8 +18,8 @@ func (Null) Size() int {
 	return 0
 }
 
-// Type 类型
-func (Null) Type() TypeId {
+// TypeId 类型
+func (Null) TypeId() TypeId {
 	return TypeId_Null
 }
 

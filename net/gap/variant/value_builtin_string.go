@@ -32,8 +32,8 @@ func (v String) Size() int {
 	return binaryutil.SizeofString(string(v))
 }
 
-// Type 类型
-func (String) Type() TypeId {
+// TypeId 类型
+func (String) TypeId() TypeId {
 	return TypeId_String
 }
 

@@ -32,8 +32,8 @@ func (v Uint64) Size() int {
 	return binaryutil.SizeofUvarint(uint64(v))
 }
 
-// Type 类型
-func (Uint64) Type() TypeId {
+// TypeId 类型
+func (Uint64) TypeId() TypeId {
 	return TypeId_Uint64
 }
 

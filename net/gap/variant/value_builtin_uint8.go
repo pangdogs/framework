@@ -32,8 +32,8 @@ func (Uint8) Size() int {
 	return binaryutil.SizeofUint8()
 }
 
-// Type 类型
-func (Uint8) Type() TypeId {
+// TypeId 类型
+func (Uint8) TypeId() TypeId {
 	return TypeId_Uint8
 }
 

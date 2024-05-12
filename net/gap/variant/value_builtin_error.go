@@ -63,8 +63,8 @@ func (v Error) Size() int {
 	return binaryutil.SizeofInt32() + binaryutil.SizeofString(v.Message)
 }
 
-// Type 类型
-func (Error) Type() TypeId {
+// TypeId 类型
+func (Error) TypeId() TypeId {
 	return TypeId_Error
 }
 

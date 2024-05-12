@@ -32,8 +32,8 @@ func (v Int) Size() int {
 	return binaryutil.SizeofVarint(int64(v))
 }
 
-// Type 类型
-func (Int) Type() TypeId {
+// TypeId 类型
+func (Int) TypeId() TypeId {
 	return TypeId_Int
 }
 

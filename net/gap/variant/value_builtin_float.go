@@ -32,8 +32,8 @@ func (Float) Size() int {
 	return binaryutil.SizeofFloat()
 }
 
-// Type 类型
-func (Float) Type() TypeId {
+// TypeId 类型
+func (Float) TypeId() TypeId {
 	return TypeId_Float
 }
 
