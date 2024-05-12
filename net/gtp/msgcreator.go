@@ -14,10 +14,10 @@ var (
 
 // IMsgCreator 消息对象构建器接口
 type IMsgCreator interface {
-	// Register 注册消息
-	Register(msg Msg)
-	// Deregister 取消注册消息
-	Deregister(msgId MsgId)
+	// Declare 注册消息
+	Declare(msg Msg)
+	// Undeclare 取消注册消息
+	Undeclare(msgId MsgId)
 	// New 创建消息指针
 	New(msgId MsgId) (Msg, error)
 }
@@ -30,16 +30,16 @@ func DefaultMsgCreator() IMsgCreator {
 }
 
 func init() {
-	DefaultMsgCreator().Register(&MsgHello{})
-	DefaultMsgCreator().Register(&MsgECDHESecretKeyExchange{})
-	DefaultMsgCreator().Register(&MsgChangeCipherSpec{})
-	DefaultMsgCreator().Register(&MsgAuth{})
-	DefaultMsgCreator().Register(&MsgContinue{})
-	DefaultMsgCreator().Register(&MsgFinished{})
-	DefaultMsgCreator().Register(&MsgRst{})
-	DefaultMsgCreator().Register(&MsgHeartbeat{})
-	DefaultMsgCreator().Register(&MsgSyncTime{})
-	DefaultMsgCreator().Register(&MsgPayload{})
+	DefaultMsgCreator().Declare(&MsgHello{})
+	DefaultMsgCreator().Declare(&MsgECDHESecretKeyExchange{})
+	DefaultMsgCreator().Declare(&MsgChangeCipherSpec{})
+	DefaultMsgCreator().Declare(&MsgAuth{})
+	DefaultMsgCreator().Declare(&MsgContinue{})
+	DefaultMsgCreator().Declare(&MsgFinished{})
+	DefaultMsgCreator().Declare(&MsgRst{})
+	DefaultMsgCreator().Declare(&MsgHeartbeat{})
+	DefaultMsgCreator().Declare(&MsgSyncTime{})
+	DefaultMsgCreator().Declare(&MsgPayload{})
 }
 
 // NewMsgCreator 创建消息对象构建器
@@ -54,8 +54,8 @@ type _MsgCreator struct {
 	msgTypeMap concurrent.LockedMap[MsgId, reflect.Type]
 }
 
-// Register 注册消息
-func (c *_MsgCreator) Register(msg Msg) {
+// Declare 注册消息
+func (c *_MsgCreator) Declare(msg Msg) {
 	if msg == nil {
 		panic(fmt.Errorf("%w: msg is nil", core.ErrArgs))
 	}
@@ -63,8 +63,8 @@ func (c *_MsgCreator) Register(msg Msg) {
 	c.msgTypeMap.Insert(msg.MsgId(), reflect.TypeOf(msg).Elem())
 }
 
-// Deregister 取消注册消息
-func (c *_MsgCreator) Deregister(msgId MsgId) {
+// Undeclare 取消注册消息
+func (c *_MsgCreator) Undeclare(msgId MsgId) {
 	c.msgTypeMap.Delete(msgId)
 }
 

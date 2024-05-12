@@ -13,10 +13,10 @@ var (
 
 // IVariantCreator 可变类型对象构建器接口
 type IVariantCreator interface {
-	// Register 注册类型
-	Register(v Value)
-	// Deregister 取消注册类型
-	Deregister(typeId TypeId)
+	// Declare 注册类型
+	Declare(v Value)
+	// Undeclare 取消注册类型
+	Undeclare(typeId TypeId)
 	// New 创建对象指针
 	New(typeId TypeId) (Value, error)
 	// NewReflected 创建反射对象指针
@@ -31,26 +31,26 @@ func VariantCreator() IVariantCreator {
 }
 
 func init() {
-	VariantCreator().Register(new(Int))
-	VariantCreator().Register(new(Int8))
-	VariantCreator().Register(new(Int16))
-	VariantCreator().Register(new(Int32))
-	VariantCreator().Register(new(Int64))
-	VariantCreator().Register(new(Uint))
-	VariantCreator().Register(new(Uint8))
-	VariantCreator().Register(new(Uint16))
-	VariantCreator().Register(new(Uint32))
-	VariantCreator().Register(new(Uint64))
-	VariantCreator().Register(new(Float))
-	VariantCreator().Register(new(Double))
-	VariantCreator().Register(new(Byte))
-	VariantCreator().Register(new(Bool))
-	VariantCreator().Register(new(Bytes))
-	VariantCreator().Register(new(String))
-	VariantCreator().Register(&Null{})
-	VariantCreator().Register(&Map{})
-	VariantCreator().Register(&Array{})
-	VariantCreator().Register(&Error{})
+	VariantCreator().Declare(new(Int))
+	VariantCreator().Declare(new(Int8))
+	VariantCreator().Declare(new(Int16))
+	VariantCreator().Declare(new(Int32))
+	VariantCreator().Declare(new(Int64))
+	VariantCreator().Declare(new(Uint))
+	VariantCreator().Declare(new(Uint8))
+	VariantCreator().Declare(new(Uint16))
+	VariantCreator().Declare(new(Uint32))
+	VariantCreator().Declare(new(Uint64))
+	VariantCreator().Declare(new(Float))
+	VariantCreator().Declare(new(Double))
+	VariantCreator().Declare(new(Byte))
+	VariantCreator().Declare(new(Bool))
+	VariantCreator().Declare(new(Bytes))
+	VariantCreator().Declare(new(String))
+	VariantCreator().Declare(&Null{})
+	VariantCreator().Declare(&Map{})
+	VariantCreator().Declare(&Array{})
+	VariantCreator().Declare(&Error{})
 }
 
 // _NewVariantCreator 创建可变类型对象构建器
@@ -65,13 +65,13 @@ type _VariantCreator struct {
 	variantTypeMap concurrent.LockedMap[TypeId, reflect.Type]
 }
 
-// Register 注册类型
-func (c *_VariantCreator) Register(v Value) {
+// Declare 注册类型
+func (c *_VariantCreator) Declare(v Value) {
 	c.variantTypeMap.Insert(v.Type(), reflect.TypeOf(v).Elem())
 }
 
-// Deregister 取消注册类型
-func (c *_VariantCreator) Deregister(typeId TypeId) {
+// Undeclare 取消注册类型
+func (c *_VariantCreator) Undeclare(typeId TypeId) {
 	c.variantTypeMap.Delete(typeId)
 }
 

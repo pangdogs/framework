@@ -14,10 +14,10 @@ var (
 
 // IMsgCreator 消息对象构建器接口
 type IMsgCreator interface {
-	// Register 注册消息
-	Register(msg Msg)
-	// Deregister 取消注册消息
-	Deregister(msgId MsgId)
+	// Declare 注册消息
+	Declare(msg Msg)
+	// Undeclare 取消注册消息
+	Undeclare(msgId MsgId)
 	// New 创建消息指针
 	New(msgId MsgId) (Msg, error)
 }
@@ -30,10 +30,10 @@ func DefaultMsgCreator() IMsgCreator {
 }
 
 func init() {
-	DefaultMsgCreator().Register(&MsgRPCRequest{})
-	DefaultMsgCreator().Register(&MsgRPCReply{})
-	DefaultMsgCreator().Register(&MsgOneWayRPC{})
-	DefaultMsgCreator().Register(&MsgForward{})
+	DefaultMsgCreator().Declare(&MsgRPCRequest{})
+	DefaultMsgCreator().Declare(&MsgRPCReply{})
+	DefaultMsgCreator().Declare(&MsgOneWayRPC{})
+	DefaultMsgCreator().Declare(&MsgForward{})
 }
 
 // NewMsgCreator 创建消息对象构建器
@@ -48,8 +48,8 @@ type _MsgCreator struct {
 	msgTypeMap concurrent.LockedMap[MsgId, reflect.Type]
 }
 
-// Register 注册消息
-func (c *_MsgCreator) Register(msg Msg) {
+// Declare 注册消息
+func (c *_MsgCreator) Declare(msg Msg) {
 	if msg == nil {
 		panic(fmt.Errorf("%w: msg is nil", core.ErrArgs))
 	}
@@ -57,8 +57,8 @@ func (c *_MsgCreator) Register(msg Msg) {
 	c.msgTypeMap.Insert(msg.MsgId(), reflect.TypeOf(msg).Elem())
 }
 
-// Deregister 取消注册消息
-func (c *_MsgCreator) Deregister(msgId MsgId) {
+// Undeclare 取消注册消息
+func (c *_MsgCreator) Undeclare(msgId MsgId) {
 	c.msgTypeMap.Delete(msgId)
 }
 
