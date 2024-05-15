@@ -25,7 +25,7 @@ func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan er
 }
 
 func (eventTab *distEntitiesEventTab) Get(id int) event.IEvent {
-	if _distEntitiesEventTabId != id & 0xFFFFFFFF00000000 {
+	if _distEntitiesEventTabId != int(uint(id) & 0xFFFFFFFF00000000) {
 		return nil
 	}
 	pos := id & 0xFFFFFFFF
