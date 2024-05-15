@@ -11,7 +11,7 @@ import (
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = types.New(types.Bool2Int[int](*options.TCPNoDelay))
+		noDelay = types.NewCopiedT(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	recvBuf := options.TCPRecvBuf

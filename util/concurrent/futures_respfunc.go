@@ -11,13 +11,13 @@ type RespFunc[T any] generic.Action1[Ret[T]]
 // Push 填入返回结果
 func (resp RespFunc[T]) Push(ret Ret[any]) error {
 	if !ret.OK() {
-		generic.MakeAction1(resp).Exec(MakeRet[T](types.Zero[T](), ret.Error))
+		generic.MakeAction1(resp).Exec(MakeRet[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
 	v, ok := ret.Value.(T)
 	if !ok {
-		generic.MakeAction1(resp).Exec(MakeRet[T](types.Zero[T](), ErrFutureRespIncorrectType))
+		generic.MakeAction1(resp).Exec(MakeRet[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
@@ -31,13 +31,13 @@ type RespDelegate[T any] generic.DelegateAction1[Ret[T]]
 // Push 填入返回结果
 func (resp RespDelegate[T]) Push(ret Ret[any]) error {
 	if !ret.OK() {
-		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.Zero[T](), ret.Error))
+		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
 	v, ok := ret.Value.(T)
 	if !ok {
-		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.Zero[T](), ErrFutureRespIncorrectType))
+		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 

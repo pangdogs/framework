@@ -11,12 +11,12 @@ import (
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = types.New(types.Bool2Int[int](*options.TCPNoDelay))
+		noDelay = types.NewCopiedT(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	var quickAck *int
 	if options.TCPQuickAck != nil {
-		quickAck = types.New(types.Bool2Int[int](*options.TCPQuickAck))
+		quickAck = types.NewCopiedT(types.Bool2Int[int](*options.TCPQuickAck))
 	}
 
 	recvBuf := options.TCPRecvBuf

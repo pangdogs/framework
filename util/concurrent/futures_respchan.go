@@ -24,14 +24,14 @@ type RespChan[T any] chan Ret[T]
 // Push 填入返回结果
 func (resp RespChan[T]) Push(ret Ret[any]) error {
 	if !ret.OK() {
-		resp <- MakeRet[T](types.Zero[T](), ret.Error)
+		resp <- MakeRet[T](types.ZeroT[T](), ret.Error)
 		close(resp)
 		return nil
 	}
 
 	v, ok := ret.Value.(T)
 	if !ok {
-		resp <- MakeRet[T](types.Zero[T](), ErrFutureRespIncorrectType)
+		resp <- MakeRet[T](types.ZeroT[T](), ErrFutureRespIncorrectType)
 		close(resp)
 		return nil
 	}
@@ -58,10 +58,10 @@ func (reply Reply[T]) Wait(ctx context.Context) Ret[T] {
 	select {
 	case ret, ok := <-reply:
 		if !ok {
-			return MakeRet[T](types.Zero[T](), ErrFutureReplyClosed)
+			return MakeRet[T](types.ZeroT[T](), ErrFutureReplyClosed)
 		}
 		return ret
 	case <-ctx.Done():
-		return MakeRet[T](types.Zero[T](), context.Canceled)
+		return MakeRet[T](types.ZeroT[T](), context.Canceled)
 	}
 }

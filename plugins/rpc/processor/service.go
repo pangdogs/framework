@@ -27,12 +27,12 @@ func (p *_ServiceProcessor) Init(ctx service.Context) {
 	p.dist = dserv.Using(ctx)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
-	log.Debugf(p.servCtx, "rpc processor %q started", types.AnyFullName(*p))
+	log.Debugf(p.servCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
 func (p *_ServiceProcessor) Shut(ctx service.Context) {
 	<-p.watcher.Terminate()
 
-	log.Debugf(p.servCtx, "rpc processor %q stopped", types.AnyFullName(*p))
+	log.Debugf(p.servCtx, "rpc processor %q stopped", types.FullName(*p))
 }

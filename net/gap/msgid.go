@@ -16,17 +16,17 @@ func MakeMsgId(msg Msg) MsgId {
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(types.TypeFullName(rt)))
+	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())
 }
 
 // MakeMsgIdT 创建类型Id
 func MakeMsgIdT[T any]() MsgId {
 	hash := fnv.New32a()
-	rt := reflect.ValueOf((*T)(nil)).Elem().Type()
+	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Msg]()) {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(types.TypeFullName(rt)))
+	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())
 }

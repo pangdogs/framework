@@ -45,7 +45,7 @@ func (p *_GateProcessor) Init(ctx service.Context) {
 	p.sessionWatcher = p.gate.Watch(context.Background(), generic.MakeDelegateAction3(p.handleSessionChanged))
 	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
-	log.Debugf(p.servCtx, "rpc processor %q started", types.AnyFullName(*p))
+	log.Debugf(p.servCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
@@ -53,5 +53,5 @@ func (p *_GateProcessor) Shut(ctx service.Context) {
 	<-p.sessionWatcher.Terminate()
 	<-p.msgWatcher.Terminate()
 
-	log.Debugf(p.servCtx, "rpc processor %q stopped", types.AnyFullName(*p))
+	log.Debugf(p.servCtx, "rpc processor %q stopped", types.FullName(*p))
 }

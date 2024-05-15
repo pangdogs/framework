@@ -54,17 +54,17 @@ func MakeTypeId(v Value) TypeId {
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(types.TypeFullName(rt)))
+	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
 
 // MakeTypeIdT 创建类型Id
 func MakeTypeIdT[T any]() TypeId {
 	hash := fnv.New32a()
-	rt := reflect.ValueOf((*T)(nil)).Elem().Type()
+	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {
 		panic("unsupported type")
 	}
-	hash.Write([]byte(types.TypeFullName(rt)))
+	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
