@@ -24,12 +24,12 @@ func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan er
 	(*eventTab)[1].Init(autoRecover, reportError, recursion)
 }
 
-func (eventTab *distEntitiesEventTab) Get(id int) event.IEvent {
-	if _distEntitiesEventTabId != int(uint(id) & 0xFFFFFFFF00000000) {
+func (eventTab *distEntitiesEventTab) Get(id uint64) event.IEvent {
+	if _distEntitiesEventTabId != id & 0xFFFFFFFF00000000 {
 		return nil
 	}
 	pos := id & 0xFFFFFFFF
-	if pos < 0 || pos >= len(*eventTab) {
+	if pos >= uint64(len(*eventTab)) {
 		return nil
 	}
 	return &(*eventTab)[pos]
