@@ -9,8 +9,8 @@ cloud.google.com/go/firestore v1.14.0 h1:8aLcKnMPoldYU3YHgu4t2exrKhLQkqaXAGqT0lj
 cloud.google.com/go/firestore v1.14.0/go.mod h1:96MVaHLsEhbvkBEdZgfN+AS/GIkco1LRpH9Xp9YZfzQ=
 cloud.google.com/go/longrunning v0.5.4 h1:w8xEcbZodnA2BbW6sVirkkoC+1gP8wS57EUUgGS0GVg=
 cloud.google.com/go/longrunning v0.5.4/go.mod h1:zqNVncI0BOP8ST6XQD1+VcvuShMmq7+xFSzOL++V0dI=
-git.golaxy.org/core v0.2.63 h1:cQStefDYS0h+24zY2+B+aC+R5DPR+fbTnPeKDWF+0CA=
-git.golaxy.org/core v0.2.63/go.mod h1:jxyNi0OH7ytb7v8bhSX5uZwWTtHcTSR4zCCcy31Ao14=
+git.golaxy.org/core v0.2.64 h1:aZtbMugEB1qmxesUJt4CT1ox9PdkbxPKewcMFIQ9Jes=
+git.golaxy.org/core v0.2.64/go.mod h1:jxyNi0OH7ytb7v8bhSX5uZwWTtHcTSR4zCCcy31Ao14=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/alecthomas/kingpin/v2 v2.4.0 h1:f48lwail6p8zpO1bC4TxtqACaGqHYA22qkHjHpqDjYY=

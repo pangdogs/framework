@@ -1,5 +1,5 @@
-//go:generate go run git.golaxy.org/core/event/eventcode --decl_file=$GOFILE gen_event --package=$GOPACKAGE --default_export=false
-//go:generate go run git.golaxy.org/core/event/eventcode --decl_file=$GOFILE gen_eventtab --package=$GOPACKAGE --name=distEntitiesEventTab
+//go:generate go run git.golaxy.org/core/event/eventcode gen_event --default_export=false
+//go:generate go run git.golaxy.org/core/event/eventcode gen_eventtab --name=distEntitiesEventTab
 package dent
 
 import (
