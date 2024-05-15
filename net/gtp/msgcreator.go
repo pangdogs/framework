@@ -63,7 +63,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 
 	c.msgTypeMap.AutoLock(func(m *map[MsgId]reflect.Type) {
 		if rtype, ok := (*m)[msg.MsgId()]; ok {
-			panic(fmt.Errorf("msg(%d) has already been declared by %s", msg.MsgId(), types.TypeFullName(rtype)))
+			panic(fmt.Errorf("msg(%d) has already been declared by %q", msg.MsgId(), types.TypeFullName(rtype)))
 		}
 		(*m)[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 	})

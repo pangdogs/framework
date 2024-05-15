@@ -71,7 +71,7 @@ type _VariantCreator struct {
 func (c *_VariantCreator) Declare(v Value) {
 	c.variantTypeMap.AutoLock(func(m *map[TypeId]reflect.Type) {
 		if rtype, ok := (*m)[v.TypeId()]; ok {
-			panic(fmt.Errorf("variant type(%d) has already been declared by %s", v.TypeId(), types.TypeFullName(rtype)))
+			panic(fmt.Errorf("variant type(%d) has already been declared by %q", v.TypeId(), types.TypeFullName(rtype)))
 		}
 		(*m)[v.TypeId()] = reflect.TypeOf(v).Elem()
 	})

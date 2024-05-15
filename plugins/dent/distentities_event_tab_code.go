@@ -11,6 +11,12 @@ type IDistEntitiesEventTab interface {
 	EventDistEntityOffline() event.IEvent
 }
 
+var (
+	_distEntitiesEventTabId = event.DeclareEventTabIdT[distEntitiesEventTab]()
+	EventDistEntityOnlineId = _distEntitiesEventTabId + 0
+	EventDistEntityOfflineId = _distEntitiesEventTabId + 1
+)
+
 type distEntitiesEventTab [2]event.Event
 
 func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan error, recursion event.EventRecursion) {
@@ -19,7 +25,14 @@ func (eventTab *distEntitiesEventTab) Init(autoRecover bool, reportError chan er
 }
 
 func (eventTab *distEntitiesEventTab) Get(id int) event.IEvent {
-	return &(*eventTab)[id]
+	if _distEntitiesEventTabId != id & 0xFFFFFFFF00000000 {
+		return nil
+	}
+	pos := id & 0xFFFFFFFF
+	if pos < 0 || pos >= len(*eventTab) {
+		return nil
+	}
+	return &(*eventTab)[pos]
 }
 
 func (eventTab *distEntitiesEventTab) Open() {
@@ -40,15 +53,10 @@ func (eventTab *distEntitiesEventTab) Clean() {
 	}
 }
 
-const EventDistEntityOnlineId int = 0
-
 func (eventTab *distEntitiesEventTab) EventDistEntityOnline() event.IEvent {
-	return &(*eventTab)[EventDistEntityOnlineId]
+	return &(*eventTab)[0]
 }
-
-const EventDistEntityOfflineId int = 1
 
 func (eventTab *distEntitiesEventTab) EventDistEntityOffline() event.IEvent {
-	return &(*eventTab)[EventDistEntityOfflineId]
+	return &(*eventTab)[1]
 }
-

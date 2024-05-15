@@ -48,10 +48,21 @@ func (t TypeId) NewReflected() (reflect.Value, error) {
 }
 
 // MakeTypeId 创建类型Id
-func MakeTypeId(x any) TypeId {
+func MakeTypeId(v Value) TypeId {
 	hash := fnv.New32a()
-	rt := reflect.ValueOf(x).Type()
+	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
+		panic("unsupported type")
+	}
+	hash.Write([]byte(types.TypeFullName(rt)))
+	return TypeId(TypeId_Customize + hash.Sum32())
+}
+
+// MakeTypeIdT 创建类型Id
+func MakeTypeIdT[T any]() TypeId {
+	hash := fnv.New32a()
+	rt := reflect.ValueOf((*T)(nil)).Elem().Type()
+	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {
 		panic("unsupported type")
 	}
 	hash.Write([]byte(types.TypeFullName(rt)))
