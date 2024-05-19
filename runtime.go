@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"reflect"
 	"sync"
 )
 
@@ -27,6 +28,16 @@ type _RuntimeSettings struct {
 	FPS                  float32
 	AutoRun              bool
 	ProcessQueueCapacity int
+}
+
+// RuntimeGenericT 运行时泛化类型实例化
+type RuntimeGenericT[T any] struct {
+	RuntimeGeneric
+}
+
+// Instantiation 实例化
+func (r *RuntimeGenericT[T]) Instantiation() runtime.Context {
+	return reflect.New(reflect.TypeFor[T]()).Interface().(runtime.Context)
 }
 
 // RuntimeGeneric 运行时泛化类型

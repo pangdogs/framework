@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -33,6 +34,16 @@ import (
 type _IServiceGeneric interface {
 	setup(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context, idx int) core.Service
+}
+
+// ServiceGenericT 服务泛化类型实例化
+type ServiceGenericT[T any] struct {
+	ServiceGeneric
+}
+
+// Instantiation 实例化
+func (s *ServiceGenericT[T]) Instantiation() service.Context {
+	return reflect.New(reflect.TypeFor[T]()).Interface().(service.Context)
 }
 
 // ServiceGeneric 服务泛化类型
