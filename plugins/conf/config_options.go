@@ -6,13 +6,15 @@ import (
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
-	Format         string         // 配置格式（json,yaml,ini...）
-	LocalPath      string         // 本地配置文件路径
-	RemoteProvider string         // 远端配置类型（etcd3,consul...）
-	RemoteEndpoint string         // 远端地址
-	RemotePath     string         // 远端路径
-	AutoUpdate     bool           // 是否热更新
-	DefaultKVs     map[string]any // 默认配置
+	Format          string         // 配置格式（json,yaml,ini...）
+	LocalPath       string         // 本地配置文件路径
+	RemoteProvider  string         // 远端配置类型（etcd3,consul...）
+	RemoteEndpoint  string         // 远端地址
+	RemotePath      string         // 远端路径
+	AutoUpdate      bool           // 是否热更新
+	DefaultKVs      map[string]any // 默认配置
+	AutomaticEnv    bool           // 是否合并环境变量
+	AutomaticPFlags bool           // 是否合并启动参数
 }
 
 var With _Option
@@ -22,11 +24,13 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		With.Format("json")(options)
-		With.LocalPath("")(options)
-		With.Remote("", "", "")(options)
-		With.AutoUpdate(false)(options)
-		With.DefaultKVs(nil)(options)
+		With.Format("json").Apply(options)
+		With.LocalPath("").Apply(options)
+		With.Remote("", "", "").Apply(options)
+		With.AutoUpdate(false).Apply(options)
+		With.DefaultKVs(nil).Apply(options)
+		With.AutomaticEnv(false).Apply(options)
+		With.AutomaticPFlags(false).Apply(options)
 	}
 }
 
@@ -64,5 +68,19 @@ func (_Option) AutoUpdate(b bool) option.Setting[ConfigOptions] {
 func (_Option) DefaultKVs(kvs map[string]any) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
 		o.DefaultKVs = kvs
+	}
+}
+
+// AutomaticEnv 是否合并环境变量
+func (_Option) AutomaticEnv(b bool) option.Setting[ConfigOptions] {
+	return func(o *ConfigOptions) {
+		o.AutomaticEnv = b
+	}
+}
+
+// AutomaticPFlags 是否合并启动参数
+func (_Option) AutomaticPFlags(b bool) option.Setting[ConfigOptions] {
+	return func(o *ConfigOptions) {
+		o.AutomaticPFlags = b
 	}
 }

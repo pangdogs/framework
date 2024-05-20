@@ -5,6 +5,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/log"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 )
@@ -36,6 +37,14 @@ func (c *_Config) InitSP(ctx service.Context) {
 
 	for k, v := range c.options.DefaultKVs {
 		vp.SetDefault(k, v)
+	}
+
+	if c.options.AutomaticEnv {
+		vp.AutomaticEnv()
+	}
+
+	if c.options.AutomaticPFlags {
+		vp.BindPFlags(pflag.CommandLine)
 	}
 
 	local := c.options.LocalPath != ""
