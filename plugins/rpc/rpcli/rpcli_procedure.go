@@ -12,7 +12,7 @@ var (
 
 // IProcedure 过程接口
 type IProcedure interface {
-	_IProcedure
+	iProcedure
 
 	// GetCli 获取RPC客户端
 	GetCli() *RPCli
@@ -26,7 +26,7 @@ type IProcedure interface {
 	OneWayRPC(service, comp, method string, args ...any) error
 }
 
-type _IProcedure interface {
+type iProcedure interface {
 	setup(cli *RPCli, entityId uid.Id, composite any)
 }
 

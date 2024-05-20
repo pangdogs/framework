@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func newTask[T Resp](fs *Futures, resp T) _ITask {
+func newTask[T Resp](fs *Futures, resp T) iTask {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	task := &_Task[T]{
@@ -23,7 +23,7 @@ func newTask[T Resp](fs *Futures, resp T) _ITask {
 	return task
 }
 
-type _ITask interface {
+type iTask interface {
 	Future() Future
 	Run(ctx context.Context, timeout time.Duration)
 	Resolve(ret Ret[any]) error

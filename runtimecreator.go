@@ -28,7 +28,7 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 // RuntimeCreator 运行时构建器
 type RuntimeCreator struct {
 	servCtx  service.Context
-	generic  _IRuntimeGeneric
+	generic  iRuntimeGeneric
 	settings _RuntimeSettings
 }
 
@@ -42,7 +42,7 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_generic, ok := generic.(_IRuntimeGeneric)
+	_generic, ok := generic.(iRuntimeGeneric)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}

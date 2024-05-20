@@ -21,7 +21,7 @@ func NewApp() *App {
 }
 
 type _ServPT struct {
-	generic _IServiceGeneric
+	generic iServiceGeneric
 	num     int
 }
 
@@ -49,7 +49,7 @@ func (app *App) Setup(name string, generic any) *App {
 		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_generic, ok := generic.(_IServiceGeneric)
+	_generic, ok := generic.(iServiceGeneric)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
@@ -177,7 +177,7 @@ func (app *App) Run() {
 	for _, pt := range app.servicePTs {
 		for i := 0; i < pt.num; i++ {
 			wg.Add(1)
-			go func(generic _IServiceGeneric, idx int) {
+			go func(generic iServiceGeneric, idx int) {
 				defer wg.Done()
 				<-generic.generate(ctx, idx).Run()
 			}(pt.generic, i)

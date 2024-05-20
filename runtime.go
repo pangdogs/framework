@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-type _IRuntimeGeneric interface {
+type iRuntimeGeneric interface {
 	setup(ctx service.Context, composite any)
 	generate(settings _RuntimeSettings) core.Runtime
 }

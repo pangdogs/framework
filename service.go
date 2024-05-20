@@ -31,7 +31,7 @@ import (
 	"sync"
 )
 
-type _IServiceGeneric interface {
+type iServiceGeneric interface {
 	setup(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context, idx int) core.Service
 }

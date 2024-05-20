@@ -91,7 +91,7 @@ func (fs *Futures) Resolve(id int64, ret Ret[any]) error {
 	if !ok {
 		return ErrFutureNotFound
 	}
-	return v.(_ITask).Resolve(ret)
+	return v.(iTask).Resolve(ret)
 }
 
 func (fs *Futures) makeId() int64 {
