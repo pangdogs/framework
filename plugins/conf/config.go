@@ -39,11 +39,11 @@ func (c *_Config) InitSP(ctx service.Context) {
 		vp.SetDefault(k, v)
 	}
 
-	if c.options.AutomaticEnv {
+	if c.options.AutoEnv {
 		vp.AutomaticEnv()
 	}
 
-	if c.options.AutomaticPFlags {
+	if c.options.AutoPFlags {
 		vp.BindPFlags(pflag.CommandLine)
 	}
 
