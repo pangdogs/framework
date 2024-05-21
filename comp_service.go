@@ -20,7 +20,7 @@ type Service struct {
 }
 
 // GetConf 获取配置插件
-func (serv Service) GetConf() conf.IVisitConf {
+func (serv Service) GetConf() conf.IConfig {
 	return conf.Using(serv.Ctx)
 }
 

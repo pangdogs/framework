@@ -25,7 +25,7 @@ type ServiceInstance struct {
 }
 
 // GetConf 获取配置插件
-func (instance *ServiceInstance) GetConf() conf.IVisitConf {
+func (instance *ServiceInstance) GetConf() conf.IConfig {
 	return conf.Using(instance)
 }
 
