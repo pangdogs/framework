@@ -134,6 +134,7 @@ func (app *App) Run() {
 	app.initCB.Exec(nil, app)
 
 	// 解析启动参数
+	pflag.CommandLine.ParseErrorsWhitelist.UnknownFlags = true
 	pflag.Parse()
 
 	// 合并启动参数配置
