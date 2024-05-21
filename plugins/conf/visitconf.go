@@ -23,6 +23,9 @@ type IVisitConf interface {
 	GetDuration(key string) time.Duration
 	GetIntSlice(key string) []int
 	GetStringSlice(key string) []string
+	GetStringMap(key string) map[string]any
+	GetStringMapString(key string) map[string]string
+	GetStringMapStringSlice(key string) map[string][]string
 	GetStringOrDefault(key, def string) string
 	GetBoolOrDefault(key string, def bool) bool
 	GetIntOrDefault(key string, def int) int
@@ -37,9 +40,9 @@ type IVisitConf interface {
 	GetDurationOrDefault(key string, def time.Duration) time.Duration
 	GetIntSliceOrDefault(key string, def []int) []int
 	GetStringSliceOrDefault(key string, def []string) []string
-	GetStringMap(key string) map[string]any
-	GetStringMapString(key string) map[string]string
-	GetStringMapStringSlice(key string) map[string][]string
+	GetStringMapOrDefault(key string, def map[string]any) map[string]any
+	GetStringMapStringOrDefault(key string, def map[string]string) map[string]string
+	GetStringMapStringSliceOrDefault(key string, def map[string][]string) map[string][]string
 	GetSizeInBytes(key string) uint
 	GetAllKeys() []string
 	GetAllSettings() map[string]any
@@ -151,6 +154,27 @@ func (vc *_VisitConf) GetStringSliceOrDefault(key string, def []string) []string
 		return def
 	}
 	return vc.GetStringSlice(key)
+}
+
+func (vc *_VisitConf) GetStringMapOrDefault(key string, def map[string]any) map[string]any {
+	if !vc.IsSet(key) {
+		return def
+	}
+	return vc.GetStringMap(key)
+}
+
+func (vc *_VisitConf) GetStringMapStringOrDefault(key string, def map[string]string) map[string]string {
+	if !vc.IsSet(key) {
+		return def
+	}
+	return vc.GetStringMapString(key)
+}
+
+func (vc *_VisitConf) GetStringMapStringSliceOrDefault(key string, def map[string][]string) map[string][]string {
+	if !vc.IsSet(key) {
+		return def
+	}
+	return vc.GetStringMapStringSlice(key)
 }
 
 func (vc *_VisitConf) GetAllKeys() []string {
