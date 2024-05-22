@@ -186,6 +186,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 	if _, ok := servCtx.GetPluginBundle().Get(conf.Name); !ok {
 		conf.Install(servCtx,
+			conf.With.AutoEnv(true),
+			conf.With.AutoPFlags(true),
 			conf.With.Format(startupConf.GetString("conf.format")),
 			conf.With.LocalPath(startupConf.GetString("conf.local_path")),
 			conf.With.Remote(
