@@ -53,8 +53,13 @@ type _VisitConf struct {
 }
 
 func (vc *_VisitConf) Sub(key string) IVisitConf {
+	subVp := vc.Viper.Sub(key)
+	if subVp == nil {
+		subVp = viper.New()
+	}
+
 	return &_VisitConf{
-		Viper: vc.Viper.Sub(key),
+		Viper: subVp,
 	}
 }
 
