@@ -1,6 +1,8 @@
 package dbutil
 
 import (
+	"fmt"
+	"git.golaxy.org/core"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -15,6 +17,9 @@ type DBService[T DB] struct {
 }
 
 func (s *DBService[T]) bindDB(db T) {
+	if db == nil {
+		panic(fmt.Errorf("%s: db is nil", core.ErrArgs))
+	}
 	s.db = db
 }
 
@@ -37,6 +42,12 @@ type DBService2[T0, T1 DB] struct {
 }
 
 func (s *DBService2[T0, T1]) bindDB(db0 T0, db1 T1) {
+	if db0 == nil {
+		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+	}
+	if db1 == nil {
+		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+	}
 	s.db0 = db0
 	s.db1 = db1
 }
@@ -65,6 +76,15 @@ type DBService3[T0, T1, T2 DB] struct {
 }
 
 func (s *DBService3[T0, T1, T2]) bindDB(db0 T0, db1 T1, db2 T2) {
+	if db0 == nil {
+		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+	}
+	if db1 == nil {
+		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+	}
+	if db2 == nil {
+		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+	}
 	s.db0 = db0
 	s.db1 = db1
 	s.db2 = db2
