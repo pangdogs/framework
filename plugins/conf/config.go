@@ -78,8 +78,13 @@ func (c *_Config) InitSP(ctx service.Context) {
 		}
 	}
 
+	subVp := vp.Sub(ctx.GetName())
+	if subVp == nil {
+		subVp = viper.New()
+	}
+
 	c.IVisitConf = &_VisitConf{
-		Viper: vp.Sub(ctx.GetName()),
+		Viper: subVp,
 	}
 	c.whole = &_VisitConf{
 		Viper: vp,
