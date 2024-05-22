@@ -62,7 +62,7 @@ func (s *_SQLDB) connectToDB(info db.DBInfo) *gorm.DB {
 	dbConnStrUrl, dbConnStrValues, _ := strings.Cut(info.ConnStr, "?")
 	queryValues, err := url.ParseQuery(dbConnStrValues)
 	if err != nil {
-		log.Panicf(s.servCtx, "parse db conn str %q failed, %v", info.ConnStr, err)
+		log.Panicf(s.servCtx, "parse db(%s) conn str %q failed, %v", info.Type, info.ConnStr, err)
 	}
 
 	maxOpenConns := 10
@@ -117,17 +117,17 @@ func (s *_SQLDB) connectToDB(info db.DBInfo) *gorm.DB {
 	case strings.ToLower(db.SQLite):
 		dial = sqlite.Open(dbConnStr)
 	default:
-		log.Panicf(s.servCtx, "conn to db %q failed, not", dbConnStr)
+		log.Panicf(s.servCtx, "conn to db(%s) %q failed, not", info.Type, dbConnStr)
 	}
 
 	db, err := gorm.Open(dial)
 	if err != nil {
-		log.Panicf(s.servCtx, "conn to db %q failed, %s", dbConnStr, err)
+		log.Panicf(s.servCtx, "conn to db(%s) %q failed, %s", info.Type, dbConnStr, err)
 	}
 
 	sqldb, err := db.DB()
 	if err != nil {
-		log.Panicf(s.servCtx, "conn to db %q failed, %s", dbConnStr, err)
+		log.Panicf(s.servCtx, "conn to db(%s) %q failed, %s", info.Type, dbConnStr, err)
 	}
 
 	sqldb.SetMaxOpenConns(maxOpenConns)
@@ -136,9 +136,9 @@ func (s *_SQLDB) connectToDB(info db.DBInfo) *gorm.DB {
 	sqldb.SetConnMaxLifetime(connMaxLifeTime)
 
 	if err := sqldb.Ping(); err != nil {
-		log.Panicf(s.servCtx, "ping db %q failed, %s", dbConnStr, err)
+		log.Panicf(s.servCtx, "ping db(%s) %q failed, %s", info.Type, dbConnStr, err)
 	}
 
-	log.Infof(s.servCtx, "conn to db %q ok", dbConnStr)
+	log.Infof(s.servCtx, "conn to db(%s) %q ok", info.Type, dbConnStr)
 	return db
 }
