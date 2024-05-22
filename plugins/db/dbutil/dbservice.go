@@ -14,6 +14,6 @@ type DBService[T DB] struct {
 	DB T
 }
 
-func (s *DBService[T]) Init(db T) {
+func (s *DBService[T]) BindDB(db T) {
 	s.DB = db
 }
