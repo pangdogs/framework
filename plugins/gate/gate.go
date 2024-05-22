@@ -124,7 +124,11 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		log.Infof(g.servCtx, "listener %q started", g.options.WebSocketURL)
 
-		go g.wsListener.ListenAndServe()
+		go func() {
+			if err := g.wsListener.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Errorf(g.servCtx, "listener %q was interrupted, %s", g.options.WebSocketURL, err)
+			}
+		}()
 	}
 
 	if g.tcpListener == nil && g.wsListener == nil {
