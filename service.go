@@ -136,11 +136,23 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 		})),
 	)
 
-	// 安装日志插件
-	if cb, ok := s.composite.(InstallServiceLogger); ok {
-		cb.InstallLogger(servCtx)
+	installed := func(name string) bool {
+		_, ok := servCtx.GetPluginBundle().Get(name)
+		return ok
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(log.Name); !ok {
+
+	// 安装日志插件
+	if !installed(log.Name) {
+		if cb, ok := servCtx.(InstallServiceLogger); ok {
+			cb.InstallLogger(servCtx)
+		}
+	}
+	if !installed(log.Name) {
+		if cb, ok := s.composite.(InstallServiceLogger); ok {
+			cb.InstallLogger(servCtx)
+		}
+	}
+	if !installed(log.Name) {
 		level, err := zapcore.ParseLevel(startupConf.GetString("log.level"))
 		if err != nil {
 			panic(fmt.Errorf("parse startup config log.level failed, %s", err))
@@ -181,10 +193,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装配置插件
-	if cb, ok := s.composite.(InstallServiceConfig); ok {
-		cb.InstallConfig(servCtx)
+	if !installed(conf.Name) {
+		if cb, ok := servCtx.(InstallServiceConfig); ok {
+			cb.InstallConfig(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(conf.Name); !ok {
+	if !installed(conf.Name) {
+		if cb, ok := s.composite.(InstallServiceConfig); ok {
+			cb.InstallConfig(servCtx)
+		}
+	}
+	if !installed(conf.Name) {
 		conf.Install(servCtx,
 			conf.With.AutoEnv(true),
 			conf.With.AutoPFlags(true),
@@ -200,10 +219,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装broker插件
-	if cb, ok := s.composite.(InstallServiceBroker); ok {
-		cb.InstallBroker(servCtx)
+	if !installed(broker.Name) {
+		if cb, ok := servCtx.(InstallServiceBroker); ok {
+			cb.InstallBroker(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(broker.Name); !ok {
+	if !installed(broker.Name) {
+		if cb, ok := s.composite.(InstallServiceBroker); ok {
+			cb.InstallBroker(servCtx)
+		}
+	}
+	if !installed(broker.Name) {
 		nats_broker.Install(servCtx,
 			nats_broker.With.CustomAddresses(startupConf.GetString("nats.address")),
 			nats_broker.With.CustomAuth(
@@ -214,10 +240,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装服务发现插件
-	if cb, ok := s.composite.(InstallServiceRegistry); ok {
-		cb.InstallRegistry(servCtx)
+	if !installed(discovery.Name) {
+		if cb, ok := servCtx.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(discovery.Name); !ok {
+	if !installed(discovery.Name) {
+		if cb, ok := s.composite.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(servCtx)
+		}
+	}
+	if !installed(discovery.Name) {
 		etcd_discovery.Install(servCtx,
 			etcd_discovery.With.TTL(startupConf.GetDuration("service.ttl"), true),
 			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
@@ -229,10 +262,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装分布式同步插件
-	if cb, ok := s.composite.(InstallServiceDistSync); ok {
-		cb.InstallDistSync(servCtx)
+	if !installed(dsync.Name) {
+		if cb, ok := servCtx.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(dsync.Name); !ok {
+	if !installed(dsync.Name) {
+		if cb, ok := s.composite.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(servCtx)
+		}
+	}
+	if !installed(dsync.Name) {
 		etcd_dsync.Install(servCtx,
 			etcd_dsync.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_dsync.With.CustomAuth(
@@ -243,10 +283,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装分布式服务插件
-	if cb, ok := s.composite.(InstallServiceDistService); ok {
-		cb.InstallDistService(servCtx)
+	if !installed(dserv.Name) {
+		if cb, ok := servCtx.(InstallServiceDistService); ok {
+			cb.InstallDistService(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(dserv.Name); !ok {
+	if !installed(dserv.Name) {
+		if cb, ok := s.composite.(InstallServiceDistService); ok {
+			cb.InstallDistService(servCtx)
+		}
+	}
+	if !installed(dserv.Name) {
 		dserv.Install(servCtx,
 			dserv.With.Version(startupConf.GetString("service.version")),
 			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
@@ -255,10 +302,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装分布式实体查询插件
-	if cb, ok := s.composite.(InstallServiceDistEntityQuerier); ok {
-		cb.InstallDistEntityQuerier(servCtx)
+	if !installed(dentq.Name) {
+		if cb, ok := servCtx.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(dentq.Name); !ok {
+	if !installed(dentq.Name) {
+		if cb, ok := s.composite.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(servCtx)
+		}
+	}
+	if !installed(dentq.Name) {
 		dentq.Install(servCtx,
 			dentq.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			dentq.With.CustomAuth(
@@ -269,10 +323,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// 安装RPC支持插件
-	if cb, ok := s.composite.(InstallServiceRPC); ok {
-		cb.InstallRPC(servCtx)
+	if !installed(rpc.Name) {
+		if cb, ok := servCtx.(InstallServiceRPC); ok {
+			cb.InstallRPC(servCtx)
+		}
 	}
-	if _, ok := servCtx.GetPluginBundle().Get(rpc.Name); !ok {
+	if !installed(rpc.Name) {
+		if cb, ok := s.composite.(InstallServiceRPC); ok {
+			cb.InstallRPC(servCtx)
+		}
+	}
+	if !installed(rpc.Name) {
 		rpc.Install(servCtx)
 	}
 

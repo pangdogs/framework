@@ -178,11 +178,23 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		})),
 	)
 
-	// 安装日志插件
-	if cb, ok := r.composite.(InstallRuntimeLogger); ok {
-		cb.InstallLogger(rtCtx)
+	installed := func(name string) bool {
+		_, ok := rtCtx.GetPluginBundle().Get(name)
+		return ok
 	}
-	if _, ok := rtCtx.GetPluginBundle().Get(log.Name); !ok {
+
+	// 安装日志插件
+	if !installed(log.Name) {
+		if cb, ok := rtCtx.(InstallRuntimeLogger); ok {
+			cb.InstallLogger(rtCtx)
+		}
+	}
+	if !installed(log.Name) {
+		if cb, ok := r.composite.(InstallRuntimeLogger); ok {
+			cb.InstallLogger(rtCtx)
+		}
+	}
+	if !installed(log.Name) {
 		if v, _ := r.GetMemKVs().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
@@ -193,10 +205,17 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	}
 
 	// 安装分布式实体支持插件
-	if cb, ok := r.composite.(InstallRuntimeDistEntities); ok {
-		cb.InstallDistEntities(rtCtx)
+	if !installed(dent.Name) {
+		if cb, ok := rtCtx.(InstallRuntimeDistEntities); ok {
+			cb.InstallDistEntities(rtCtx)
+		}
 	}
-	if _, ok := rtCtx.GetPluginBundle().Get(dent.Name); !ok {
+	if !installed(dent.Name) {
+		if cb, ok := r.composite.(InstallRuntimeDistEntities); ok {
+			cb.InstallDistEntities(rtCtx)
+		}
+	}
+	if !installed(dent.Name) {
 		v, _ := r.GetMemKVs().Load("etcd.init_client")
 		fun, _ := v.(func())
 		if fun == nil {
