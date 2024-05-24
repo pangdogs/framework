@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/core/util/option"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/processor"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 	"sync/atomic"
 )
@@ -13,9 +14,9 @@ import (
 // IRPC RPC支持
 type IRPC interface {
 	// RPC RPC调用
-	RPC(dst, path string, args ...any) runtime.AsyncRet
+	RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) runtime.AsyncRet
 	// OneWayRPC 单向RPC调用
-	OneWayRPC(dst, path string, args ...any) error
+	OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error
 }
 
 func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
@@ -64,21 +65,25 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 }
 
 // RPC RPC调用
-func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
+func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) runtime.AsyncRet {
 	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
 		ret.Push(concurrent.MakeRet[any](nil, processor.ErrTerminated))
 		return ret.CastAsyncRet()
 	}
 
+	if callChain == nil {
+		callChain = rpcstack.EmptyCallChain
+	}
+
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, path, false) {
+		if !deliverer.Match(r.servCtx, dst, callChain, path, false) {
 			continue
 		}
 
-		return deliverer.Request(r.servCtx, dst, path, args)
+		return deliverer.Request(r.servCtx, dst, callChain, path, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
@@ -87,19 +92,23 @@ func (r *_RPC) RPC(dst, path string, args ...any) runtime.AsyncRet {
 }
 
 // OneWayRPC 单向RPC调用
-func (r *_RPC) OneWayRPC(dst, path string, args ...any) error {
+func (r *_RPC) OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error {
 	if r.terminated.Load() {
 		return processor.ErrTerminated
+	}
+
+	if callChain == nil {
+		callChain = rpcstack.EmptyCallChain
 	}
 
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, path, true) {
+		if !deliverer.Match(r.servCtx, dst, callChain, path, true) {
 			continue
 		}
 
-		return deliverer.Notify(r.servCtx, dst, path, args)
+		return deliverer.Notify(r.servCtx, dst, callChain, path, args)
 	}
 
 	return processor.ErrUndeliverable

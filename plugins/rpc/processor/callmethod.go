@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"reflect"
 )
 
@@ -44,7 +45,7 @@ func CallService(servCtx service.Context, plugin, method string, args variant.Ar
 	return methodRV.Call(argsRV), nil
 }
 
-func CallRuntime(servCtx service.Context, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -52,9 +53,10 @@ func CallRuntime(servCtx service.Context, entityId uid.Id, plugin, method string
 	}()
 
 	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
-		plugin := a[0].(string)
-		method := a[1].(string)
-		args := a[2].(variant.Array)
+		callChain := a[0].(rpcstack.CallChain)
+		plugin := a[1].(string)
+		method := a[2].(string)
+		args := a[3].(variant.Array)
 
 		var reflected reflect.Value
 
@@ -78,11 +80,15 @@ func CallRuntime(servCtx service.Context, entityId uid.Id, plugin, method string
 			return runtime.MakeRet(nil, err)
 		}
 
+		stack := rpcstack.Using(runtime.Current(entity))
+		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
+		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
+
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
-	}, plugin, method, args), nil
+	}, callChain, plugin, method, args), nil
 }
 
-func CallEntity(servCtx service.Context, entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -90,9 +96,10 @@ func CallEntity(servCtx service.Context, entityId uid.Id, component, method stri
 	}()
 
 	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
-		compName := a[0].(string)
-		method := a[1].(string)
-		args := a[2].(variant.Array)
+		callChain := a[0].(rpcstack.CallChain)
+		compName := a[1].(string)
+		method := a[2].(string)
+		args := a[3].(variant.Array)
 
 		var reflected reflect.Value
 
@@ -116,8 +123,12 @@ func CallEntity(servCtx service.Context, entityId uid.Id, component, method stri
 			return runtime.MakeRet(nil, err)
 		}
 
+		stack := rpcstack.Using(runtime.Current(entity))
+		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
+		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
+
 		return runtime.MakeRet(methodRV.Call(argsRV), nil)
-	}, component, method, args), nil
+	}, callChain, component, method, args), nil
 }
 
 func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {

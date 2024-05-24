@@ -8,6 +8,7 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
@@ -86,7 +87,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			return nil
@@ -104,7 +105,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			return nil
@@ -162,7 +163,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
@@ -183,7 +184,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)

@@ -2,16 +2,27 @@ package rpcutil
 
 import (
 	"errors"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
+func ProxyGroup(ctx runtime.Context, id uid.Id) GroupProxied {
+	return GroupProxied{
+		servCtx: service.Current(ctx),
+		rtCtx:   ctx,
+		id:      id,
+	}
+}
+
+// ConcurrentProxyGroup 代理分组
+func ConcurrentProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
 	return GroupProxied{
 		servCtx: ctx,
 		id:      id,
@@ -21,6 +32,7 @@ func ProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
 // GroupProxied 分组代理，用于向分组发送RPC
 type GroupProxied struct {
 	servCtx service.Context
+	rtCtx   runtime.Context
 	id      uid.Id
 }
 
@@ -43,6 +55,12 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 	// 客户端组播地址
 	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.id.String())
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
@@ -50,5 +68,5 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }

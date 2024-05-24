@@ -6,11 +6,12 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 )
 
 // Match 是否匹配
-func (p *_ServiceProcessor) Match(ctx service.Context, dst, path string, oneWay bool) bool {
+func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool {
 	details := p.dist.GetNodeDetails()
 
 	// 只支持服务域通信
@@ -28,7 +29,7 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst, path string, oneWay 
 }
 
 // Request 请求
-func (p *_ServiceProcessor) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
+func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -39,9 +40,10 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst, path string, args 
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId: future.Id,
-		Path:   path,
-		Args:   vargs,
+		CorrId:    future.Id,
+		CallChain: callChain,
+		Path:      path,
+		Args:      vargs,
 	}
 
 	if err = p.dist.SendMsg(dst, msg); err != nil {
@@ -54,15 +56,16 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst, path string, args 
 }
 
 // Notify 通知
-func (p *_ServiceProcessor) Notify(ctx service.Context, dst, path string, args []any) error {
+func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error {
 	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		return err
 	}
 
 	msg := &gap.MsgOneWayRPC{
-		Path: path,
-		Args: vargs,
+		CallChain: callChain,
+		Path:      path,
+		Args:      vargs,
 	}
 
 	if err = p.dist.SendMsg(dst, msg); err != nil {

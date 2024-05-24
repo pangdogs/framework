@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"github.com/elliotchance/pie/v2"
 	"math/rand"
 )
@@ -28,7 +29,16 @@ func makeErr(err error) (asyncRet chan runtime.Ret) {
 }
 
 // ProxyEntity 代理实体
-func ProxyEntity(ctx service.Context, id uid.Id) EntityProxied {
+func ProxyEntity(ctx runtime.Context, id uid.Id) EntityProxied {
+	return EntityProxied{
+		servCtx: service.Current(ctx),
+		rtCtx:   ctx,
+		id:      id,
+	}
+}
+
+// ConcurrentProxyEntity 代理实体
+func ConcurrentProxyEntity(ctx service.Context, id uid.Id) EntityProxied {
 	return EntityProxied{
 		servCtx: ctx,
 		id:      id,
@@ -38,6 +48,7 @@ func ProxyEntity(ctx service.Context, id uid.Id) EntityProxied {
 // EntityProxied 实体代理，用于向实体发送RPC
 type EntityProxied struct {
 	servCtx service.Context
+	rtCtx   runtime.Context
 	id      uid.Id
 }
 
@@ -66,6 +77,12 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) runtime.As
 		return makeErr(ErrDistEntityNodeNotFound)
 	}
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -74,7 +91,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) runtime.As
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
@@ -97,6 +114,12 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) run
 		return makeErr(ErrDistEntityNodeNotFound)
 	}
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -105,7 +128,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) run
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, callChain, cp.String(), args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
@@ -126,6 +149,12 @@ func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) runtim
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -134,7 +163,7 @@ func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) runtim
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
 }
 
 // OneWayRPC 向分布式实体目标服务发送单向RPC
@@ -157,6 +186,12 @@ func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) erro
 		return ErrDistEntityNodeNotFound
 	}
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -165,7 +200,7 @@ func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) erro
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
 }
 
 // BalanceOneWayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
@@ -188,6 +223,12 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 		return ErrDistEntityNodeNotFound
 	}
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -196,7 +237,7 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, callChain, cp.String(), args...)
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
@@ -217,6 +258,12 @@ func (p EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any) 
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -225,7 +272,7 @@ func (p EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any) 
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
@@ -248,6 +295,12 @@ func (p EntityProxied) BroadcastOneWayRPC(service, comp, method string, args ...
 		return ErrDistEntityNodeNotFound
 	}
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -256,7 +309,7 @@ func (p EntityProxied) BroadcastOneWayRPC(service, comp, method string, args ...
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, callChain, cp.String(), args...)
 }
 
 // GlobalBroadcastOneWayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
@@ -268,6 +321,12 @@ func (p EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...any
 	// 全局广播地址
 	dst := dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
@@ -276,7 +335,7 @@ func (p EntityProxied) GlobalBroadcastOneWayRPC(comp, method string, args ...any
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }
 
 // CliRPC 向客户端发送RPC
@@ -293,6 +352,12 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 	// 客户端地址
 	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
@@ -300,7 +365,7 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
 }
 
 // OneWayCliRPC 向客户端发送单向RPC
@@ -317,6 +382,12 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	// 客户端地址
 	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
 
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
@@ -324,5 +395,5 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }

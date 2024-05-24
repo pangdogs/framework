@@ -8,6 +8,7 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
 // ProxyService 代理服务
@@ -53,7 +54,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) r
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
@@ -78,7 +79,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) runtime.A
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
 // OneWayRPC 向分布式服务发送单向RPC
@@ -100,7 +101,7 @@ func (p ServiceProxied) OneWayRPC(nodeId uid.Id, plugin, method string, args ...
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
 // BalanceOneWayRPC 使用负载均衡模式，向分布式服务发送单向RPC
@@ -125,7 +126,7 @@ func (p ServiceProxied) BalanceOneWayRPC(plugin, method string, args ...any) err
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式服务发送单向RPC
@@ -150,5 +151,5 @@ func (p ServiceProxied) BroadcastOneWayRPC(plugin, method string, args ...any) e
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }

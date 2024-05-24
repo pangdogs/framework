@@ -10,12 +10,13 @@ import (
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 	"github.com/elliotchance/pie/v2"
 )
 
 // Match 是否匹配
-func (p *_ForwardProcessor) Match(ctx service.Context, dst, path string, oneWay bool) bool {
+func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool {
 	// 只支持客户端域通信
 	if !gate.CliDetails.InDomain(dst) {
 		return false
@@ -31,7 +32,7 @@ func (p *_ForwardProcessor) Match(ctx service.Context, dst, path string, oneWay 
 }
 
 // Request 请求
-func (p *_ForwardProcessor) Request(ctx service.Context, dst, path string, args []any) runtime.AsyncRet {
+func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) runtime.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -48,9 +49,10 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst, path string, args 
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId: future.Id,
-		Path:   path,
-		Args:   vargs,
+		CorrId:    future.Id,
+		CallChain: callChain,
+		Path:      path,
+		Args:      vargs,
 	}
 
 	bs, err := gap.Marshal(msg)
@@ -77,7 +79,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst, path string, args 
 }
 
 // Notify 通知
-func (p *_ForwardProcessor) Notify(ctx service.Context, dst, path string, args []any) error {
+func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error {
 	forwardAddr, err := p.getForwardAddr(dst)
 	if err != nil {
 		return err
@@ -89,8 +91,9 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst, path string, args [
 	}
 
 	msg := &gap.MsgOneWayRPC{
-		Path: path,
-		Args: vargs,
+		CallChain: callChain,
+		Path:      path,
+		Args:      vargs,
 	}
 
 	bs, err := gap.Marshal(msg)

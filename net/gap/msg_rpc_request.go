@@ -7,15 +7,19 @@ import (
 
 // MsgRPCRequest RPC请求
 type MsgRPCRequest struct {
-	CorrId int64         // 关联Id，用于支持Future等异步模型
-	Path   string        // 调用路径
-	Args   variant.Array // 参数列表
+	CorrId    int64             // 关联Id，用于支持Future等异步模型
+	CallChain variant.CallChain // 调用链
+	Path      string            // 调用路径
+	Args      variant.Array     // 参数列表
 }
 
 // Read implements io.Reader
 func (m MsgRPCRequest) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteVarint(m.CorrId); err != nil {
+		return bs.BytesWritten(), err
+	}
+	if _, err := binaryutil.ReadFrom(&bs, m.CallChain); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.Path); err != nil {
@@ -37,6 +41,10 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
+	if _, err = bs.WriteTo(&m.CallChain); err != nil {
+		return bs.BytesRead(), err
+	}
+
 	m.Path, err = bs.ReadString()
 	if err != nil {
 		return bs.BytesRead(), err
@@ -51,7 +59,7 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgRPCRequest) Size() int {
-	return binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofString(m.Path) + m.Args.Size()
+	return binaryutil.SizeofVarint(m.CorrId) + m.CallChain.Size() + binaryutil.SizeofString(m.Path) + m.Args.Size()
 }
 
 // MsgId 消息Id

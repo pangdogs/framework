@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
@@ -18,7 +19,7 @@ func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OneWayRPC:
-		return p.acceptNotify(mp.Msg.(*gap.MsgOneWayRPC))
+		return p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOneWayRPC))
 
 	case gap.MsgId_RPC_Request:
 		return p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
@@ -30,7 +31,7 @@ func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	return nil
 }
 
-func (p *_ServiceProcessor) acceptNotify(req *gap.MsgOneWayRPC) error {
+func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
@@ -50,7 +51,7 @@ func (p *_ServiceProcessor) acceptNotify(req *gap.MsgOneWayRPC) error {
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, err)
 			return nil
@@ -68,7 +69,7 @@ func (p *_ServiceProcessor) acceptNotify(req *gap.MsgOneWayRPC) error {
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, err)
 			return nil
@@ -112,7 +113,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cp.EntityId, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.EntityId, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)
@@ -133,7 +134,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cp.EntityId, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.EntityId, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Component, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)

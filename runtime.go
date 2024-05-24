@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/framework/plugins/dent"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
+	"git.golaxy.org/framework/plugins/rpcstack"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -202,6 +203,21 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				zap_log.With.RuntimeInfo(startupConf.GetBool("log.runtime_info")),
 			)
 		}
+	}
+
+	// 安装RPC调用堆栈支持
+	if !installed(rpcstack.Name) {
+		if cb, ok := rtCtx.(InstallRuntimeRPCStack); ok {
+			cb.InstallRPCStack(rtCtx)
+		}
+	}
+	if !installed(rpcstack.Name) {
+		if cb, ok := r.composite.(InstallRuntimeRPCStack); ok {
+			cb.InstallRPCStack(rtCtx)
+		}
+	}
+	if !installed(rpcstack.Name) {
+		rpcstack.Install(rtCtx)
 	}
 
 	// 安装分布式实体支持插件
