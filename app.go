@@ -28,7 +28,7 @@ type _ServPT struct {
 // App 应用
 type App struct {
 	servicePTs                       map[string]*_ServPT
-	startupConf                      *viper.Viper
+	wholeConf                        *viper.Viper
 	initCB, startingCB, terminatedCB generic.DelegateAction1[*App]
 }
 
@@ -36,8 +36,8 @@ func (app *App) lazyInit() {
 	if app.servicePTs == nil {
 		app.servicePTs = make(map[string]*_ServPT)
 	}
-	if app.startupConf == nil {
-		app.startupConf = viper.New()
+	if app.wholeConf == nil {
+		app.wholeConf = viper.New()
 	}
 }
 
@@ -96,7 +96,6 @@ func (app *App) Run() {
 
 	// 配置参数
 	pflag.String("conf.format", "json", "config file format")
-	pflag.String("conf.startup_path", "", "startup config file path")
 	pflag.String("conf.local_path", "", "local config file path")
 	pflag.String("conf.remote_provider", "", "remote config provider")
 	pflag.String("conf.remote_endpoint", "", "remote config endpoint")
@@ -137,17 +136,17 @@ func (app *App) Run() {
 	pflag.CommandLine.ParseErrorsWhitelist.UnknownFlags = true
 	pflag.Parse()
 
-	// 合并启动参数配置
-	startupConf := app.startupConf
+	// 合并参数配置
+	wholeConf := app.wholeConf
 
-	startupConf.AutomaticEnv()
-	startupConf.BindPFlags(pflag.CommandLine)
-	startupConf.SetConfigType(startupConf.GetString("conf.format"))
-	startupConf.SetConfigFile(startupConf.GetString("conf.startup_path"))
+	wholeConf.AutomaticEnv()
+	wholeConf.BindPFlags(pflag.CommandLine)
+	wholeConf.SetConfigType(wholeConf.GetString("conf.format"))
+	wholeConf.SetConfigFile(wholeConf.GetString("conf.local_path"))
 
-	if startupConf.ConfigFileUsed() != "" {
-		if err := startupConf.ReadInConfig(); err != nil {
-			panic(fmt.Errorf("read startup config file failed, %s", err))
+	if wholeConf.ConfigFileUsed() != "" {
+		if err := wholeConf.ReadInConfig(); err != nil {
+			panic(fmt.Errorf("read config file failed, %s", err))
 		}
 	}
 
@@ -168,10 +167,10 @@ func (app *App) Run() {
 	// 启动服务
 	wg := &sync.WaitGroup{}
 
-	serviceNum := startupConf.GetStringMapString("startup.services")
+	serviceNum := wholeConf.GetStringMapString("startup.services")
 
 	for name, pt := range app.servicePTs {
-		pt.generic.setup(startupConf, name, pt.generic)
+		pt.generic.setup(wholeConf, name, pt.generic)
 		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
@@ -191,7 +190,7 @@ func (app *App) Run() {
 	app.terminatedCB.Exec(nil, app)
 }
 
-// GetStartupConf 获取启动参数配置
-func (app *App) GetStartupConf() *viper.Viper {
-	return app.startupConf
+// GetWholeConf 获取全部配置
+func (app *App) GetWholeConf() *viper.Viper {
+	return app.wholeConf
 }

@@ -4,7 +4,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"github.com/spf13/viper"
 	"sync"
 )
 
@@ -16,15 +15,6 @@ type IRuntimeInstantiation interface {
 // RuntimeInstance 运行时实例
 type RuntimeInstance struct {
 	runtime.ContextBehavior
-}
-
-// GetStartupConf 获取启动参数配置
-func (inst *RuntimeInstance) GetStartupConf() *viper.Viper {
-	v, _ := inst.GetMemKV().Load("startup.conf")
-	if v == nil {
-		panic("service memory kv startup.conf not existed")
-	}
-	return v.(*viper.Viper)
 }
 
 // GetMemKV 获取服务内存KV数据库

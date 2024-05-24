@@ -10,7 +10,6 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/rpc"
-	"github.com/spf13/viper"
 	"sync"
 )
 
@@ -56,20 +55,11 @@ func (serv Service) GetRPC() rpc.IRPC {
 
 // GetStartupNo 获取启动序号
 func (serv Service) GetStartupNo() int {
-	v, _ := serv.GetMemKV().Load("startup.no")
+	v, _ := serv.GetMemKV().Load("startup_no")
 	if v == nil {
-		panic("service memory kv startup.no not existed")
+		panic("service memory kv startup_no not existed")
 	}
 	return v.(int)
-}
-
-// GetStartupConf 获取启动参数配置
-func (serv Service) GetStartupConf() *viper.Viper {
-	v, _ := serv.GetMemKV().Load("startup.conf")
-	if v == nil {
-		panic("service memory kv startup.conf not existed")
-	}
-	return v.(*viper.Viper)
 }
 
 // GetMemKV 获取服务内存KV数据库

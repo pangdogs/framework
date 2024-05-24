@@ -6,11 +6,11 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/iface"
+	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dent"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"reflect"
@@ -53,8 +53,6 @@ func (r *RuntimeGeneric) setup(ctx service.Context, composite any) {
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
-	startupConf := r.GetStartupConf()
-
 	face := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.composite.(IRuntimeInstantiation); ok {
@@ -199,8 +197,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		if v, _ := r.GetMemKV().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
-				zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
-				zap_log.With.RuntimeInfo(startupConf.GetBool("log.runtime_info")),
+				zap_log.With.ServiceInfo(conf.Using(r.servCtx).GetBool("log.service_info")),
+				zap_log.With.RuntimeInfo(conf.Using(r.servCtx).GetBool("log.runtime_info")),
 			)
 		}
 	}
@@ -247,7 +245,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 		dent.Install(rtCtx,
 			dent.With.EtcdClient(cli),
-			dent.With.TTL(startupConf.GetDuration("service.dent_ttl")),
+			dent.With.TTL(conf.Using(r.servCtx).GetDuration("service.dent_ttl")),
 		)
 	}
 
@@ -276,15 +274,6 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 // GetServiceCtx 获取服务上下文
 func (r *RuntimeGeneric) GetServiceCtx() service.Context {
 	return r.servCtx
-}
-
-// GetStartupConf 获取启动参数配置
-func (r *RuntimeGeneric) GetStartupConf() *viper.Viper {
-	v, _ := r.GetMemKV().Load("startup.conf")
-	if v == nil {
-		panic("service memory kv startup.conf not existed")
-	}
-	return v.(*viper.Viper)
 }
 
 // GetMemKV 获取服务内存KV数据库
