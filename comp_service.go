@@ -54,6 +54,15 @@ func (serv Service) GetRPC() rpc.IRPC {
 	return rpc.Using(serv.Ctx)
 }
 
+// GetStartupNo 获取启动序号
+func (serv Service) GetStartupNo() int {
+	v, _ := serv.GetMemKV().Load("startup.no")
+	if v == nil {
+		panic("service memory kv startup.no not existed")
+	}
+	return v.(int)
+}
+
 // GetStartupConf 获取启动参数配置
 func (serv Service) GetStartupConf() *viper.Viper {
 	v, _ := serv.GetMemKV().Load("startup.conf")
