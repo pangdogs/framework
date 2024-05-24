@@ -22,7 +22,10 @@ type iRPCStack interface {
 }
 
 func newRPCStack(...any) IRPCStack {
-	return &_RPCStack{}
+	return &_RPCStack{
+		callChain: EmptyCallChain,
+		variables: nil,
+	}
 }
 
 type _RPCStack struct {
@@ -59,6 +62,6 @@ func (r *_RPCStack) pushCallChain(callChain CallChain) {
 }
 
 func (r *_RPCStack) popCallChain() {
-	r.callChain = nil
+	r.callChain = EmptyCallChain
 	r.variables = nil
 }
