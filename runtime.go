@@ -196,7 +196,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(log.Name) {
-		if v, _ := r.GetMemKVs().Load("zap.logger"); v != nil {
+		if v, _ := r.GetMemKV().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
 				zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
@@ -232,17 +232,17 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(dent.Name) {
-		v, _ := r.GetMemKVs().Load("etcd.init_client")
+		v, _ := r.GetMemKV().Load("etcd.init_client")
 		fun, _ := v.(func())
 		if fun == nil {
-			panic("service memory etcd.init_client not existed")
+			panic("service memory kv etcd.init_client not existed")
 		}
 		fun()
 
-		v, _ = r.GetMemKVs().Load("etcd.client")
+		v, _ = r.GetMemKV().Load("etcd.client")
 		cli, _ := v.(*etcdv3.Client)
 		if cli == nil {
-			panic("service memory etcd.client not existed")
+			panic("service memory kv etcd.client not existed")
 		}
 
 		dent.Install(rtCtx,
@@ -280,18 +280,18 @@ func (r *RuntimeGeneric) GetServiceCtx() service.Context {
 
 // GetStartupConf 获取启动参数配置
 func (r *RuntimeGeneric) GetStartupConf() *viper.Viper {
-	v, _ := r.GetMemKVs().Load("startup.conf")
+	v, _ := r.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory startup.conf not existed")
+		panic("service memory kv startup.conf not existed")
 	}
 	return v.(*viper.Viper)
 }
 
-// GetMemKVs 获取服务内存KV数据库
-func (r *RuntimeGeneric) GetMemKVs() *sync.Map {
-	memKVs, _ := r.GetServiceCtx().Value("mem_kvs").(*sync.Map)
-	if memKVs == nil {
+// GetMemKV 获取服务内存KV数据库
+func (r *RuntimeGeneric) GetMemKV() *sync.Map {
+	memKV, _ := r.GetServiceCtx().Value("mem_kv").(*sync.Map)
+	if memKV == nil {
 		panic("service memory not existed")
 	}
-	return memKVs
+	return memKV
 }

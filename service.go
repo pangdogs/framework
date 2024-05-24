@@ -33,7 +33,7 @@ import (
 
 type iServiceGeneric interface {
 	setup(startupConf *viper.Viper, name string, composite any)
-	generate(ctx context.Context, idx int) core.Service
+	generate(ctx context.Context, no int) core.Service
 }
 
 // ServiceGenericT 服务泛化类型实例化
@@ -59,14 +59,14 @@ func (s *ServiceGeneric) setup(startupConf *viper.Viper, name string, composite 
 	s.composite = composite
 }
 
-func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
+func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	startupConf := s.GetStartupConf()
 
-	memKVs := &sync.Map{}
-	memKVs.Store("startup.idx", idx)
-	memKVs.Store("startup.conf", startupConf)
+	memKV := &sync.Map{}
+	memKV.Store("startup.no", no)
+	memKV.Store("startup.conf", startupConf)
 
-	ctx = context.WithValue(ctx, "mem_kvs", memKVs)
+	ctx = context.WithValue(ctx, "mem_kv", memKV)
 
 	autoRecover := startupConf.GetBool("service.auto_recover")
 	var reportError chan error
@@ -125,11 +125,11 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 					cb.Terminated(ctx)
 				}
 
-				if v, ok := memKVs.Load("zap.logger"); ok {
+				if v, ok := memKV.Load("zap.logger"); ok {
 					v.(*zap.Logger).Sync()
 				}
 
-				if v, ok := memKVs.Load("etcd.client"); ok {
+				if v, ok := memKV.Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
 			}
@@ -183,8 +183,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 			)
 		}
 
-		memKVs.Store("zap.logger", zapLogger)
-		memKVs.Store("zap.atomic_level", zapAtomicLevel)
+		memKV.Store("zap.logger", zapLogger)
+		memKV.Store("zap.atomic_level", zapAtomicLevel)
 
 		zap_log.Install(servCtx,
 			zap_log.With.ZapLogger(zapLogger),
@@ -338,7 +338,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 	}
 
 	// etcd连接初始化函数
-	memKVs.Store("etcd.init_client", sync.OnceFunc(func() {
+	memKV.Store("etcd.init_client", sync.OnceFunc(func() {
 		cli, err := etcdv3.New(etcdv3.Config{
 			Endpoints: []string{startupConf.GetString("etcd.address")},
 			Username:  startupConf.GetString("etcd.username"),
@@ -347,7 +347,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, idx int) core.Service {
 		if err != nil {
 			panic(fmt.Errorf("new etcd client failed, %s", err))
 		}
-		memKVs.Store("etcd.client", cli)
+		memKV.Store("etcd.client", cli)
 	}))
 
 	// 组装完成回调回调

@@ -171,16 +171,16 @@ func (app *App) Run() {
 	serviceNum := startupConf.GetStringMapString("startup.services")
 
 	for name, pt := range app.servicePTs {
-		pt.generic.setup(app.startupConf, name, pt.generic)
+		pt.generic.setup(startupConf, name, pt.generic)
 		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
 	for _, pt := range app.servicePTs {
 		for i := 0; i < pt.num; i++ {
 			wg.Add(1)
-			go func(generic iServiceGeneric, idx int) {
+			go func(generic iServiceGeneric, no int) {
 				defer wg.Done()
-				<-generic.generate(ctx, idx).Run()
+				<-generic.generate(ctx, no).Run()
 			}(pt.generic, i)
 		}
 	}

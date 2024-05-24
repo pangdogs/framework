@@ -59,31 +59,31 @@ func (inst *ServiceInstance) GetRPC() rpc.IRPC {
 	return rpc.Using(inst)
 }
 
-// GetStartupIdx 获取启动索引
-func (inst *ServiceInstance) GetStartupIdx() int {
-	v, _ := inst.GetMemKVs().Load("startup.idx")
+// GetStartupNo 获取启动序号
+func (inst *ServiceInstance) GetStartupNo() int {
+	v, _ := inst.GetMemKV().Load("startup.no")
 	if v == nil {
-		panic("service memory startup.idx not existed")
+		panic("service memory kv startup.no not existed")
 	}
 	return v.(int)
 }
 
 // GetStartupConf 获取启动参数配置
 func (inst *ServiceInstance) GetStartupConf() *viper.Viper {
-	v, _ := inst.GetMemKVs().Load("startup.conf")
+	v, _ := inst.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory startup.conf not existed")
+		panic("service memory kv startup.conf not existed")
 	}
 	return v.(*viper.Viper)
 }
 
-// GetMemKVs 获取服务内存KV数据库
-func (inst *ServiceInstance) GetMemKVs() *sync.Map {
-	memKVs, _ := inst.Value("mem_kvs").(*sync.Map)
-	if memKVs == nil {
+// GetMemKV 获取服务内存KV数据库
+func (inst *ServiceInstance) GetMemKV() *sync.Map {
+	memKV, _ := inst.Value("mem_kv").(*sync.Map)
+	if memKV == nil {
 		panic("service memory not existed")
 	}
-	return memKVs
+	return memKV
 }
 
 // CreateRuntime 创建运行时

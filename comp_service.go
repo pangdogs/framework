@@ -56,20 +56,20 @@ func (serv Service) GetRPC() rpc.IRPC {
 
 // GetStartupConf 获取启动参数配置
 func (serv Service) GetStartupConf() *viper.Viper {
-	v, _ := serv.GetMemKVs().Load("startup.conf")
+	v, _ := serv.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory startup.conf not existed")
+		panic("service memory kv startup.conf not existed")
 	}
 	return v.(*viper.Viper)
 }
 
-// GetMemKVs 获取服务内存KV数据库
-func (serv Service) GetMemKVs() *sync.Map {
-	memKVs, _ := serv.Ctx.Value("mem_kvs").(*sync.Map)
-	if memKVs == nil {
+// GetMemKV 获取服务内存KV数据库
+func (serv Service) GetMemKV() *sync.Map {
+	memKV, _ := serv.Ctx.Value("mem_kv").(*sync.Map)
+	if memKV == nil {
 		panic("service memory not existed")
 	}
-	return memKVs
+	return memKV
 }
 
 // CreateRuntime 创建运行时

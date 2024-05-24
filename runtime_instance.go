@@ -20,20 +20,20 @@ type RuntimeInstance struct {
 
 // GetStartupConf 获取启动参数配置
 func (inst *RuntimeInstance) GetStartupConf() *viper.Viper {
-	v, _ := inst.GetMemKVs().Load("startup.conf")
+	v, _ := inst.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory startup.conf not existed")
+		panic("service memory kv startup.conf not existed")
 	}
 	return v.(*viper.Viper)
 }
 
-// GetMemKVs 获取服务内存KV数据库
-func (inst *RuntimeInstance) GetMemKVs() *sync.Map {
-	memKVs, _ := service.Current(inst).Value("mem_kvs").(*sync.Map)
-	if memKVs == nil {
+// GetMemKV 获取服务内存KV数据库
+func (inst *RuntimeInstance) GetMemKV() *sync.Map {
+	memKV, _ := service.Current(inst).Value("mem_kv").(*sync.Map)
+	if memKV == nil {
 		panic("service memory not existed")
 	}
-	return memKVs
+	return memKV
 }
 
 // CreateEntity 创建实体
