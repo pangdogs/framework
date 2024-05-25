@@ -126,7 +126,7 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		go func() {
 			if err := g.wsListener.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Errorf(g.servCtx, "listener %q was interrupted, %s", g.options.WebSocketURL, err)
+				log.Panicf(g.servCtx, "listener %q was interrupted, %s", g.options.WebSocketURL, err)
 			}
 		}()
 	}
