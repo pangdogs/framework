@@ -55,9 +55,9 @@ func (serv Service) GetRPC() rpc.IRPC {
 
 // GetStartupNo 获取启动序号
 func (serv Service) GetStartupNo() int {
-	v, _ := serv.GetMemKV().Load("startup_no")
+	v, _ := serv.GetMemKV().Load("startup.no")
 	if v == nil {
-		panic("service memory kv startup_no not existed")
+		panic("service memory kv startup.no not existed")
 	}
 	return v.(int)
 }

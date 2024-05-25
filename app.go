@@ -28,7 +28,7 @@ type _ServPT struct {
 // App 应用
 type App struct {
 	servicePTs                       map[string]*_ServPT
-	wholeConf                        *viper.Viper
+	startupConf                      *viper.Viper
 	initCB, startingCB, terminatedCB generic.DelegateAction1[*App]
 }
 
@@ -36,8 +36,8 @@ func (app *App) lazyInit() {
 	if app.servicePTs == nil {
 		app.servicePTs = make(map[string]*_ServPT)
 	}
-	if app.wholeConf == nil {
-		app.wholeConf = viper.New()
+	if app.startupConf == nil {
+		app.startupConf = viper.New()
 	}
 }
 
@@ -136,16 +136,16 @@ func (app *App) Run() {
 	pflag.CommandLine.ParseErrorsWhitelist.UnknownFlags = true
 	pflag.Parse()
 
-	// 合并参数配置
-	wholeConf := app.wholeConf
+	// 合并启动参数配置
+	startupConf := app.startupConf
 
-	wholeConf.AutomaticEnv()
-	wholeConf.BindPFlags(pflag.CommandLine)
-	wholeConf.SetConfigType(wholeConf.GetString("conf.format"))
-	wholeConf.SetConfigFile(wholeConf.GetString("conf.local_path"))
+	startupConf.AutomaticEnv()
+	startupConf.BindPFlags(pflag.CommandLine)
+	startupConf.SetConfigType(startupConf.GetString("conf.format"))
+	startupConf.SetConfigFile(startupConf.GetString("conf.local_path"))
 
-	if wholeConf.ConfigFileUsed() != "" {
-		if err := wholeConf.ReadInConfig(); err != nil {
+	if startupConf.ConfigFileUsed() != "" {
+		if err := startupConf.ReadInConfig(); err != nil {
 			panic(fmt.Errorf("read config file failed, %s", err))
 		}
 	}
@@ -167,10 +167,10 @@ func (app *App) Run() {
 	// 启动服务
 	wg := &sync.WaitGroup{}
 
-	serviceNum := wholeConf.GetStringMapString("startup.services")
+	serviceNum := startupConf.GetStringMapString("startup.services")
 
 	for name, pt := range app.servicePTs {
-		pt.generic.setup(wholeConf, name, pt.generic)
+		pt.generic.setup(startupConf, name, pt.generic)
 		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
@@ -190,7 +190,7 @@ func (app *App) Run() {
 	app.terminatedCB.Exec(nil, app)
 }
 
-// GetWholeConf 获取全部配置
-func (app *App) GetWholeConf() *viper.Viper {
-	return app.wholeConf
+// GetStartupConf 获取启动参数配置
+func (app *App) GetStartupConf() *viper.Viper {
+	return app.startupConf
 }

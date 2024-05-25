@@ -61,18 +61,18 @@ func (inst *ServiceInstance) GetRPC() rpc.IRPC {
 
 // GetStartupNo 获取启动序号
 func (inst *ServiceInstance) GetStartupNo() int {
-	v, _ := inst.GetMemKV().Load("startup_no")
+	v, _ := inst.GetMemKV().Load("startup.no")
 	if v == nil {
-		panic("service memory kv startup_no not existed")
+		panic("service memory kv startup.no not existed")
 	}
 	return v.(int)
 }
 
-// GetWholeConf 获取完整参数配置
-func (inst *ServiceInstance) GetWholeConf() *viper.Viper {
-	v, _ := inst.GetMemKV().Load("whole_conf")
+// GetStartupConf 获取启动参数配置
+func (inst *ServiceInstance) GetStartupConf() *viper.Viper {
+	v, _ := inst.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory kv whole_conf not existed")
+		panic("service memory kv startup.conf not existed")
 	}
 	return v.(*viper.Viper)
 }
