@@ -205,8 +205,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(conf.Name) {
 		conf.Install(servCtx,
-			conf.With.AutoEnv(true),
-			conf.With.AutoPFlags(true),
+			conf.With.AutoEnv(false),
+			conf.With.AutoPFlags(false),
 			conf.With.Format(wholeConf.GetString("conf.format")),
 			conf.With.LocalPath(wholeConf.GetString("conf.local_path")),
 			conf.With.Remote(
@@ -215,6 +215,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				wholeConf.GetString("conf.remote_path"),
 			),
 			conf.With.AutoUpdate(wholeConf.GetBool("conf.auto_update")),
+			conf.With.DefaultKVs(wholeConf.AllSettings()),
 		)
 	}
 
