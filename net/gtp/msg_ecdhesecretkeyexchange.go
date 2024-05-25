@@ -2,7 +2,9 @@ package gtp
 
 import (
 	"bytes"
+	"fmt"
 	"git.golaxy.org/framework/util/binaryutil"
+	"strings"
 )
 
 // ECDHESecretKeyExchange消息标志位
@@ -15,6 +17,41 @@ type SignatureAlgorithm struct {
 	AsymmetricEncryption AsymmetricEncryption // 非对称加密算法
 	PaddingMode          PaddingMode          // 填充方案
 	Hash                 Hash                 // 摘要函数
+}
+
+// ParseSignatureAlgorithm 解析配置字串
+func ParseSignatureAlgorithm(str string) (SignatureAlgorithm, error) {
+	sa := SignatureAlgorithm{}
+	var err error
+
+	for i, s := range strings.Split(str, "-") {
+		s = strings.ToLower(s)
+
+		switch i {
+		case 0:
+			sa.AsymmetricEncryption, err = ParseAsymmetricEncryption(s)
+			if err != nil {
+				return SignatureAlgorithm{}, err
+			}
+		case 1:
+			sa.PaddingMode, err = ParsePaddingMode(s)
+			if err != nil {
+				return SignatureAlgorithm{}, err
+			}
+		case 2:
+			sa.Hash, err = ParseHash(s)
+			if err != nil {
+				return SignatureAlgorithm{}, err
+			}
+		}
+	}
+
+	return sa, nil
+}
+
+// String implements fmt.Stringer
+func (sa SignatureAlgorithm) String() string {
+	return fmt.Sprintf("%s-%s-%s", sa.AsymmetricEncryption, sa.PaddingMode, sa.Hash)
 }
 
 // Read implements io.Reader

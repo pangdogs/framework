@@ -23,7 +23,7 @@ type Signer interface {
 // NewSigner 创建签名器
 func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Hash) (Signer, error) {
 	switch ae {
-	case gtp.AsymmetricEncryption_RSA_256:
+	case gtp.AsymmetricEncryption_RSA256:
 		switch padding {
 		case gtp.PaddingMode_Pkcs1v15, gtp.PaddingMode_PSS:
 			break
@@ -134,6 +134,6 @@ func (s _ECDSAP256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	if ecdsa.VerifyASN1(pub.(*ecdsa.PublicKey), hashed, sig) {
 		return nil
 	}
-	
+
 	return errors.New("crypto/ecdsa: verification error")
 }

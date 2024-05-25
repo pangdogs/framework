@@ -2,6 +2,7 @@ package gtp
 
 import (
 	"bytes"
+	"fmt"
 	"git.golaxy.org/framework/util/binaryutil"
 	"strings"
 )
@@ -21,6 +22,51 @@ type CipherSuite struct {
 	BlockCipherMode     BlockCipherMode     // 分组密码工作模式
 	PaddingMode         PaddingMode         // 填充方案
 	MACHash             Hash                // MAC摘要函数
+}
+
+// ParseCipherSuite 解析配置字串
+func ParseCipherSuite(str string) (CipherSuite, error) {
+	cs := CipherSuite{}
+	var err error
+
+	for i, s := range strings.Split(str, "-") {
+		s = strings.ToLower(s)
+
+		switch i {
+		case 0:
+			cs.SecretKeyExchange, err = ParseSecretKeyExchange(s)
+			if err != nil {
+				return CipherSuite{}, err
+			}
+		case 1:
+			cs.SymmetricEncryption, err = ParseSymmetricEncryption(s)
+			if err != nil {
+				return CipherSuite{}, err
+			}
+		case 2:
+			cs.BlockCipherMode, err = ParseBlockCipherMode(s)
+			if err != nil {
+				return CipherSuite{}, err
+			}
+		case 3:
+			cs.PaddingMode, err = ParsePaddingMode(s)
+			if err != nil {
+				return CipherSuite{}, err
+			}
+		case 4:
+			cs.MACHash, err = ParseHash(s)
+			if err != nil {
+				return CipherSuite{}, err
+			}
+		}
+	}
+
+	return cs, nil
+}
+
+// String implements fmt.Stringer
+func (cs CipherSuite) String() string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s", cs.SecretKeyExchange, cs.SymmetricEncryption, cs.BlockCipherMode, cs.PaddingMode, cs.MACHash)
 }
 
 // Read implements io.Reader
