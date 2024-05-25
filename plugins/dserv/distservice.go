@@ -123,7 +123,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId())
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutex(netpath.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), d.servCtx.GetId().String()))
+	mutex := d.dsync.NewMutex(netpath.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()))
 	if err := mutex.Lock(d.servCtx); err != nil {
 		log.Panicf(d.servCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
