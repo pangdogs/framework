@@ -194,14 +194,14 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		return nil, err
 	}
 
-	var token string
+	var userId, token string
 
 	// 开启鉴权时，鉴权客户端
 	if authFlow {
 		err = handshake.ServerAuth(ctx, func(e transport.Event[gtp.MsgAuth]) error {
 			// 断线重连流程，检查会话Id与token是否匹配，防止hack客户端猜测会话Id，恶意通过断线重连登录
 			if continueFlow {
-				if e.Msg.Token != session.GetToken() {
+				if e.Msg.UserId != session.GetUserId() || e.Msg.Token != session.GetToken() {
 					return &transport.RstError{
 						Code:    gtp.Code_AuthFailed,
 						Message: "incorrect token",
@@ -219,6 +219,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
+			userId = strings.Clone(e.Msg.UserId)
 			token = strings.Clone(e.Msg.Token)
 
 			return nil
@@ -253,10 +254,8 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 	} else {
 		// 初始化会话
-		sendSeq, recvSeq = session.init(handshake.Transceiver.Conn,
-			handshake.Transceiver.Encoder,
-			handshake.Transceiver.Decoder,
-			token)
+		sendSeq, recvSeq = session.init(handshake.Transceiver.Conn, handshake.Transceiver.Encoder,
+			handshake.Transceiver.Decoder, userId, token)
 	}
 
 	// 通知客户端握手结束

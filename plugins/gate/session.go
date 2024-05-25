@@ -74,6 +74,7 @@ type _Session struct {
 	options         _SessionOptions
 	gate            *_Gate
 	id              uid.Id
+	userId          string
 	token           string
 	state           SessionState
 	transceiver     transport.Transceiver
@@ -87,7 +88,7 @@ type _Session struct {
 
 // String implements fmt.Stringer
 func (s *_Session) String() string {
-	return fmt.Sprintf(`{"id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetToken(), s.GetState())
+	return fmt.Sprintf(`{"id":%q, "user_id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetUserId(), s.GetToken(), s.GetState())
 }
 
 // GetContext 获取服务上下文
@@ -98,6 +99,11 @@ func (s *_Session) GetContext() service.Context {
 // GetId 获取会话Id
 func (s *_Session) GetId() uid.Id {
 	return s.id
+}
+
+// GetUserId 获取用户Id
+func (s *_Session) GetUserId() string {
+	return s.userId
 }
 
 // GetToken 获取token

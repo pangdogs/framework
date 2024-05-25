@@ -16,7 +16,7 @@ import (
 )
 
 // init 初始化
-func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, token string) (sendSeq, recvSeq uint32) {
+func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, userId, token string) (sendSeq, recvSeq uint32) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -30,7 +30,8 @@ func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDe
 	// 初始化刷新通知channel
 	s.renewChan = make(chan struct{}, 1)
 
-	// 初始化token
+	// 初始化用户Id与token
+	s.userId = userId
 	s.token = token
 
 	return s.transceiver.Synchronizer.SendSeq(), s.transceiver.Synchronizer.RecvSeq()
