@@ -36,6 +36,8 @@ type ISession interface {
 	GetContext() service.Context
 	// GetId 获取会话Id
 	GetId() uid.Id
+	// GetUserId 获取用户Id
+	GetUserId() string
 	// GetToken 获取token
 	GetToken() string
 	// GetState 获取会话状态
