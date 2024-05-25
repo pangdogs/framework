@@ -157,7 +157,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 			}
-			p.reply(src, transit, req.CorrId, retsRV, nil)
+			p.reply(src, transit, req.CorrId, retsRV, err)
 		}()
 
 		return nil
