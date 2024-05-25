@@ -32,18 +32,18 @@ func (c *ComponentBehavior) BalanceOneWayRPC(service, comp, method string, args 
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
-func (c *ComponentBehavior) GlobalBalanceOneWayRPC(comp, method string, args ...any) error {
-	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).GlobalBroadcastOneWayRPC(comp, method, args...)
+func (c *ComponentBehavior) GlobalBalanceOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
+	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).GlobalBroadcastOneWayRPC(excludeSelf, comp, method, args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
-func (c *ComponentBehavior) BroadcastOneWayRPC(service, comp, method string, args ...any) error {
-	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).BroadcastOneWayRPC(service, comp, method, args...)
+func (c *ComponentBehavior) BroadcastOneWayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
+	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).BroadcastOneWayRPC(excludeSelf, service, comp, method, args...)
 }
 
 // GlobalBroadcastOneWayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
-func (c *ComponentBehavior) GlobalBroadcastOneWayRPC(comp, method string, args ...any) error {
-	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).GlobalBroadcastOneWayRPC(comp, method, args...)
+func (c *ComponentBehavior) GlobalBroadcastOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
+	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).GlobalBroadcastOneWayRPC(excludeSelf, comp, method, args...)
 }
 
 // CliRPC 向客户端发送RPC
