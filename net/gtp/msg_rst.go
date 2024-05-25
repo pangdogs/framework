@@ -17,7 +17,7 @@ const (
 	Code_Reject                          // 拒绝连接
 	Code_Shutdown                        // 服务关闭
 	Code_SessionDeath                    // 会话过期
-	Code_Customize                       // 自定义错误码起点
+	Code_Customize       = 32            // 自定义错误码起点
 )
 
 // MsgRst 重置链路（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
