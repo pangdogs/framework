@@ -2,6 +2,7 @@ package callpath
 
 import (
 	"errors"
+	"git.golaxy.org/core/util/types"
 	"git.golaxy.org/core/util/uid"
 	"strings"
 )
@@ -18,11 +19,12 @@ var (
 )
 
 type CallPath struct {
-	Category  string
-	EntityId  uid.Id
-	Plugin    string
-	Component string
-	Method    string
+	Category   string
+	ExcludeSrc bool
+	EntityId   uid.Id
+	Plugin     string
+	Component  string
+	Method     string
 }
 
 func (cp CallPath) Encode() (string, error) {
@@ -32,6 +34,8 @@ func (cp CallPath) Encode() (string, error) {
 	case Service:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
+		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
@@ -40,6 +44,8 @@ func (cp CallPath) Encode() (string, error) {
 
 	case Runtime:
 		sb.WriteString(cp.Category)
+		sb.WriteByte(Sep)
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
@@ -51,6 +57,8 @@ func (cp CallPath) Encode() (string, error) {
 
 	case Entity:
 		sb.WriteString(cp.Category)
+		sb.WriteByte(Sep)
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
@@ -100,20 +108,31 @@ loop:
 			switch cp.Category {
 			case Service, Runtime, Entity, Client:
 			default:
-				return CallPath{}, errors.New("rpc: invalid action")
+				return CallPath{}, errors.New("rpc: invalid Category")
 			}
 
 		case 1:
 			switch cp.Category {
-			case Service:
-				cp.Plugin = field
-			case Runtime, Entity, Client:
+			case Service, Runtime, Entity:
+				if len(field) <= 0 {
+					return CallPath{}, errors.New("rpc: invalid ExcludeSrc")
+				}
+				cp.ExcludeSrc = types.Int2Bool[byte](field[0])
+			case Client:
 				cp.EntityId = uid.From(field)
 			}
 
 		case 2:
 			switch cp.Category {
-			case Service, Client:
+			case Service, Runtime, Entity:
+				cp.EntityId = uid.From(field)
+			case Client:
+				cp.Method = field
+			}
+
+		case 3:
+			switch cp.Category {
+			case Service:
 				cp.Method = field
 			case Runtime:
 				cp.Plugin = field
@@ -121,7 +140,7 @@ loop:
 				cp.Component = field
 			}
 
-		case 3:
+		case 4:
 			switch cp.Category {
 			case Runtime, Entity:
 				cp.Method = field

@@ -5,9 +5,10 @@ go 1.22
 toolchain go1.22.1
 
 require (
-	git.golaxy.org/core v0.2.74
+	git.golaxy.org/core v0.2.75
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/fufuok/bytespool v1.3.3
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redsync/redsync/v4 v4.13.0
@@ -46,7 +47,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

@@ -37,6 +37,10 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
 	}
 
+	if cp.ExcludeSrc && src == p.dist.GetNodeDetails().LocalAddr {
+		return nil
+	}
+
 	switch cp.Category {
 	case callpath.Service:
 		go func() {

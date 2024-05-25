@@ -130,7 +130,7 @@ func (p ServiceProxied) BalanceOneWayRPC(plugin, method string, args ...any) err
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式服务发送单向RPC
-func (p ServiceProxied) BroadcastOneWayRPC(plugin, method string, args ...any) error {
+func (p ServiceProxied) BroadcastOneWayRPC(excludeSelf bool, plugin, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -146,9 +146,10 @@ func (p ServiceProxied) BroadcastOneWayRPC(plugin, method string, args ...any) e
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Service,
-		Plugin:   plugin,
-		Method:   method,
+		Category:   callpath.Service,
+		ExcludeSrc: excludeSelf,
+		Plugin:     plugin,
+		Method:     method,
 	}
 
 	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
