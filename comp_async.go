@@ -4,21 +4,20 @@ import (
 	"context"
 	"errors"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/util/generic"
 	"time"
 )
 
 var (
-	ErrComponentNotLiving = errors.New("async/await: component not living")
+	ErrComponentNotAlive = errors.New("async/await: component not alive")
 )
 
 // Async 异步执行代码，有返回值
 func (c *ComponentBehavior) Async(fun generic.FuncVar0[any, runtime.Ret], va ...any) runtime.AsyncRet {
 	return core.Async(c, func(_ runtime.Context, a ...any) runtime.Ret {
-		if c.GetState() > ec.ComponentState_Living {
-			return runtime.MakeRet(nil, ErrComponentNotLiving)
+		if !c.IsAlive() {
+			return runtime.MakeRet(nil, ErrComponentNotAlive)
 		}
 		return fun.Exec(a...)
 	}, va...)
@@ -27,7 +26,7 @@ func (c *ComponentBehavior) Async(fun generic.FuncVar0[any, runtime.Ret], va ...
 // AsyncVoid 异步执行代码，无返回值
 func (c *ComponentBehavior) AsyncVoid(fun generic.ActionVar0[any], va ...any) runtime.AsyncRet {
 	return core.AsyncVoid(c, func(_ runtime.Context, a ...any) {
-		if c.GetState() > ec.ComponentState_Living {
+		if !c.IsAlive() {
 			return
 		}
 		fun.Exec(a...)
@@ -61,9 +60,4 @@ func (c *ComponentBehavior) TimeAt(at time.Time) runtime.AsyncRet {
 // TimeTick 心跳器
 func (c *ComponentBehavior) TimeTick(dur time.Duration) runtime.AsyncRet {
 	return core.TimeTick(c.GetRuntime().Ctx, dur)
-}
-
-// ReadChan 读取channel
-func ReadChan[T any](cb *ComponentBehavior, ch <-chan T) runtime.AsyncRet {
-	return core.ReadChan(cb.GetRuntime().Ctx, ch)
 }

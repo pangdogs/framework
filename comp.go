@@ -20,3 +20,8 @@ func (c *ComponentBehavior) GetRuntime() Runtime {
 func (c *ComponentBehavior) GetService() Service {
 	return Service{Ctx: service.Current(c)}
 }
+
+// IsAlive 是否活跃
+func (c *ComponentBehavior) IsAlive() bool {
+	return c.GetState() <= ec.ComponentState_Alive
+}
