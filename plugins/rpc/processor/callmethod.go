@@ -11,6 +11,7 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"reflect"
+	"slices"
 )
 
 var callChainRT = reflect.TypeFor[rpcstack.CallChain]()
@@ -143,7 +144,7 @@ func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args va
 		if !callChainRT.AssignableTo(methodRT.In(0)) {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(callChain))
+		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(slices.Clone(callChain)))
 		argsPos = 1
 
 	case len(args):
