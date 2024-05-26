@@ -77,7 +77,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			if _, err := CallService(p.servCtx, cp.Plugin, cp.Method, req.Args); err != nil {
+			if _, err := CallService(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.Plugin, cp.Method, req.Args); err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Plugin, cp.Method, src, dst, transit, req.Path)
@@ -151,7 +151,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			retsRV, err := CallService(p.servCtx, cp.Plugin, cp.Method, req.Args)
+			retsRV, err := CallService(p.servCtx, rpcstack.CallChain{{Src: src, Transit: transit}}, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {

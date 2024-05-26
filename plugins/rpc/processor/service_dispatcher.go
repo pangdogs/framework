@@ -44,7 +44,7 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			if _, err := CallService(p.servCtx, cp.Plugin, cp.Method, req.Args); err != nil {
+			if _, err := CallService(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.Plugin, cp.Method, req.Args); err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
@@ -105,7 +105,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			retsRV, err := CallService(p.servCtx, cp.Plugin, cp.Method, req.Args)
+			retsRV, err := CallService(p.servCtx, append(req.CallChain, rpcstack.Call{Src: src}), cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
 			} else {

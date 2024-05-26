@@ -13,7 +13,9 @@ import (
 	"reflect"
 )
 
-func CallService(servCtx service.Context, plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
+var callChainRT = reflect.TypeFor[rpcstack.CallChain]()
+
+func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -37,7 +39,7 @@ func CallService(servCtx service.Context, plugin, method string, args variant.Ar
 		return nil, ErrMethodNotFound
 	}
 
-	argsRV, err := prepareArgsRV(methodRV, args)
+	argsRV, err := prepareArgsRV(methodRV, callChain, args)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := prepareArgsRV(methodRV, args)
+		argsRV, err := prepareArgsRV(methodRV, callChain, args)
 		if err != nil {
 			return runtime.MakeRet(nil, err)
 		}
@@ -118,7 +120,7 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 			return runtime.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := prepareArgsRV(methodRV, args)
+		argsRV, err := prepareArgsRV(methodRV, callChain, args)
 		if err != nil {
 			return runtime.MakeRet(nil, err)
 		}
@@ -131,13 +133,23 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 	}, callChain, component, method, args), nil
 }
 
-func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
+func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
-	if methodRT.NumIn() != len(args) {
+	var argsRV []reflect.Value
+
+	switch methodRT.NumIn() {
+	case len(args) + 1:
+		if !callChainRT.AssignableTo(methodRT.In(0)) {
+			return nil, ErrMethodParameterTypeMismatch
+		}
+		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(callChain))
+
+	case len(args):
+		argsRV = make([]reflect.Value, 0, len(args))
+
+	default:
 		return nil, ErrMethodParameterCountMismatch
 	}
-
-	argsRV := make([]reflect.Value, 0, len(args))
 
 	for i := range args {
 		argRV := args[i].Reflected
