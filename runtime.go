@@ -18,7 +18,7 @@ import (
 )
 
 type iRuntimeGeneric interface {
-	setup(ctx service.Context, composite any)
+	init(ctx service.Context, composite any)
 	generate(settings _RuntimeSettings) core.Runtime
 }
 
@@ -47,7 +47,7 @@ type RuntimeGeneric struct {
 	composite any
 }
 
-func (r *RuntimeGeneric) setup(ctx service.Context, composite any) {
+func (r *RuntimeGeneric) init(ctx service.Context, composite any) {
 	r.servCtx = ctx
 	r.composite = composite
 }

@@ -147,7 +147,7 @@ func (c *RPCli) AddProcedure(id uid.Id, proc any) error {
 		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
 	}
 
-	_proc.setup(c, id, proc)
+	_proc.init(c, id, proc)
 	c.procs.Insert(id, _proc)
 
 	return nil

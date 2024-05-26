@@ -32,7 +32,7 @@ import (
 )
 
 type iServiceGeneric interface {
-	setup(startupConf *viper.Viper, name string, composite any)
+	init(startupConf *viper.Viper, name string, composite any)
 	generate(ctx context.Context, no int) core.Service
 }
 
@@ -53,7 +53,7 @@ type ServiceGeneric struct {
 	composite   any
 }
 
-func (s *ServiceGeneric) setup(startupConf *viper.Viper, name string, composite any) {
+func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, composite any) {
 	s.startupConf = startupConf
 	s.name = name
 	s.composite = composite

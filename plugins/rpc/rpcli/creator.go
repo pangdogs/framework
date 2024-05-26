@@ -233,7 +233,7 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	}
 
 	if ctor.proc != nil {
-		ctor.proc.setup(rpcli, Main, ctor.proc)
+		ctor.proc.init(rpcli, Main, ctor.proc)
 		rpcli.procs.Insert(Main, ctor.proc)
 	}
 

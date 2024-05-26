@@ -27,7 +27,7 @@ type IProcedure interface {
 }
 
 type iProcedure interface {
-	setup(cli *RPCli, entityId uid.Id, composite any)
+	init(cli *RPCli, entityId uid.Id, composite any)
 }
 
 // Procedure 过程
@@ -37,7 +37,7 @@ type Procedure struct {
 	reflected reflect.Value
 }
 
-func (p *Procedure) setup(cli *RPCli, entityId uid.Id, composite any) {
+func (p *Procedure) init(cli *RPCli, entityId uid.Id, composite any) {
 	p.cli = cli
 	p.id = entityId
 	p.reflected = reflect.ValueOf(composite)

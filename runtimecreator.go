@@ -92,7 +92,7 @@ func (c RuntimeCreator) Spawn() core.Runtime {
 	if generic == nil {
 		generic = &RuntimeGeneric{}
 	}
-	generic.setup(c.servCtx, generic)
+	generic.init(c.servCtx, generic)
 
 	return generic.generate(c.settings)
 }

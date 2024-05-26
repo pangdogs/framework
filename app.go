@@ -169,7 +169,7 @@ func (app *App) Run() {
 	serviceNum := startupConf.GetStringMapString("startup.services")
 
 	for name, pt := range app.servicePTs {
-		pt.generic.setup(startupConf, name, pt.generic)
+		pt.generic.init(startupConf, name, pt.generic)
 		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
