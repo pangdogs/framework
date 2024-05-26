@@ -136,6 +136,7 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
 	var argsRV []reflect.Value
+	var argsPos int
 
 	switch methodRT.NumIn() {
 	case len(args) + 1:
@@ -143,9 +144,11 @@ func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args va
 			return nil, ErrMethodParameterTypeMismatch
 		}
 		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(callChain))
+		argsPos = 1
 
 	case len(args):
 		argsRV = make([]reflect.Value, 0, len(args))
+		argsPos = 0
 
 	default:
 		return nil, ErrMethodParameterCountMismatch
@@ -154,7 +157,7 @@ func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args va
 	for i := range args {
 		argRV := args[i].Reflected
 		argRT := argRV.Type()
-		paramRT := methodRT.In(i)
+		paramRT := methodRT.In(argsPos + i)
 
 	retry:
 		if !argRT.AssignableTo(paramRT) {
