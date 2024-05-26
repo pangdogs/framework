@@ -23,6 +23,6 @@ func (rt Runtime) GetRPCStack() rpcstack.IRPCStack {
 }
 
 // CreateEntity 创建实体
-func (rt Runtime) CreateEntity() core.EntityCreator {
-	return core.CreateEntity(rt.Ctx)
+func (rt Runtime) CreateEntity(prototype string) core.EntityCreator {
+	return core.CreateEntity(rt.Ctx, prototype)
 }

@@ -92,6 +92,6 @@ func (inst *ServiceInstance) CreateRuntime() RuntimeCreator {
 }
 
 // CreateEntityPT 创建实体原型
-func (inst *ServiceInstance) CreateEntityPT() core.EntityPTCreator {
-	return core.CreateEntityPT(inst)
+func (inst *ServiceInstance) CreateEntityPT(prototype string) core.EntityPTCreator {
+	return core.CreateEntityPT(inst, prototype)
 }

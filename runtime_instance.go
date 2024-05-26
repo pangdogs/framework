@@ -27,6 +27,6 @@ func (inst *RuntimeInstance) GetMemKV() *sync.Map {
 }
 
 // CreateEntity 创建实体
-func (inst *RuntimeInstance) CreateEntity() core.EntityCreator {
-	return core.CreateEntity(inst)
+func (inst *RuntimeInstance) CreateEntity(prototype string) core.EntityCreator {
+	return core.CreateEntity(inst, prototype)
 }

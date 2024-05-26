@@ -77,6 +77,6 @@ func (serv Service) CreateRuntime() RuntimeCreator {
 }
 
 // CreateEntityPT 创建实体原型
-func (serv Service) CreateEntityPT() core.EntityPTCreator {
-	return core.CreateEntityPT(serv.Ctx)
+func (serv Service) CreateEntityPT(prototype string) core.EntityPTCreator {
+	return core.CreateEntityPT(serv.Ctx, prototype)
 }
