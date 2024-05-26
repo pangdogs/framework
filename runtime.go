@@ -55,6 +55,8 @@ func (r *RuntimeGeneric) setup(ctx service.Context, composite any) {
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	face := iface.Face[runtime.Context]{}
 
+	wholeConf := conf.Using(r.servCtx).Whole()
+
 	if cb, ok := r.composite.(IRuntimeInstantiation); ok {
 		face = iface.MakeFace(cb.Instantiation())
 	}
@@ -197,8 +199,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		if v, _ := r.GetMemKV().Load("zap.logger"); v != nil {
 			zap_log.Install(rtCtx,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
-				zap_log.With.ServiceInfo(conf.Using(r.servCtx).GetBool("log.service_info")),
-				zap_log.With.RuntimeInfo(conf.Using(r.servCtx).GetBool("log.runtime_info")),
+				zap_log.With.ServiceInfo(wholeConf.GetBool("log.service_info")),
+				zap_log.With.RuntimeInfo(wholeConf.GetBool("log.runtime_info")),
 			)
 		}
 	}
@@ -245,7 +247,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 		dent.Install(rtCtx,
 			dent.With.EtcdClient(cli),
-			dent.With.TTL(conf.Using(r.servCtx).GetDuration("service.dent_ttl")),
+			dent.With.TTL(wholeConf.GetDuration("service.dent_ttl")),
 		)
 	}
 
