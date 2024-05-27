@@ -15,7 +15,7 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		With.Processors(processor.NewServiceProcessor())(options)
+		With.Processors(processor.NewServiceProcessor(nil))(options)
 	}
 }
 

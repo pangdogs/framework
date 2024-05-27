@@ -10,15 +10,18 @@ import (
 )
 
 // NewServiceProcessor 创建分布式服务间的RPC处理器
-func NewServiceProcessor() any {
-	return &_ServiceProcessor{}
+func NewServiceProcessor(permValidator PermissionValidator) any {
+	return &_ServiceProcessor{
+		permValidator: permValidator,
+	}
 }
 
 // _ServiceProcessor 分布式服务间的RPC处理器
 type _ServiceProcessor struct {
-	servCtx service.Context
-	dist    dserv.IDistService
-	watcher dserv.IWatcher
+	servCtx       service.Context
+	dist          dserv.IDistService
+	watcher       dserv.IWatcher
+	permValidator PermissionValidator
 }
 
 // Init 初始化
