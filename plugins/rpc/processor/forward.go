@@ -11,10 +11,11 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
 // PermissionValidator 权限验证器
-type PermissionValidator = generic.DelegateFunc2[string, callpath.CallPath, bool]
+type PermissionValidator = generic.DelegateFunc2[rpcstack.CallChain, callpath.CallPath, bool]
 
 // NewForwardProcessor RPC转发处理器，用于S<->G的通信
 func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator) any {
