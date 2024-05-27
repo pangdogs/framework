@@ -35,7 +35,7 @@ func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 		return nil, false
 	}
 
-	log.Infof(g.servCtx, "listener %q accept remote %q, handle session success, id: %q, token: %q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
+	log.Infof(g.servCtx, "listener %q accept remote %q, handle session success, id:%q, token:%q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 	return session, true
 }
 
