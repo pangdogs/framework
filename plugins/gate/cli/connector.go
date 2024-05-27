@@ -8,7 +8,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/util/generic"
 	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/core/util/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/util/concurrent"
 	"golang.org/x/net/websocket"
@@ -113,7 +112,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
-			origin, _ = url.JoinPath(ep, "cli", uid.New().String())
+			origin, _ = url.JoinPath(ep, "cli", ctor.options.AuthUserId)
 		}
 
 		conf, err := websocket.NewConfig(ep, origin)
