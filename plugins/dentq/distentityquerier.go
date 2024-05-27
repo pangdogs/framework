@@ -117,7 +117,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
 		etcdv3.WithIgnoreValue(),
 		etcdv3.WithSerializable())
-	if err != nil {
+	if err != nil || len(rsp.Kvs) <= 0 {
 		return nil, false
 	}
 
