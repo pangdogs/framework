@@ -34,7 +34,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Service:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 30)
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
 		sb.WriteByte(Sep)
@@ -45,7 +45,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Runtime:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 30)
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
@@ -58,7 +58,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Entity:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc))
+		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 30)
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.EntityId.String())
 		sb.WriteByte(Sep)
@@ -117,7 +117,7 @@ loop:
 				if len(field) <= 0 {
 					return CallPath{}, errors.New("rpc: invalid ExcludeSrc")
 				}
-				cp.ExcludeSrc = types.Int2Bool[byte](field[0])
+				cp.ExcludeSrc = types.Int2Bool[byte](field[0] - 30)
 			case Client:
 				cp.EntityId = uid.From(field)
 			}
