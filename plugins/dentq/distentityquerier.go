@@ -196,9 +196,6 @@ retry:
 				}
 				uniqueList = append(uniqueList, id)
 				d.cache.Delete(uid.From(id))
-
-			default:
-				continue
 			}
 		}
 	}
