@@ -1,6 +1,6 @@
 //go:generate go run git.golaxy.org/core/event/eventcode gen_event --default_export=false
-//go:generate go run git.golaxy.org/core/event/eventcode gen_eventtab --name=distEntitiesEventTab
-package dent
+//go:generate go run git.golaxy.org/core/event/eventcode gen_eventtab --name=distEntityRegistryEventTab
+package dentr
 
 import (
 	"git.golaxy.org/core/ec"

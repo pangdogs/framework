@@ -1,4 +1,4 @@
-package dent
+package dentr
 
 import (
 	"crypto/tls"
@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// DistEntitiesOptions 所有选项
-type DistEntitiesOptions struct {
+// DistEntityRegistryOptions 所有选项
+type DistEntityRegistryOptions struct {
 	EtcdClient      *clientv3.Client
 	EtcdConfig      *clientv3.Config
 	KeyPrefix       string
@@ -28,8 +28,8 @@ var With _Option
 type _Option struct{}
 
 // Default 默认值
-func (_Option) Default() option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
+func (_Option) Default() option.Setting[DistEntityRegistryOptions] {
+	return func(options *DistEntityRegistryOptions) {
 		With.EtcdClient(nil)(options)
 		With.EtcdConfig(nil)(options)
 		With.KeyPrefix("/golaxy/entities/")(options)
@@ -41,22 +41,22 @@ func (_Option) Default() option.Setting[DistEntitiesOptions] {
 }
 
 // EtcdClient etcd客户端，最优先使用
-func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[DistEntitiesOptions] {
-	return func(o *DistEntitiesOptions) {
+func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[DistEntityRegistryOptions] {
+	return func(o *DistEntityRegistryOptions) {
 		o.EtcdClient = cli
 	}
 }
 
 // EtcdConfig etcd配置，次优先使用
-func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[DistEntitiesOptions] {
-	return func(o *DistEntitiesOptions) {
+func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[DistEntityRegistryOptions] {
+	return func(o *DistEntityRegistryOptions) {
 		o.EtcdConfig = config
 	}
 }
 
 // KeyPrefix 所有key的前缀
-func (_Option) KeyPrefix(prefix string) option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
+func (_Option) KeyPrefix(prefix string) option.Setting[DistEntityRegistryOptions] {
+	return func(options *DistEntityRegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
@@ -65,8 +65,8 @@ func (_Option) KeyPrefix(prefix string) option.Setting[DistEntitiesOptions] {
 }
 
 // TTL 实体信息过期时间
-func (_Option) TTL(ttl time.Duration) option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
+func (_Option) TTL(ttl time.Duration) option.Setting[DistEntityRegistryOptions] {
+	return func(options *DistEntityRegistryOptions) {
 		if ttl < 3*time.Second {
 			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
 		}
@@ -75,16 +75,16 @@ func (_Option) TTL(ttl time.Duration) option.Setting[DistEntitiesOptions] {
 }
 
 // CustomAuth 自定义设置etcd鉴权信息
-func (_Option) CustomAuth(username, password string) option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
+func (_Option) CustomAuth(username, password string) option.Setting[DistEntityRegistryOptions] {
+	return func(options *DistEntityRegistryOptions) {
 		options.CustomUsername = username
 		options.CustomPassword = password
 	}
 }
 
 // CustomAddresses 自定义设置etcd服务地址
-func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntitiesOptions] {
-	return func(options *DistEntitiesOptions) {
+func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityRegistryOptions] {
+	return func(options *DistEntityRegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
 				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
@@ -95,8 +95,8 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntitiesOptio
 }
 
 // CustomTLSConfig 自定义设置加密etcd连接的配置
-func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[DistEntitiesOptions] {
-	return func(o *DistEntitiesOptions) {
+func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[DistEntityRegistryOptions] {
+	return func(o *DistEntityRegistryOptions) {
 		o.CustomTLSConfig = conf
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/framework/plugins/conf"
-	"git.golaxy.org/framework/plugins/dent"
+	"git.golaxy.org/framework/plugins/dentr"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"git.golaxy.org/framework/plugins/rpcstack"
@@ -221,17 +221,17 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	}
 
 	// 安装分布式实体支持插件
-	if !installed(dent.Name) {
+	if !installed(dentr.Name) {
 		if cb, ok := rtCtx.(InstallRuntimeDistEntities); ok {
 			cb.InstallDistEntities(rtCtx)
 		}
 	}
-	if !installed(dent.Name) {
+	if !installed(dentr.Name) {
 		if cb, ok := r.composite.(InstallRuntimeDistEntities); ok {
 			cb.InstallDistEntities(rtCtx)
 		}
 	}
-	if !installed(dent.Name) {
+	if !installed(dentr.Name) {
 		v, _ := r.GetMemKV().Load("etcd.init_client")
 		fun, _ := v.(func())
 		if fun == nil {
@@ -245,9 +245,9 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 			panic("service memory kv etcd.client not existed")
 		}
 
-		dent.Install(rtCtx,
-			dent.With.EtcdClient(cli),
-			dent.With.TTL(wholeConf.GetDuration("service.dent_ttl")),
+		dentr.Install(rtCtx,
+			dentr.With.EtcdClient(cli),
+			dentr.With.TTL(wholeConf.GetDuration("service.dent_ttl")),
 		)
 	}
 

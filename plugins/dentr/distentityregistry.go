@@ -1,4 +1,4 @@
-package dent
+package dentr
 
 import (
 	"context"
@@ -19,31 +19,31 @@ import (
 	"time"
 )
 
-// IDistEntities 分布式实体支持，会将全局可以访问的实体注册为分布式实体
-type IDistEntities interface {
-	IDistEntitiesEventTab
+// IDistEntityRegistry 分布式实体注册支持，会将全局可以访问的实体注册为分布式实体
+type IDistEntityRegistry interface {
+	IDistEntityRegistryEventTab
 }
 
-func newDistEntities(settings ...option.Setting[DistEntitiesOptions]) IDistEntities {
-	return &_DistEntities{
+func newDistEntityRegistry(settings ...option.Setting[DistEntityRegistryOptions]) IDistEntityRegistry {
+	return &_DistEntityRegistry{
 		options: option.Make(With.Default(), settings...),
 	}
 }
 
-type _DistEntities struct {
-	distEntitiesEventTab
-	options DistEntitiesOptions
+type _DistEntityRegistry struct {
+	distEntityRegistryEventTab
+	options DistEntityRegistryOptions
 	rtCtx   runtime.Context
 	client  *etcdv3.Client
 	leaseId etcdv3.LeaseID
 }
 
 // InitRP 初始化运行时插件
-func (d *_DistEntities) InitRP(ctx runtime.Context) {
+func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
 	d.rtCtx = ctx
-	d.rtCtx.ActivateEvent(&d.distEntitiesEventTab, event.EventRecursion_Allow)
+	d.rtCtx.ActivateEvent(&d.distEntityRegistryEventTab, event.EventRecursion_Allow)
 
 	if d.options.EtcdClient == nil {
 		cli, err := etcdv3.New(d.configure())
@@ -86,7 +86,7 @@ func (d *_DistEntities) InitRP(ctx runtime.Context) {
 }
 
 // ShutRP 关闭运行时插件
-func (d *_DistEntities) ShutRP(ctx runtime.Context) {
+func (d *_DistEntityRegistry) ShutRP(ctx runtime.Context) {
 	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	// 废除租约
@@ -101,16 +101,16 @@ func (d *_DistEntities) ShutRP(ctx runtime.Context) {
 		}
 	}
 
-	d.distEntitiesEventTab.Close()
+	d.distEntityRegistryEventTab.Close()
 }
 
 // OnEntityMgrAddEntity 实体管理器添加实体
-func (d *_DistEntities) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+func (d *_DistEntityRegistry) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
 	d.register(entity)
 }
 
 // OnEntityMgrRemoveEntity 实体管理器删除实体
-func (d *_DistEntities) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+func (d *_DistEntityRegistry) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
 	select {
 	case <-d.rtCtx.Done():
 		return
@@ -119,7 +119,7 @@ func (d *_DistEntities) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, ent
 	d.deregister(entity)
 }
 
-func (d *_DistEntities) register(entity ec.Entity) bool {
+func (d *_DistEntityRegistry) register(entity ec.Entity) bool {
 	if entity.GetScope() != ec.Scope_Global {
 		return true
 	}
@@ -139,7 +139,7 @@ func (d *_DistEntities) register(entity ec.Entity) bool {
 	return true
 }
 
-func (d *_DistEntities) deregister(entity ec.Entity) {
+func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 	if entity.GetScope() != ec.Scope_Global {
 		return
 	}
@@ -158,12 +158,12 @@ func (d *_DistEntities) deregister(entity ec.Entity) {
 	_EmitEventDistEntityOffline(d, entity)
 }
 
-func (d *_DistEntities) getEntityPath(entity ec.Entity) string {
+func (d *_DistEntityRegistry) getEntityPath(entity ec.Entity) string {
 	servCtx := service.Current(d.rtCtx)
 	return path.Join(d.options.KeyPrefix, entity.GetId().String(), servCtx.GetName(), servCtx.GetId().String())
 }
 
-func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret async.Ret, args ...any) {
+func (d *_DistEntityRegistry) keepAliveLease(ctx runtime.Context, ret async.Ret, args ...any) {
 	// 刷新租约
 	_, err := d.client.KeepAliveOnce(d.rtCtx, d.leaseId)
 	if err == nil {
@@ -197,7 +197,7 @@ func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret async.Ret, args 
 	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 }
 
-func (d *_DistEntities) grantLease() error {
+func (d *_DistEntityRegistry) grantLease() error {
 	// 申请租约
 	lgr, err := d.client.Grant(d.rtCtx, int64(math.Ceil(d.options.TTL.Seconds())))
 	if err != nil {
@@ -208,7 +208,7 @@ func (d *_DistEntities) grantLease() error {
 	return nil
 }
 
-func (d *_DistEntities) configure() etcdv3.Config {
+func (d *_DistEntityRegistry) configure() etcdv3.Config {
 	if d.options.EtcdConfig != nil {
 		return *d.options.EtcdConfig
 	}
