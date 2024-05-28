@@ -1,7 +1,7 @@
 package redis_dsync
 
 import (
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"github.com/redis/go-redis/v9"
 	"net"
 	"strings"

@@ -1,7 +1,7 @@
 package mongodb
 
 import (
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/db"
 	"github.com/elliotchance/pie/v2"
 )

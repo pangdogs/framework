@@ -5,7 +5,7 @@ package dent
 import (
 	"fmt"
 	event "git.golaxy.org/core/event"
-	iface "git.golaxy.org/core/util/iface"
+	iface "git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/ec"
 )
 

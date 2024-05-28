@@ -7,9 +7,10 @@ import (
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/iface"
-	"git.golaxy.org/core/util/option"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/iface"
+	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/core/utils/uid"
 )
 
 // CreateConcurrentEntity 创建实体
@@ -104,17 +105,17 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 		}
 	}
 
-	err := core.Async(rt, func(ctx runtime.Context, _ ...any) runtime.Ret {
+	err := core.Async(rt, func(ctx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
 			if err := ctx.GetEntityMgr().AddEntity(entity); err != nil {
-				return runtime.MakeRet(nil, err)
+				return async.MakeRet(nil, err)
 			}
 		} else {
 			if err := ctx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
-				return runtime.MakeRet(nil, err)
+				return async.MakeRet(nil, err)
 			}
 		}
-		return runtime.VoidRet
+		return async.VoidRet
 	}).Wait(c.ctx).Error
 	if err != nil {
 		if c.rt == nil {
@@ -124,4 +125,42 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 	}
 
 	return entity, nil
+}
+
+// SpawnAsync 创建实体
+func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntity] {
+	if c.ctx == nil {
+		panic(" setting ctx is nil")
+	}
+
+	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
+
+	rt := c.rt
+	if rt == nil {
+		if c.rtCreator.servCtx != nil {
+			rt = c.rtCreator.Spawn()
+		} else {
+			rt = CreateRuntime(c.ctx).Spawn()
+		}
+	}
+
+	asyncRet := core.Async(rt, func(ctx runtime.Context, _ ...any) async.Ret {
+		if c.parentId.IsNil() {
+			if err := ctx.GetEntityMgr().AddEntity(entity); err != nil {
+				return async.MakeRet(nil, err)
+			}
+		} else {
+			if err := ctx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
+				return async.MakeRet(nil, err)
+			}
+		}
+		return async.VoidRet
+	})
+
+	ch := async.MakeAsyncRetT[ec.ConcurrentEntity]()
+	go func() {
+		ch <- async.CastRetT[ec.ConcurrentEntity](asyncRet.Wait(c.ctx))
+		close(ch)
+	}()
+	return ch
 }

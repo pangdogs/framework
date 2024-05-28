@@ -3,7 +3,7 @@ package redisdb
 import (
 	"context"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/db"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/redis/go-redis/v9"

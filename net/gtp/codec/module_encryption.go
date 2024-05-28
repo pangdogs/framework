@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/util/binaryutil"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/nats-io/nats.go"

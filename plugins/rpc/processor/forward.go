@@ -3,8 +3,8 @@ package processor
 import (
 	"context"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/generic"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/plugins/dentq"

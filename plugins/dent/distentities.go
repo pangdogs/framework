@@ -9,7 +9,8 @@ import (
 	"git.golaxy.org/core/event"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -162,7 +163,7 @@ func (d *_DistEntities) getEntityPath(entity ec.Entity) string {
 	return path.Join(d.options.KeyPrefix, entity.GetId().String(), servCtx.GetName(), servCtx.GetId().String())
 }
 
-func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret runtime.Ret, args ...any) {
+func (d *_DistEntities) keepAliveLease(ctx runtime.Context, ret async.Ret, args ...any) {
 	// 刷新租约
 	_, err := d.client.KeepAliveOnce(d.rtCtx, d.leaseId)
 	if err == nil {

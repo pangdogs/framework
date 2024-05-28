@@ -4,7 +4,8 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/rpc"
@@ -44,7 +45,7 @@ func (p RuntimeProxied) GetEntityId() uid.Id {
 }
 
 // RPC 向分布式实体目标服务的运行时发送RPC
-func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) runtime.AsyncRet {
+func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -81,7 +82,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) runtime
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送RPC
-func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) runtime.AsyncRet {
+func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -118,7 +119,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送RPC
-func (p RuntimeProxied) GlobalBalanceRPC(plugin, method string, args ...any) runtime.AsyncRet {
+func (p RuntimeProxied) GlobalBalanceRPC(plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}

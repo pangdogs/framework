@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/async"
 	"time"
 )
 
@@ -31,7 +32,7 @@ type Future struct {
 
 // Cancel 取消
 func (f Future) Cancel(err error) {
-	f.futures.Resolve(f.Id, Ret[any]{Error: err})
+	f.futures.Resolve(f.Id, async.MakeRet(nil, err))
 }
 
 // Wait 等待

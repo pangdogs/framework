@@ -2,11 +2,11 @@ package rpcli
 
 import (
 	"fmt"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
-	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
 
@@ -122,7 +122,7 @@ func (c *RPCli) reply(src string, corrId int64, retsRV []reflect.Value, retErr e
 }
 
 func (c *RPCli) resolve(reply *gap.MsgRPCReply) error {
-	ret := concurrent.Ret[any]{}
+	ret := async.Ret{}
 
 	if reply.Error.OK() {
 		if len(reply.Rets) > 0 {

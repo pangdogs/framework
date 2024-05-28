@@ -2,7 +2,7 @@ package variant
 
 import (
 	"errors"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/util/binaryutil"
 	"reflect"
 )

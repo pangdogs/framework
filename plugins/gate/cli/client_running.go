@@ -3,12 +3,12 @@ package cli
 import (
 	"bytes"
 	"errors"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/binaryutil"
-	"git.golaxy.org/framework/util/concurrent"
 	"net"
 	"time"
 )
@@ -393,7 +393,7 @@ func (c *Client) handleRecvSyncTime(event transport.Event[gtp.MsgSyncTime]) erro
 			LocalTime:   time.Now(),
 			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
 		}
-		return c.futures.Resolve(event.Msg.CorrId, concurrent.MakeRet[any](respTime, nil))
+		return c.futures.Resolve(event.Msg.CorrId, async.MakeRet(respTime, nil))
 	}
 	return nil
 }

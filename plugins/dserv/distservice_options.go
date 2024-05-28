@@ -3,8 +3,8 @@ package dserv
 import (
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/generic"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gap"
 	"time"
 )

@@ -1,7 +1,7 @@
 package concurrent
 
 import (
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/generic"
 	"sync"
 )
 

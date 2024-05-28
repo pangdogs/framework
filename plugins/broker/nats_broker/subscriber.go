@@ -3,7 +3,7 @@ package nats_broker
 import (
 	"context"
 	"fmt"
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/nats-io/nats.go"

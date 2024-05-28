@@ -4,7 +4,7 @@ package discovery
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/uid"
 	"time"
 )
 

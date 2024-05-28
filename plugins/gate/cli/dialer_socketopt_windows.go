@@ -3,7 +3,7 @@
 package cli
 
 import (
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/types"
 	"net"
 	"syscall"
 )

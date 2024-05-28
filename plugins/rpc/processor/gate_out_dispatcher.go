@@ -2,8 +2,8 @@ package processor
 
 import (
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/net/netpath"
@@ -31,24 +31,24 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
 
 		// 为了保持消息时序，在实体线程中，向对端发送消息
-		asyncRet := p.servCtx.Call(entId, func(entity ec.Entity, _ ...any) runtime.Ret {
+		asyncRet := p.servCtx.Call(entId, func(entity ec.Entity, _ ...any) async.Ret {
 			session, ok := p.router.LookupSession(entity.GetId())
 			if !ok {
-				return runtime.MakeRet(nil, ErrSessionNotFound)
+				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
 			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgRaw{Id: req.TransId, Data: req.TransData})
 			if err != nil {
-				return runtime.MakeRet(nil, err)
+				return async.MakeRet(nil, err)
 			}
 			defer bs.Release()
 
 			err = session.SendData(bs.Data())
 			if err != nil {
-				return runtime.MakeRet(nil, err)
+				return async.MakeRet(nil, err)
 			}
 
-			return runtime.MakeRet(nil, nil)
+			return async.MakeRet(nil, nil)
 		})
 		go func() { p.finishOutbound(src, req, (<-asyncRet).Error) }()
 		return

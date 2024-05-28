@@ -2,7 +2,7 @@ package etcd_dsync
 
 import (
 	"crypto/tls"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
 	"strings"

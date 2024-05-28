@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
 	"strings"

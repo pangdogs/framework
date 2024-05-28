@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	etcdv3 "go.etcd.io/etcd/client/v3"

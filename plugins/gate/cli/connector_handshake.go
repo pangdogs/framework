@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/method"

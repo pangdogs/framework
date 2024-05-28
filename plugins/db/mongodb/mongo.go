@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/db"
 	"git.golaxy.org/framework/plugins/log"
 	"go.mongodb.org/mongo-driver/mongo"

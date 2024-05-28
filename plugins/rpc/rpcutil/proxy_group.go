@@ -4,7 +4,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"

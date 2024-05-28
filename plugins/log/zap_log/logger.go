@@ -3,7 +3,7 @@ package zap_log
 import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"go.uber.org/zap"
 )

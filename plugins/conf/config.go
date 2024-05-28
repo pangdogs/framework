@@ -3,7 +3,7 @@ package conf
 import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/pflag"

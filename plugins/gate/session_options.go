@@ -1,7 +1,7 @@
 package gate
 
 import (
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/binaryutil"

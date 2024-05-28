@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/types"
 	"io"
 	"math"
 )

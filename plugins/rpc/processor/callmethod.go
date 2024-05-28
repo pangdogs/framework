@@ -6,8 +6,9 @@ import (
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/types"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"reflect"
@@ -48,14 +49,14 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 	return methodRV.Call(argsRV), nil
 }
 
-func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
+	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) async.Ret {
 		callChain := a[0].(rpcstack.CallChain)
 		plugin := a[1].(string)
 		method := a[2].(string)
@@ -68,37 +69,37 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 		} else {
 			pi, ok := runtime.Current(entity).GetPluginBundle().Get(plugin)
 			if !ok {
-				return runtime.MakeRet(nil, ErrPluginNotFound)
+				return async.MakeRet(nil, ErrPluginNotFound)
 			}
 			reflected = pi.Reflected
 		}
 
 		methodRV := reflected.MethodByName(method)
 		if !methodRV.IsValid() {
-			return runtime.MakeRet(nil, ErrMethodNotFound)
+			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
 		argsRV, err := prepareArgsRV(methodRV, callChain, args)
 		if err != nil {
-			return runtime.MakeRet(nil, err)
+			return async.MakeRet(nil, err)
 		}
 
 		stack := rpcstack.Using(runtime.Current(entity))
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return runtime.MakeRet(methodRV.Call(argsRV), nil)
+		return async.MakeRet(methodRV.Call(argsRV), nil)
 	}, callChain, plugin, method, args), nil
 }
 
-func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet runtime.AsyncRet, err error) {
+func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) service.Ret {
+	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) async.Ret {
 		callChain := a[0].(rpcstack.CallChain)
 		compName := a[1].(string)
 		method := a[2].(string)
@@ -111,26 +112,26 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 		} else {
 			comp := entity.GetComponent(compName)
 			if comp == nil {
-				return runtime.MakeRet(nil, ErrComponentNotFound)
+				return async.MakeRet(nil, ErrComponentNotFound)
 			}
 			reflected = ec.UnsafeComponent(comp).GetReflected()
 		}
 
 		methodRV := reflected.MethodByName(method)
 		if !methodRV.IsValid() {
-			return runtime.MakeRet(nil, ErrMethodNotFound)
+			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
 		argsRV, err := prepareArgsRV(methodRV, callChain, args)
 		if err != nil {
-			return runtime.MakeRet(nil, err)
+			return async.MakeRet(nil, err)
 		}
 
 		stack := rpcstack.Using(runtime.Current(entity))
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return runtime.MakeRet(methodRV.Call(argsRV), nil)
+		return async.MakeRet(methodRV.Call(argsRV), nil)
 	}, callChain, component, method, args), nil
 }
 

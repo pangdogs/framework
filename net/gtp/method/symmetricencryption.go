@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gtp"
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"

@@ -2,8 +2,8 @@ package callpath
 
 import (
 	"errors"
-	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/types"
+	"git.golaxy.org/core/utils/uid"
 	"strings"
 )
 

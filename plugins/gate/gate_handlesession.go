@@ -3,8 +3,8 @@ package gate
 import (
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/types"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/types"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/log"
 	"net"
 	"sync/atomic"

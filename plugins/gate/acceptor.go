@@ -3,8 +3,8 @@ package gate
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core/util/generic"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/util/concurrent"
 	"net"

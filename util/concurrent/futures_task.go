@@ -2,7 +2,8 @@ package concurrent
 
 import (
 	"context"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/types"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func newTask[T Resp](fs *Futures, resp T) iTask {
 type iTask interface {
 	Future() Future
 	Run(ctx context.Context, timeout time.Duration)
-	Resolve(ret Ret[any]) error
+	Resolve(ret async.Ret) error
 }
 
 type _Task[T Resp] struct {
@@ -45,17 +46,17 @@ func (t *_Task[T]) Run(ctx context.Context, timeout time.Duration) {
 
 	select {
 	case <-t.future.futures.Ctx.Done():
-		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFuturesClosed})
+		t.future.futures.Resolve(t.future.Id, async.RetT[any]{Error: ErrFuturesClosed})
 	case <-ctx.Done():
-		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFutureCanceled})
+		t.future.futures.Resolve(t.future.Id, async.RetT[any]{Error: ErrFutureCanceled})
 	case <-timer.C:
-		t.future.futures.Resolve(t.future.Id, Ret[any]{Error: ErrFutureTimeout})
+		t.future.futures.Resolve(t.future.Id, async.RetT[any]{Error: ErrFutureTimeout})
 	case <-t.future.Finish.Done():
 		return
 	}
 }
 
-func (t *_Task[T]) Resolve(ret Ret[any]) (retErr error) {
+func (t *_Task[T]) Resolve(ret async.Ret) (retErr error) {
 	t.terminate()
 
 	defer func() {

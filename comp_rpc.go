@@ -1,23 +1,23 @@
 package framework
 
 import (
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/rpc/rpcutil"
 )
 
 // RPC 向分布式实体目标服务发送RPC
-func (c *ComponentBehavior) RPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (c *ComponentBehavior) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).RPC(service, comp, method, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
-func (c *ComponentBehavior) BalanceRPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (c *ComponentBehavior) BalanceRPC(service, comp, method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).BalanceRPC(service, comp, method, args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
-func (c *ComponentBehavior) GlobalBalanceRPC(comp, method string, args ...any) runtime.AsyncRet {
+func (c *ComponentBehavior) GlobalBalanceRPC(comp, method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).GlobalBalanceRPC(comp, method, args...)
 }
 
@@ -47,12 +47,12 @@ func (c *ComponentBehavior) GlobalBroadcastOneWayRPC(excludeSelf bool, comp, met
 }
 
 // CliRPC 向客户端发送RPC
-func (c *ComponentBehavior) CliRPC(method string, args ...any) runtime.AsyncRet {
+func (c *ComponentBehavior) CliRPC(method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).CliRPC(method, args...)
 }
 
 // CliRPCToEntity 向客户端实体发送RPC
-func (c *ComponentBehavior) CliRPCToEntity(entityId uid.Id, method string, args ...any) runtime.AsyncRet {
+func (c *ComponentBehavior) CliRPCToEntity(entityId uid.Id, method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c.GetRuntime().Ctx, c.GetEntity().GetId()).CliRPCToEntity(entityId, method, args...)
 }
 

@@ -2,9 +2,9 @@ package rpcutil
 
 import (
 	"errors"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -36,7 +36,7 @@ func (p ServiceProxied) GetService() string {
 }
 
 // RPC 向分布式服务发送RPC
-func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) runtime.AsyncRet {
+func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -58,7 +58,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) r
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
-func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) runtime.AsyncRet {
+func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}

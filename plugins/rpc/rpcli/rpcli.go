@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gap/variant"
@@ -30,12 +30,12 @@ type RPCli struct {
 }
 
 // RPC RPC调用
-func (c *RPCli) RPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	return c.RPCToEntity(uid.Nil, service, comp, method, args...)
 }
 
 // RPCToEntity 实体RPC调用
-func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args ...any) runtime.AsyncRet {
+func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args ...any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(c.GetFutures(), nil, ret)
 

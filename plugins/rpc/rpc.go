@@ -1,9 +1,9 @@
 package rpc
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/processor"
 	"git.golaxy.org/framework/plugins/rpcstack"
@@ -14,7 +14,7 @@ import (
 // IRPC RPC支持
 type IRPC interface {
 	// RPC RPC调用
-	RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) runtime.AsyncRet
+	RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) async.AsyncRet
 	// OneWayRPC 单向RPC调用
 	OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error
 }
@@ -65,10 +65,10 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 }
 
 // RPC RPC调用
-func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) runtime.AsyncRet {
+func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) async.AsyncRet {
 	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
-		ret.Push(concurrent.MakeRet[any](nil, processor.ErrTerminated))
+		ret.Push(async.MakeRet(nil, processor.ErrTerminated))
 		return ret.CastAsyncRet()
 	}
 
@@ -87,7 +87,7 @@ func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args .
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
-	ret.Push(concurrent.MakeRet[any](nil, processor.ErrUndeliverable))
+	ret.Push(async.MakeRet(nil, processor.ErrUndeliverable))
 	return ret.CastAsyncRet()
 }
 

@@ -3,8 +3,8 @@ package concurrent
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/generic"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -26,13 +26,17 @@ type (
 
 // IFutures Future控制器接口
 type IFutures interface {
+	iFutures
+
 	// Make 创建Future
 	Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future
 	// Request 请求
-	Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) runtime.AsyncRet
+	Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) async.AsyncRet
 	// Resolve 解决
-	Resolve(id int64, ret Ret[any]) error
+	Resolve(id int64, ret async.Ret) error
+}
 
+type iFutures interface {
 	ptr() *Futures
 }
 
@@ -74,7 +78,7 @@ func (fs *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration
 }
 
 // Request 请求
-func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) runtime.AsyncRet {
+func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) async.AsyncRet {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -86,12 +90,16 @@ func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout 
 }
 
 // Resolve 解决
-func (fs *Futures) Resolve(id int64, ret Ret[any]) error {
+func (fs *Futures) Resolve(id int64, ret async.Ret) error {
 	v, ok := fs.tasks.LoadAndDelete(id)
 	if !ok {
 		return ErrFutureNotFound
 	}
 	return v.(iTask).Resolve(ret)
+}
+
+func (fs *Futures) ptr() *Futures {
+	return fs
 }
 
 func (fs *Futures) makeId() int64 {
@@ -100,8 +108,4 @@ func (fs *Futures) makeId() int64 {
 		id = atomic.AddInt64(&fs.Id, 1)
 	}
 	return id
-}
-
-func (fs *Futures) ptr() *Futures {
-	return fs
 }

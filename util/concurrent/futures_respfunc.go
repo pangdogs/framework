@@ -1,46 +1,47 @@
 package concurrent
 
 import (
-	"git.golaxy.org/core/util/generic"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/types"
 )
 
 // RespFunc 接收响应返回值的函数
-type RespFunc[T any] generic.Action1[Ret[T]]
+type RespFunc[T any] generic.Action1[async.RetT[T]]
 
 // Push 填入返回结果
-func (resp RespFunc[T]) Push(ret Ret[any]) error {
+func (fun RespFunc[T]) Push(ret async.RetT[any]) error {
 	if !ret.OK() {
-		generic.MakeAction1(resp).Exec(MakeRet[T](types.ZeroT[T](), ret.Error))
+		generic.MakeAction1(fun).Exec(async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
-	v, ok := ret.Value.(T)
+	resp, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.MakeAction1(resp).Exec(MakeRet[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.MakeAction1(fun).Exec(async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.MakeAction1(resp).Exec(MakeRet[T](v, nil))
+	generic.MakeAction1(fun).Exec(resp)
 	return nil
 }
 
 // RespDelegate 接收响应返回值的委托
-type RespDelegate[T any] generic.DelegateAction1[Ret[T]]
+type RespDelegate[T any] generic.DelegateAction1[async.RetT[T]]
 
 // Push 填入返回结果
-func (resp RespDelegate[T]) Push(ret Ret[any]) error {
+func (dlg RespDelegate[T]) Push(ret async.RetT[any]) error {
 	if !ret.OK() {
-		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.ZeroT[T](), ret.Error))
+		generic.DelegateAction1[async.RetT[T]](dlg).Exec(nil, async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
-	v, ok := ret.Value.(T)
+	resp, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.DelegateAction1[async.RetT[T]](dlg).Exec(nil, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.DelegateAction1[Ret[T]](resp).Exec(nil, MakeRet[T](v, nil))
+	generic.DelegateAction1[async.RetT[T]](dlg).Exec(nil, resp)
 	return nil
 }

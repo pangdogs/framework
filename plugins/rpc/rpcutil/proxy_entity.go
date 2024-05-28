@@ -4,7 +4,8 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
@@ -21,11 +22,11 @@ var (
 	ErrDistEntityNodeNotFound = errors.New("rpc: distributed entity node not found")
 )
 
-func makeErr(err error) (asyncRet chan runtime.Ret) {
-	asyncRet = make(chan runtime.Ret, 1)
-	asyncRet <- runtime.MakeRet(nil, err)
+func makeErr(err error) async.AsyncRet {
+	asyncRet := make(chan async.Ret, 1)
+	asyncRet <- async.MakeRet(nil, err)
 	close(asyncRet)
-	return
+	return asyncRet
 }
 
 // ProxyEntity 代理实体
@@ -58,7 +59,7 @@ func (p EntityProxied) GetId() uid.Id {
 }
 
 // RPC 向分布式实体目标服务发送RPC
-func (p EntityProxied) RPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (p EntityProxied) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -95,7 +96,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) runtime.As
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
-func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -132,7 +133,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) run
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
-func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) runtime.AsyncRet {
+func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -341,12 +342,12 @@ func (p EntityProxied) GlobalBroadcastOneWayRPC(excludeSelf bool, comp, method s
 }
 
 // CliRPC 向客户端发送RPC
-func (p EntityProxied) CliRPC(method string, args ...any) runtime.AsyncRet {
+func (p EntityProxied) CliRPC(method string, args ...any) async.AsyncRet {
 	return p.CliRPCToEntity(uid.Nil, method, args...)
 }
 
 // CliRPCToEntity 向客户端实体发送RPC
-func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...any) runtime.AsyncRet {
+func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}

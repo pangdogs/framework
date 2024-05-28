@@ -1,7 +1,7 @@
 package cache_discovery
 
 import (
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/discovery"
 )
 

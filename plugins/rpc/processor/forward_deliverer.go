@@ -1,9 +1,9 @@
 package processor
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/net/netpath"
@@ -32,7 +32,7 @@ func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpc
 }
 
 // Request 请求
-func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) runtime.AsyncRet {
+func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 

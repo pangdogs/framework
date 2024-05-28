@@ -2,8 +2,8 @@ package processor
 
 import (
 	"errors"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
@@ -30,7 +30,7 @@ type IDeliverer interface {
 	// Match 是否匹配
 	Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool
 	// Request 请求
-	Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) runtime.AsyncRet
+	Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) async.AsyncRet
 	// Notify 通知
 	Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error
 }

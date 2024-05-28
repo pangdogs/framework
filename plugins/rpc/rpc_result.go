@@ -2,8 +2,8 @@ package rpc
 
 import (
 	"errors"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap/variant"
 )
 
@@ -12,7 +12,7 @@ var (
 	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
 )
 
-func Results(ret runtime.Ret) ([]any, error) {
+func Results(ret async.Ret) ([]any, error) {
 	if !ret.OK() {
 		return nil, ret.Error
 	}
@@ -31,14 +31,14 @@ func Results(ret runtime.Ret) ([]any, error) {
 	return rets, nil
 }
 
-func ResultVoid(ret runtime.Ret) error {
+func ResultVoid(ret async.Ret) error {
 	if !ret.OK() {
 		return ret.Error
 	}
 	return nil
 }
 
-func Result1[T1 any](ret runtime.Ret) (T1, error) {
+func Result1[T1 any](ret async.Ret) (T1, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), ret.Error
 	}
@@ -60,7 +60,7 @@ func Result1[T1 any](ret runtime.Ret) (T1, error) {
 	return r1, nil
 }
 
-func Result2[T1, T2 any](ret runtime.Ret) (T1, T2, error) {
+func Result2[T1, T2 any](ret async.Ret) (T1, T2, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), ret.Error
 	}
@@ -87,7 +87,7 @@ func Result2[T1, T2 any](ret runtime.Ret) (T1, T2, error) {
 	return r1, r2, nil
 }
 
-func Result3[T1, T2, T3 any](ret runtime.Ret) (T1, T2, T3, error) {
+func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ret.Error
 	}
@@ -119,7 +119,7 @@ func Result3[T1, T2, T3 any](ret runtime.Ret) (T1, T2, T3, error) {
 	return r1, r2, r3, nil
 }
 
-func Result4[T1, T2, T3, T4 any](ret runtime.Ret) (T1, T2, T3, T4, error) {
+func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ret.Error
 	}
@@ -156,7 +156,7 @@ func Result4[T1, T2, T3, T4 any](ret runtime.Ret) (T1, T2, T3, T4, error) {
 	return r1, r2, r3, r4, nil
 }
 
-func Result5[T1, T2, T3, T4, T5 any](ret runtime.Ret) (T1, T2, T3, T4, T5, error) {
+func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ret.Error
 	}
@@ -198,7 +198,7 @@ func Result5[T1, T2, T3, T4, T5 any](ret runtime.Ret) (T1, T2, T3, T4, T5, error
 	return r1, r2, r3, r4, r5, nil
 }
 
-func Result6[T1, T2, T3, T4, T5, T6 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, error) {
+func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ret.Error
 	}
@@ -245,7 +245,7 @@ func Result6[T1, T2, T3, T4, T5, T6 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T
 	return r1, r2, r3, r4, r5, r6, nil
 }
 
-func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, error) {
+func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), ret.Error
@@ -307,7 +307,7 @@ func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret runtime.Ret) (T1, T2, T3, T4, T
 	return r1, r2, r3, r4, r5, r6, r7, nil
 }
 
-func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, error) {
+func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), ret.Error
@@ -375,7 +375,7 @@ func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret runtime.Ret) (T1, T2, T3, T
 	return r1, r2, r3, r4, r5, r6, r7, r8, nil
 }
 
-func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, error) {
+func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ret.Error
@@ -449,7 +449,7 @@ func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret runtime.Ret) (T1, T2, T
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, nil
 }
 
-func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, error) {
+func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ret.Error
@@ -529,7 +529,7 @@ func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret runtime.Ret) (T1,
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, nil
 }
 
-func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, error) {
+func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ret.Error
@@ -615,7 +615,7 @@ func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret runtime.Ret)
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, nil
 }
 
-func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, error) {
+func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ret.Error
@@ -707,7 +707,7 @@ func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret runtime
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, nil
 }
 
-func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, error) {
+func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
@@ -821,7 +821,7 @@ func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret ru
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, nil
 }
 
-func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, error) {
+func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
@@ -942,7 +942,7 @@ func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](r
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, nil
 }
 
-func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, error) {
+func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
@@ -1070,7 +1070,7 @@ func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 a
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, nil
 }
 
-func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret runtime.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, error) {
+func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, error) {
 	if !ret.OK() {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),

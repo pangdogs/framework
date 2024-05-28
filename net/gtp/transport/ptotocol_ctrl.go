@@ -2,7 +2,7 @@ package transport
 
 import (
 	"errors"
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
 	"time"
 )

@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 )
 
 // ConfigOptions 所有选项

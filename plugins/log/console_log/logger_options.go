@@ -3,7 +3,7 @@ package console_log
 import (
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"time"
 )

@@ -3,7 +3,7 @@ package broker
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 )
 
 var (

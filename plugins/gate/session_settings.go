@@ -2,7 +2,7 @@ package gate
 
 import (
 	"errors"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 )
 
 // SessionSettings 会话设置

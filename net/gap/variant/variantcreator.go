@@ -3,7 +3,7 @@ package variant
 import (
 	"errors"
 	"fmt"
-	"git.golaxy.org/core/util/types"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )

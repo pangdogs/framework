@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 )
 
 // Connect 连接服务端

@@ -1,8 +1,8 @@
 package rpcli
 
 import (
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/util/uid"
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
 	"reflect"
 )
 
@@ -21,7 +21,7 @@ type IProcedure interface {
 	// GetReflected 获取反射值
 	GetReflected() reflect.Value
 	// RPC RPC调用
-	RPC(service, comp, method string, args ...any) runtime.AsyncRet
+	RPC(service, comp, method string, args ...any) async.AsyncRet
 	// OneWayRPC 单向RPC调用
 	OneWayRPC(service, comp, method string, args ...any) error
 }
@@ -59,7 +59,7 @@ func (p *Procedure) GetReflected() reflect.Value {
 }
 
 // RPC RPC调用
-func (p *Procedure) RPC(service, comp, method string, args ...any) runtime.AsyncRet {
+func (p *Procedure) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	return p.cli.RPCToEntity(p.id, service, comp, method, args...)
 }
 

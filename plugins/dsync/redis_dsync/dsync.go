@@ -2,7 +2,7 @@ package redis_dsync
 
 import (
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/go-redsync/redsync/v4"

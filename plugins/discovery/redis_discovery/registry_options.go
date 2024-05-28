@@ -3,7 +3,7 @@ package redis_discovery
 import (
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/option"
+	"git.golaxy.org/core/utils/option"
 	"github.com/redis/go-redis/v9"
 	"net"
 	"strings"

@@ -2,12 +2,12 @@ package processor
 
 import (
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"git.golaxy.org/framework/util/concurrent"
 	"reflect"
 )
 
@@ -223,7 +223,7 @@ func (p *_ServiceProcessor) reply(src string, corrId int64, retsRV []reflect.Val
 }
 
 func (p *_ServiceProcessor) resolve(reply *gap.MsgRPCReply) error {
-	ret := concurrent.Ret[any]{}
+	ret := async.Ret{}
 
 	if reply.Error.OK() {
 		if len(reply.Rets) > 0 {

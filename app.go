@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/util/generic"
+	"git.golaxy.org/core/utils/generic"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
