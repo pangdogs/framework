@@ -12,7 +12,7 @@ import (
 	"git.golaxy.org/core/util/uid"
 )
 
-// CreateConcurrentEntity 创建多线程安全实体
+// CreateConcurrentEntity 创建实体
 func CreateConcurrentEntity(ctx service.Context, prototype string) ConcurrentEntityCreator {
 	if ctx == nil {
 		panic(fmt.Errorf("%w: ctx is nil", core.ErrArgs))
@@ -96,7 +96,6 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
 
 	rt := c.rt
-
 	if rt == nil {
 		if c.rtCreator.servCtx != nil {
 			rt = c.rtCreator.Spawn()

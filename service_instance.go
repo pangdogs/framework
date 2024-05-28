@@ -88,10 +88,15 @@ func (inst *ServiceInstance) GetMemKV() *sync.Map {
 
 // CreateRuntime 创建运行时
 func (inst *ServiceInstance) CreateRuntime() RuntimeCreator {
-	return CreateRuntime(inst)
+	return CreateRuntime(service.UnsafeContext(inst).GetOptions().CompositeFace.Iface)
 }
 
 // CreateEntityPT 创建实体原型
 func (inst *ServiceInstance) CreateEntityPT(prototype string) core.EntityPTCreator {
-	return core.CreateEntityPT(inst, prototype)
+	return core.CreateEntityPT(service.UnsafeContext(inst).GetOptions().CompositeFace.Iface, prototype)
+}
+
+// CreateConcurrentEntity 创建实体
+func (inst *ServiceInstance) CreateConcurrentEntity(prototype string) ConcurrentEntityCreator {
+	return CreateConcurrentEntity(service.UnsafeContext(inst).GetOptions().CompositeFace.Iface, prototype)
 }
