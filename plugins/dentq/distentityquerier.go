@@ -191,21 +191,14 @@ retry:
 
 			switch event.Type {
 			case etcdv3.EventTypePut, etcdv3.EventTypeDelete:
-				if !pie.Contains(uniqueList, id) {
-					uniqueList = append(uniqueList, id)
+				if pie.Contains(uniqueList, id) {
+					continue
 				}
+				uniqueList = append(uniqueList, id)
+				d.cache.Delete(uid.From(id))
+
 			default:
 				continue
-			}
-		}
-
-		for _, id := range uniqueList {
-			item, err := d.cache.Value(id)
-			if err != nil {
-				continue
-			}
-			if item.Data().(*DistEntity).Revision < watchRsp.Header.Revision {
-				d.cache.Delete(id)
 			}
 		}
 	}
