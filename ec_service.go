@@ -80,3 +80,8 @@ func (serv Service) CreateRuntime() RuntimeCreator {
 func (serv Service) CreateEntityPT(prototype string) core.EntityPTCreator {
 	return core.CreateEntityPT(serv.Ctx, prototype)
 }
+
+// CreateConcurrentEntity 创建实体
+func (serv Service) CreateConcurrentEntity(prototype string) ConcurrentEntityCreator {
+	return CreateConcurrentEntity(serv.Ctx, prototype)
+}
