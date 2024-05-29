@@ -131,8 +131,10 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) bool {
 		log.Errorf(d.rtCtx, "put %q with lease %d failed, %s", key, d.leaseId, err)
 		return false
 	}
-
 	log.Debugf(d.rtCtx, "put %q with lease %d ok", key, d.leaseId)
+
+	servCtx := service.Current(d.rtCtx)
+	log.Infof(d.rtCtx, "disributed entity %q registered, service:%q, nodeId:%q", entity.GetId(), servCtx.GetName(), servCtx.GetId().String())
 
 	// 通知分布式实体上线
 	_EmitEventDistEntityOnline(d, entity)
@@ -148,11 +150,13 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 
 	_, err := d.client.Delete(d.rtCtx, key)
 	if err != nil {
-		log.Errorf(d.rtCtx, "delete %q failed, %s", key, err)
-		return
+		log.Warnf(d.rtCtx, "delete %q failed, %s", key, err)
+	} else {
+		log.Debugf(d.rtCtx, "delete %q ok", key)
 	}
 
-	log.Debugf(d.rtCtx, "delete %q ok", key)
+	servCtx := service.Current(d.rtCtx)
+	log.Infof(d.rtCtx, "disributed entity %q deregistered, service:%q, nodeId:%q", entity.GetId(), servCtx.GetName(), servCtx.GetId().String())
 
 	// 通知分布式实体下线
 	_EmitEventDistEntityOffline(d, entity)
