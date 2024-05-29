@@ -40,7 +40,7 @@ type _DistEntityRegistry struct {
 
 // InitRP 初始化运行时插件
 func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+	log.Debugf(ctx, "init plugin %q", self.Name)
 
 	d.rtCtx = ctx
 	d.rtCtx.ActivateEvent(&d.distEntityRegistryEventTab, event.EventRecursion_Allow)
@@ -87,7 +87,7 @@ func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
 
 // ShutRP 关闭运行时插件
 func (d *_DistEntityRegistry) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+	log.Debugf(ctx, "shut plugin %q", self.Name)
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
@@ -133,9 +133,6 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) bool {
 	}
 	log.Debugf(d.rtCtx, "put %q with lease %d ok", key, d.leaseId)
 
-	servCtx := service.Current(d.rtCtx)
-	log.Infof(d.rtCtx, "disributed entity %q registered, service:%q, nodeId:%q", entity.GetId(), servCtx.GetName(), servCtx.GetId().String())
-
 	// 通知分布式实体上线
 	_EmitEventDistEntityOnline(d, entity)
 	return true
@@ -154,9 +151,6 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 	} else {
 		log.Debugf(d.rtCtx, "delete %q ok", key)
 	}
-
-	servCtx := service.Current(d.rtCtx)
-	log.Infof(d.rtCtx, "disributed entity %q deregistered, service:%q, nodeId:%q", entity.GetId(), servCtx.GetName(), servCtx.GetId().String())
 
 	// 通知分布式实体下线
 	_EmitEventDistEntityOffline(d, entity)
@@ -188,7 +182,7 @@ func (d *_DistEntityRegistry) keepAliveLease(ctx runtime.Context, ret async.Ret,
 		return true
 	})
 
-	log.Warnf(d.rtCtx, "lease %d not found, try grant a new lease", d.leaseId)
+	log.Debugf(d.rtCtx, "lease %d not found, try grant a new lease", d.leaseId)
 
 	// 重新申请租约
 	if err := d.grantLease(); err != nil {

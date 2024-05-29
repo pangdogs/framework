@@ -35,12 +35,12 @@ type _RPCStack struct {
 }
 
 func (r *_RPCStack) InitRP(ctx runtime.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+	log.Debugf(ctx, "init plugin %q", self.Name)
 	r.rtCtx = ctx
 }
 
 func (r *_RPCStack) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+	log.Debugf(ctx, "shut plugin %q", self.Name)
 }
 
 // CallChain 调用链
