@@ -28,6 +28,12 @@ func Results(ret async.Ret) ([]any, error) {
 		rets[i] = retArr[i].Value.Indirect()
 	}
 
+	if len(rets) > 0 {
+		if err, _ := rets[len(rets)-1].(error); err != nil {
+			return rets, err
+		}
+	}
+
 	return rets, nil
 }
 
@@ -35,6 +41,16 @@ func ResultVoid(ret async.Ret) error {
 	if !ret.OK() {
 		return ret.Error
 	}
+
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) <= 0 {
+		return nil
+	}
+
+	if err, _ := retArr[len(retArr)-1].Value.Indirect().(error); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -55,6 +71,10 @@ func Result1[T1 any](ret async.Ret) (T1, error) {
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
 		return types.ZeroT[T1](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[0].Value.Indirect().(error); err != nil {
+		return r1, err
 	}
 
 	return r1, nil
@@ -82,6 +102,10 @@ func Result2[T1, T2 any](ret async.Ret) (T1, T2, error) {
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[1].Value.Indirect().(error); err != nil {
+		return r1, r2, err
 	}
 
 	return r1, r2, nil
@@ -114,6 +138,10 @@ func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3, error) {
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[2].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, err
 	}
 
 	return r1, r2, r3, nil
@@ -151,6 +179,10 @@ func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4, error) {
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[3].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, err
 	}
 
 	return r1, r2, r3, r4, nil
@@ -193,6 +225,10 @@ func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5, error) 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[4].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, err
 	}
 
 	return r1, r2, r3, r4, r5, nil
@@ -240,6 +276,10 @@ func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6,
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[5].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, nil
@@ -302,6 +342,10 @@ func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5,
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[6].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, nil
@@ -370,6 +414,10 @@ func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4,
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[7].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, nil
@@ -444,6 +492,10 @@ func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3,
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[8].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, nil
@@ -524,6 +576,10 @@ func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[9].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, nil
@@ -610,6 +666,10 @@ func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[10].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, nil
@@ -702,6 +762,10 @@ func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.R
 	if !ok {
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+	}
+
+	if err, _ := retArr[11].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, nil
@@ -816,6 +880,10 @@ func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret as
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
 			types.ZeroT[T13](), ErrMethodResultCountMismatch
+	}
+
+	if err, _ := retArr[12].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, nil
@@ -937,6 +1005,10 @@ func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](r
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
 			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+	}
+
+	if err, _ := retArr[13].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, nil
@@ -1065,6 +1137,10 @@ func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 a
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
 			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+	}
+
+	if err, _ := retArr[14].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, nil
@@ -1200,6 +1276,10 @@ func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, 
 		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
 			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
 			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+	}
+
+	if err, _ := retArr[15].Value.Indirect().(error); err != nil {
+		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, err
 	}
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, nil
