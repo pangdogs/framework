@@ -111,11 +111,6 @@ func (d *_DistEntityRegistry) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, 
 
 // OnEntityMgrRemoveEntity 实体管理器删除实体
 func (d *_DistEntityRegistry) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
-	select {
-	case <-d.rtCtx.Done():
-		return
-	default:
-	}
 	d.deregister(entity)
 }
 
@@ -143,13 +138,18 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 		return
 	}
 
-	key := d.getEntityPath(entity)
+	select {
+	case <-d.rtCtx.Done():
+		break
+	default:
+		key := d.getEntityPath(entity)
 
-	_, err := d.client.Delete(d.rtCtx, key)
-	if err != nil {
-		log.Warnf(d.rtCtx, "delete %q failed, %s", key, err)
-	} else {
-		log.Debugf(d.rtCtx, "delete %q ok", key)
+		_, err := d.client.Delete(d.rtCtx, key)
+		if err != nil {
+			log.Warnf(d.rtCtx, "delete %q failed, %s", key, err)
+		} else {
+			log.Debugf(d.rtCtx, "delete %q ok", key)
+		}
 	}
 
 	// 通知分布式实体下线
