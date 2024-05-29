@@ -13,7 +13,7 @@ import (
 func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.ISubscriber) {
 	defer d.wg.Done()
 
-	log.Infof(d.servCtx, "service %q node %q started", d.servCtx.GetName(), d.servCtx.GetId())
+	log.Infof(d.servCtx, "service %q node %q started, localAddr:%q", d.servCtx.GetName(), d.servCtx.GetId(), d.details.LocalAddr)
 
 	if d.options.RefreshTTL {
 		ticker := time.NewTicker(d.options.TTL / 2)

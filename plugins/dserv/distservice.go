@@ -177,8 +177,6 @@ func (d *_DistService) InitSP(ctx service.Context) {
 		go d.watchingService()
 	}
 
-	log.Infof(d.servCtx, "service %q node %q started, localAddr:%s", d.servCtx.GetName(), d.servCtx.GetId(), d.details.LocalAddr)
-
 	// 运行主线程
 	d.wg.Add(1)
 	go d.mainLoop(serviceNode, subs)
