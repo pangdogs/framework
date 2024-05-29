@@ -2,6 +2,7 @@ package framework
 
 import (
 	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 )
@@ -19,6 +20,11 @@ func (e *EntityBehavior) GetRuntime() Runtime {
 // GetService 获取服务
 func (e *EntityBehavior) GetService() Service {
 	return Service{Ctx: service.Current(e)}
+}
+
+// GetPluginBundle 获取插件包
+func (e *EntityBehavior) GetPluginBundle() plugin.PluginBundle {
+	return runtime.Current(e).GetPluginBundle()
 }
 
 // IsAlive 是否活跃

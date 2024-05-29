@@ -7,134 +7,134 @@ import (
 )
 
 // Trace logs a message at TraceLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Trace(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Trace(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(TraceLevel, v...)
 	}
 }
 
 // Traceln logs a message at TraceLevel, spaces are always added between operands and a newline is appended.
-func Traceln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Traceln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(TraceLevel, v...)
 	}
 }
 
 // Tracef logs a formatted message at TraceLevel.
-func Tracef(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Tracef(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(TraceLevel, format, v...)
 	}
 }
 
 // Debug logs a message at DebugLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Debug(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Debug(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(DebugLevel, v...)
 	}
 }
 
 // Debugln logs a message at DebugLevel, spaces are always added between operands and a newline is appended.
-func Debugln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Debugln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(DebugLevel, v...)
 	}
 }
 
 // Debugf logs a formatted message at DebugLevel.
-func Debugf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Debugf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(DebugLevel, format, v...)
 	}
 }
 
 // Info logs a message at InfoLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Info(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Info(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(InfoLevel, v...)
 	}
 }
 
 // Infoln logs a message at InfoLevel, spaces are always added between operands and a newline is appended.
-func Infoln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Infoln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(InfoLevel, v...)
 	}
 }
 
 // Infof logs a formatted message at InfoLevel.
-func Infof(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Infof(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(InfoLevel, format, v...)
 	}
 }
 
 // Warn logs a message at WarnLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Warn(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Warn(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(WarnLevel, v...)
 	}
 }
 
 // Warnln logs a message at WarnLevel, spaces are always added between operands and a newline is appended.
-func Warnln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Warnln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(WarnLevel, v...)
 	}
 }
 
 // Warnf logs a formatted message at WarnLevel.
-func Warnf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Warnf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(WarnLevel, format, v...)
 	}
 }
 
 // Error logs a message at ErrorLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Error(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Error(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(ErrorLevel, v...)
 	}
 }
 
 // Errorln logs a message at ErrorLevel, spaces are always added between operands and a newline is appended.
-func Errorln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Errorln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(ErrorLevel, v...)
 	}
 }
 
 // Errorf logs a formatted message at ErrorLevel.
-func Errorf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Errorf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(ErrorLevel, format, v...)
 	}
 }
 
 // DPanic logs a message at DPanicLevel, spaces are added between operands when neither is a string and a newline is appended.
-func DPanic(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func DPanic(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(DPanicLevel, v...)
 	}
 }
 
 // DPanicln logs a message at DPanicLevel, spaces are always added between operands and a newline is appended.
-func DPanicln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func DPanicln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(DPanicLevel, v...)
 	}
 }
 
 // DPanicf logs a formatted message at DPanicLevel.
-func DPanicf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func DPanicf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(DPanicLevel, format, v...)
 	}
 }
 
 // Panic logs a message at PanicLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Panic(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Panic(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(PanicLevel, v...)
 	} else {
 		panic(fmt.Sprint(v...))
@@ -142,8 +142,8 @@ func Panic(pluginProvider plugin.PluginProvider, v ...interface{}) {
 }
 
 // Panicln logs a message at PanicLevel, spaces are always added between operands and a newline is appended.
-func Panicln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Panicln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(PanicLevel, v...)
 	} else {
 		panic(fmt.Sprintln(v...))
@@ -151,8 +151,8 @@ func Panicln(pluginProvider plugin.PluginProvider, v ...interface{}) {
 }
 
 // Panicf logs a formatted message at PanicLevel.
-func Panicf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Panicf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(PanicLevel, format, v...)
 	} else {
 		panic(fmt.Sprintf(format, v...))
@@ -160,8 +160,8 @@ func Panicf(pluginProvider plugin.PluginProvider, format string, v ...interface{
 }
 
 // Fatal logs a message at FatalLevel, spaces are added between operands when neither is a string and a newline is appended.
-func Fatal(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Fatal(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Log(FatalLevel, v...)
 	} else {
 		os.Exit(1)
@@ -169,8 +169,8 @@ func Fatal(pluginProvider plugin.PluginProvider, v ...interface{}) {
 }
 
 // Fatalln logs a message at FatalLevel, spaces are always added between operands and a newline is appended.
-func Fatalln(pluginProvider plugin.PluginProvider, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Fatalln(provider plugin.PluginProvider, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logln(FatalLevel, v...)
 	} else {
 		os.Exit(1)
@@ -178,8 +178,8 @@ func Fatalln(pluginProvider plugin.PluginProvider, v ...interface{}) {
 }
 
 // Fatalf logs a formatted message at FatalLevel.
-func Fatalf(pluginProvider plugin.PluginProvider, format string, v ...interface{}) {
-	if logger := Using(pluginProvider); logger != nil {
+func Fatalf(provider plugin.PluginProvider, format string, v ...interface{}) {
+	if logger := Using(provider); logger != nil {
 		logger.Logf(FatalLevel, format, v...)
 	} else {
 		os.Exit(1)
