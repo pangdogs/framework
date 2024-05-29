@@ -158,7 +158,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			panic(fmt.Errorf("parse config log.level failed, %s", err))
 		}
 
-		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%s.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), servCtx.GetId()))
+		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
 
 		var zapLogger *zap.Logger
 		var zapAtomicLevel zap.AtomicLevel
