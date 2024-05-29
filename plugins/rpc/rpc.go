@@ -5,7 +5,7 @@ import (
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/rpc/processor"
+	"git.golaxy.org/framework/plugins/rpc/rpcproc"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
 	"sync/atomic"
@@ -29,7 +29,7 @@ type _RPC struct {
 	options    RPCOptions
 	servCtx    service.Context
 	terminated atomic.Bool
-	deliverers []processor.IDeliverer
+	deliverers []rpcproc.IDeliverer
 }
 
 // InitSP 初始化服务插件
@@ -39,13 +39,13 @@ func (r *_RPC) InitSP(ctx service.Context) {
 	r.servCtx = ctx
 
 	for _, p := range r.options.Processors {
-		if deliverer, ok := p.(processor.IDeliverer); ok {
+		if deliverer, ok := p.(rpcproc.IDeliverer); ok {
 			r.deliverers = append(r.deliverers, deliverer)
 		}
 	}
 
 	for _, p := range r.options.Processors {
-		if init, ok := p.(processor.LifecycleInit); ok {
+		if init, ok := p.(rpcproc.LifecycleInit); ok {
 			init.Init(r.servCtx)
 		}
 	}
@@ -58,7 +58,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 	r.terminated.Store(true)
 
 	for _, p := range r.options.Processors {
-		if shut, ok := p.(processor.LifecycleShut); ok {
+		if shut, ok := p.(rpcproc.LifecycleShut); ok {
 			shut.Shut(r.servCtx)
 		}
 	}
@@ -68,7 +68,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) async.AsyncRet {
 	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
-		ret.Push(async.MakeRet(nil, processor.ErrTerminated))
+		ret.Push(async.MakeRet(nil, rpcproc.ErrTerminated))
 		return ret.CastAsyncRet()
 	}
 
@@ -87,14 +87,14 @@ func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args .
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
-	ret.Push(async.MakeRet(nil, processor.ErrUndeliverable))
+	ret.Push(async.MakeRet(nil, rpcproc.ErrUndeliverable))
 	return ret.CastAsyncRet()
 }
 
 // OneWayRPC 单向RPC调用
 func (r *_RPC) OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error {
 	if r.terminated.Load() {
-		return processor.ErrTerminated
+		return rpcproc.ErrTerminated
 	}
 
 	if callChain == nil {
@@ -111,5 +111,5 @@ func (r *_RPC) OneWayRPC(dst string, callChain rpcstack.CallChain, path string, 
 		return deliverer.Notify(r.servCtx, dst, callChain, path, args)
 	}
 
-	return processor.ErrUndeliverable
+	return rpcproc.ErrUndeliverable
 }

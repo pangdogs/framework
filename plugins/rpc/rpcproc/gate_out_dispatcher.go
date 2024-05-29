@@ -1,4 +1,4 @@
-package processor
+package rpcproc
 
 import (
 	"git.golaxy.org/core/ec"

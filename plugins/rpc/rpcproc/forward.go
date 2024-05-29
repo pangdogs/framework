@@ -1,4 +1,4 @@
-package processor
+package rpcproc
 
 import (
 	"context"
