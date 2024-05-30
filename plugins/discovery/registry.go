@@ -1,5 +1,4 @@
 //go:generate go run k8s.io/code-generator/cmd/deepcopy-gen .
-// +k8s:deepcopy-gen=package
 package discovery
 
 import (
