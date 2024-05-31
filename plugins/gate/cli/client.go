@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	ErrReconnectFailed = errors.New("reconnect failed")
-	ErrInactiveTimeout = errors.New("inactive timeout")
+	ErrReconnectFailed = errors.New("cli: reconnect failed")
+	ErrInactiveTimeout = errors.New("cli: inactive timeout")
 )
 
 // IWatcher 监听器

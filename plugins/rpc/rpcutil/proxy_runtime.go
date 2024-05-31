@@ -10,6 +10,7 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpc/rpcproc"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"github.com/elliotchance/pie/v2"
 	"math/rand"
@@ -53,7 +54,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -61,7 +62,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -90,7 +91,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -98,7 +99,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -127,12 +128,12 @@ func (p RuntimeProxied) GlobalBalanceRPC(plugin, method string, args ...any) asy
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 随机获取服务地址
 	if len(distEntity.Nodes) <= 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
@@ -162,7 +163,7 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -170,7 +171,7 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
@@ -199,7 +200,7 @@ func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ..
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -207,7 +208,7 @@ func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ..
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
@@ -236,12 +237,12 @@ func (p RuntimeProxied) GlobalBalanceOneWayRPC(plugin, method string, args ...an
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 随机获取服务地址
 	if len(distEntity.Nodes) <= 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
@@ -271,7 +272,7 @@ func (p RuntimeProxied) BroadcastOneWayRPC(excludeSelf bool, service, plugin, me
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -279,7 +280,7 @@ func (p RuntimeProxied) BroadcastOneWayRPC(excludeSelf bool, service, plugin, me
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链

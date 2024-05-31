@@ -12,14 +12,10 @@ import (
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/plugins/rpc/rpcproc"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"github.com/elliotchance/pie/v2"
 	"math/rand"
-)
-
-var (
-	ErrDistEntityNotFound     = errors.New("rpc: distributed entity not found")
-	ErrDistEntityNodeNotFound = errors.New("rpc: distributed entity node not found")
 )
 
 func makeErr(err error) async.AsyncRet {
@@ -67,7 +63,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -75,7 +71,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -104,7 +100,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -112,7 +108,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -141,12 +137,12 @@ func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) async.
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return makeErr(ErrDistEntityNotFound)
+		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
 	// 随机获取服务地址
 	if len(distEntity.Nodes) <= 0 {
-		return makeErr(ErrDistEntityNodeNotFound)
+		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
@@ -176,7 +172,7 @@ func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) erro
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -184,7 +180,7 @@ func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) erro
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
@@ -213,7 +209,7 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -221,7 +217,7 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
@@ -250,12 +246,12 @@ func (p EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any) 
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 随机获取服务地址
 	if len(distEntity.Nodes) <= 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
@@ -285,7 +281,7 @@ func (p EntityProxied) BroadcastOneWayRPC(excludeSelf bool, service, comp, metho
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
 	if !ok {
-		return ErrDistEntityNotFound
+		return rpcproc.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -293,7 +289,7 @@ func (p EntityProxied) BroadcastOneWayRPC(excludeSelf bool, service, comp, metho
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return ErrDistEntityNodeNotFound
+		return rpcproc.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
