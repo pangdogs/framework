@@ -103,12 +103,29 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
-	// 查询分布式实体目标服务节点
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
-		return node.Service == service
-	})
-	if nodeIdx < 0 {
+	// 统计节点数量
+	var count int
+	for i := range distEntity.Nodes {
+		if distEntity.Nodes[i].Service == service {
+			count++
+		}
+	}
+	if count <= 0 {
 		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+	}
+
+	// 随机目标节点
+	var dst string
+	offset := rand.Intn(count)
+
+	for i := range distEntity.Nodes {
+		if distEntity.Nodes[i].Service == service {
+			if offset <= 0 {
+				dst = distEntity.Nodes[i].RemoteAddr
+				break
+			}
+			offset--
+		}
 	}
 
 	// 调用链
@@ -125,11 +142,11 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].BalanceAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
-func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) async.AsyncRet {
+func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -140,11 +157,29 @@ func (p EntityProxied) GlobalBalanceRPC(comp, method string, args ...any) async.
 		return makeErr(rpcproc.ErrDistEntityNotFound)
 	}
 
-	// 随机获取服务地址
-	if len(distEntity.Nodes) <= 0 {
-		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+	// 随机目标节点
+	var dst string
+
+	if excludeSelf {
+		if len(distEntity.Nodes) <= 1 {
+			return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+		}
+
+		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
+		idx := rand.Intn(len(distEntity.Nodes))
+
+		if distEntity.Nodes[idx].RemoteAddr == localAddr {
+			idx = (idx + 1) % len(distEntity.Nodes)
+		}
+
+		dst = distEntity.Nodes[idx].RemoteAddr
+
+	} else {
+		if len(distEntity.Nodes) <= 0 {
+			return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+		}
+		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}
-	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -212,12 +247,29 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 		return rpcproc.ErrDistEntityNotFound
 	}
 
-	// 查询分布式实体目标服务节点
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
-		return node.Service == service
-	})
-	if nodeIdx < 0 {
+	// 统计节点数量
+	var count int
+	for i := range distEntity.Nodes {
+		if distEntity.Nodes[i].Service == service {
+			count++
+		}
+	}
+	if count <= 0 {
 		return rpcproc.ErrDistEntityNodeNotFound
+	}
+
+	// 随机目标节点
+	var dst string
+	offset := rand.Intn(count)
+
+	for i := range distEntity.Nodes {
+		if distEntity.Nodes[i].Service == service {
+			if offset <= 0 {
+				dst = distEntity.Nodes[i].RemoteAddr
+				break
+			}
+			offset--
+		}
 	}
 
 	// 调用链
@@ -234,11 +286,11 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BalanceAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
-func (p EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any) error {
+func (p EntityProxied) GlobalBalanceOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -249,11 +301,29 @@ func (p EntityProxied) GlobalBalanceOneWayRPC(comp, method string, args ...any) 
 		return rpcproc.ErrDistEntityNotFound
 	}
 
-	// 随机获取服务地址
-	if len(distEntity.Nodes) <= 0 {
-		return rpcproc.ErrDistEntityNodeNotFound
+	// 随机目标节点
+	var dst string
+
+	if excludeSelf {
+		if len(distEntity.Nodes) <= 1 {
+			return rpcproc.ErrDistEntityNodeNotFound
+		}
+
+		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
+		idx := rand.Intn(len(distEntity.Nodes))
+
+		if distEntity.Nodes[idx].RemoteAddr == localAddr {
+			idx = (idx + 1) % len(distEntity.Nodes)
+		}
+
+		dst = distEntity.Nodes[idx].RemoteAddr
+
+	} else {
+		if len(distEntity.Nodes) <= 0 {
+			return rpcproc.ErrDistEntityNodeNotFound
+		}
+		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}
-	dst := distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain

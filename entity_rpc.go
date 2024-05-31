@@ -17,8 +17,8 @@ func (e *EntityBehavior) BalanceRPC(service, comp, method string, args ...any) a
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
-func (e *EntityBehavior) GlobalBalanceRPC(comp, method string, args ...any) async.AsyncRet {
-	return rpcutil.ProxyEntity(e.GetRuntime().Ctx, e.GetId()).GlobalBalanceRPC(comp, method, args...)
+func (e *EntityBehavior) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.AsyncRet {
+	return rpcutil.ProxyEntity(e.GetRuntime().Ctx, e.GetId()).GlobalBalanceRPC(excludeSelf, comp, method, args...)
 }
 
 // OneWayRPC 向分布式实体目标服务发送单向RPC
@@ -32,8 +32,8 @@ func (e *EntityBehavior) BalanceOneWayRPC(service, comp, method string, args ...
 }
 
 // GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
-func (e *EntityBehavior) GlobalBalanceOneWayRPC(comp, method string, args ...any) error {
-	return rpcutil.ProxyEntity(e.GetRuntime().Ctx, e.GetId()).GlobalBalanceOneWayRPC(comp, method, args...)
+func (e *EntityBehavior) GlobalBalanceOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
+	return rpcutil.ProxyEntity(e.GetRuntime().Ctx, e.GetId()).GlobalBalanceOneWayRPC(excludeSelf, comp, method, args...)
 }
 
 // BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务发送单向RPC

@@ -35,7 +35,7 @@ func (p ServiceProxied) GetService() string {
 	return p.service
 }
 
-// RPC 向分布式服务发送RPC
+// RPC 向分布式服务指定节点发送RPC
 func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
@@ -82,7 +82,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
-// OneWayRPC 向分布式服务发送单向RPC
+// OneWayRPC 向分布式服务指定节点发送单向RPC
 func (p ServiceProxied) OneWayRPC(nodeId uid.Id, plugin, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
