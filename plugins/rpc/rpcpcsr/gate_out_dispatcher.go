@@ -1,4 +1,4 @@
-package rpcproc
+package rpcpcsr
 
 import (
 	"git.golaxy.org/core/ec"

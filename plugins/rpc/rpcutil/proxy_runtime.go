@@ -10,7 +10,7 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
-	"git.golaxy.org/framework/plugins/rpc/rpcproc"
+	"git.golaxy.org/framework/plugins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"github.com/elliotchance/pie/v2"
 	"math/rand"
@@ -54,7 +54,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(rpcproc.ErrDistEntityNotFound)
+		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -62,7 +62,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+		return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -91,7 +91,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(rpcproc.ErrDistEntityNotFound)
+		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 统计节点数量
@@ -102,7 +102,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 		}
 	}
 	if count <= 0 {
-		return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+		return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 	}
 
 	// 随机目标节点
@@ -145,7 +145,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return makeErr(rpcproc.ErrDistEntityNotFound)
+		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 随机目标节点
@@ -153,7 +153,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 
 	if excludeSelf {
 		if len(distEntity.Nodes) <= 1 {
-			return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+			return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 
 		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
@@ -167,7 +167,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 
 	} else {
 		if len(distEntity.Nodes) <= 0 {
-			return makeErr(rpcproc.ErrDistEntityNodeNotFound)
+			return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}
@@ -198,7 +198,7 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return rpcproc.ErrDistEntityNotFound
+		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -206,7 +206,7 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return rpcproc.ErrDistEntityNodeNotFound
+		return rpcpcsr.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链
@@ -235,7 +235,7 @@ func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ..
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return rpcproc.ErrDistEntityNotFound
+		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 统计节点数量
@@ -246,7 +246,7 @@ func (p RuntimeProxied) BalanceOneWayRPC(service, plugin, method string, args ..
 		}
 	}
 	if count <= 0 {
-		return rpcproc.ErrDistEntityNodeNotFound
+		return rpcpcsr.ErrDistEntityNodeNotFound
 	}
 
 	// 随机目标节点
@@ -289,7 +289,7 @@ func (p RuntimeProxied) GlobalBalanceOneWayRPC(excludeSelf bool, plugin, method 
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return rpcproc.ErrDistEntityNotFound
+		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 随机目标节点
@@ -297,7 +297,7 @@ func (p RuntimeProxied) GlobalBalanceOneWayRPC(excludeSelf bool, plugin, method 
 
 	if excludeSelf {
 		if len(distEntity.Nodes) <= 1 {
-			return rpcproc.ErrDistEntityNodeNotFound
+			return rpcpcsr.ErrDistEntityNodeNotFound
 		}
 
 		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
@@ -311,7 +311,7 @@ func (p RuntimeProxied) GlobalBalanceOneWayRPC(excludeSelf bool, plugin, method 
 
 	} else {
 		if len(distEntity.Nodes) <= 0 {
-			return rpcproc.ErrDistEntityNodeNotFound
+			return rpcpcsr.ErrDistEntityNodeNotFound
 		}
 		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}
@@ -342,7 +342,7 @@ func (p RuntimeProxied) BroadcastOneWayRPC(excludeSelf bool, service, plugin, me
 	// 查询分布式实体信息
 	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return rpcproc.ErrDistEntityNotFound
+		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
@@ -350,7 +350,7 @@ func (p RuntimeProxied) BroadcastOneWayRPC(excludeSelf bool, service, plugin, me
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return rpcproc.ErrDistEntityNodeNotFound
+		return rpcpcsr.ErrDistEntityNodeNotFound
 	}
 
 	// 调用链

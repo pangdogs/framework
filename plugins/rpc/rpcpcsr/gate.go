@@ -1,4 +1,4 @@
-package rpcproc
+package rpcpcsr
 
 import (
 	"context"

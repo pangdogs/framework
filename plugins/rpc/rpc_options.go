@@ -2,7 +2,7 @@ package rpc
 
 import (
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/plugins/rpc/rpcproc"
+	"git.golaxy.org/framework/plugins/rpc/rpcpcsr"
 )
 
 type RPCOptions struct {
@@ -15,7 +15,7 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		With.Processors(rpcproc.NewServiceProcessor(nil))(options)
+		With.Processors(rpcpcsr.NewServiceProcessor(nil))(options)
 	}
 }
 

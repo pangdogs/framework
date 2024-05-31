@@ -1,4 +1,4 @@
-package gap
+package gtp
 
 import (
 	"fmt"
