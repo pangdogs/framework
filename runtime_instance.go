@@ -5,6 +5,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/plugins/dentr"
 	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
@@ -16,6 +17,8 @@ type IRuntimeInstantiation interface {
 // IRuntimeInstance 运行时实例接口
 type IRuntimeInstance interface {
 	runtime.Context
+	// GetDistEntityRegistry 获取分布式实体注册支持
+	GetDistEntityRegistry() dentr.IDistEntityRegistry
 	// GetRPCStack 获取RPC调用堆栈支持
 	GetRPCStack() rpcstack.IRPCStack
 	// GetService 获取服务实例
@@ -27,6 +30,11 @@ type IRuntimeInstance interface {
 // RuntimeInstance 运行时实例
 type RuntimeInstance struct {
 	runtime.ContextBehavior
+}
+
+// GetDistEntityRegistry 获取分布式实体注册支持
+func (inst *RuntimeInstance) GetDistEntityRegistry() dentr.IDistEntityRegistry {
+	return dentr.Using(inst)
 }
 
 // GetRPCStack 获取RPC调用堆栈支持
