@@ -7,5 +7,5 @@ import (
 
 // ReadChan 读取channel
 func ReadChan[T any](iec iEC, ch <-chan T) async.AsyncRet {
-	return core.ReadChan(iec.GetRuntime().Ctx, ch)
+	return core.ReadChan(iec.GetRuntime(), ch)
 }

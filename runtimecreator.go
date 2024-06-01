@@ -3,7 +3,9 @@ package framework
 import (
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/reinterpret"
 )
 
 // CreateRuntime 创建运行时
@@ -19,7 +21,6 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 			AutoRecover:          ctx.GetAutoRecover(),
 			ReportError:          ctx.GetReportError(),
 			FPS:                  0,
-			AutoRun:              true,
 			ProcessQueueCapacity: 128,
 		},
 	}
@@ -70,12 +71,6 @@ func (c RuntimeCreator) FPS(fps float32) RuntimeCreator {
 	return c
 }
 
-// AutoRun 自动开始运行
-func (c RuntimeCreator) AutoRun(auto bool) RuntimeCreator {
-	c.settings.AutoRun = auto
-	return c
-}
-
 // ProcessQueueCapacity 任务处理流水线大小
 func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 	c.settings.ProcessQueueCapacity = cap
@@ -83,7 +78,7 @@ func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 }
 
 // Spawn 创建运行时
-func (c RuntimeCreator) Spawn() core.Runtime {
+func (c RuntimeCreator) Spawn() IRuntimeInstance {
 	if c.servCtx == nil {
 		panic("setting servCtx is nil")
 	}
@@ -94,5 +89,5 @@ func (c RuntimeCreator) Spawn() core.Runtime {
 	}
 	generic.init(c.servCtx, generic)
 
-	return generic.generate(c.settings)
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(generic.generate(c.settings)))
 }

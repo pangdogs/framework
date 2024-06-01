@@ -16,7 +16,38 @@ import (
 
 // IServiceInstantiation 服务实例化接口
 type IServiceInstantiation interface {
-	Instantiation() service.Context
+	Instantiation() IServiceInstance
+}
+
+// IServiceInstance 服务实例接口
+type IServiceInstance interface {
+	service.Context
+	// GetConf 获取配置插件
+	GetConf() conf.IConfig
+	// GetRegistry 获取服务发现插件
+	GetRegistry() discovery.IRegistry
+	// GetBroker 获取消息队列中间件插件
+	GetBroker() broker.IBroker
+	// GetDistSync 获取分布式同步插件
+	GetDistSync() dsync.IDistSync
+	// GetDistService 获取分布式服务插件
+	GetDistService() dserv.IDistService
+	// GetDistEntityQuerier 获取分布式实体查询插件
+	GetDistEntityQuerier() dentq.IDistEntityQuerier
+	// GetRPC 获取RPC支持插件
+	GetRPC() rpc.IRPC
+	// GetStartupNo 获取启动序号
+	GetStartupNo() int
+	// GetStartupConf 获取启动参数配置
+	GetStartupConf() *viper.Viper
+	// GetMemKV 获取服务内存KV数据库
+	GetMemKV() *sync.Map
+	// CreateRuntime 创建运行时
+	CreateRuntime() RuntimeCreator
+	// CreateEntityPT 创建实体原型
+	CreateEntityPT(prototype string) core.EntityPTCreator
+	// CreateConcurrentEntity 创建实体
+	CreateConcurrentEntity(prototype string) ConcurrentEntityCreator
 }
 
 // ServiceInstance 服务实例
@@ -34,7 +65,7 @@ func (inst *ServiceInstance) GetRegistry() discovery.IRegistry {
 	return discovery.Using(inst)
 }
 
-// GetBroker 获取broker插件
+// GetBroker 获取消息队列中间件插件
 func (inst *ServiceInstance) GetBroker() broker.IBroker {
 	return broker.Using(inst)
 }

@@ -4,12 +4,24 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"sync"
+	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
 // IRuntimeInstantiation 运行时实例化接口
 type IRuntimeInstantiation interface {
-	Instantiation() runtime.Context
+	Instantiation() IRuntimeInstance
+}
+
+// IRuntimeInstance 运行时实例接口
+type IRuntimeInstance interface {
+	runtime.Context
+	// GetRPCStack 获取RPC调用堆栈支持
+	GetRPCStack() rpcstack.IRPCStack
+	// GetService 获取服务实例
+	GetService() IServiceInstance
+	// CreateEntity 创建实体
+	CreateEntity(prototype string) core.EntityCreator
 }
 
 // RuntimeInstance 运行时实例
@@ -17,13 +29,14 @@ type RuntimeInstance struct {
 	runtime.ContextBehavior
 }
 
-// GetMemKV 获取服务内存KV数据库
-func (inst *RuntimeInstance) GetMemKV() *sync.Map {
-	memKV, _ := service.Current(inst).Value("mem_kv").(*sync.Map)
-	if memKV == nil {
-		panic("service memory not existed")
-	}
-	return memKV
+// GetRPCStack 获取RPC调用堆栈支持
+func (inst *RuntimeInstance) GetRPCStack() rpcstack.IRPCStack {
+	return rpcstack.Using(inst)
+}
+
+// GetService 获取服务
+func (inst *RuntimeInstance) GetService() IServiceInstance {
+	return reinterpret.Cast[IServiceInstance](service.Current(inst))
 }
 
 // CreateEntity 创建实体

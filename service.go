@@ -8,6 +8,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
+	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/broker/nats_broker"
 	"git.golaxy.org/framework/plugins/conf"
@@ -42,8 +43,8 @@ type ServiceGenericT[T any] struct {
 }
 
 // Instantiation 实例化
-func (s *ServiceGenericT[T]) Instantiation() service.Context {
-	return reflect.New(reflect.TypeFor[T]()).Interface().(service.Context)
+func (s *ServiceGenericT[T]) Instantiation() IServiceInstance {
+	return reflect.New(reflect.TypeFor[T]()).Interface().(IServiceInstance)
 }
 
 // ServiceGeneric 服务泛化类型
@@ -78,7 +79,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	face := iface.Face[service.Context]{}
 
 	if cb, ok := s.composite.(IServiceInstantiation); ok {
-		face = iface.MakeFace(cb.Instantiation())
+		face = iface.MakeFaceTReflectC[service.Context, IServiceInstance](cb.Instantiation())
 	}
 
 	servCtx := service.NewContext(
@@ -88,68 +89,72 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
 		service.With.RunningHandler(generic.MakeDelegateAction2(func(ctx service.Context, state service.RunningState) {
+			inst := reinterpret.Cast[IServiceInstance](ctx)
+
 			switch state {
 			case service.RunningState_Birth:
 				if cb, ok := s.composite.(LifecycleServiceBirth); ok {
-					cb.Birth(ctx)
+					cb.Birth(inst)
 				}
-				if cb, ok := ctx.(LifecycleServiceBirth); ok {
-					cb.Birth(ctx)
+				if cb, ok := inst.(LifecycleServiceBirth); ok {
+					cb.Birth(inst)
 				}
 			case service.RunningState_Starting:
 				if cb, ok := s.composite.(LifecycleServiceStarting); ok {
-					cb.Starting(ctx)
+					cb.Starting(inst)
 				}
-				if cb, ok := ctx.(LifecycleServiceStarting); ok {
-					cb.Starting(ctx)
+				if cb, ok := inst.(LifecycleServiceStarting); ok {
+					cb.Starting(inst)
 				}
 			case service.RunningState_Started:
 				if cb, ok := s.composite.(LifecycleServiceStarted); ok {
-					cb.Started(ctx)
+					cb.Started(inst)
 				}
-				if cb, ok := ctx.(LifecycleServiceStarted); ok {
-					cb.Started(ctx)
+				if cb, ok := inst.(LifecycleServiceStarted); ok {
+					cb.Started(inst)
 				}
 			case service.RunningState_Terminating:
 				if cb, ok := s.composite.(LifecycleServiceTerminating); ok {
-					cb.Terminating(ctx)
+					cb.Terminating(inst)
 				}
-				if cb, ok := ctx.(LifecycleServiceTerminating); ok {
-					cb.Terminating(ctx)
+				if cb, ok := inst.(LifecycleServiceTerminating); ok {
+					cb.Terminating(inst)
 				}
 			case service.RunningState_Terminated:
 				if cb, ok := s.composite.(LifecycleServiceTerminated); ok {
-					cb.Terminated(ctx)
+					cb.Terminated(inst)
 				}
-				if cb, ok := ctx.(LifecycleServiceTerminated); ok {
-					cb.Terminated(ctx)
+				if cb, ok := inst.(LifecycleServiceTerminated); ok {
+					cb.Terminated(inst)
 				}
 
-				if v, ok := memKV.Load("zap.logger"); ok {
+				if v, ok := inst.GetMemKV().Load("zap.logger"); ok {
 					v.(*zap.Logger).Sync()
 				}
 
-				if v, ok := memKV.Load("etcd.client"); ok {
+				if v, ok := inst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
 			}
 		})),
 	)
 
+	servInst := reinterpret.Cast[IServiceInstance](servCtx)
+
 	installed := func(name string) bool {
-		_, ok := servCtx.GetPluginBundle().Get(name)
+		_, ok := servInst.GetPluginBundle().Get(name)
 		return ok
 	}
 
 	// 安装日志插件
 	if !installed(log.Name) {
-		if cb, ok := servCtx.(InstallServiceLogger); ok {
-			cb.InstallLogger(servCtx)
+		if cb, ok := servInst.(InstallServiceLogger); ok {
+			cb.InstallLogger(servInst)
 		}
 	}
 	if !installed(log.Name) {
 		if cb, ok := s.composite.(InstallServiceLogger); ok {
-			cb.InstallLogger(servCtx)
+			cb.InstallLogger(servInst)
 		}
 	}
 	if !installed(log.Name) {
@@ -186,7 +191,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		memKV.Store("zap.logger", zapLogger)
 		memKV.Store("zap.atomic_level", zapAtomicLevel)
 
-		zap_log.Install(servCtx,
+		zap_log.Install(servInst,
 			zap_log.With.ZapLogger(zapLogger),
 			zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
 		)
@@ -194,17 +199,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装配置插件
 	if !installed(conf.Name) {
-		if cb, ok := servCtx.(InstallServiceConfig); ok {
-			cb.InstallConfig(servCtx)
+		if cb, ok := servInst.(InstallServiceConfig); ok {
+			cb.InstallConfig(servInst)
 		}
 	}
 	if !installed(conf.Name) {
 		if cb, ok := s.composite.(InstallServiceConfig); ok {
-			cb.InstallConfig(servCtx)
+			cb.InstallConfig(servInst)
 		}
 	}
 	if !installed(conf.Name) {
-		conf.Install(servCtx,
+		conf.Install(servInst,
 			conf.With.AutoEnv(true),
 			conf.With.AutoPFlags(true),
 			conf.With.Format(startupConf.GetString("conf.format")),
@@ -218,19 +223,19 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		)
 	}
 
-	// 安装broker插件
+	// 安装消息队列中间件插件
 	if !installed(broker.Name) {
-		if cb, ok := servCtx.(InstallServiceBroker); ok {
-			cb.InstallBroker(servCtx)
+		if cb, ok := servInst.(InstallServiceBroker); ok {
+			cb.InstallBroker(servInst)
 		}
 	}
 	if !installed(broker.Name) {
 		if cb, ok := s.composite.(InstallServiceBroker); ok {
-			cb.InstallBroker(servCtx)
+			cb.InstallBroker(servInst)
 		}
 	}
 	if !installed(broker.Name) {
-		nats_broker.Install(servCtx,
+		nats_broker.Install(servInst,
 			nats_broker.With.CustomAddresses(startupConf.GetString("nats.address")),
 			nats_broker.With.CustomAuth(
 				startupConf.GetString("nats.username"),
@@ -241,17 +246,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装服务发现插件
 	if !installed(discovery.Name) {
-		if cb, ok := servCtx.(InstallServiceRegistry); ok {
-			cb.InstallRegistry(servCtx)
+		if cb, ok := servInst.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(servInst)
 		}
 	}
 	if !installed(discovery.Name) {
 		if cb, ok := s.composite.(InstallServiceRegistry); ok {
-			cb.InstallRegistry(servCtx)
+			cb.InstallRegistry(servInst)
 		}
 	}
 	if !installed(discovery.Name) {
-		etcd_discovery.Install(servCtx,
+		etcd_discovery.Install(servInst,
 			etcd_discovery.With.TTL(startupConf.GetDuration("service.ttl"), true),
 			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_discovery.With.CustomAuth(
@@ -263,17 +268,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式同步插件
 	if !installed(dsync.Name) {
-		if cb, ok := servCtx.(InstallServiceDistSync); ok {
-			cb.InstallDistSync(servCtx)
+		if cb, ok := servInst.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(servInst)
 		}
 	}
 	if !installed(dsync.Name) {
 		if cb, ok := s.composite.(InstallServiceDistSync); ok {
-			cb.InstallDistSync(servCtx)
+			cb.InstallDistSync(servInst)
 		}
 	}
 	if !installed(dsync.Name) {
-		etcd_dsync.Install(servCtx,
+		etcd_dsync.Install(servInst,
 			etcd_dsync.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_dsync.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
@@ -284,17 +289,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式服务插件
 	if !installed(dserv.Name) {
-		if cb, ok := servCtx.(InstallServiceDistService); ok {
-			cb.InstallDistService(servCtx)
+		if cb, ok := servInst.(InstallServiceDistService); ok {
+			cb.InstallDistService(servInst)
 		}
 	}
 	if !installed(dserv.Name) {
 		if cb, ok := s.composite.(InstallServiceDistService); ok {
-			cb.InstallDistService(servCtx)
+			cb.InstallDistService(servInst)
 		}
 	}
 	if !installed(dserv.Name) {
-		dserv.Install(servCtx,
+		dserv.Install(servInst,
 			dserv.With.Version(startupConf.GetString("service.version")),
 			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
 			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
@@ -303,17 +308,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式实体查询插件
 	if !installed(dentq.Name) {
-		if cb, ok := servCtx.(InstallServiceDistEntityQuerier); ok {
-			cb.InstallDistEntityQuerier(servCtx)
+		if cb, ok := servInst.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(servInst)
 		}
 	}
 	if !installed(dentq.Name) {
 		if cb, ok := s.composite.(InstallServiceDistEntityQuerier); ok {
-			cb.InstallDistEntityQuerier(servCtx)
+			cb.InstallDistEntityQuerier(servInst)
 		}
 	}
 	if !installed(dentq.Name) {
-		dentq.Install(servCtx,
+		dentq.Install(servInst,
 			dentq.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			dentq.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
@@ -324,17 +329,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装RPC支持插件
 	if !installed(rpc.Name) {
-		if cb, ok := servCtx.(InstallServiceRPC); ok {
-			cb.InstallRPC(servCtx)
+		if cb, ok := servInst.(InstallServiceRPC); ok {
+			cb.InstallRPC(servInst)
 		}
 	}
 	if !installed(rpc.Name) {
 		if cb, ok := s.composite.(InstallServiceRPC); ok {
-			cb.InstallRPC(servCtx)
+			cb.InstallRPC(servInst)
 		}
 	}
 	if !installed(rpc.Name) {
-		rpc.Install(servCtx)
+		rpc.Install(servInst)
 	}
 
 	// etcd连接初始化函数
@@ -352,27 +357,27 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 组装完成回调回调
 	if cb, ok := s.composite.(LifecycleServiceBuilt); ok {
-		cb.Built(servCtx)
+		cb.Built(servInst)
 	}
-	if cb, ok := face.Iface.(LifecycleServiceBuilt); ok {
-		cb.Built(servCtx)
+	if cb, ok := servInst.(LifecycleServiceBuilt); ok {
+		cb.Built(servInst)
 	}
 
 	// 自动恢复时，打印panic信息
-	if servCtx.GetAutoRecover() && servCtx.GetReportError() != nil {
+	if servInst.GetAutoRecover() && servInst.GetReportError() != nil {
 		go func() {
 			for {
 				select {
-				case err := <-servCtx.GetReportError():
-					log.Errorf(servCtx, "recover:\n%s", err)
-				case <-servCtx.Done():
+				case err := <-servInst.GetReportError():
+					log.Errorf(servInst, "recover:\n%s", err)
+				case <-servInst.Done():
 					return
 				}
 			}
 		}()
 	}
 
-	return core.NewService(servCtx)
+	return core.NewService(servInst)
 }
 
 // GetName 获取服务名称

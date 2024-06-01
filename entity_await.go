@@ -9,6 +9,6 @@ import (
 func (e *EntityBehavior) Await(asyncRet ...async.AsyncRet) AwaitDirector {
 	return AwaitDirector{
 		iec:      e,
-		director: core.Await(e.GetRuntime().Ctx, asyncRet...),
+		director: core.Await(e.GetRuntime(), asyncRet...),
 	}
 }

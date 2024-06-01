@@ -1,17 +1,13 @@
 package framework
 
-import (
-	"git.golaxy.org/core/runtime"
-)
-
 type InstallRuntimeLogger interface {
-	InstallLogger(ctx runtime.Context)
+	InstallLogger(inst IRuntimeInstance)
 }
 
 type InstallRuntimeRPCStack interface {
-	InstallRPCStack(ctx runtime.Context)
+	InstallRPCStack(inst IRuntimeInstance)
 }
 
-type InstallRuntimeDistEntities interface {
-	InstallDistEntities(ctx runtime.Context)
+type InstallRuntimeDistEntityRegistry interface {
+	InstallDistEntityRegistry(inst IRuntimeInstance)
 }

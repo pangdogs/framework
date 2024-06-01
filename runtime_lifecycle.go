@@ -1,59 +1,57 @@
 package framework
 
-import "git.golaxy.org/core/runtime"
-
 type LifecycleRuntimeBuilt interface {
-	Built(ctx runtime.Context)
+	Built(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeBirth interface {
-	Birth(ctx runtime.Context)
+	Birth(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeStarting interface {
-	Starting(ctx runtime.Context)
+	Starting(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeStarted interface {
-	Started(ctx runtime.Context)
+	Started(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeFrameLoopBegin interface {
-	FrameLoopBegin(ctx runtime.Context)
+	FrameLoopBegin(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeFrameUpdateBegin interface {
-	FrameUpdateBegin(ctx runtime.Context)
+	FrameUpdateBegin(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeFrameUpdateEnd interface {
-	FrameUpdateEnd(ctx runtime.Context)
+	FrameUpdateEnd(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeFrameLoopEnd interface {
-	FrameLoopEnd(ctx runtime.Context)
+	FrameLoopEnd(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeRunCallBegin interface {
-	RunCallBegin(ctx runtime.Context)
+	RunCallBegin(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeRunCallEnd interface {
-	RunCallEnd(ctx runtime.Context)
+	RunCallEnd(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeRunGCBegin interface {
-	RunGCBegin(ctx runtime.Context)
+	RunGCBegin(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeRunGCEnd interface {
-	RunGCEnd(ctx runtime.Context)
+	RunGCEnd(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeTerminating interface {
-	Terminating(ctx runtime.Context)
+	Terminating(inst IRuntimeInstance)
 }
 
 type LifecycleRuntimeTerminated interface {
-	Terminated(ctx runtime.Context)
+	Terminated(inst IRuntimeInstance)
 }

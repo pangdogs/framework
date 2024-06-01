@@ -1,27 +1,25 @@
 package framework
 
-import "git.golaxy.org/core/service"
-
 type LifecycleServiceBuilt interface {
-	Built(ctx service.Context)
+	Built(inst IServiceInstance)
 }
 
 type LifecycleServiceBirth interface {
-	Birth(ctx service.Context)
+	Birth(inst IServiceInstance)
 }
 
 type LifecycleServiceStarting interface {
-	Starting(ctx service.Context)
+	Starting(inst IServiceInstance)
 }
 
 type LifecycleServiceStarted interface {
-	Started(ctx service.Context)
+	Started(inst IServiceInstance)
 }
 
 type LifecycleServiceTerminating interface {
-	Terminating(ctx service.Context)
+	Terminating(inst IServiceInstance)
 }
 
 type LifecycleServiceTerminated interface {
-	Terminated(ctx service.Context)
+	Terminated(inst IServiceInstance)
 }

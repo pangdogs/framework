@@ -5,6 +5,7 @@ import (
 	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/reinterpret"
 )
 
 // ComponentBehavior 组件行为，在开发新组件时，匿名嵌入至组件结构体中
@@ -13,13 +14,13 @@ type ComponentBehavior struct {
 }
 
 // GetRuntime 获取运行时
-func (c *ComponentBehavior) GetRuntime() Runtime {
-	return Runtime{Ctx: runtime.Current(c)}
+func (c *ComponentBehavior) GetRuntime() IRuntimeInstance {
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c))
 }
 
 // GetService 获取服务
-func (c *ComponentBehavior) GetService() Service {
-	return Service{Ctx: service.Current(c)}
+func (c *ComponentBehavior) GetService() IServiceInstance {
+	return reinterpret.Cast[IServiceInstance](service.Current(c))
 }
 
 // GetPluginBundle 获取插件包

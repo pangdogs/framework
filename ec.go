@@ -1,7 +1,7 @@
 package framework
 
 type iEC interface {
-	GetRuntime() Runtime
-	GetService() Service
+	GetRuntime() IRuntimeInstance
+	GetService() IServiceInstance
 	IsAlive() bool
 }

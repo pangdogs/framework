@@ -28,14 +28,14 @@ func CreateConcurrentEntity(ctx service.Context, prototype string) ConcurrentEnt
 type ConcurrentEntityCreator struct {
 	ctx       service.Context
 	prototype string
-	rt        core.Runtime
+	rt        IRuntimeInstance
 	rtCreator RuntimeCreator
 	parentId  uid.Id
 	settings  []option.Setting[ec.EntityOptions]
 }
 
 // Runtime 设置运行时（优先使用）
-func (c ConcurrentEntityCreator) Runtime(rt core.Runtime) ConcurrentEntityCreator {
+func (c ConcurrentEntityCreator) Runtime(rt IRuntimeInstance) ConcurrentEntityCreator {
 	c.rt = rt
 	return c
 }
@@ -54,7 +54,7 @@ func (c ConcurrentEntityCreator) CompositeFace(face iface.Face[ec.Entity]) Concu
 
 // Composite 设置扩展者，在扩展实体自身能力时使用
 func (c ConcurrentEntityCreator) Composite(composite ec.Entity) ConcurrentEntityCreator {
-	c.settings = append(c.settings, ec.With.CompositeFace(iface.MakeFace(composite)))
+	c.settings = append(c.settings, ec.With.CompositeFace(iface.MakeFaceT(composite)))
 	return c
 }
 
@@ -159,7 +159,15 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 
 	ch := async.MakeAsyncRetT[ec.ConcurrentEntity]()
 	go func() {
-		ch <- async.CastRetT[ec.ConcurrentEntity](asyncRet.Wait(c.ctx))
+		ret := asyncRet.Wait(c.ctx)
+		if ret.OK() {
+			ch <- async.MakeRetT[ec.ConcurrentEntity](entity, nil)
+		} else {
+			if c.rt == nil {
+				rt.Terminate()
+			}
+			ch <- async.MakeRetT[ec.ConcurrentEntity](nil, ret.Error)
+		}
 		close(ch)
 	}()
 	return ch
