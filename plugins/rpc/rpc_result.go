@@ -3,7 +3,6 @@ package rpc
 import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap/variant"
 )
 
@@ -12,13 +11,13 @@ var (
 	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
 )
 
-func Results(ret async.Ret) ([]any, error) {
+func Results(ret async.Ret) []any {
 	if !ret.OK() {
-		return nil, ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return nil, nil
+		return nil
 	}
 
 	retArr := ret.Value.(variant.Array)
@@ -28,1259 +27,963 @@ func Results(ret async.Ret) ([]any, error) {
 		rets[i] = retArr[i].Value.Indirect()
 	}
 
-	if len(rets) > 0 {
-		if err, _ := rets[len(rets)-1].(error); err != nil {
-			return rets, err
-		}
-	}
-
-	return rets, nil
+	return rets
 }
 
-func ResultVoid(ret async.Ret) error {
+func ResultVoid(ret async.Ret) {
 	if !ret.OK() {
-		return ret.Error
+		panic(ret.Error)
 	}
-
-	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) <= 0 {
-		return nil
-	}
-
-	if err, _ := retArr[len(retArr)-1].Value.Indirect().(error); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func Result1[T1 any](ret async.Ret) (T1, error) {
+func Result1[T1 any](ret async.Ret) T1 {
 	if !ret.OK() {
-		return types.ZeroT[T1](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 1 {
-		return types.ZeroT[T1](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[0].Value.Indirect().(error); err != nil {
-		return r1, err
-	}
-
-	return r1, nil
+	return r1
 }
 
-func Result2[T1, T2 any](ret async.Ret) (T1, T2, error) {
+func Result2[T1, T2 any](ret async.Ret) (T1, T2) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 2 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[1].Value.Indirect().(error); err != nil {
-		return r1, r2, err
-	}
-
-	return r1, r2, nil
+	return r1, r2
 }
 
-func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3, error) {
+func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 3 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[2].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, err
-	}
-
-	return r1, r2, r3, nil
+	return r1, r2, r3
 }
 
-func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4, error) {
+func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 4 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[3].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, err
-	}
-
-	return r1, r2, r3, r4, nil
+	return r1, r2, r3, r4
 }
 
-func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5, error) {
+func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 5 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[4].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, err
-	}
-
-	return r1, r2, r3, r4, r5, nil
+	return r1, r2, r3, r4, r5
 }
 
-func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, error) {
+func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 6 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[5].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, nil
+	return r1, r2, r3, r4, r5, r6
 }
 
-func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, error) {
+func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 7 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[6].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, nil
+	return r1, r2, r3, r4, r5, r6, r7
 }
 
-func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, error) {
+func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 8 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[7].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8
 }
 
-func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, error) {
+func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 9 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[8].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9
 }
 
-func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, error) {
+func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 10 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[9].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10
 }
 
-func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, error) {
+func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 11 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[10].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11
 }
 
-func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, error) {
+func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 12 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r12, ok := retArr[11].Value.Indirect().(T12)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](), ErrMethodResultTypeMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[11].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12
 }
 
-func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, error) {
+func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 13 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r12, ok := retArr[11].Value.Indirect().(T12)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r13, ok := retArr[12].Value.Indirect().(T13)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[12].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13
 }
 
-func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, error) {
+func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 14 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r12, ok := retArr[11].Value.Indirect().(T12)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r13, ok := retArr[12].Value.Indirect().(T13)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r14, ok := retArr[13].Value.Indirect().(T14)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[13].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14
 }
 
-func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, error) {
+func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 15 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r12, ok := retArr[11].Value.Indirect().(T12)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r13, ok := retArr[12].Value.Indirect().(T13)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r14, ok := retArr[13].Value.Indirect().(T14)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r15, ok := retArr[14].Value.Indirect().(T15)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[14].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15
 }
 
-func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, error) {
+func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
 	if !ret.OK() {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ret.Error
+		panic(ret.Error)
 	}
 
 	if ret.Value == nil {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	retArr := ret.Value.(variant.Array)
 	if len(retArr) < 16 {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultCountMismatch)
 	}
 
 	r1, ok := retArr[0].Value.Indirect().(T1)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r2, ok := retArr[1].Value.Indirect().(T2)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r3, ok := retArr[2].Value.Indirect().(T3)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r4, ok := retArr[3].Value.Indirect().(T4)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r5, ok := retArr[4].Value.Indirect().(T5)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r6, ok := retArr[5].Value.Indirect().(T6)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r7, ok := retArr[6].Value.Indirect().(T7)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r8, ok := retArr[7].Value.Indirect().(T8)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r9, ok := retArr[8].Value.Indirect().(T9)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r10, ok := retArr[9].Value.Indirect().(T10)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r11, ok := retArr[10].Value.Indirect().(T11)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r12, ok := retArr[11].Value.Indirect().(T12)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r13, ok := retArr[12].Value.Indirect().(T13)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r14, ok := retArr[13].Value.Indirect().(T14)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r15, ok := retArr[14].Value.Indirect().(T15)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
 	r16, ok := retArr[15].Value.Indirect().(T16)
 	if !ok {
-		return types.ZeroT[T1](), types.ZeroT[T2](), types.ZeroT[T3](), types.ZeroT[T4](), types.ZeroT[T5](), types.ZeroT[T6](),
-			types.ZeroT[T7](), types.ZeroT[T8](), types.ZeroT[T9](), types.ZeroT[T10](), types.ZeroT[T11](), types.ZeroT[T12](),
-			types.ZeroT[T13](), types.ZeroT[T14](), types.ZeroT[T15](), types.ZeroT[T16](), ErrMethodResultCountMismatch
+		panic(ErrMethodResultTypeMismatch)
 	}
 
-	if err, _ := retArr[15].Value.Indirect().(error); err != nil {
-		return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, err
-	}
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, nil
+	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16
 }
