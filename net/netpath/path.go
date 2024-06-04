@@ -16,6 +16,14 @@ func Split(sep, path string) (dir, file string) {
 	return path[:idx], path[idx+len(sep):]
 }
 
+func Root(sep, path string) string {
+	idx := strings.Index(path, sep)
+	if idx < 0 {
+		return path
+	}
+	return path[:idx]
+}
+
 func Base(sep, path string) string {
 	idx := strings.LastIndex(path, sep)
 	if idx < 0 {
