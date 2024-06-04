@@ -36,11 +36,17 @@ func ResultVoid(ret async.Ret) {
 	}
 }
 
+func canBeNil(i any) bool {
+	return i == nil
+}
+
 func parseRV[T any](retArr variant.Array, idx int) T {
 	t := retArr[idx].Value.Indirect()
 	r, ok := t.(T)
-	if !ok && t != nil {
-		panic(ErrMethodResultTypeMismatch)
+	if !ok {
+		if t != nil || !canBeNil(r) {
+			panic(ErrMethodResultTypeMismatch)
+		}
 	}
 	return r
 }
