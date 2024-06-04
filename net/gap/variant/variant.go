@@ -151,6 +151,18 @@ retry:
 		return MakeVariant(v)
 	case *Array:
 		return MakeVariant(v)
+	case []any:
+		arr, err := MakeArray(v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(arr)
+	case *[]any:
+		arr, err := MakeArray(*v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(arr)
 	case Map:
 		return MakeVariant(v)
 	case *Map:
