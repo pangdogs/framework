@@ -13,10 +13,10 @@ import (
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(ctx runtime.Context, id uid.Id) GroupProxied {
+func ProxyGroup(ctx runtime.CurrentContextProvider, id uid.Id) GroupProxied {
 	return GroupProxied{
 		servCtx: service.Current(ctx),
-		rtCtx:   ctx,
+		rtCtx:   runtime.Current(ctx),
 		id:      id,
 	}
 }

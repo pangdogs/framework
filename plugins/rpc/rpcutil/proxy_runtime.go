@@ -17,10 +17,10 @@ import (
 )
 
 // ProxyRuntime 代理运行时
-func ProxyRuntime(ctx runtime.Context, entityId uid.Id) RuntimeProxied {
+func ProxyRuntime(ctx runtime.CurrentContextProvider, entityId uid.Id) RuntimeProxied {
 	return RuntimeProxied{
 		servCtx:  service.Current(ctx),
-		rtCtx:    ctx,
+		rtCtx:    runtime.Current(ctx),
 		entityId: entityId,
 	}
 }

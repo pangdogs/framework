@@ -2,7 +2,9 @@ package framework
 
 import (
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dentq"
@@ -17,6 +19,11 @@ import (
 // IServiceInstantiation 服务实例化接口
 type IServiceInstantiation interface {
 	Instantiation() IServiceInstance
+}
+
+// GetServiceInstance 获取服务实例
+func GetServiceInstance(provider runtime.ConcurrentContextProvider) IServiceInstance {
+	return reinterpret.Cast[IServiceInstance](service.Current(provider))
 }
 
 // IServiceInstance 服务实例接口

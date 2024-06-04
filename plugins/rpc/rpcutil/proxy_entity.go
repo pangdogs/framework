@@ -26,10 +26,10 @@ func makeErr(err error) async.AsyncRet {
 }
 
 // ProxyEntity 代理实体
-func ProxyEntity(ctx runtime.Context, id uid.Id) EntityProxied {
+func ProxyEntity(ctx runtime.CurrentContextProvider, id uid.Id) EntityProxied {
 	return EntityProxied{
 		servCtx: service.Current(ctx),
-		rtCtx:   ctx,
+		rtCtx:   runtime.Current(ctx),
 		id:      id,
 	}
 }

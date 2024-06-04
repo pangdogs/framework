@@ -14,6 +14,11 @@ type IRuntimeInstantiation interface {
 	Instantiation() IRuntimeInstance
 }
 
+// GetRuntimeInstance 获取运行时实例
+func GetRuntimeInstance(provider runtime.CurrentContextProvider) IRuntimeInstance {
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(provider))
+}
+
 // IRuntimeInstance 运行时实例接口
 type IRuntimeInstance interface {
 	runtime.Context
