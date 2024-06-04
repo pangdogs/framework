@@ -85,7 +85,7 @@ func (c RuntimeCreator) Spawn() IRuntimeInstance {
 
 	generic := c.generic
 	if generic == nil {
-		generic = &RuntimeGeneric{}
+		generic = &RuntimeGenericT[RuntimeInstance]{}
 	}
 	generic.init(c.servCtx, generic)
 
