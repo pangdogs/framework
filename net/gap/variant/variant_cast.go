@@ -135,18 +135,16 @@ retry:
 			return Variant{}, err
 		}
 		return MakeVariant(m)
-	case Variant:
-		return v, nil
-	case *Variant:
-		return *v, nil
 	case Error:
 		return MakeVariant(&v)
 	case *Error:
 		return MakeVariant(v)
 	case error:
 		return MakeVariant(MakeError(v))
-	case ValueReader:
+	case CallChain:
 		return MakeVariant(v)
+	case *CallChain:
+		return MakeVariant(*v)
 	case reflect.Value:
 		if !v.CanInterface() {
 			return Variant{}, ErrNotVariant
@@ -159,6 +157,12 @@ retry:
 		}
 		a = v.Interface()
 		goto retry
+	case Variant:
+		return v, nil
+	case *Variant:
+		return *v, nil
+	case ValueReader:
+		return MakeVariant(v)
 	default:
 		if CustomCastVariant != nil {
 			return CustomCastVariant(a)
