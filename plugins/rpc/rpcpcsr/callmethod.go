@@ -15,8 +15,6 @@ import (
 	"slices"
 )
 
-var callChainRT = reflect.TypeFor[rpcstack.CallChain]()
-
 func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
@@ -134,6 +132,10 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 		return async.MakeRet(methodRV.Call(argsRV), nil)
 	}, callChain, component, method, args), nil
 }
+
+var (
+	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
+)
 
 func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()

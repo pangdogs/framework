@@ -125,3 +125,8 @@ func (Map) TypeId() TypeId {
 func (v Map) Indirect() any {
 	return v
 }
+
+// CastSliceMap 转换为SliceMap
+func (v Map) CastSliceMap() generic.SliceMap[Variant, Variant] {
+	return (generic.SliceMap[Variant, Variant])(v)
+}

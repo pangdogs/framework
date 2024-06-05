@@ -6,9 +6,6 @@ import (
 	"reflect"
 )
 
-// CustomCastVariant 自定义转换可变类型
-var CustomCastVariant func(a any) (Variant, error)
-
 // CastVariant 转换可变类型
 func CastVariant(a any) (Variant, error) {
 retry:
@@ -147,13 +144,13 @@ retry:
 		return MakeVariant(*v)
 	case reflect.Value:
 		if !v.CanInterface() {
-			return Variant{}, ErrNotVariant
+			return Variant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
 	case *reflect.Value:
 		if !v.CanInterface() {
-			return Variant{}, ErrNotVariant
+			return Variant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
@@ -164,9 +161,149 @@ retry:
 	case ValueReader:
 		return MakeVariant(v)
 	default:
-		if CustomCastVariant != nil {
-			return CustomCastVariant(a)
+		return Variant{}, ErrInvalidCast
+	}
+}
+
+var (
+	sliceAnyRT          = reflect.TypeFor[[]any]()
+	sliceRVRT           = reflect.TypeFor[[]reflect.Value]()
+	mapStringAnyRT      = reflect.TypeFor[map[string]any]()
+	sliceMapStringAnyRT = reflect.TypeFor[generic.SliceMap[string, any]]()
+	rvRT                = reflect.TypeFor[reflect.Value]()
+	variantRT           = reflect.TypeFor[Variant]()
+)
+
+// CastReflected 转换反射类型
+func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
+	if v.Reflected.IsValid() {
+		return reflect.Value{}, ErrInvalidCast
+	}
+
+	switch rt {
+	case sliceAnyRT:
+		if v.TypeId != TypeId_Array {
+			return reflect.Value{}, ErrInvalidCast
 		}
-		return Variant{}, ErrNotVariant
+		arr := *v.Value.(*Array)
+
+		rv := make([]any, 0, len(arr))
+		for _, it := range arr {
+			rv = append(rv, it.Value.Indirect())
+		}
+		return reflect.ValueOf(rv), nil
+
+	case reflect.PointerTo(rt):
+		if v.TypeId != TypeId_Array {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		arr := *v.Value.(*Array)
+
+		rv := make([]any, 0, len(arr))
+		for _, it := range arr {
+			rv = append(rv, it.Value.Indirect())
+		}
+		return reflect.ValueOf(&rv), nil
+
+	case sliceRVRT:
+		if v.TypeId != TypeId_Array {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		arr := *v.Value.(*Array)
+
+		rv := make([]reflect.Value, 0, len(arr))
+		for _, it := range arr {
+			rv = append(rv, it.Reflected.Elem())
+		}
+		return reflect.ValueOf(rv), nil
+
+	case reflect.PointerTo(sliceRVRT):
+		if v.TypeId != TypeId_Array {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		arr := *v.Value.(*Array)
+
+		rv := make([]reflect.Value, 0, len(arr))
+		for _, it := range arr {
+			rv = append(rv, it.Reflected.Elem())
+		}
+		return reflect.ValueOf(&rv), nil
+
+	case mapStringAnyRT:
+		if v.TypeId != TypeId_Map {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		m := v.Value.(*Map).CastSliceMap()
+
+		rv := make(map[string]any, len(m))
+		for _, kv := range m {
+			if kv.K.TypeId != TypeId_String {
+				return reflect.Value{}, ErrInvalidCast
+			}
+			rv[kv.K.Value.Indirect().(string)] = kv.V.Value.Indirect()
+		}
+		return reflect.ValueOf(rv), nil
+
+	case reflect.PointerTo(mapStringAnyRT):
+		if v.TypeId != TypeId_Map {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		m := v.Value.(*Map).CastSliceMap()
+
+		rv := make(map[string]any, len(m))
+		for _, kv := range m {
+			if kv.K.TypeId != TypeId_String {
+				return reflect.Value{}, ErrInvalidCast
+			}
+			rv[kv.K.Value.Indirect().(string)] = kv.V.Value.Indirect()
+		}
+		return reflect.ValueOf(&rv), nil
+
+	case sliceMapStringAnyRT:
+		if v.TypeId != TypeId_Map {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		m := v.Value.(*Map).CastSliceMap()
+
+		rv := make(generic.SliceMap[string, any], 0, len(m))
+		for _, kv := range m {
+			if kv.K.TypeId != TypeId_String {
+				return reflect.Value{}, ErrInvalidCast
+			}
+			rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
+		}
+		return reflect.ValueOf(rv), nil
+
+	case reflect.PointerTo(sliceMapStringAnyRT):
+		if v.TypeId != TypeId_Map {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		m := v.Value.(*Map).CastSliceMap()
+
+		rv := make(generic.SliceMap[string, any], 0, len(m))
+		for _, kv := range m {
+			if kv.K.TypeId != TypeId_String {
+				return reflect.Value{}, ErrInvalidCast
+			}
+			rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
+		}
+		return reflect.ValueOf(&rv), nil
+
+	case rvRT:
+		return v.Reflected.Elem(), nil
+
+	case reflect.PointerTo(rvRT):
+		rv := v.Reflected.Elem()
+		return reflect.ValueOf(&rv), nil
+
+	case variantRT:
+		return reflect.ValueOf(v), nil
+
+	case reflect.PointerTo(variantRT):
+		rv := reflect.ValueOf(v)
+		return reflect.ValueOf(&rv), nil
+
+	default:
+		return reflect.Value{}, ErrInvalidCast
 	}
 }

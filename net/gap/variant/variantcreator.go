@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrNotVariant  = errors.New("gap: not variant")          // 非可变类型
+	ErrInvalidCast = errors.New("gap: invalid cast")         // 类型转换错误
 	ErrNotDeclared = errors.New("gap: variant not declared") // 类型未注册
 )
 
