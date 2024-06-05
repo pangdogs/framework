@@ -172,7 +172,7 @@ retry:
 	case *Variant:
 		return *v, nil
 	case Error:
-		return MakeVariant(v)
+		return MakeVariant(&v)
 	case *Error:
 		return MakeVariant(v)
 	case error:

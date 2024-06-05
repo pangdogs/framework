@@ -69,7 +69,7 @@ func (Error) TypeId() TypeId {
 }
 
 // Indirect 原始值
-func (v Error) Indirect() any {
+func (v *Error) Indirect() any {
 	return v
 }
 
