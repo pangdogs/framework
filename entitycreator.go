@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/iface"
+	"git.golaxy.org/core/utils/meta"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
 )
@@ -77,7 +78,7 @@ func (c ConcurrentEntityCreator) AwakeOnFirstAccess(b bool) ConcurrentEntityCrea
 }
 
 // Meta 设置Meta信息
-func (c ConcurrentEntityCreator) Meta(m ec.Meta) ConcurrentEntityCreator {
+func (c ConcurrentEntityCreator) Meta(m meta.Meta) ConcurrentEntityCreator {
 	c.settings = append(c.settings, ec.With.Meta(m))
 	return c
 }
