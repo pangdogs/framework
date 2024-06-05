@@ -176,7 +176,7 @@ var (
 
 // CastReflected 转换反射类型
 func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
-	if v.Reflected.IsValid() {
+	if !v.Reflected.IsValid() {
 		return reflect.Value{}, ErrInvalidCast
 	}
 
