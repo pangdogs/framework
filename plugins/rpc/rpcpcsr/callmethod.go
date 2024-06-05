@@ -172,11 +172,16 @@ func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args va
 				argRV = argRV.Convert(paramRT)
 			} else {
 				if argRT.Kind() != reflect.Pointer {
-					return nil, ErrMethodParameterTypeMismatch
+					var err error
+					argRV, err = variant.CastReflected(args[i], paramRT)
+					if err != nil {
+						return nil, ErrMethodParameterTypeMismatch
+					}
+				} else {
+					argRV = argRV.Elem()
+					argRT = argRV.Type()
+					goto retry
 				}
-				argRV = argRV.Elem()
-				argRT = argRV.Type()
-				goto retry
 			}
 		}
 
