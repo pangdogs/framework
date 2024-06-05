@@ -198,6 +198,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case reflect.PointerTo(rt):
 		switch v.TypeId {
 		case TypeId_Null:
@@ -215,6 +216,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case sliceRVRT:
 		switch v.TypeId {
 		case TypeId_Null:
@@ -232,6 +234,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case reflect.PointerTo(sliceRVRT):
 		switch v.TypeId {
 		case TypeId_Null:
@@ -249,6 +252,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case mapStringAnyRT:
 		switch v.TypeId {
 		case TypeId_Null:
@@ -269,6 +273,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case reflect.PointerTo(mapStringAnyRT):
 		switch v.TypeId {
 		case TypeId_Null:
@@ -289,6 +294,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case sliceMapStringAnyRT:
 		switch v.TypeId {
 		case TypeId_Null:
@@ -309,6 +315,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case reflect.PointerTo(sliceMapStringAnyRT):
 		switch v.TypeId {
 		case TypeId_Null:
@@ -329,6 +336,7 @@ func CastReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		default:
 			return reflect.Value{}, ErrInvalidCast
 		}
+
 	case rvRT:
 		return v.Reflected.Elem(), nil
 

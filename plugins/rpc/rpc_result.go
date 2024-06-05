@@ -4,6 +4,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/net/gap/variant"
+	"reflect"
 )
 
 var (
@@ -41,14 +42,18 @@ func canBeNil(i any) bool {
 }
 
 func parseRV[T any](retArr variant.Array, idx int) T {
-	t := retArr[idx].Value.Indirect()
-	r, ok := t.(T)
+	rv := retArr[idx].Value.Indirect()
+	ret, ok := rv.(T)
 	if !ok {
-		if t != nil || !canBeNil(r) {
-			panic(ErrMethodResultTypeMismatch)
+		if rv != nil || !canBeNil(ret) {
+			retRV, err := variant.CastReflected(retArr[idx], reflect.TypeFor[T]())
+			if err != nil {
+				panic(ErrMethodResultTypeMismatch)
+			}
+			ret = retRV.Interface().(T)
 		}
 	}
-	return r
+	return ret
 }
 
 func Result1[T1 any](ret async.Ret) T1 {
