@@ -164,25 +164,28 @@ func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args va
 		paramRT := methodRT.In(argsPos + i)
 
 	retry:
-		if !argRT.AssignableTo(paramRT) {
-			if argRV.CanConvert(paramRT) {
-				if argRT.Size() > paramRT.Size() {
-					return nil, ErrMethodParameterTypeMismatch
-				}
-				argRV = argRV.Convert(paramRT)
-			} else {
-				if argRT.Kind() != reflect.Pointer {
-					var err error
-					argRV, err = variant.CastReflected(args[i], paramRT)
-					if err != nil {
-						return nil, ErrMethodParameterTypeMismatch
-					}
-				} else {
-					argRV = argRV.Elem()
-					argRT = argRV.Type()
-					goto retry
-				}
+		if argRT.AssignableTo(paramRT) {
+			argsRV = append(argsRV, argRV)
+			continue
+		}
+
+		if argRV.CanConvert(paramRT) {
+			if argRT.Size() > paramRT.Size() {
+				return nil, ErrMethodParameterTypeMismatch
 			}
+			argsRV = append(argsRV, argRV.Convert(paramRT))
+			continue
+		}
+
+		if argRT.Kind() == reflect.Pointer {
+			argRV = argRV.Elem()
+			argRT = argRV.Type()
+			goto retry
+		}
+
+		argRV, err := variant.CastVariantReflected(args[i], paramRT)
+		if err != nil {
+			return nil, ErrMethodParameterTypeMismatch
 		}
 
 		argsRV = append(argsRV, argRV)

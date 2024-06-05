@@ -5,54 +5,6 @@ import (
 	"git.golaxy.org/framework/util/binaryutil"
 )
 
-// MakeMapFromGoMap 创建可变类型map
-func MakeMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
-	varMap := make(Map, 0, len(m))
-
-	for k, v := range m {
-		var rv generic.KV[Variant, Variant]
-		var err error
-
-		rv.K, err = CastVariant(k)
-		if err != nil {
-			return nil, err
-		}
-
-		rv.V, err = CastVariant(v)
-		if err != nil {
-			return nil, err
-		}
-
-		varMap = append(varMap, rv)
-	}
-
-	return varMap, nil
-}
-
-// MakeMapFromSliceMap 创建可变类型map
-func MakeMapFromSliceMap[K comparable, V any](m generic.SliceMap[K, V]) (Map, error) {
-	varMap := make(Map, 0, len(m))
-
-	for _, kv := range m {
-		var rv generic.KV[Variant, Variant]
-		var err error
-
-		rv.K, err = CastVariant(kv.K)
-		if err != nil {
-			return nil, err
-		}
-
-		rv.V, err = CastVariant(kv.V)
-		if err != nil {
-			return nil, err
-		}
-
-		varMap = append(varMap, rv)
-	}
-
-	return varMap, nil
-}
-
 // Map map
 type Map generic.SliceMap[Variant, Variant]
 

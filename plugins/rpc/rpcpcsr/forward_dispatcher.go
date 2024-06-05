@@ -222,7 +222,7 @@ func (p *_ForwardProcessor) reply(src, transit string, corrId int64, retsRV []re
 	}
 
 	var err error
-	msg.Rets, err = variant.MakeArray(retsRV)
+	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
 	if err != nil {
 		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return

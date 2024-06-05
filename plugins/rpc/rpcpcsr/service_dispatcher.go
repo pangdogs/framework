@@ -203,7 +203,7 @@ func (p *_ServiceProcessor) reply(src string, corrId int64, retsRV []reflect.Val
 	}
 
 	var err error
-	msg.Rets, err = variant.MakeArray(retsRV)
+	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
 	if err != nil {
 		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return

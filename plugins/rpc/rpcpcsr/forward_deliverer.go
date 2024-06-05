@@ -42,7 +42,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 		return ret.CastAsyncRet()
 	}
 
-	vargs, err := variant.MakeArray(args)
+	vargs, err := variant.MakeArrayReadonly(args)
 	if err != nil {
 		future.Cancel(err)
 		return ret.CastAsyncRet()
@@ -85,7 +85,7 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rp
 		return err
 	}
 
-	vargs, err := variant.MakeArray(args)
+	vargs, err := variant.MakeArrayReadonly(args)
 	if err != nil {
 		return err
 	}

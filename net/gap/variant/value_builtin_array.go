@@ -4,22 +4,7 @@ import (
 	"git.golaxy.org/framework/util/binaryutil"
 )
 
-// MakeArray 创建可变类型array
-func MakeArray[T any](arr []T) (Array, error) {
-	varArr := make(Array, 0, len(arr))
-
-	for i := range arr {
-		variant, err := CastVariant(arr[i])
-		if err != nil {
-			return nil, err
-		}
-		varArr = append(varArr, variant)
-	}
-
-	return varArr, nil
-}
-
-// Array 数组
+// Array array
 type Array []Variant
 
 // Read implements io.Reader

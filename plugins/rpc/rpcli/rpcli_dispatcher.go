@@ -82,7 +82,7 @@ func (c *RPCli) reply(src string, corrId int64, retsRV []reflect.Value, retErr e
 	}
 
 	var err error
-	msg.Rets, err = variant.MakeArray(retsRV)
+	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
 	if err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return

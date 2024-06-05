@@ -46,7 +46,7 @@ func parseRV[T any](retArr variant.Array, idx int) T {
 	ret, ok := rv.(T)
 	if !ok {
 		if rv != nil || !canBeNil(ret) {
-			retRV, err := variant.CastReflected(retArr[idx], reflect.TypeFor[T]())
+			retRV, err := variant.CastVariantReflected(retArr[idx], reflect.TypeFor[T]())
 			if err != nil {
 				panic(ErrMethodResultTypeMismatch)
 			}

@@ -48,7 +48,7 @@ func (t TypeId) NewReflected() (reflect.Value, error) {
 }
 
 // MakeTypeId 创建类型Id
-func MakeTypeId(v Value) TypeId {
+func MakeTypeId(v any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {

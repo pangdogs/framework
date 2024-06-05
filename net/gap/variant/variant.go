@@ -9,7 +9,7 @@ import (
 // Variant 可变类型
 type Variant struct {
 	TypeId    TypeId        // 类型Id
-	Value     ValueReader   // 读取值
+	Value     Value         // 值
 	Reflected reflect.Value // 反射值
 }
 
@@ -63,15 +63,4 @@ func (v Variant) Size() int {
 		n += v.Value.Size()
 	}
 	return n
-}
-
-// MakeVariant 创建可变类型
-func MakeVariant(v ValueReader) (Variant, error) {
-	if v == nil {
-		return Variant{}, errors.New("v is nil")
-	}
-	return Variant{
-		TypeId: v.TypeId(),
-		Value:  v,
-	}, nil
 }
