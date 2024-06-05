@@ -1,40 +1,60 @@
 package variant
 
 import (
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/util/binaryutil"
 )
 
-// MakeMap 创建可变类型map
-func MakeMap[K comparable, V any](m map[K]V) (Map, error) {
+// MakeMapFromGoMap 创建可变类型map
+func MakeMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	varMap := make(Map, 0, len(m))
 
 	for k, v := range m {
-		var kv KV
+		var rv generic.KV[Variant, Variant]
 		var err error
 
-		kv.K, err = CastVariant(k)
+		rv.K, err = CastVariant(k)
 		if err != nil {
 			return nil, err
 		}
 
-		kv.V, err = CastVariant(v)
+		rv.V, err = CastVariant(v)
 		if err != nil {
 			return nil, err
 		}
 
-		varMap = append(varMap, kv)
+		varMap = append(varMap, rv)
 	}
 
 	return varMap, nil
 }
 
-// KV kv
-type KV struct {
-	K, V Variant
+// MakeMapFromSliceMap 创建可变类型map
+func MakeMapFromSliceMap[K comparable, V any](m generic.SliceMap[K, V]) (Map, error) {
+	varMap := make(Map, 0, len(m))
+
+	for _, kv := range m {
+		var rv generic.KV[Variant, Variant]
+		var err error
+
+		rv.K, err = CastVariant(kv.K)
+		if err != nil {
+			return nil, err
+		}
+
+		rv.V, err = CastVariant(kv.V)
+		if err != nil {
+			return nil, err
+		}
+
+		varMap = append(varMap, rv)
+	}
+
+	return varMap, nil
 }
 
 // Map map
-type Map []KV
+type Map generic.SliceMap[Variant, Variant]
 
 // Read implements io.Reader
 func (v Map) Read(p []byte) (int, error) {
@@ -68,7 +88,7 @@ func (v *Map) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]KV, l)
+	*v = make([]generic.KV[Variant, Variant], l)
 
 	for i := uint64(0); i < l; i++ {
 		kv := &(*v)[i]
