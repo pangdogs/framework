@@ -53,6 +53,7 @@ func init() {
 	VariantCreator().Declare(&Map{})
 	VariantCreator().Declare(&Array{})
 	VariantCreator().Declare(&Error{})
+	VariantCreator().Declare(&CallChain{})
 }
 
 // _NewVariantCreator 创建可变类型对象构建器
