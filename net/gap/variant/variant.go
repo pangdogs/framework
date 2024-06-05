@@ -163,10 +163,34 @@ retry:
 			return Variant{}, err
 		}
 		return MakeVariant(arr)
+	case []reflect.Value:
+		arr, err := MakeArray(v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(arr)
+	case *[]reflect.Value:
+		arr, err := MakeArray(*v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(arr)
 	case Map:
 		return MakeVariant(v)
 	case *Map:
 		return MakeVariant(v)
+	case map[string]any:
+		m, err := MakeMap[string, any](v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(m)
+	case *map[string]any:
+		m, err := MakeMap[string, any](*v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariant(m)
 	case Variant:
 		return v, nil
 	case *Variant:
