@@ -20,14 +20,8 @@ func MakeMapReadonlyFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 		}
 
 		varMap = append(varMap, generic.KV[Variant, Variant]{
-			K: Variant{
-				TypeId: varK.TypeId,
-				Value:  varK.Value.(Value),
-			},
-			V: Variant{
-				TypeId: varV.TypeId,
-				Value:  varV.Value.(Value),
-			},
+			K: varK,
+			V: varV,
 		})
 	}
 
@@ -50,14 +44,8 @@ func MakeMapReadonlyFromSliceMap[K comparable, V any](m generic.SliceMap[K, V]) 
 		}
 
 		varMap = append(varMap, generic.KV[Variant, Variant]{
-			K: Variant{
-				TypeId: varK.TypeId,
-				Value:  varK.Value.(Value),
-			},
-			V: Variant{
-				TypeId: varV.TypeId,
-				Value:  varV.Value.(Value),
-			},
+			K: varK,
+			V: varV,
 		})
 	}
 

@@ -7,7 +7,7 @@ import (
 )
 
 // CastVariantReadonly 转换只读可变类型
-func CastVariantReadonly(a any) (VariantReadonly, error) {
+func CastVariantReadonly(a any) (Variant, error) {
 retry:
 	switch v := a.(type) {
 	case int:
@@ -83,25 +83,25 @@ retry:
 	case []any:
 		arr, err := MakeArrayReadonly(v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(arr)
 	case *[]any:
 		arr, err := MakeArrayReadonly(*v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(arr)
 	case []reflect.Value:
 		arr, err := MakeArrayReadonly(v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(arr)
 	case *[]reflect.Value:
 		arr, err := MakeArrayReadonly(*v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(arr)
 	case Map:
@@ -111,25 +111,25 @@ retry:
 	case map[string]any:
 		m, err := MakeMapReadonlyFromGoMap[string, any](v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(m)
 	case *map[string]any:
 		m, err := MakeMapReadonlyFromGoMap[string, any](*v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(m)
 	case generic.SliceMap[string, any]:
 		m, err := MakeMapReadonlyFromSliceMap[string, any](v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(m)
 	case *generic.SliceMap[string, any]:
 		m, err := MakeMapReadonlyFromSliceMap[string, any](*v)
 		if err != nil {
-			return VariantReadonly{}, err
+			return Variant{}, err
 		}
 		return MakeVariantReadonly(m)
 	case Error:
@@ -144,23 +144,23 @@ retry:
 		return MakeVariantReadonly(*v)
 	case reflect.Value:
 		if !v.CanInterface() {
-			return VariantReadonly{}, ErrInvalidCast
+			return Variant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
 	case *reflect.Value:
 		if !v.CanInterface() {
-			return VariantReadonly{}, ErrInvalidCast
+			return Variant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
-	case VariantReadonly:
+	case Variant:
 		return v, nil
-	case *VariantReadonly:
+	case *Variant:
 		return *v, nil
 	case ValueReader:
 		return MakeVariantReadonly(v)
 	default:
-		return VariantReadonly{}, ErrInvalidCast
+		return Variant{}, ErrInvalidCast
 	}
 }

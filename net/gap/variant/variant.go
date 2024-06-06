@@ -8,25 +8,32 @@ import (
 
 // Variant 可变类型
 type Variant struct {
-	TypeId    TypeId        // 类型Id
-	Value     Value         // 值
-	Reflected reflect.Value // 反射值
+	TypeId        TypeId        // 类型Id
+	ValueReadonly ValueReader   // 只读值
+	Value         Value         // 值
+	Reflected     reflect.Value // 反射值
 }
 
 // Read implements io.Reader
 func (v Variant) Read(p []byte) (int, error) {
+	if !v.Valid() {
+		return 0, errors.New("variant is invalid")
+	}
+
 	bs := binaryutil.NewBigEndianStream(p)
 
 	if _, err := binaryutil.ReadFrom(&bs, v.TypeId); err != nil {
 		return bs.BytesWritten(), err
 	}
 
-	if v.Value == nil {
-		return bs.BytesWritten(), errors.New("value is nil")
-	}
-
-	if _, err := binaryutil.ReadFrom(&bs, v.Value); err != nil {
-		return bs.BytesWritten(), err
+	if v.Readonly() {
+		if _, err := binaryutil.ReadFrom(&bs, v.ValueReadonly); err != nil {
+			return bs.BytesWritten(), err
+		}
+	} else {
+		if _, err := binaryutil.ReadFrom(&bs, v.Value); err != nil {
+			return bs.BytesWritten(), err
+		}
 	}
 
 	return bs.BytesWritten(), nil
@@ -50,6 +57,7 @@ func (v *Variant) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
+	v.ValueReadonly = nil
 	v.Value = value
 	v.Reflected = reflected
 
@@ -63,4 +71,20 @@ func (v Variant) Size() int {
 		n += v.Value.Size()
 	}
 	return n
+}
+
+// Readonly 只读
+func (v Variant) Readonly() bool {
+	return v.ValueReadonly != nil
+}
+
+// Valid 有效
+func (v Variant) Valid() bool {
+	if v.Readonly() {
+		return v.TypeId == v.Value.TypeId()
+	}
+	if v.Value != nil {
+		return v.TypeId == v.Value.TypeId()
+	}
+	return false
 }

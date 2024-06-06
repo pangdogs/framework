@@ -9,10 +9,7 @@ func MakeArrayReadonly[T any](arr []T) (Array, error) {
 		if err != nil {
 			return nil, err
 		}
-		varArr = append(varArr, Variant{
-			TypeId: v.TypeId,
-			Value:  v.Value.(Value),
-		})
+		varArr = append(varArr, v)
 	}
 
 	return varArr, nil
