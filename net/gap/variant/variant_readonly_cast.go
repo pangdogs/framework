@@ -132,6 +132,18 @@ retry:
 			return Variant{}, err
 		}
 		return MakeVariantReadonly(m)
+	case generic.UnorderedSliceMap[string, any]:
+		m, err := MakeMapReadonlyFromUnorderedSliceMap[string, any](v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariantReadonly(m)
+	case *generic.UnorderedSliceMap[string, any]:
+		m, err := MakeMapReadonlyFromUnorderedSliceMap[string, any](*v)
+		if err != nil {
+			return Variant{}, err
+		}
+		return MakeVariantReadonly(m)
 	case Error:
 		return MakeVariantReadonly(&v)
 	case *Error:

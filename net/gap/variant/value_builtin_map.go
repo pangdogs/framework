@@ -6,7 +6,7 @@ import (
 )
 
 // Map map
-type Map generic.SliceMap[Variant, Variant]
+type Map generic.UnorderedSliceMap[Variant, Variant]
 
 // Read implements io.Reader
 func (v Map) Read(p []byte) (int, error) {
@@ -40,7 +40,7 @@ func (v *Map) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]generic.KV[Variant, Variant], l)
+	*v = make([]generic.UnorderedKV[Variant, Variant], l)
 
 	for i := uint64(0); i < l; i++ {
 		kv := &(*v)[i]
@@ -78,7 +78,7 @@ func (v Map) Indirect() any {
 	return v
 }
 
-// CastSliceMap 转换为SliceMap
-func (v Map) CastSliceMap() generic.SliceMap[Variant, Variant] {
-	return (generic.SliceMap[Variant, Variant])(v)
+// CastUnorderedSliceMap 转换为UnorderedSliceMap
+func (v *Map) CastUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
+	return (*generic.UnorderedSliceMap[Variant, Variant])(v)
 }

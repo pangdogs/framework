@@ -6,12 +6,13 @@ import (
 )
 
 var (
-	sliceAnyRT          = reflect.TypeFor[[]any]()
-	sliceRVRT           = reflect.TypeFor[[]reflect.Value]()
-	mapStringAnyRT      = reflect.TypeFor[map[string]any]()
-	sliceMapStringAnyRT = reflect.TypeFor[generic.SliceMap[string, any]]()
-	rvRT                = reflect.TypeFor[reflect.Value]()
-	variantRT           = reflect.TypeFor[Variant]()
+	sliceAnyRT                   = reflect.TypeFor[[]any]()
+	sliceRVRT                    = reflect.TypeFor[[]reflect.Value]()
+	mapStringAnyRT               = reflect.TypeFor[map[string]any]()
+	sliceMapStringAnyRT          = reflect.TypeFor[generic.SliceMap[string, any]]()
+	unorderedSliceMapStringAnyRT = reflect.TypeFor[generic.UnorderedSliceMap[string, any]]()
+	rvRT                         = reflect.TypeFor[reflect.Value]()
+	variantRT                    = reflect.TypeFor[Variant]()
 )
 
 // CastVariantReflected 转换反射可变类型
@@ -98,11 +99,11 @@ func CastVariantReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		case TypeId_Null:
 			return reflect.Zero(rt), nil
 
-		case TypeId_Array:
-			m := v.Value.(*Map).CastSliceMap()
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(map[string]any, len(m))
-			for _, kv := range m {
+			rv := make(map[string]any, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -119,11 +120,11 @@ func CastVariantReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		case TypeId_Null:
 			return reflect.Zero(rt), nil
 
-		case TypeId_Array:
-			m := v.Value.(*Map).CastSliceMap()
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(map[string]any, len(m))
-			for _, kv := range m {
+			rv := make(map[string]any, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -140,11 +141,11 @@ func CastVariantReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		case TypeId_Null:
 			return reflect.Zero(rt), nil
 
-		case TypeId_Array:
-			m := v.Value.(*Map).CastSliceMap()
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(generic.SliceMap[string, any], 0, len(m))
-			for _, kv := range m {
+			rv := make(generic.SliceMap[string, any], 0, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -161,17 +162,53 @@ func CastVariantReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
 		case TypeId_Null:
 			return reflect.Zero(rt), nil
 
-		case TypeId_Array:
-			m := v.Value.(*Map).CastSliceMap()
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(generic.SliceMap[string, any], 0, len(m))
-			for _, kv := range m {
+			rv := make(generic.SliceMap[string, any], 0, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
 			}
 			return reflect.ValueOf(&rv), nil
+
+		default:
+			return reflect.Value{}, ErrInvalidCast
+		}
+
+	case unorderedSliceMapStringAnyRT:
+		switch v.TypeId {
+		case TypeId_Null:
+			return reflect.Zero(rt), nil
+
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
+			for _, kv := range *m {
+				if kv.K.TypeId != TypeId_String {
+					return reflect.Value{}, ErrInvalidCast
+				}
+			}
+			return reflect.ValueOf(*m), nil
+
+		default:
+			return reflect.Value{}, ErrInvalidCast
+		}
+
+	case reflect.PointerTo(unorderedSliceMapStringAnyRT):
+		switch v.TypeId {
+		case TypeId_Null:
+			return reflect.Zero(rt), nil
+
+		case TypeId_Map:
+			m := v.Value.(*Map).CastUnorderedSliceMap()
+			for _, kv := range *m {
+				if kv.K.TypeId != TypeId_String {
+					return reflect.Value{}, ErrInvalidCast
+				}
+			}
+			return reflect.ValueOf(*m), nil
 
 		default:
 			return reflect.Value{}, ErrInvalidCast
