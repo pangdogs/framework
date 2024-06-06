@@ -66,10 +66,22 @@ func (v *Variant) Write(p []byte) (int, error) {
 
 // Size 大小
 func (v Variant) Size() int {
-	n := v.TypeId.Size()
-	if v.Value != nil {
-		n += v.Value.Size()
+	if !v.Valid() {
+		return 0
 	}
+
+	n := v.TypeId.Size()
+
+	if v.Readonly() {
+		if v.ValueReadonly != nil {
+			n += v.ValueReadonly.Size()
+		}
+	} else {
+		if v.Value != nil {
+			n += v.Value.Size()
+		}
+	}
+
 	return n
 }
 
