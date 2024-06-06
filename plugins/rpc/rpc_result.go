@@ -41,11 +41,11 @@ func canBeNil(i any) bool {
 	return i == nil
 }
 
-func parseRV[T any](retArr variant.Array, idx int) T {
-	rv := retArr[idx].Value.Indirect()
-	ret, ok := rv.(T)
+func parseRet[T any](retArr variant.Array, idx int) T {
+	retVal := retArr[idx].Value.Indirect()
+	ret, ok := retVal.(T)
 	if !ok {
-		if rv != nil || !canBeNil(ret) {
+		if retVal != nil || !canBeNil(ret) {
 			retRV, err := variant.CastVariantReflected(retArr[idx], reflect.TypeFor[T]())
 			if err != nil {
 				panic(ErrMethodResultTypeMismatch)
@@ -70,7 +70,7 @@ func Result1[T1 any](ret async.Ret) T1 {
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
+	r1 := parseRet[T1](retArr, 0)
 
 	return r1
 }
@@ -89,8 +89,8 @@ func Result2[T1, T2 any](ret async.Ret) (T1, T2) {
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
 
 	return r1, r2
 }
@@ -109,9 +109,9 @@ func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3) {
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
 
 	return r1, r2, r3
 }
@@ -130,10 +130,10 @@ func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4) {
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
 
 	return r1, r2, r3, r4
 }
@@ -152,11 +152,11 @@ func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5) {
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
 
 	return r1, r2, r3, r4, r5
 }
@@ -175,12 +175,12 @@ func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6)
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
 
 	return r1, r2, r3, r4, r5, r6
 }
@@ -199,13 +199,13 @@ func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5,
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
 
 	return r1, r2, r3, r4, r5, r6, r7
 }
@@ -224,14 +224,14 @@ func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4,
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8
 }
@@ -250,15 +250,15 @@ func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3,
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9
 }
@@ -277,16 +277,16 @@ func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10
 }
@@ -305,17 +305,17 @@ func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11
 }
@@ -334,18 +334,18 @@ func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.R
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
-	r12 := parseRV[T12](retArr, 11)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
+	r12 := parseRet[T12](retArr, 11)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12
 }
@@ -364,19 +364,19 @@ func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret as
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
-	r12 := parseRV[T12](retArr, 11)
-	r13 := parseRV[T13](retArr, 12)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
+	r12 := parseRet[T12](retArr, 11)
+	r13 := parseRet[T13](retArr, 12)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13
 }
@@ -395,20 +395,20 @@ func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](r
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
-	r12 := parseRV[T12](retArr, 11)
-	r13 := parseRV[T13](retArr, 12)
-	r14 := parseRV[T14](retArr, 13)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
+	r12 := parseRet[T12](retArr, 11)
+	r13 := parseRet[T13](retArr, 12)
+	r14 := parseRet[T14](retArr, 13)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14
 }
@@ -427,21 +427,21 @@ func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 a
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
-	r12 := parseRV[T12](retArr, 11)
-	r13 := parseRV[T13](retArr, 12)
-	r14 := parseRV[T14](retArr, 13)
-	r15 := parseRV[T15](retArr, 14)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
+	r12 := parseRet[T12](retArr, 11)
+	r13 := parseRet[T13](retArr, 12)
+	r14 := parseRet[T14](retArr, 13)
+	r15 := parseRet[T15](retArr, 14)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15
 }
@@ -460,22 +460,22 @@ func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, 
 		panic(ErrMethodResultCountMismatch)
 	}
 
-	r1 := parseRV[T1](retArr, 0)
-	r2 := parseRV[T2](retArr, 1)
-	r3 := parseRV[T3](retArr, 2)
-	r4 := parseRV[T4](retArr, 3)
-	r5 := parseRV[T5](retArr, 4)
-	r6 := parseRV[T6](retArr, 5)
-	r7 := parseRV[T7](retArr, 6)
-	r8 := parseRV[T8](retArr, 7)
-	r9 := parseRV[T9](retArr, 8)
-	r10 := parseRV[T10](retArr, 9)
-	r11 := parseRV[T11](retArr, 10)
-	r12 := parseRV[T12](retArr, 11)
-	r13 := parseRV[T13](retArr, 12)
-	r14 := parseRV[T14](retArr, 13)
-	r15 := parseRV[T15](retArr, 14)
-	r16 := parseRV[T16](retArr, 15)
+	r1 := parseRet[T1](retArr, 0)
+	r2 := parseRet[T2](retArr, 1)
+	r3 := parseRet[T3](retArr, 2)
+	r4 := parseRet[T4](retArr, 3)
+	r5 := parseRet[T5](retArr, 4)
+	r6 := parseRet[T6](retArr, 5)
+	r7 := parseRet[T7](retArr, 6)
+	r8 := parseRet[T8](retArr, 7)
+	r9 := parseRet[T9](retArr, 8)
+	r10 := parseRet[T10](retArr, 9)
+	r11 := parseRet[T11](retArr, 10)
+	r12 := parseRet[T12](retArr, 11)
+	r13 := parseRet[T13](retArr, 12)
+	r14 := parseRet[T14](retArr, 13)
+	r15 := parseRet[T15](retArr, 14)
+	r16 := parseRet[T16](retArr, 15)
 
 	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16
 }

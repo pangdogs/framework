@@ -39,7 +39,7 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 		return nil, ErrMethodNotFound
 	}
 
-	argsRV, err := prepareArgsRV(methodRV, callChain, args)
+	argsRV, err := parseArgs(methodRV, callChain, args)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := prepareArgsRV(methodRV, callChain, args)
+		argsRV, err := parseArgs(methodRV, callChain, args)
 		if err != nil {
 			return async.MakeRet(nil, err)
 		}
@@ -120,7 +120,7 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := prepareArgsRV(methodRV, callChain, args)
+		argsRV, err := parseArgs(methodRV, callChain, args)
 		if err != nil {
 			return async.MakeRet(nil, err)
 		}
@@ -137,7 +137,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func prepareArgsRV(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
+func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
 	var argsRV []reflect.Value
 	var argsPos int
