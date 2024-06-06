@@ -81,7 +81,7 @@ func (v Variant) Readonly() bool {
 // Valid 有效
 func (v Variant) Valid() bool {
 	if v.Readonly() {
-		return v.TypeId == v.Value.TypeId()
+		return v.TypeId == v.ValueReadonly.TypeId()
 	}
 	if v.Value != nil {
 		return v.TypeId == v.Value.TypeId()
