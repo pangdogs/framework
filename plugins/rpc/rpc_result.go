@@ -3,6 +3,7 @@ package rpc
 import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap/variant"
 	"reflect"
 )
@@ -12,470 +13,1707 @@ var (
 	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
 )
 
-func Results(ret async.Ret) []any {
-	if !ret.OK() {
-		panic(ret.Error)
-	}
-
-	if ret.Value == nil {
-		return nil
-	}
-
-	retArr := ret.Value.(variant.Array)
-	rets := make([]any, len(retArr))
-
-	for i := range rets {
-		rets[i] = retArr[i].Value.Indirect()
-	}
-
-	return rets
-}
-
-func ResultVoid(ret async.Ret) {
-	if !ret.OK() {
-		panic(ret.Error)
-	}
-}
-
 func canBeNil(i any) bool {
 	return i == nil
 }
 
-func parseRet[T any](retArr variant.Array, idx int) T {
+func parseRet[T any](retArr variant.Array, idx int) (T, error) {
 	retVal := retArr[idx].Value.Indirect()
 	ret, ok := retVal.(T)
 	if !ok {
 		if retVal != nil || !canBeNil(ret) {
 			retRV, err := variant.CastVariantReflected(retArr[idx], reflect.TypeFor[T]())
 			if err != nil {
-				panic(ErrMethodResultTypeMismatch)
+				return types.ZeroT[T](), ErrMethodResultTypeMismatch
 			}
 			ret = retRV.Interface().(T)
 		}
 	}
-	return ret
+	return ret, nil
 }
 
-func Result1[T1 any](ret async.Ret) T1 {
+type ResultValues struct {
+	Values []any
+	Error  error
+}
+
+func (rvs ResultValues) Extract() ([]any, error) {
+	return rvs.Values, rvs.Error
+}
+
+func (rvs ResultValues) Ensure() []any {
+	if rvs.Error != nil {
+		panic(rvs.Error)
+	}
+	return rvs.Values
+}
+
+func Results(ret async.Ret) (rvs ResultValues) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rvs.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 1 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 1 {
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
+	rets := make([]any, len(retArr))
 
-	return r1
+	for i := range rets {
+		rets[i] = retArr[i].Value.Indirect()
+	}
+
+	rvs.Values = rets
+	return
 }
 
-func Result2[T1, T2 any](ret async.Ret) (T1, T2) {
+type ResultTuple0 struct {
+	Error error
+}
+
+func (rtp ResultTuple0) Extract() error {
+	return rtp.Error
+}
+
+func (rtp ResultTuple0) Ensure() {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+}
+
+func ResultVoid(ret async.Ret) (rtp ResultTuple0) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
+	}
+	return
+}
+
+type ResultTuple1[T1 any] struct {
+	R1    T1
+	Error error
+}
+
+func (rtp ResultTuple1[T1]) Extract() (T1, error) {
+	return rtp.R1, rtp.Error
+}
+
+func (rtp ResultTuple1[T1]) Ensure() T1 {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1
+}
+
+func Result1[T1 any](ret async.Ret) (rtp ResultTuple1[T1]) {
+	if !ret.OK() {
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 2 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 1 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2
+	rtp.R1 = r1
+	return
 }
 
-func Result3[T1, T2, T3 any](ret async.Ret) (T1, T2, T3) {
+type ResultTuple2[T1, T2 any] struct {
+	R1    T1
+	R2    T2
+	Error error
+}
+
+func (rtp ResultTuple2[T1, T2]) Extract() (T1, T2, error) {
+	return rtp.R1, rtp.R2, rtp.Error
+}
+
+func (rtp ResultTuple2[T1, T2]) Ensure() (T1, T2) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2
+}
+
+func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 3 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 2 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3
+	r2, err := parseRet[T2](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	return
 }
 
-func Result4[T1, T2, T3, T4 any](ret async.Ret) (T1, T2, T3, T4) {
+type ResultTuple3[T1, T2, T3 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	Error error
+}
+
+func (rtp ResultTuple3[T1, T2, T3]) Extract() (T1, T2, T3, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.Error
+}
+
+func (rtp ResultTuple3[T1, T2, T3]) Ensure() (T1, T2, T3) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3
+}
+
+func Result3[T1, T2, T3 any](ret async.Ret) (rtp ResultTuple3[T1, T2, T3]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 4 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 3 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4
+	r2, err := parseRet[T2](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	return
 }
 
-func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (T1, T2, T3, T4, T5) {
+type ResultTuple4[T1, T2, T3, T4 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	Error error
+}
+
+func (rtp ResultTuple4[T1, T2, T3, T4]) Extract() (T1, T2, T3, T4, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.Error
+}
+
+func (rtp ResultTuple4[T1, T2, T3, T4]) Ensure() (T1, T2, T3, T4) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4
+}
+
+func Result4[T1, T2, T3, T4 any](ret async.Ret) (rtp ResultTuple4[T1, T2, T3, T4]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 5 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 4 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	return
 }
 
-func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (T1, T2, T3, T4, T5, T6) {
+type ResultTuple5[T1, T2, T3, T4, T5 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	Error error
+}
+
+func (rtp ResultTuple5[T1, T2, T3, T4, T5]) Extract() (T1, T2, T3, T4, T5, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.Error
+}
+
+func (rtp ResultTuple5[T1, T2, T3, T4, T5]) Ensure() (T1, T2, T3, T4, T5) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5
+}
+
+func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 6 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 5 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	return
 }
 
-func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7) {
+type ResultTuple6[T1, T2, T3, T4, T5, T6 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	Error error
+}
+
+func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) Extract() (T1, T2, T3, T4, T5, T6, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.Error
+}
+
+func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) Ensure() (T1, T2, T3, T4, T5, T6) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6
+}
+
+func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 7 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 6 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	return
 }
 
-func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8) {
+type ResultTuple7[T1, T2, T3, T4, T5, T6, T7 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	Error error
+}
+
+func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) Extract() (T1, T2, T3, T4, T5, T6, T7, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.Error
+}
+
+func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) Ensure() (T1, T2, T3, T4, T5, T6, T7) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7
+}
+
+func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 8 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 7 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	return
 }
 
-func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
+type ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	Error error
+}
+
+func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.Error
+}
+
+func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8
+}
+
+func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 9 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 8 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	return
 }
 
-func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
+type ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	Error error
+}
+
+func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.Error
+}
+
+func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9
+}
+
+func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 10 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 9 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	return
 }
 
-func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
+type ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	Error error
+}
+
+func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.Error
+}
+
+func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10
+}
+
+func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 11 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 10 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	return
 }
 
-func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
+type ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	Error error
+}
+
+func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.Error
+}
+
+func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11
+}
+
+func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
 	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 12 {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 11 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
-	r12 := parseRet[T12](retArr, 11)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	return
 }
 
-func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
-	if !ret.OK() {
-		panic(ret.Error)
-	}
-
-	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 13 {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
-	r12 := parseRet[T12](retArr, 11)
-	r13 := parseRet[T13](retArr, 12)
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13
+type ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	R12   T12
+	Error error
 }
 
-func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
-	if !ret.OK() {
-		panic(ret.Error)
-	}
-
-	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 14 {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
-	r12 := parseRet[T12](retArr, 11)
-	r13 := parseRet[T13](retArr, 12)
-	r14 := parseRet[T14](retArr, 13)
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14
+func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.Error
 }
 
-func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
-	if !ret.OK() {
-		panic(ret.Error)
+func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
 	}
-
-	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 15 {
-		panic(ErrMethodResultCountMismatch)
-	}
-
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
-	r12 := parseRet[T12](retArr, 11)
-	r13 := parseRet[T13](retArr, 12)
-	r14 := parseRet[T14](retArr, 13)
-	r15 := parseRet[T15](retArr, 14)
-
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12
 }
 
-func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
+func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
 	if !ret.OK() {
-		panic(ret.Error)
+		rtp.Error = ret.Error
+		return
 	}
 
-	if ret.Value == nil {
-		panic(ErrMethodResultCountMismatch)
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 12 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
 	}
 
-	retArr := ret.Value.(variant.Array)
-	if len(retArr) < 16 {
-		panic(ErrMethodResultCountMismatch)
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
 	}
 
-	r1 := parseRet[T1](retArr, 0)
-	r2 := parseRet[T2](retArr, 1)
-	r3 := parseRet[T3](retArr, 2)
-	r4 := parseRet[T4](retArr, 3)
-	r5 := parseRet[T5](retArr, 4)
-	r6 := parseRet[T6](retArr, 5)
-	r7 := parseRet[T7](retArr, 6)
-	r8 := parseRet[T8](retArr, 7)
-	r9 := parseRet[T9](retArr, 8)
-	r10 := parseRet[T10](retArr, 9)
-	r11 := parseRet[T11](retArr, 10)
-	r12 := parseRet[T12](retArr, 11)
-	r13 := parseRet[T13](retArr, 12)
-	r14 := parseRet[T14](retArr, 13)
-	r15 := parseRet[T15](retArr, 14)
-	r16 := parseRet[T16](retArr, 15)
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
 
-	return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r12, err := parseRet[T12](retArr, 11)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	rtp.R12 = r12
+	return
+}
+
+type ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	R12   T12
+	R13   T13
+	Error error
+}
+
+func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.Error
+}
+
+func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13
+}
+
+func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
+	if !ret.OK() {
+		rtp.Error = ret.Error
+		return
+	}
+
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 13 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
+	}
+
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r12, err := parseRet[T12](retArr, 11)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r13, err := parseRet[T13](retArr, 12)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	rtp.R12 = r12
+	rtp.R13 = r13
+	return
+}
+
+type ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	R12   T12
+	R13   T13
+	R14   T14
+	Error error
+}
+
+func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.Error
+}
+
+func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14
+}
+
+func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
+	if !ret.OK() {
+		rtp.Error = ret.Error
+		return
+	}
+
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 14 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
+	}
+
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r12, err := parseRet[T12](retArr, 11)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r13, err := parseRet[T13](retArr, 12)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r14, err := parseRet[T14](retArr, 13)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	rtp.R12 = r12
+	rtp.R13 = r13
+	rtp.R14 = r14
+	return
+}
+
+type ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	R12   T12
+	R13   T13
+	R14   T14
+	R15   T15
+	Error error
+}
+
+func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.Error
+}
+
+func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15
+}
+
+func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
+	if !ret.OK() {
+		rtp.Error = ret.Error
+		return
+	}
+
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 15 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
+	}
+
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r12, err := parseRet[T12](retArr, 11)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r13, err := parseRet[T13](retArr, 12)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r14, err := parseRet[T14](retArr, 13)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r15, err := parseRet[T15](retArr, 14)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	rtp.R12 = r12
+	rtp.R13 = r13
+	rtp.R14 = r14
+	rtp.R15 = r15
+	return
+}
+
+type ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any] struct {
+	R1    T1
+	R2    T2
+	R3    T3
+	R4    T4
+	R5    T5
+	R6    T6
+	R7    T7
+	R8    T8
+	R9    T9
+	R10   T10
+	R11   T11
+	R12   T12
+	R13   T13
+	R14   T14
+	R15   T15
+	R16   T16
+	Error error
+}
+
+func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) Extract() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, error) {
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.R16, rtp.Error
+}
+
+func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
+	if rtp.Error != nil {
+		panic(rtp.Error)
+	}
+	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.R16
+}
+
+func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
+	if !ret.OK() {
+		rtp.Error = ret.Error
+		return
+	}
+
+	retArr, ok := ret.Value.(variant.Array)
+	if !ok || len(retArr) < 16 {
+		rtp.Error = ErrMethodResultCountMismatch
+		return
+	}
+
+	r1, err := parseRet[T1](retArr, 0)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r2, err := parseRet[T2](retArr, 1)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r3, err := parseRet[T3](retArr, 2)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r4, err := parseRet[T4](retArr, 3)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r5, err := parseRet[T5](retArr, 4)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r6, err := parseRet[T6](retArr, 5)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r7, err := parseRet[T7](retArr, 6)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r8, err := parseRet[T8](retArr, 7)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r9, err := parseRet[T9](retArr, 8)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r10, err := parseRet[T10](retArr, 9)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r11, err := parseRet[T11](retArr, 10)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r12, err := parseRet[T12](retArr, 11)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r13, err := parseRet[T13](retArr, 12)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r14, err := parseRet[T14](retArr, 13)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r15, err := parseRet[T15](retArr, 14)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	r16, err := parseRet[T16](retArr, 15)
+	if err != nil {
+		rtp.Error = err
+		return
+	}
+
+	rtp.R1 = r1
+	rtp.R2 = r2
+	rtp.R3 = r3
+	rtp.R4 = r4
+	rtp.R5 = r5
+	rtp.R6 = r6
+	rtp.R7 = r7
+	rtp.R8 = r8
+	rtp.R9 = r9
+	rtp.R10 = r10
+	rtp.R11 = r11
+	rtp.R12 = r12
+	rtp.R13 = r13
+	rtp.R14 = r14
+	rtp.R15 = r15
+	rtp.R16 = r16
+	return
 }
