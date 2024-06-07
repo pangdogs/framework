@@ -13,10 +13,6 @@ var (
 	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
 )
 
-func canBeNil(i any) bool {
-	return i == nil
-}
-
 func parseRet[T any](retArr variant.Array, idx int) (T, error) {
 	retVariant := retArr[idx]
 
