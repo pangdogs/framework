@@ -161,19 +161,19 @@ func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args varian
 	for i := range args {
 		argRV := args[i].Reflected
 		argRT := argRV.Type()
-		paramRT := methodRT.In(argsPos + i)
+		inRT := methodRT.In(argsPos + i)
 
 	retry:
-		if argRT.AssignableTo(paramRT) {
+		if argRT.AssignableTo(inRT) {
 			argsRV = append(argsRV, argRV)
 			continue
 		}
 
-		if argRV.CanConvert(paramRT) {
-			if argRT.Size() > paramRT.Size() {
+		if argRV.CanConvert(inRT) {
+			if argRT.Size() > inRT.Size() {
 				return nil, ErrMethodParameterTypeMismatch
 			}
-			argsRV = append(argsRV, argRV.Convert(paramRT))
+			argsRV = append(argsRV, argRV.Convert(inRT))
 			continue
 		}
 
@@ -183,7 +183,7 @@ func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args varian
 			goto retry
 		}
 
-		argRV, err := variant.CastVariantReflected(args[i], paramRT)
+		argRV, err := variant.CastVariantReflected(args[i], inRT)
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}

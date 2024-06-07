@@ -16,219 +16,131 @@ var (
 )
 
 // CastVariantReflected 转换反射可变类型
-func CastVariantReflected(v Variant, rt reflect.Type) (reflect.Value, error) {
-	if !v.Reflected.IsValid() {
+func CastVariantReflected(variant Variant, valueRT reflect.Type) (reflect.Value, error) {
+	if !variant.Reflected.IsValid() {
 		return reflect.Value{}, ErrInvalidCast
 	}
 
-	switch rt {
-	case sliceAnyRT:
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
+	switch valueRT.Kind() {
+	case reflect.Array, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		if variant.TypeId == TypeId_Null {
+			return reflect.Zero(valueRT), nil
+		}
+	case reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func:
+		return reflect.Value{}, ErrInvalidCast
+	}
 
+	switch valueRT {
+	case sliceAnyRT, reflect.PointerTo(sliceAnyRT):
+		switch variant.TypeId {
 		case TypeId_Array:
-			arr := *v.Value.(*Array)
+			arr := *variant.Value.(*Array)
 
 			rv := make([]any, 0, len(arr))
 			for _, it := range arr {
 				rv = append(rv, it.Value.Indirect())
 			}
-			return reflect.ValueOf(rv), nil
 
-		default:
-			return reflect.Value{}, ErrInvalidCast
-		}
-
-	case reflect.PointerTo(rt):
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
-		case TypeId_Array:
-			arr := *v.Value.(*Array)
-
-			rv := make([]any, 0, len(arr))
-			for _, it := range arr {
-				rv = append(rv, it.Value.Indirect())
+			if valueRT.Kind() == reflect.Pointer {
+				return reflect.ValueOf(&rv), nil
+			} else {
+				return reflect.ValueOf(rv), nil
 			}
-			return reflect.ValueOf(&rv), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
 		}
 
-	case sliceRVRT:
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
+	case sliceRVRT, reflect.PointerTo(sliceRVRT):
+		switch variant.TypeId {
 		case TypeId_Array:
-			arr := *v.Value.(*Array)
+			arr := *variant.Value.(*Array)
 
 			rv := make([]reflect.Value, 0, len(arr))
 			for _, it := range arr {
 				rv = append(rv, reflect.ValueOf(it.Value.Indirect()))
 			}
-			return reflect.ValueOf(rv), nil
 
-		default:
-			return reflect.Value{}, ErrInvalidCast
-		}
-
-	case reflect.PointerTo(sliceRVRT):
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
-		case TypeId_Array:
-			arr := *v.Value.(*Array)
-
-			rv := make([]reflect.Value, 0, len(arr))
-			for _, it := range arr {
-				rv = append(rv, reflect.ValueOf(it.Value.Indirect()))
+			if valueRT.Kind() == reflect.Pointer {
+				return reflect.ValueOf(&rv), nil
+			} else {
+				return reflect.ValueOf(rv), nil
 			}
-			return reflect.ValueOf(&rv), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
 		}
 
-	case mapStringAnyRT:
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
+	case mapStringAnyRT, reflect.PointerTo(mapStringAnyRT):
+		switch variant.TypeId {
 		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
+			m := *variant.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(map[string]any, len(*m))
-			for _, kv := range *m {
+			rv := make(map[string]any, len(m))
+			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv[kv.K.Value.Indirect().(string)] = kv.V.Value.Indirect()
 			}
-			return reflect.ValueOf(rv), nil
 
-		default:
-			return reflect.Value{}, ErrInvalidCast
-		}
-
-	case reflect.PointerTo(mapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
-		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
-
-			rv := make(map[string]any, len(*m))
-			for _, kv := range *m {
-				if kv.K.TypeId != TypeId_String {
-					return reflect.Value{}, ErrInvalidCast
-				}
-				rv[kv.K.Value.Indirect().(string)] = kv.V.Value.Indirect()
+			if valueRT.Kind() == reflect.Pointer {
+				return reflect.ValueOf(&rv), nil
+			} else {
+				return reflect.ValueOf(rv), nil
 			}
-			return reflect.ValueOf(&rv), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
 		}
 
-	case sliceMapStringAnyRT:
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
+	case sliceMapStringAnyRT, reflect.PointerTo(sliceMapStringAnyRT):
+		switch variant.TypeId {
 		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
+			m := *variant.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(generic.SliceMap[string, any], 0, len(*m))
-			for _, kv := range *m {
+			rv := make(generic.SliceMap[string, any], 0, len(m))
+			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
 			}
-			return reflect.ValueOf(rv), nil
 
-		default:
-			return reflect.Value{}, ErrInvalidCast
+			if valueRT.Kind() == reflect.Pointer {
+				return reflect.ValueOf(&rv), nil
+			} else {
+				return reflect.ValueOf(rv), nil
+			}
 		}
 
-	case reflect.PointerTo(sliceMapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
+	case unorderedSliceMapStringAnyRT, reflect.PointerTo(unorderedSliceMapStringAnyRT):
+		switch variant.TypeId {
 		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
+			m := variant.Value.(*Map).CastUnorderedSliceMap()
 
-			rv := make(generic.SliceMap[string, any], 0, len(*m))
 			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
-				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
 			}
+
+			if valueRT.Kind() == reflect.Pointer {
+				return reflect.ValueOf(m), nil
+			} else {
+				return reflect.ValueOf(*m), nil
+			}
+		}
+
+	case rvRT, reflect.PointerTo(rvRT):
+		rv := variant.Reflected.Elem()
+
+		if valueRT.Kind() == reflect.Pointer {
 			return reflect.ValueOf(&rv), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
+		} else {
+			return rv, nil
 		}
 
-	case unorderedSliceMapStringAnyRT:
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
+	case variantRT, reflect.PointerTo(variantRT):
+		rv := reflect.ValueOf(variant)
 
-		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
-			for _, kv := range *m {
-				if kv.K.TypeId != TypeId_String {
-					return reflect.Value{}, ErrInvalidCast
-				}
-			}
-			return reflect.ValueOf(*m), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
+		if valueRT.Kind() == reflect.Pointer {
+			return reflect.ValueOf(&rv), nil
+		} else {
+			return rv, nil
 		}
-
-	case reflect.PointerTo(unorderedSliceMapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Null:
-			return reflect.Zero(rt), nil
-
-		case TypeId_Map:
-			m := v.Value.(*Map).CastUnorderedSliceMap()
-			for _, kv := range *m {
-				if kv.K.TypeId != TypeId_String {
-					return reflect.Value{}, ErrInvalidCast
-				}
-			}
-			return reflect.ValueOf(*m), nil
-
-		default:
-			return reflect.Value{}, ErrInvalidCast
-		}
-
-	case rvRT:
-		return v.Reflected.Elem(), nil
-
-	case reflect.PointerTo(rvRT):
-		rv := v.Reflected.Elem()
-		return reflect.ValueOf(&rv), nil
-
-	case variantRT:
-		return reflect.ValueOf(v), nil
-
-	case reflect.PointerTo(variantRT):
-		rv := reflect.ValueOf(v)
-		return reflect.ValueOf(&rv), nil
-
-	default:
-		return reflect.Value{}, ErrInvalidCast
 	}
+
+	return reflect.Value{}, ErrInvalidCast
 }

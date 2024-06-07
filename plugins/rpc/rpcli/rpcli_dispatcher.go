@@ -146,7 +146,7 @@ func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (re
 		return nil, ErrMethodNotFound
 	}
 
-	argsRV, err := prepareArgsRV(methodRV, args)
+	argsRV, err := parseArgs(methodRV, args)
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +154,9 @@ func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (re
 	return methodRV.Call(argsRV), nil
 }
 
-func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
+func parseArgs(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
+
 	if methodRT.NumIn() != len(args) {
 		return nil, ErrMethodParameterCountMismatch
 	}
@@ -165,23 +166,31 @@ func prepareArgsRV(methodRV reflect.Value, args variant.Array) ([]reflect.Value,
 	for i := range args {
 		argRV := args[i].Reflected
 		argRT := argRV.Type()
-		paramRT := methodRT.In(i)
+		inRT := methodRT.In(i)
 
 	retry:
-		if !argRT.AssignableTo(paramRT) {
-			if argRV.CanConvert(paramRT) {
-				if argRT.Size() > paramRT.Size() {
-					return nil, ErrMethodParameterTypeMismatch
-				}
-				argRV = argRV.Convert(paramRT)
-			} else {
-				if argRT.Kind() != reflect.Pointer {
-					return nil, ErrMethodParameterTypeMismatch
-				}
-				argRV = argRV.Elem()
-				argRT = argRV.Type()
-				goto retry
+		if argRT.AssignableTo(inRT) {
+			argsRV = append(argsRV, argRV)
+			continue
+		}
+
+		if argRV.CanConvert(inRT) {
+			if argRT.Size() > inRT.Size() {
+				return nil, ErrMethodParameterTypeMismatch
 			}
+			argsRV = append(argsRV, argRV.Convert(inRT))
+			continue
+		}
+
+		if argRT.Kind() == reflect.Pointer {
+			argRV = argRV.Elem()
+			argRT = argRV.Type()
+			goto retry
+		}
+
+		argRV, err := variant.CastVariantReflected(args[i], inRT)
+		if err != nil {
+			return nil, ErrMethodParameterTypeMismatch
 		}
 
 		argsRV = append(argsRV, argRV)
