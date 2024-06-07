@@ -208,6 +208,10 @@ func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
 	return
 }
 
+func AssertRet2[T1, T2 any](ret async.Ret) (T1, T2) {
+	return Result2[T1, T2](ret).Ensure()
+}
+
 type ResultTuple3[T1, T2, T3 any] struct {
 	R1    T1
 	R2    T2
