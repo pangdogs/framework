@@ -62,3 +62,14 @@ func (Array) TypeId() TypeId {
 func (v Array) Indirect() any {
 	return v
 }
+
+// Release 释放资源
+func (v Array) Release() {
+	for i := range v {
+		it := &v[i]
+
+		if it.Readonly() {
+			it.ValueReadonly.Release()
+		}
+	}
+}

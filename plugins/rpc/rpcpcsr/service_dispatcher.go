@@ -8,7 +8,6 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"reflect"
 )
 
 func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
@@ -59,12 +58,12 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			if _, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args); err != nil {
+			if rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args); err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
+				rets.Release()
 			}
-			return
 		}()
 
 		return nil
@@ -82,6 +81,7 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 				log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.EntityId, cp.Plugin, cp.Method, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.EntityId, cp.Plugin, cp.Method)
+				ret.Value.(variant.Array).Release()
 			}
 		}()
 
@@ -100,6 +100,7 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 				log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.EntityId, cp.Component, cp.Method, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.EntityId, cp.Component, cp.Method)
+				ret.Value.(variant.Array).Release()
 			}
 		}()
 
@@ -162,7 +163,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 				p.reply(src, req.CorrId, nil, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Plugin, cp.Method)
-				p.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
 
@@ -183,7 +184,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 				p.reply(src, req.CorrId, nil, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Component, cp.Method)
-				p.reply(src, req.CorrId, ret.Value.([]reflect.Value), nil)
+				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
 
@@ -193,27 +194,23 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 	return nil
 }
 
-func (p *_ServiceProcessor) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (p *_ServiceProcessor) reply(src string, corrId int64, rets variant.Array, retErr error) {
+	defer rets.Release()
+
 	if corrId == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-	}
-
-	var err error
-	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
-	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
-		return
+		Rets:   rets,
 	}
 
 	if retErr != nil {
 		msg.Error = *variant.MakeError(retErr)
 	}
 
-	err = p.dist.SendMsg(src, msg)
+	err := p.dist.SendMsg(src, msg)
 	if err != nil {
 		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return

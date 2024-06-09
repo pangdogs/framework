@@ -78,6 +78,21 @@ func (v Map) Indirect() any {
 	return v
 }
 
+// Release 释放资源
+func (v Map) Release() {
+	for i := range v {
+		kv := &v[i]
+
+		if kv.K.Readonly() {
+			kv.K.ValueReadonly.Release()
+		}
+
+		if kv.V.Readonly() {
+			kv.V.ValueReadonly.Release()
+		}
+	}
+}
+
 // CastUnorderedSliceMap 转换为UnorderedSliceMap
 func (v *Map) CastUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
 	return (*generic.UnorderedSliceMap[Variant, Variant])(v)

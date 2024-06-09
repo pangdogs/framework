@@ -41,3 +41,6 @@ func (Int64) TypeId() TypeId {
 func (v Int64) Indirect() any {
 	return int64(v)
 }
+
+// Release 释放资源
+func (Int64) Release() {}

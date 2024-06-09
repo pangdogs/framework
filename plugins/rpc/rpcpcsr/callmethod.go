@@ -15,7 +15,7 @@ import (
 	"slices"
 )
 
-func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets []reflect.Value, err error) {
+func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -44,7 +44,7 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 		return nil, err
 	}
 
-	return methodRV.Call(argsRV), nil
+	return variant.MakeArrayBuffReadonly(methodRV.Call(argsRV))
 }
 
 func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
@@ -86,7 +86,7 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(methodRV.Call(argsRV), nil)
+		return async.MakeRet(variant.MakeArrayBuffReadonly(methodRV.Call(argsRV)))
 	}, callChain, plugin, method, args), nil
 }
 
@@ -129,7 +129,7 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(methodRV.Call(argsRV), nil)
+		return async.MakeRet(variant.MakeArrayBuffReadonly(methodRV.Call(argsRV)))
 	}, callChain, component, method, args), nil
 }
 

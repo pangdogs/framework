@@ -19,6 +19,8 @@ type ValueReader interface {
 	TypeId() TypeId
 	// Indirect 原始值
 	Indirect() any
+	// Release 释放资源
+	Release()
 }
 
 // ValueWriter 写入值

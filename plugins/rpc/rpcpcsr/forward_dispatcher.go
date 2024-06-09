@@ -10,7 +10,6 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"reflect"
 )
 
 func (p *_ForwardProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
@@ -79,10 +78,12 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			if _, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args); err != nil {
+			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			if err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				rets.Release()
 			}
 		}()
 
@@ -101,6 +102,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 				log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				ret.Value.(variant.Array).Release()
 			}
 		}()
 
@@ -119,6 +121,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 				log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path)
+				ret.Value.(variant.Array).Release()
 			}
 		}()
 
@@ -181,7 +184,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.EntityId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
-				p.reply(src, transit, req.CorrId, ret.Value.([]reflect.Value), nil)
+				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
 
@@ -202,7 +205,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.EntityId, cp.Component, cp.Method, src, dst, transit, req.Path)
-				p.reply(src, transit, req.CorrId, ret.Value.([]reflect.Value), nil)
+				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
 
@@ -212,20 +215,16 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 	return nil
 }
 
-func (p *_ForwardProcessor) reply(src, transit string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (p *_ForwardProcessor) reply(src, transit string, corrId int64, rets variant.Array, retErr error) {
+	defer rets.Release()
+
 	if corrId == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-	}
-
-	var err error
-	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
-	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
-		return
+		Rets:   rets,
 	}
 
 	if retErr != nil {

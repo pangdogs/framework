@@ -73,6 +73,9 @@ func (v *Error) Indirect() any {
 	return v
 }
 
+// Release 释放资源
+func (Error) Release() {}
+
 func (v Error) Error() string {
 	return fmt.Sprintf("(%d) %s", v.Code, v.Message)
 }

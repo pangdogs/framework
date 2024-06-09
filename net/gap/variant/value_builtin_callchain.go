@@ -76,3 +76,6 @@ func (CallChain) TypeId() TypeId {
 func (v CallChain) Indirect() any {
 	return v
 }
+
+// Release 释放资源
+func (CallChain) Release() {}
