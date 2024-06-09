@@ -13,13 +13,20 @@ func MakeError(err error) *Error {
 
 	var varErr *Error
 	if !errors.As(err, &varErr) {
-		return BuildError(-1, err.Error())
+		return Errorln(-1, err.Error())
 	}
 
 	return varErr
 }
 
-func BuildError(code int32, message string) *Error {
+func Errorf(code int32, format string, args ...any) *Error {
+	return &Error{
+		Code:    code,
+		Message: fmt.Sprintf(format, args...),
+	}
+}
+
+func Errorln(code int32, message string) *Error {
 	return &Error{
 		Code:    code,
 		Message: message,
