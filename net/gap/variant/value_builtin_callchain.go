@@ -79,3 +79,17 @@ func (v CallChain) Indirect() any {
 
 // Release 释放资源
 func (CallChain) Release() {}
+
+func (v CallChain) First() *Call {
+	if len(v) <= 0 {
+		return nil
+	}
+	return &v[len(v)-1]
+}
+
+func (v CallChain) Last() *Call {
+	if len(v) <= 0 {
+		return nil
+	}
+	return &v[len(v)-1]
+}
