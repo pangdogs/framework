@@ -34,7 +34,7 @@ type MAC64Module struct {
 // PatchMAC 补充MAC
 func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Hash is nil")
+		return binaryutil.NilRecycleBytes, errors.New("setting Hash is nil")
 	}
 
 	m.Hash.Reset()
@@ -57,7 +57,7 @@ func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 
 	_, err = msgMAC.Read(buf.Data())
 	if err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 
 	return buf, nil

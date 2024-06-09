@@ -10,7 +10,7 @@ func Marshal[T MsgReader](msg T) (binaryutil.RecycleBytes, error) {
 
 	if _, err := msg.Read(bs.Data()); err != nil {
 		bs.Release()
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("marshal msg(%d) failed, %w", msg.MsgId(), err)
+		return binaryutil.NilRecycleBytes, fmt.Errorf("marshal msg(%d) failed, %w", msg.MsgId(), err)
 	}
 
 	return bs, nil

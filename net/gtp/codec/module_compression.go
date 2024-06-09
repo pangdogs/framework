@@ -43,7 +43,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 	}
 
 	if m.CompressionStream == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), false, errors.New("setting CompressionStream is nil")
+		return binaryutil.NilRecycleBytes, false, errors.New("setting CompressionStream is nil")
 	}
 
 	compressedBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(len(src)))
@@ -72,7 +72,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 		if errors.Is(err, binaryutil.ErrLimitReached) {
 			return binaryutil.MakeNonRecycleBytes(src), false, nil
 		}
-		return binaryutil.MakeNonRecycleBytes(nil), false, err
+		return binaryutil.NilRecycleBytes, false, err
 	}
 
 	msgCompressed := gtp.MsgCompressed{
@@ -92,7 +92,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 	}()
 
 	if _, err = msgCompressed.Read(buf.Data()); err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), false, err
+		return binaryutil.NilRecycleBytes, false, err
 	}
 
 	return buf, true, nil
@@ -101,22 +101,22 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 // Uncompress 解压缩数据
 func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
 	if len(src) <= 0 {
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("%w: src too small", core.ErrArgs)
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: src too small", core.ErrArgs)
 	}
 
 	if m.CompressionStream == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting CompressionStream is nil")
+		return binaryutil.NilRecycleBytes, errors.New("setting CompressionStream is nil")
 	}
 
 	msgCompressed := gtp.MsgCompressed{}
 
 	_, err = msgCompressed.Write(src)
 	if err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 
 	if msgCompressed.OriginalSize >= math.MaxInt32 {
-		return binaryutil.MakeNonRecycleBytes(nil), errors.New("original size too large")
+		return binaryutil.NilRecycleBytes, errors.New("original size too large")
 	}
 
 	rawBuf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(int(msgCompressed.OriginalSize)))
@@ -128,11 +128,11 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 
 	r, err := m.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
 	if err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 
 	if _, err = r.Read(rawBuf.Data()); err != nil && !errors.Is(err, io.EOF) {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 
 	return rawBuf, nil

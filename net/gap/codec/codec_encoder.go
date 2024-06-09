@@ -83,7 +83,7 @@ func (e Encoder) EncodeBytes(src string, seq int64, msg gap.Msg) (binaryutil.Rec
 // encode 编码消息包
 func (Encoder) encode(src string, seq int64, msg gap.Msg) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), fmt.Errorf("gap: %w: msg is nil", core.ErrArgs)
+		return binaryutil.NilRecycleBytes, fmt.Errorf("gap: %w: msg is nil", core.ErrArgs)
 	}
 
 	mp := gap.MsgPacket{
@@ -104,7 +104,7 @@ func (Encoder) encode(src string, seq int64, msg gap.Msg) (ret binaryutil.Recycl
 	}()
 
 	if _, err := mp.Read(mpBuf.Data()); err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 
 	return mpBuf, nil

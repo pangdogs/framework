@@ -8,6 +8,9 @@ import (
 // BytesPool 字节对象池，用于减少GC提高编解码性能
 var BytesPool = bytespool.NewCapacityPools(32, math.MaxInt32)
 
+// NilRecycleBytes 空字节对象
+var NilRecycleBytes = MakeNonRecycleBytes(nil)
+
 // MakeRecycleBytes 创建可回收字节对象
 func MakeRecycleBytes(bytes []byte) RecycleBytes {
 	return RecycleBytes{

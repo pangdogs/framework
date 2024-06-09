@@ -56,7 +56,7 @@ type EncryptionModule struct {
 // Transforming 变换数据
 func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.RecycleBytes, err error) {
 	if m.Cipher == nil {
-		return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Cipher is nil")
+		return binaryutil.NilRecycleBytes, errors.New("setting Cipher is nil")
 	}
 
 	var in []byte
@@ -88,11 +88,11 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 
 	if m.Cipher.Pad() {
 		if m.Padding == nil {
-			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Padding is nil")
+			return binaryutil.NilRecycleBytes, errors.New("setting Padding is nil")
 		}
 		err = m.Padding.Pad(in, len(src))
 		if err != nil {
-			return binaryutil.MakeNonRecycleBytes(nil), err
+			return binaryutil.NilRecycleBytes, err
 		}
 	}
 
@@ -100,27 +100,27 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 
 	if m.Cipher.NonceSize() > 0 {
 		if m.FetchNonce == nil {
-			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting FetchNonce is nil")
+			return binaryutil.NilRecycleBytes, errors.New("setting FetchNonce is nil")
 		}
 		nonce, err = generic.PairFuncError(m.FetchNonce.Invoke())
 		if err != nil {
-			return binaryutil.MakeNonRecycleBytes(nil), err
+			return binaryutil.NilRecycleBytes, err
 		}
 	}
 
 	ts, err := m.Cipher.Transforming(ret.Data(), in, nonce)
 	if err != nil {
-		return binaryutil.MakeNonRecycleBytes(nil), err
+		return binaryutil.NilRecycleBytes, err
 	}
 	ret = binaryutil.SliceRecycleBytes(ret, 0, ts)
 
 	if m.Cipher.Unpad() {
 		if m.Padding == nil {
-			return binaryutil.MakeNonRecycleBytes(nil), errors.New("setting Padding is nil")
+			return binaryutil.NilRecycleBytes, errors.New("setting Padding is nil")
 		}
 		buf, err := m.Padding.Unpad(ret.Data())
 		if err != nil {
-			return binaryutil.MakeNonRecycleBytes(nil), err
+			return binaryutil.NilRecycleBytes, err
 		}
 		ret = binaryutil.SliceRecycleBytes(ret, 0, len(buf))
 	}
