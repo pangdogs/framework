@@ -201,7 +201,7 @@ func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 0)
+	r2, err := parseRet[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -257,13 +257,13 @@ func Result3[T1, T2, T3 any](ret async.Ret) (rtp ResultTuple3[T1, T2, T3]) {
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 0)
+	r2, err := parseRet[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 0)
+	r3, err := parseRet[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
