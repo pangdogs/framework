@@ -16,8 +16,9 @@ func MakeValueBuff(v ValueReader) (*ValueBuff, error) {
 		Type: v.TypeId(),
 	}
 
-	if v.Size() > 0 {
-		buff := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(v.Size()))
+	s := v.Size()
+	if s > 0 {
+		buff := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(s))
 
 		if _, err := v.Read(buff.Data()); err != nil {
 			buff.Release()
