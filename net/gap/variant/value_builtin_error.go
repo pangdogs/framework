@@ -13,13 +13,17 @@ func MakeError(err error) *Error {
 
 	var varErr *Error
 	if !errors.As(err, &varErr) {
-		return &Error{
-			Code:    -1,
-			Message: err.Error(),
-		}
+		return BuildError(-1, err.Error())
 	}
 
 	return varErr
+}
+
+func BuildError(code int32, message string) *Error {
+	return &Error{
+		Code:    code,
+		Message: message,
+	}
 }
 
 // Error builtin error
