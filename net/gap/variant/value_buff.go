@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/util/binaryutil"
+	"io"
 )
 
 // MakeValueBuff 创建ValueBuff
@@ -42,11 +43,10 @@ type ValueBuff struct {
 
 // Read implements io.Reader
 func (v *ValueBuff) Read(p []byte) (int, error) {
-	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteBytes(v.Buff.Data()); err != nil {
-		return bs.BytesWritten(), err
+	if len(p) < len(v.Buff.Data()) {
+		return 0, io.ErrShortWrite
 	}
-	return bs.BytesWritten(), nil
+	return copy(p, v.Buff.Data()), nil
 }
 
 // Size 大小
