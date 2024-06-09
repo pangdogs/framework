@@ -48,6 +48,10 @@ retry:
 		return types.ZeroT[T](), ErrMethodResultTypeMismatch
 	}
 
+	if retRV.IsNil() {
+		return types.ZeroT[T](), nil
+	}
+
 	return retRV.Interface().(T), nil
 }
 
