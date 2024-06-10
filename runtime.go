@@ -7,6 +7,7 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dentr"
 	"git.golaxy.org/framework/plugins/log"
@@ -24,6 +25,7 @@ type iRuntimeGeneric interface {
 
 type _RuntimeSettings struct {
 	Name                 string
+	PersistId            uid.Id
 	AutoRecover          bool
 	ReportError          chan error
 	FPS                  float32
@@ -81,6 +83,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	rtCtx := runtime.NewContext(r.GetService(),
 		runtime.With.Context.CompositeFace(face),
 		runtime.With.Context.Name(settings.Name),
+		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
 		runtime.With.Context.RunningHandler(generic.MakeDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
 			inst := reinterpret.Cast[IRuntimeInstance](ctx)

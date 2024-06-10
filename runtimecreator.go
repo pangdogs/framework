@@ -6,6 +6,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/uid"
 )
 
 // CreateRuntime 创建运行时
@@ -18,6 +19,7 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 		generic: nil,
 		settings: _RuntimeSettings{
 			Name:                 "",
+			PersistId:            uid.Nil,
 			AutoRecover:          ctx.GetAutoRecover(),
 			ReportError:          ctx.GetReportError(),
 			FPS:                  0,
@@ -55,6 +57,12 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 // Name 名称
 func (c RuntimeCreator) Name(name string) RuntimeCreator {
 	c.settings.Name = name
+	return c
+}
+
+// PersistId 持久化Id
+func (c RuntimeCreator) PersistId(id uid.Id) RuntimeCreator {
+	c.settings.PersistId = id
 	return c
 }
 
