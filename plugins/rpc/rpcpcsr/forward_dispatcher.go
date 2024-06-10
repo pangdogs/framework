@@ -158,13 +158,13 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			retsRV, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
 				log.Debugf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 			}
-			p.reply(src, transit, req.CorrId, retsRV, err)
+			p.reply(src, transit, req.CorrId, rets, err)
 		}()
 
 		return nil

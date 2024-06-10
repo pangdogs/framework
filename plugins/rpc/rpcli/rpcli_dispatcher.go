@@ -38,10 +38,11 @@ func (c *RPCli) acceptNotify(req *gap.MsgOneWayRPC) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		if _, err := c.callProc(cp.EntityId, cp.Method, req.Args); err != nil {
+		if rets, err := c.callProc(cp.EntityId, cp.Method, req.Args); err != nil {
 			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.EntityId, cp.Method, err)
 		} else {
 			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.EntityId, cp.Method)
+			rets.Release()
 		}
 		return nil
 	}
@@ -59,33 +60,29 @@ func (c *RPCli) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		retsRV, err := c.callProc(cp.EntityId, cp.Method, req.Args)
+		rets, err := c.callProc(cp.EntityId, cp.Method, req.Args)
 		if err != nil {
 			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Method, err)
 		} else {
 			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Method)
 		}
-		go c.reply(src, req.CorrId, retsRV, err)
+		go c.reply(src, req.CorrId, rets, err)
 		return nil
 	}
 
 	return nil
 }
 
-func (c *RPCli) reply(src string, corrId int64, retsRV []reflect.Value, retErr error) {
+func (c *RPCli) reply(src string, corrId int64, rets variant.Array, retErr error) {
+	defer rets.Release()
+
 	if corrId == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-	}
-
-	var err error
-	msg.Rets, err = variant.MakeArrayReadonly(retsRV)
-	if err != nil {
-		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
-		return
+		Rets:   rets,
 	}
 
 	if retErr != nil {
@@ -135,7 +132,7 @@ func (c *RPCli) resolve(reply *gap.MsgRPCReply) error {
 	return c.GetFutures().Resolve(reply.CorrId, ret)
 }
 
-func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (rets []reflect.Value, err error) {
+func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (rets variant.Array, err error) {
 	proc, ok := c.procs.Get(entityId)
 	if !ok {
 		return nil, ErrEntityNotFound
@@ -151,7 +148,7 @@ func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (re
 		return nil, err
 	}
 
-	return methodRV.Call(argsRV), nil
+	return variant.MakeArrayBuffReadonly(methodRV.Call(argsRV))
 }
 
 func parseArgs(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
