@@ -25,8 +25,12 @@ import (
 )
 
 var (
-	ErrGroupExisted = errors.New("router: group already existed")
-	ErrGroupDeleted = errors.New("router: group already deleted")
+	ErrEntityNotFound  = errors.New("router: entity not found")
+	ErrSessionNotFound = errors.New("router: session not found")
+	ErrEntityMapped    = errors.New("router: entity is already mapping")
+	ErrSessionMapped   = errors.New("router: session is already mapping")
+	ErrGroupExisted    = errors.New("router: group already existed")
+	ErrGroupDeleted    = errors.New("router: group already deleted")
 )
 
 // IRouter 路由器接口
@@ -120,12 +124,12 @@ func (r *_Router) ShutSP(ctx service.Context) {
 func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 	entity, ok := r.servCtx.GetEntityMgr().GetEntity(entityId)
 	if !ok {
-		return nil, errors.New("router: entity not found")
+		return nil, ErrEntityNotFound
 	}
 
 	session, ok := r.gate.GetSession(sessionId)
 	if !ok {
-		return nil, errors.New("router: session not found")
+		return nil, ErrSessionNotFound
 	}
 
 	var ret IMapping
@@ -133,12 +137,12 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 
 	r.planning.AutoLock(func(planning *map[uid.Id]*_Mapping) {
 		if _, ok := (*planning)[entityId]; ok {
-			err = errors.New("router: entity is already mapping")
+			err = ErrEntityMapped
 			return
 		}
 
 		if _, ok := (*planning)[sessionId]; ok {
-			err = errors.New("router: session is already mapping")
+			err = ErrSessionMapped
 			return
 		}
 
@@ -258,7 +262,7 @@ func (r *_Router) GetOrAddGroup(ctx context.Context, groupId uid.Id, ttl time.Du
 		etcdv3.WithSerializable())
 
 	rsp, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "<=", 0)).
+		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
 		Then(opsPut...).
 		Else(opGet).
 		Commit()
@@ -346,7 +350,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupId uid.Id, ttl time.Duratio
 	}
 
 	rsp, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "<=", 0)).
+		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
 		Then(opsPut...).
 		Commit()
 	if err != nil {
