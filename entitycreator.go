@@ -102,7 +102,7 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 		if c.rtCreator.servCtx != nil {
 			rt = c.rtCreator.Spawn()
 		} else {
-			rt = CreateRuntime(c.ctx).Spawn()
+			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
@@ -141,7 +141,7 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 		if c.rtCreator.servCtx != nil {
 			rt = c.rtCreator.Spawn()
 		} else {
-			rt = CreateRuntime(c.ctx).Spawn()
+			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
