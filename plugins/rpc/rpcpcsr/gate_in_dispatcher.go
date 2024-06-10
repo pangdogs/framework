@@ -57,7 +57,7 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 	}
 
 	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
-		return node.Service == req.Dst
+		return node.Service == req.Dst || node.RemoteAddr == req.Dst
 	})
 	if nodeIdx < 0 {
 		go p.finishInbound(session, req.Dst, req.CorrId, ErrDistEntityNodeNotFound)
