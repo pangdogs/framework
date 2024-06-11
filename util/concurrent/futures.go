@@ -27,7 +27,6 @@ type (
 // IFutures Future控制器接口
 type IFutures interface {
 	iFutures
-
 	// Make 创建Future
 	Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future
 	// Request 请求

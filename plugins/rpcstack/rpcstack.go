@@ -9,7 +9,6 @@ import (
 // IRPCStack RPC调用堆栈支持
 type IRPCStack interface {
 	iRPCStack
-
 	// CallChain 调用链
 	CallChain() CallChain
 	// Variables 栈变量

@@ -5,10 +5,6 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
-type ISliceEachElement[T any] interface {
-	Each(fun generic.Action1[T])
-}
-
 func MakeLockedSlice[T any](len, cap int) LockedSlice[T] {
 	return LockedSlice[T]{
 		RWLocked: MakeRWLocked[[]T](make([]T, len, cap)),

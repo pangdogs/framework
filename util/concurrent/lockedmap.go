@@ -2,10 +2,6 @@ package concurrent
 
 import "git.golaxy.org/core/utils/generic"
 
-type IMapEachElement[K comparable, V any] interface {
-	Each(fun generic.Action2[K, V])
-}
-
 func MakeLockedMap[K comparable, V any](size int) LockedMap[K, V] {
 	return LockedMap[K, V]{
 		RWLocked: MakeRWLocked(make(map[K]V, size)),

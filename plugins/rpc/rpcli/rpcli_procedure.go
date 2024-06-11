@@ -13,7 +13,6 @@ var (
 // IProcedure 过程接口
 type IProcedure interface {
 	iProcedure
-
 	// GetCli 获取RPC客户端
 	GetCli() *RPCli
 	// GetId 获取实体Id
