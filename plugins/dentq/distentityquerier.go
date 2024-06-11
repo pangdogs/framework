@@ -109,7 +109,7 @@ func (d *_DistEntityQuerier) ShutSP(ctx service.Context) {
 func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	entity, ok := d.cache.Get(id)
 	if ok {
-		return nil, true
+		return entity, true
 	}
 
 	rsp, err := d.client.Get(d.servCtx, path.Join(d.options.KeyPrefix, id.String()),
