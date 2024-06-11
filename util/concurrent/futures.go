@@ -17,7 +17,6 @@ var (
 	ErrFutureCanceled          = errors.New("future canceled")                          // Future被取消
 	ErrFutureTimeout           = errors.New("future timeout")                           // Future超时
 	ErrFutureRespIncorrectType = errors.New("future response has incorrect value type") // Future响应的返回值类型错误
-	ErrFutureReplyClosed       = errors.New("future reply closed")                      // Future答复已关闭
 )
 
 type (
