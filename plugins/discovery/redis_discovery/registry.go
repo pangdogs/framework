@@ -294,8 +294,8 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	for i := range services {
 		service := services[i]
 
-		idx := pie.FindFirstUsing(rets, func(value discovery.Service) bool {
-			return value.Name == service.Name
+		idx := pie.FindFirstUsing(rets, func(ret discovery.Service) bool {
+			return ret.Name == service.Name
 		})
 		if idx < 0 {
 			rets = append(rets, *service)

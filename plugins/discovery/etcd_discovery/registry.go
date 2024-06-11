@@ -281,8 +281,8 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 
 		serviceNode.Revision = rsp.Header.Revision
 
-		idx := pie.FindFirstUsing(services, func(value discovery.Service) bool {
-			return value.Name == serviceNode.Name
+		idx := pie.FindFirstUsing(services, func(service discovery.Service) bool {
+			return service.Name == serviceNode.Name
 		})
 		if idx < 0 {
 			services = append(services, *serviceNode)

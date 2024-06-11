@@ -77,8 +77,8 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, node
 		return nil, discovery.ErrNotFound
 	}
 
-	idx := pie.FindFirstUsing(services.Nodes, func(value discovery.Node) bool {
-		return value.Id == nodeId
+	idx := pie.FindFirstUsing(services.Nodes, func(node discovery.Node) bool {
+		return node.Id == nodeId
 	})
 	if idx < 0 {
 		return nil, discovery.ErrNotFound
@@ -195,8 +195,8 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 
 		serviceCopy := service.DeepCopy()
 
-		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(value discovery.Node) bool {
-			return value.Id == event.Service.Nodes[0].Id
+		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(node discovery.Node) bool {
+			return node.Id == event.Service.Nodes[0].Id
 		})
 		if idx < 0 {
 			serviceCopy.Nodes = append(serviceCopy.Nodes, event.Service.Nodes[0])
@@ -216,8 +216,8 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 
 		serviceCopy := service.DeepCopy()
 
-		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(value discovery.Node) bool {
-			return value.Id == event.Service.Nodes[0].Id
+		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(node discovery.Node) bool {
+			return node.Id == event.Service.Nodes[0].Id
 		})
 		if idx < 0 {
 			return
