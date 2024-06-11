@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"sync"
 	"sync/atomic"
@@ -70,6 +71,19 @@ func (c *Cache[K, V]) Get(k K) (V, bool) {
 	item.expireNano.CompareAndSwap(expireNano, now+item.ttl.Nanoseconds())
 
 	return item.value, true
+}
+
+func (c *Cache[K, V]) Snapshot() generic.UnorderedSliceMap[K, V] {
+	c.mutex.RLock()
+	defer c.mutex.RLock()
+
+	sliceMap := make(generic.UnorderedSliceMap[K, V], 0, len(c.items))
+
+	for _, item := range c.items {
+		sliceMap.Add(item.key, item.value)
+	}
+
+	return sliceMap
 }
 
 func (c *Cache[K, V]) Del(k K, revision int64) {
