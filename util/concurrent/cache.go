@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	CacheDefaultCleanNum      = 64
+	CacheDefaultCleanInterval = 30 * time.Second
+)
+
 func NewCache[K comparable, V any]() *Cache[K, V] {
 	cache := &Cache[K, V]{
 		items: make(map[K]*_CacheItem[K, V]),
@@ -106,7 +111,7 @@ func (c *Cache[K, V]) Del(k K, revision int64) {
 
 func (c *Cache[K, V]) Clean(num int) {
 	if num <= 0 {
-		num = 64
+		num = CacheDefaultCleanNum
 	}
 
 	now := time.Now().UnixNano()
@@ -139,11 +144,11 @@ func (c *Cache[K, V]) AutoClean(ctx context.Context, interval time.Duration, num
 	}
 
 	if interval <= 0 {
-		interval = time.Minute
+		interval = CacheDefaultCleanInterval
 	}
 
 	if num <= 0 {
-		num = 64
+		num = CacheDefaultCleanNum
 	}
 
 	go func() {
