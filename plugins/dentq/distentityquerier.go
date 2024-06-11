@@ -10,7 +10,6 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/elliotchance/pie/v2"
 	"github.com/josharian/intern"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"path"
@@ -87,7 +86,7 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 	}
 
 	d.cache = concurrent.NewCache[uid.Id, *DistEntity]()
-	d.cache.AutoClean(d.servCtx, 30*time.Second, 512)
+	d.cache.AutoClean(d.servCtx, 30*time.Second, 256)
 
 	d.wg.Add(1)
 	go d.mainLoop()
@@ -145,7 +144,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		entity.Nodes = append(entity.Nodes, node)
 	}
 
-	d.cache.Set(id, entity, rsp.Header.Revision, d.options.CacheExpiry)
+	d.cache.Set(id, entity, entity.Revision, d.options.CacheExpiry)
 
 	return entity, true
 }
@@ -157,7 +156,6 @@ func (d *_DistEntityQuerier) mainLoop() {
 
 retry:
 	var watchChan etcdv3.WatchChan
-	var uniqueList []string
 	retryInterval := 3 * time.Second
 
 	select {
@@ -180,24 +178,17 @@ retry:
 			goto retry
 		}
 
-		uniqueList = uniqueList[:0]
-
 		for _, event := range watchRsp.Events {
 			subs := strings.Split(strings.TrimPrefix(string(event.Kv.Key), d.options.KeyPrefix), "/")
 			if len(subs) != 3 {
 				continue
 			}
 
-			id := subs[0]
+			entityId := uid.From(subs[0])
 
 			switch event.Type {
 			case etcdv3.EventTypePut, etcdv3.EventTypeDelete:
-				if pie.Contains(uniqueList, id) {
-					continue
-				}
-				uniqueList = append(uniqueList, id)
-
-				d.cache.Del(uid.From(id), event.Kv.ModRevision)
+				d.cache.Del(entityId, watchRsp.Header.Revision)
 			}
 		}
 	}

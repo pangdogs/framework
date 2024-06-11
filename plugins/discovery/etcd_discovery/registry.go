@@ -279,7 +279,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 			continue
 		}
 
-		serviceNode.Revision = kv.ModRevision
+		serviceNode.Revision = rsp.Header.Revision
 
 		idx := pie.FindFirstUsing(services, func(value discovery.Service) bool {
 			return value.Name == serviceNode.Name
@@ -391,7 +391,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 	r.registers.AutoLock(func(registers *map[string]*_Register) {
 		register, ok := (*registers)[nodePath]
 		if ok {
-			if register.revision > rsp.Header.Revision {
+			if register.revision >= rsp.Header.Revision {
 				return
 			}
 		}

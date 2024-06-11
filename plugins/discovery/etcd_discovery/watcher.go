@@ -88,49 +88,49 @@ func (w *_Watcher) mainLoop() {
 			return
 		}
 
-		for _, etcdEvent := range watchRsp.Events {
-			event := &discovery.Event{}
+		for _, event := range watchRsp.Events {
+			ret := &discovery.Event{}
 			var err error
 
-			switch etcdEvent.Type {
+			switch event.Type {
 			case etcdv3.EventTypePut:
-				if etcdEvent.IsCreate() {
-					event.Type = discovery.Create
-				} else if etcdEvent.IsModify() {
-					event.Type = discovery.Update
+				if event.IsCreate() {
+					ret.Type = discovery.Create
+				} else if event.IsModify() {
+					ret.Type = discovery.Update
 				}
 
 				// get service from Kv
-				event.Service, err = decodeService(etcdEvent.Kv.Value)
+				ret.Service, err = decodeService(event.Kv.Value)
 				if err != nil {
-					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", etcdEvent.Kv.Value, err)
+					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", event.Kv.Value, err)
 					continue
 				}
 
 			case etcdv3.EventTypeDelete:
-				event.Type = discovery.Delete
+				ret.Type = discovery.Delete
 
 				// get service from prevKv
-				event.Service, err = decodeService(etcdEvent.PrevKv.Value)
+				ret.Service, err = decodeService(event.PrevKv.Value)
 				if err != nil {
-					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", etcdEvent.PrevKv.Value, err)
+					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", event.PrevKv.Value, err)
 					continue
 				}
 
 			default:
-				log.Errorf(w.registry.servCtx, "unknown event type %q", etcdEvent.Type)
+				log.Errorf(w.registry.servCtx, "unknown event type %q", event.Type)
 				continue
 			}
 
-			if len(event.Service.Nodes) <= 0 {
-				log.Warnf(w.registry.servCtx, "event service %q node is empty, discard it", event.Service.Name)
+			if len(ret.Service.Nodes) <= 0 {
+				log.Warnf(w.registry.servCtx, "event service %q node is empty, discard it", ret.Service.Name)
 				continue
 			}
 
-			event.Service.Revision = etcdEvent.Kv.ModRevision
+			ret.Service.Revision = watchRsp.Header.Revision
 
 			select {
-			case w.eventChan <- event:
+			case w.eventChan <- ret:
 			case <-w.ctx.Done():
 				log.Debugf(w.registry.servCtx, "stop watch %q", w.pattern)
 				return
