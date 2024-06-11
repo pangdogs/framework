@@ -9,9 +9,9 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/util/concurrent"
 	"github.com/elliotchance/pie/v2"
 	"github.com/josharian/intern"
-	"github.com/muesli/cache2go"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"path"
 	"strings"
@@ -55,7 +55,7 @@ type _DistEntityQuerier struct {
 	distServ dserv.IDistService
 	client   *etcdv3.Client
 	wg       sync.WaitGroup
-	cache    *cache2go.CacheTable
+	cache    *concurrent.Cache[uid.Id, *DistEntity]
 }
 
 // InitSP 初始化服务插件
@@ -86,7 +86,8 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 		}()
 	}
 
-	d.cache = cache2go.Cache(self.Name)
+	d.cache = concurrent.NewCache[uid.Id, *DistEntity]()
+	d.cache.AutoClean(d.servCtx, 30*time.Second, 512)
 
 	d.wg.Add(1)
 	go d.mainLoop()
@@ -107,9 +108,9 @@ func (d *_DistEntityQuerier) ShutSP(ctx service.Context) {
 
 // GetDistEntity 查询分布式实体
 func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
-	item, err := d.cache.Value(id)
-	if err == nil {
-		return item.Data().(*DistEntity), true
+	entity, ok := d.cache.Get(id)
+	if ok {
+		return nil, true
 	}
 
 	rsp, err := d.client.Get(d.servCtx, path.Join(d.options.KeyPrefix, id.String()),
@@ -121,7 +122,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		return nil, false
 	}
 
-	entity := &DistEntity{
+	entity = &DistEntity{
 		Id:       id,
 		Nodes:    make([]Node, 0, len(rsp.Kvs)),
 		Revision: rsp.Header.Revision,
@@ -144,7 +145,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		entity.Nodes = append(entity.Nodes, node)
 	}
 
-	d.cache.NotFoundAdd(id, d.options.CacheExpiry, entity)
+	d.cache.Set(id, entity, rsp.Header.Revision, d.options.CacheExpiry)
 
 	return entity, true
 }
@@ -195,7 +196,8 @@ retry:
 					continue
 				}
 				uniqueList = append(uniqueList, id)
-				d.cache.Delete(uid.From(id))
+
+				d.cache.Del(uid.From(id), event.Kv.ModRevision)
 			}
 		}
 	}

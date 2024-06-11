@@ -150,6 +150,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 
 		mapping := &_Mapping{
 			Context:   ctx,
+			router:    r,
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
@@ -160,7 +161,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 		(*planning)[entityId] = mapping
 		(*planning)[sessionId] = mapping
 
-		go mapping.mainLoop(r)
+		go mapping.mainLoop()
 	})
 
 	return ret, err

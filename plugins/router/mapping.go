@@ -19,6 +19,7 @@ type IMapping interface {
 
 type _Mapping struct {
 	context.Context
+	router    *_Router
 	terminate context.CancelFunc
 	entity    ec.ConcurrentEntity
 	session   gate.ISession
@@ -40,11 +41,11 @@ func (m *_Mapping) GetCliAddr() string {
 	return m.cliAddr
 }
 
-func (m *_Mapping) mainLoop(router *_Router) {
+func (m *_Mapping) mainLoop() {
 	select {
 	case <-m.Done():
 		return
 	case <-m.session.Done():
-		router.CleanSession(m.session.GetId())
+		m.router.CleanSession(m.session.GetId())
 	}
 }
