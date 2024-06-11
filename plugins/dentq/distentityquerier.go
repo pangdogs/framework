@@ -144,9 +144,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		entity.Nodes = append(entity.Nodes, node)
 	}
 
-	d.cache.Set(id, entity, entity.Revision, d.options.CacheExpiry)
-
-	return entity, true
+	return d.cache.Set(id, entity, entity.Revision, d.options.CacheExpiry), true
 }
 
 func (d *_DistEntityQuerier) mainLoop() {

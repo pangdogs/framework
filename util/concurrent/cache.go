@@ -28,7 +28,7 @@ type Cache[K comparable, V any] struct {
 	items map[K]*_CacheItem[K, V]
 }
 
-func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) {
+func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 	now := time.Now().UnixNano()
 
 	c.mutex.Lock()
@@ -37,7 +37,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) {
 	item, ok := c.items[k]
 	if ok {
 		if now < item.expireNano.Load() && revision <= item.revision {
-			return
+			return item.value
 		}
 	}
 
@@ -50,6 +50,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) {
 	item.expireNano.Store(now + ttl.Nanoseconds())
 
 	c.items[k] = item
+	return v
 }
 
 func (c *Cache[K, V]) Get(k K) (V, bool) {
