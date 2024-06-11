@@ -18,20 +18,20 @@ import (
 // newRegistry 创建registry cache插件，在本地缓存其他registry插件返回的数据
 func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:    option.Make(With.Default(), settings...),
-		serviceMap: concurrent.MakeLockedMap[string, *discovery.Service](0),
+		options: option.Make(With.Default(), settings...),
+		cache:   concurrent.MakeLockedMap[string, *discovery.Service](0),
 	}
 }
 
 type _Registry struct {
 	discovery.IRegistry
-	ctx        context.Context
-	terminate  context.CancelFunc
-	options    RegistryOptions
-	servCtx    service.Context
-	wg         sync.WaitGroup
-	serviceMap concurrent.LockedMap[string, *discovery.Service]
-	revision   int64
+	ctx       context.Context
+	terminate context.CancelFunc
+	options   RegistryOptions
+	servCtx   service.Context
+	wg        sync.WaitGroup
+	cache     concurrent.LockedMap[string, *discovery.Service]
+	revision  int64
 }
 
 // InitSP 初始化服务插件
@@ -72,7 +72,7 @@ func (r *_Registry) ShutSP(ctx service.Context) {
 
 // GetServiceNode 查询服务节点
 func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
-	services, ok := r.serviceMap.Get(serviceName)
+	services, ok := r.cache.Get(serviceName)
 	if !ok {
 		return nil, discovery.ErrNotFound
 	}
@@ -95,7 +95,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, node
 
 // GetService 查询服务
 func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discovery.Service, error) {
-	services, ok := r.serviceMap.Get(serviceName)
+	services, ok := r.cache.Get(serviceName)
 	if !ok {
 		return nil, discovery.ErrNotFound
 	}
@@ -105,9 +105,9 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 
 // ListServices 查询所有服务
 func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, error) {
-	allServices := make([]discovery.Service, 0, r.serviceMap.Len())
+	allServices := make([]discovery.Service, 0, r.cache.Len())
 
-	r.serviceMap.AutoRLock(func(allServicesMap *map[string]*discovery.Service) {
+	r.cache.AutoRLock(func(allServicesMap *map[string]*discovery.Service) {
 		for _, value := range *allServicesMap {
 			allServices = append(allServices, *value)
 		}
@@ -174,7 +174,7 @@ func (r *_Registry) refreshCache() error {
 		if r.revision < service.Revision {
 			r.revision = service.Revision
 		}
-		r.serviceMap.Insert(service.Name, &service)
+		r.cache.Insert(service.Name, &service)
 	}
 
 	return nil
@@ -187,9 +187,9 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 
 	switch event.Type {
 	case discovery.Create, discovery.Update:
-		service, ok := r.serviceMap.Get(event.Service.Name)
+		service, ok := r.cache.Get(event.Service.Name)
 		if !ok {
-			r.serviceMap.Insert(event.Service.Name, event.Service)
+			r.cache.Insert(event.Service.Name, event.Service)
 			return
 		}
 
@@ -200,16 +200,16 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 		})
 		if idx < 0 {
 			serviceCopy.Nodes = append(serviceCopy.Nodes, event.Service.Nodes[0])
-			r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
+			r.cache.Insert(serviceCopy.Name, serviceCopy)
 			return
 		}
 
 		serviceCopy.Nodes[idx] = event.Service.Nodes[0]
-		r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
+		r.cache.Insert(serviceCopy.Name, serviceCopy)
 		return
 
 	case discovery.Delete:
-		service, ok := r.serviceMap.Get(event.Service.Name)
+		service, ok := r.cache.Get(event.Service.Name)
 		if !ok {
 			return
 		}
@@ -224,7 +224,7 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 		}
 
 		pie.Delete(serviceCopy.Nodes, idx)
-		r.serviceMap.Insert(serviceCopy.Name, serviceCopy)
+		r.cache.Insert(serviceCopy.Name, serviceCopy)
 		return
 	}
 }
