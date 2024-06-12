@@ -4,8 +4,8 @@ import "git.golaxy.org/framework/util/binaryutil"
 
 // MsgPacket 消息包
 type MsgPacket struct {
-	Head MsgHead // 消息头
-	Msg  Msg     // 消息
+	Head MsgHead   // 消息头
+	Msg  MsgReader // 消息
 }
 
 // Read implements io.Reader
@@ -25,25 +25,6 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 	}
 
 	return bs.BytesWritten(), nil
-}
-
-// Write implements io.Writer
-func (mp *MsgPacket) Write(p []byte) (int, error) {
-	bs := binaryutil.NewBigEndianStream(p)
-
-	if _, err := bs.WriteTo(&mp.Head); err != nil {
-		return bs.BytesRead(), err
-	}
-
-	if mp.Msg == nil {
-		return bs.BytesRead(), nil
-	}
-
-	if _, err := bs.WriteTo(mp.Msg); err != nil {
-		return bs.BytesRead(), err
-	}
-
-	return bs.BytesRead(), nil
 }
 
 // Size 大小

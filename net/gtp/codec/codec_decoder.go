@@ -149,7 +149,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err := mp.Write(mpBuf.Data())
+	_, err := mp.Head.Write(mpBuf.Data())
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg-packet-head failed, %w", err)
 	}
@@ -208,16 +208,18 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	}
 
 	// 创建消息体
-	mp.Msg, err = d.MsgCreator.New(mp.Head.MsgId)
+	msg, err := d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("gtp: new msg failed, %w (%d)", err, mp.Head.MsgId)
 	}
 
 	// 读取消息
-	_, err = mp.Msg.Write(msgBuf)
+	_, err = msg.Write(msgBuf)
 	if err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg failed, %w", err)
 	}
+
+	mp.Msg = msg
 
 	return mp, nil
 }

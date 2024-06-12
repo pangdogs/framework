@@ -43,12 +43,12 @@ func (e *Encoder) Reset() {
 }
 
 // Encode 编码消息包，写入缓存
-func (e *Encoder) Encode(src string, seq int64, msg gap.Msg) error {
+func (e *Encoder) Encode(src string, seq int64, msg gap.MsgReader) error {
 	return e.EncodeWriter(&e.buffer, src, seq, msg)
 }
 
 // EncodeWriter 编码消息包，写入指定writer
-func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.Msg) error {
+func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.MsgReader) error {
 	if writer == nil {
 		return fmt.Errorf("gap: %w: writer is nil", core.ErrArgs)
 	}
@@ -68,7 +68,7 @@ func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.M
 }
 
 // EncodeBuff 编码消息包，写入指定buffer
-func (e Encoder) EncodeBuff(buff *bytes.Buffer, src string, seq int64, msg gap.Msg) error {
+func (e Encoder) EncodeBuff(buff *bytes.Buffer, src string, seq int64, msg gap.MsgReader) error {
 	if buff == nil {
 		return fmt.Errorf("gap: %w: buff is nil", core.ErrArgs)
 	}
@@ -76,12 +76,12 @@ func (e Encoder) EncodeBuff(buff *bytes.Buffer, src string, seq int64, msg gap.M
 }
 
 // EncodeBytes 编码消息包，返回可回收bytes
-func (e Encoder) EncodeBytes(src string, seq int64, msg gap.Msg) (binaryutil.RecycleBytes, error) {
+func (e Encoder) EncodeBytes(src string, seq int64, msg gap.MsgReader) (binaryutil.RecycleBytes, error) {
 	return e.encode(src, seq, msg)
 }
 
 // encode 编码消息包
-func (Encoder) encode(src string, seq int64, msg gap.Msg) (ret binaryutil.RecycleBytes, err error) {
+func (Encoder) encode(src string, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("gap: %w: msg is nil", core.ErrArgs)
 	}
