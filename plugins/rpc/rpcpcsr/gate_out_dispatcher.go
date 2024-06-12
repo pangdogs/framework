@@ -37,7 +37,7 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgRaw{Id: req.TransId, Data: req.TransData})
+			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
@@ -63,7 +63,7 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 			return
 		}
 
-		bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgRaw{Id: req.TransId, Data: req.TransData})
+		bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 		if err != nil {
 			go p.finishOutbound(src, req, err)
 			return

@@ -35,7 +35,7 @@ func MakeValueBuff(v ValueReader) (*ValueBuff, error) {
 	return valueBuff, nil
 }
 
-// ValueBuff ValueBuff
+// ValueBuff value buff
 type ValueBuff struct {
 	Type TypeId
 	Buff binaryutil.RecycleBytes
