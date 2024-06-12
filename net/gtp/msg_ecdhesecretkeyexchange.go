@@ -193,8 +193,8 @@ func (MsgECDHESecretKeyExchange) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgECDHESecretKeyExchange) Clone() Msg {
-	return &MsgECDHESecretKeyExchange{
+func (m MsgECDHESecretKeyExchange) Clone() MsgReader {
+	return MsgECDHESecretKeyExchange{
 		NamedCurve:         m.NamedCurve,
 		PublicKey:          bytes.Clone(m.PublicKey),
 		IV:                 bytes.Clone(m.IV),

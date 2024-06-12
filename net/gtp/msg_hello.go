@@ -209,8 +209,8 @@ func (MsgHello) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgHello) Clone() Msg {
-	return &MsgHello{
+func (m MsgHello) Clone() MsgReader {
+	return MsgHello{
 		Version:     m.Version,
 		SessionId:   strings.Clone(m.SessionId),
 		Random:      bytes.Clone(m.Random),

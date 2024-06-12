@@ -8,8 +8,8 @@ import (
 )
 
 type (
-	EventHandler = generic.DelegateFunc1[Event[gtp.Msg], error] // 消息事件处理器
-	ErrorHandler = generic.DelegateAction1[error]               // 错误处理器
+	EventHandler = generic.DelegateFunc1[Event[gtp.MsgReader], error] // 消息事件处理器
+	ErrorHandler = generic.DelegateAction1[error]                     // 错误处理器
 )
 
 // EventDispatcher 消息事件分发器
@@ -83,7 +83,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 	}
 }
 
-func (d *EventDispatcher) retryRecv(ctx context.Context) (Event[gtp.Msg], error) {
+func (d *EventDispatcher) retryRecv(ctx context.Context) (Event[gtp.MsgReader], error) {
 	e, err := d.Transceiver.Recv(ctx)
 	return Retry{
 		Transceiver: d.Transceiver,

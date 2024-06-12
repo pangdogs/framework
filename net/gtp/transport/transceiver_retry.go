@@ -43,7 +43,7 @@ func (r Retry) Send(err error) error {
 }
 
 // Recv 重试接收
-func (r Retry) Recv(e Event[gtp.Msg], err error) (Event[gtp.Msg], error) {
+func (r Retry) Recv(e Event[gtp.MsgReader], err error) (Event[gtp.MsgReader], error) {
 	if err == nil {
 		return e, nil
 	}

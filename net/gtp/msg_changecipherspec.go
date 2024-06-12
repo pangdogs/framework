@@ -48,7 +48,7 @@ func (MsgChangeCipherSpec) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgChangeCipherSpec) Clone() Msg {
+func (m MsgChangeCipherSpec) Clone() MsgReader {
 	return &MsgChangeCipherSpec{
 		EncryptedHello: bytes.Clone(m.EncryptedHello),
 	}

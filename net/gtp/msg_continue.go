@@ -51,6 +51,6 @@ func (MsgContinue) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m MsgContinue) Clone() Msg {
-	return &m
+func (m MsgContinue) Clone() MsgReader {
+	return m
 }

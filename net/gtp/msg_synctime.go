@@ -66,6 +66,6 @@ func (MsgSyncTime) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m MsgSyncTime) Clone() Msg {
-	return &m
+func (m MsgSyncTime) Clone() MsgReader {
+	return m
 }

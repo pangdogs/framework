@@ -24,7 +24,7 @@ func (t *TransProtocol) SendData(data []byte) error {
 	}
 	return t.retrySend(t.Transceiver.Send(Event[gtp.MsgPayload]{
 		Msg: gtp.MsgPayload{Data: data},
-	}.Pack()))
+	}.Interface()))
 }
 
 func (t *TransProtocol) retrySend(err error) error {
@@ -35,7 +35,7 @@ func (t *TransProtocol) retrySend(err error) error {
 }
 
 // HandleEvent 消息事件处理器
-func (t *TransProtocol) HandleEvent(e Event[gtp.Msg]) error {
+func (t *TransProtocol) HandleEvent(e Event[gtp.MsgReader]) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
 		var errs []error
@@ -45,7 +45,7 @@ func (t *TransProtocol) HandleEvent(e Event[gtp.Msg]) error {
 				errs = append(errs, err)
 			}
 			return false
-		}, UnpackEvent[gtp.MsgPayload](e))
+		}, EventT[gtp.MsgPayload](e))
 
 		if len(errs) > 0 {
 			return errors.Join(errs...)

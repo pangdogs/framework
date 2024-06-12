@@ -63,7 +63,7 @@ type ISession interface {
 	// SendEventChan 发送自定义事件的channel
 	SendEventChan() chan<- transport.Event[gtp.MsgReader]
 	// RecvEventChan 接收自定义事件的channel
-	RecvEventChan() <-chan transport.Event[gtp.Msg]
+	RecvEventChan() <-chan transport.Event[gtp.MsgReader]
 	// Close 关闭
 	Close(err error) <-chan struct{}
 }
@@ -199,7 +199,7 @@ func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.Msg] {
+func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.MsgReader] {
 	if s.options.RecvEventChan == nil {
 		log.Panicf(s.gate.servCtx, "receive event channel size less equal 0, can't be used")
 	}

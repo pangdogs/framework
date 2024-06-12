@@ -58,6 +58,6 @@ func (MsgFinished) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m MsgFinished) Clone() Msg {
-	return &m
+func (m MsgFinished) Clone() MsgReader {
+	return m
 }

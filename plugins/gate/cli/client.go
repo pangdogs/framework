@@ -106,7 +106,7 @@ func (c *Client) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	return transport.Retry{
 		Transceiver: &c.transceiver,
 		Times:       c.options.IORetryTimes,
-	}.Send(c.transceiver.Send(event.Pack()))
+	}.Send(c.transceiver.Send(event.Interface()))
 }
 
 // WatchEvent 监听自定义事件
@@ -139,7 +139,7 @@ func (c *Client) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (c *Client) RecvEventChan() <-chan transport.Event[gtp.Msg] {
+func (c *Client) RecvEventChan() <-chan transport.Event[gtp.MsgReader] {
 	if c.options.RecvEventChan == nil {
 		c.logger.Panic("receive event channel size less equal 0, can't be used")
 	}

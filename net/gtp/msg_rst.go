@@ -68,8 +68,8 @@ func (MsgRst) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgRst) Clone() Msg {
-	return &MsgRst{
+func (m MsgRst) Clone() MsgReader {
+	return MsgRst{
 		Code:    m.Code,
 		Message: strings.Clone(m.Message),
 	}

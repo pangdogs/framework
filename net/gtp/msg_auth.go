@@ -62,8 +62,8 @@ func (MsgAuth) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgAuth) Clone() Msg {
-	return &MsgAuth{
+func (m MsgAuth) Clone() MsgReader {
+	return MsgAuth{
 		UserId:     strings.Clone(m.UserId),
 		Token:      strings.Clone(m.Token),
 		Extensions: bytes.Clone(m.Extensions),

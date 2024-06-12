@@ -259,7 +259,7 @@ func (s *_Session) setState(state SessionState) bool {
 }
 
 // handleRecvEventChan 接收自定义事件并写入channel
-func (s *_Session) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
+func (s *_Session) handleRecvEventChan(event transport.Event[gtp.MsgReader]) error {
 	// 写入channel
 	if s.options.RecvEventChan != nil {
 		copied := event
@@ -275,7 +275,7 @@ func (s *_Session) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 }
 
 // handleRecvEvent 接收自定义事件并回调
-func (s *_Session) handleRecvEvent(event transport.Event[gtp.Msg]) error {
+func (s *_Session) handleRecvEvent(event transport.Event[gtp.MsgReader]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {

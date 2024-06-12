@@ -233,7 +233,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		var encryptionModule [2]codec.IEncryptionModule
 
 		// 与服务端交换秘钥
-		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.Event[gtp.Msg]) (transport.Event[gtp.MsgReader], error) {
+		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.Event[gtp.MsgReader]) (transport.Event[gtp.MsgReader], error) {
 			// 解包ECDHESecretKeyExchange消息事件
 			switch e.Msg.MsgId() {
 			case gtp.MsgId_ECDHESecretKeyExchange:
@@ -241,7 +241,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			default:
 				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
 			}
-			servECDHE := transport.UnpackEvent[gtp.MsgECDHESecretKeyExchange](e)
+			servECDHE := transport.EventT[gtp.MsgECDHESecretKeyExchange](e)
 
 			// 验证服务端签名
 			if ctor.options.EncVerifyServerSignature {
@@ -320,7 +320,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				},
 			}
 
-			return cliECDHE.Pack(), nil
+			return cliECDHE.Interface(), nil
 
 		}, func(servChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) (transport.Event[gtp.MsgChangeCipherSpec], error) {
 			verifyEncryption := servChangeCipherSpec.Flags.Is(gtp.Flag_VerifyEncryption)

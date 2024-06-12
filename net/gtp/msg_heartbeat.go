@@ -30,6 +30,6 @@ func (MsgHeartbeat) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m MsgHeartbeat) Clone() Msg {
-	return &m
+func (m MsgHeartbeat) Clone() MsgReader {
+	return m
 }

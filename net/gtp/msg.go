@@ -6,8 +6,6 @@ import "io"
 type Msg interface {
 	MsgReader
 	MsgWriter
-	// Clone 克隆消息对象
-	Clone() Msg
 }
 
 // MsgReader 读取消息
@@ -17,6 +15,8 @@ type MsgReader interface {
 	Size() int
 	// MsgId 消息Id
 	MsgId() MsgId
+	// Clone 克隆消息对象
+	Clone() MsgReader
 }
 
 // MsgWriter 写入消息

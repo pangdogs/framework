@@ -35,7 +35,7 @@ type Transceiver struct {
 }
 
 // Send 发送消息
-func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
+func (t *Transceiver) Send(e Event[gtp.MsgReader]) error {
 	t.sendMutex.Lock()
 	defer t.sendMutex.Unlock()
 
@@ -52,7 +52,7 @@ func (t *Transceiver) Send(me Event[gtp.MsgReader]) error {
 	}
 
 	// 编码消息
-	if err := t.Encoder.EncodeWriter(t.Synchronizer, me.Flags, me.Msg); err != nil {
+	if err := t.Encoder.EncodeWriter(t.Synchronizer, e.Flags, e.Msg); err != nil {
 		return fmt.Errorf("gtp: encode msg failed, %w", err)
 	}
 
@@ -81,7 +81,7 @@ func (t *Transceiver) SendRst(err error) error {
 			rstErr.Message = err.Error()
 		}
 	}
-	return t.Send(rstErr.CastEvent().Pack())
+	return t.Send(rstErr.CastEvent().Interface())
 }
 
 // Resend 重新发送未完整发送的消息事件
@@ -117,7 +117,7 @@ func (t *Transceiver) Resend() error {
 }
 
 // Recv 接收消息事件
-func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.Msg], error) {
+func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.MsgReader], error) {
 	t.recvMutex.Lock()
 	defer t.recvMutex.Unlock()
 
@@ -126,24 +126,24 @@ func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.Msg], error) {
 	}
 
 	if t.Conn == nil {
-		return Event[gtp.Msg]{}, errors.New("gtp: setting Conn is nil")
+		return Event[gtp.MsgReader]{}, errors.New("gtp: setting Conn is nil")
 	}
 
 	if t.Decoder == nil {
-		return Event[gtp.Msg]{}, errors.New("gtp: setting Decoder is nil")
+		return Event[gtp.MsgReader]{}, errors.New("gtp: setting Decoder is nil")
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return Event[gtp.Msg]{}, fmt.Errorf("gtp: %w", context.Canceled)
+			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: %w", context.Canceled)
 		default:
 		}
 
 		// 解码消息
 		mp, err := t.Decoder.Decode(t.Synchronizer)
 		if err == nil {
-			return Event[gtp.Msg]{
+			return Event[gtp.MsgReader]{
 				Flags: mp.Head.Flags,
 				Seq:   mp.Head.Seq,
 				Ack:   mp.Head.Ack,
@@ -152,19 +152,19 @@ func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.Msg], error) {
 		}
 
 		if !errors.Is(err, codec.ErrDataNotEnough) {
-			return Event[gtp.Msg]{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
+			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
 		}
 
 		// 设置链路超时时间
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
-				return Event[gtp.Msg]{}, fmt.Errorf("gtp: set conn recv timeout failed, %w: %w", ErrNetIO, err)
+				return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: set conn recv timeout failed, %w: %w", ErrNetIO, err)
 			}
 		}
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[gtp.Msg]{}, fmt.Errorf("gtp: recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
+			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
 		}
 	}
 }

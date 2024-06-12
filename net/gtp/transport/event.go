@@ -12,8 +12,8 @@ type Event[T gtp.MsgReader] struct {
 	Msg   T         // 消息
 }
 
-// Pack 打包事件，用于发送消息
-func (e Event[T]) Pack() Event[gtp.MsgReader] {
+// Interface 泛化事件，转换为事件通用类型
+func (e Event[T]) Interface() Event[gtp.MsgReader] {
 	return Event[gtp.MsgReader]{
 		Flags: e.Flags,
 		Seq:   e.Seq,
@@ -22,23 +22,29 @@ func (e Event[T]) Pack() Event[gtp.MsgReader] {
 	}
 }
 
-// UnpackEvent 解包事件，用于解析消息
-func UnpackEvent[T gtp.MsgReader](me Event[gtp.Msg]) Event[T] {
-	e := Event[T]{
-		Flags: me.Flags,
-		Seq:   me.Seq,
-		Ack:   me.Ack,
+// EventT 特化事件，转换为事件具体类型
+func EventT[T gtp.MsgReader](e Event[gtp.MsgReader]) Event[T] {
+	ret := Event[T]{
+		Flags: e.Flags,
+		Seq:   e.Seq,
+		Ack:   e.Ack,
 	}
 
-	if me.Msg == nil {
-		return e
+	if e.Msg == nil {
+		return ret
 	}
 
-	msg, ok := any(me.Msg).(*T)
-	if !ok {
-		panic("gtp: incorrect msg type")
+	msgPtr, ok := any(e.Msg).(*T)
+	if ok {
+		ret.Msg = *msgPtr
+		return ret
 	}
-	e.Msg = *msg
 
-	return e
+	msg, ok := any(e.Msg).(T)
+	if ok {
+		ret.Msg = msg
+		return ret
+	}
+
+	panic("gtp: incorrect msg type")
 }

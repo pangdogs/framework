@@ -282,7 +282,7 @@ func (c *Client) reconnect() {
 }
 
 // handleRecvEventChan 接收自定义事件并写入channel
-func (c *Client) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
+func (c *Client) handleRecvEventChan(event transport.Event[gtp.MsgReader]) error {
 	// 写入channel
 	if c.options.RecvEventChan != nil {
 		copied := event
@@ -298,7 +298,7 @@ func (c *Client) handleRecvEventChan(event transport.Event[gtp.Msg]) error {
 }
 
 // handleRecvEvent 接收自定义事件并回调
-func (c *Client) handleRecvEvent(event transport.Event[gtp.Msg]) error {
+func (c *Client) handleRecvEvent(event transport.Event[gtp.MsgReader]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {

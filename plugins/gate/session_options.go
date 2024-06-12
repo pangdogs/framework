@@ -13,7 +13,7 @@ type _SessionOptions struct {
 	RecvDataChan           chan binaryutil.RecycleBytes        // 接收数据的channel
 	RecvDataChanRecyclable bool                                // 接收数据的channel中是否使用可回收字节对象
 	SendEventChan          chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
-	RecvEventChan          chan transport.Event[gtp.Msg]       // 接收自定义事件的channel
+	RecvEventChan          chan transport.Event[gtp.MsgReader] // 接收自定义事件的channel
 	RecvDataHandler        SessionRecvDataHandler              // 接收数据的处理器（优先级低于监控器）
 	RecvEventHandler       SessionRecvEventHandler             // 接收自定义事件的处理器（优先级低于监控器）
 }
@@ -74,7 +74,7 @@ func (_SessionOption) SendEventChanSize(size int) option.Setting[_SessionOptions
 func (_SessionOption) RecvEventChanSize(size int) option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		if size > 0 {
-			options.RecvEventChan = make(chan transport.Event[gtp.Msg], size)
+			options.RecvEventChan = make(chan transport.Event[gtp.MsgReader], size)
 		} else {
 			options.RecvEventChan = nil
 		}

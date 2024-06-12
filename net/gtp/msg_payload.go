@@ -43,8 +43,8 @@ func (MsgPayload) MsgId() MsgId {
 }
 
 // Clone 克隆消息对象
-func (m *MsgPayload) Clone() Msg {
-	return &MsgPayload{
+func (m MsgPayload) Clone() MsgReader {
+	return MsgPayload{
 		Data: bytes.Clone(m.Data),
 	}
 }
