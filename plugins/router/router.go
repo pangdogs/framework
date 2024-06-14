@@ -37,7 +37,7 @@ type IRouter interface {
 	// LookupSession 查找会话
 	LookupSession(entityId uid.Id) (gate.ISession, bool)
 	// AddGroup 添加分组
-	AddGroup(ctx context.Context, groupAddr string, ttl time.Duration) (IGroup, error)
+	AddGroup(ctx context.Context, groupAddr string) (IGroup, error)
 	// DeleteGroup 删除分组
 	DeleteGroup(ctx context.Context, groupAddr string)
 	// GetGroup 查询分组

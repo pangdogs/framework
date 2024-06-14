@@ -15,11 +15,10 @@ import (
 	"math"
 	"path"
 	"strconv"
-	"time"
 )
 
 // AddGroup 添加分组
-func (r *_Router) AddGroup(ctx context.Context, groupAddr string, ttl time.Duration) (IGroup, error) {
+func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -28,11 +27,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string, ttl time.Durat
 		return nil, fmt.Errorf("%w: incorrect groupAddr", core.ErrArgs)
 	}
 
-	if ttl <= 0 {
-		ttl = r.options.GroupTTL
-	}
-
-	lgr, err := r.client.Grant(ctx, int64(math.Ceil(ttl.Seconds())))
+	lgr, err := r.client.Grant(ctx, int64(math.Ceil(r.options.GroupTTL.Seconds())))
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +74,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string, ttl time.Durat
 
 	group := r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL)
+	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL/2)
 	if cached == group {
 		go group.mainLoop()
 	}
@@ -169,7 +164,7 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 
 	group = r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL)
+	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL/2)
 	if cached == group {
 		go group.mainLoop()
 	}
