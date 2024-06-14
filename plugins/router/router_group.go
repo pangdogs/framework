@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -37,7 +38,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string, ttl time.Durat
 	}
 	leaseId := lgr.ID
 
-	groupKey := path.Join(r.options.KeyPrefix, groupAddr)
+	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
 		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
@@ -96,7 +97,7 @@ func (r *_Router) DeleteGroup(ctx context.Context, groupAddr string) {
 		return
 	}
 
-	groupKey := path.Join(r.options.KeyPrefix, groupAddr)
+	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	gr, err := r.client.Get(ctx, groupKey)
 	if err != nil {
@@ -134,7 +135,7 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 		return group, true
 	}
 
-	groupKey := path.Join(r.options.KeyPrefix, groupAddr)
+	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
 		If(etcdv3.Compare(etcdv3.Version(groupKey), "!=", 0)).
@@ -176,9 +177,46 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 	return cached, true
 }
 
-// GetGroups 查询实体所在分组
-func (r *_Router) GetGroups(ctx context.Context, entityId uid.Id) []IGroup {
-	return nil
+// RangeGroups 遍历实体所在的分组，要求实体必须在当前服务中存在
+func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool]) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if _, ok := r.servCtx.GetEntityMgr().GetEntity(entityId); !ok {
+		return
+	}
+
+	groupAddrs, ok := r.entityGroupsCache.Get(entityId)
+	if !ok {
+		gr, err := r.client.Get(ctx, path.Join(r.options.EntityGroupsKeyPrefix, entityId.String())+"/",
+			etcdv3.WithPrefix(),
+			etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
+			etcdv3.WithIgnoreValue())
+		if err != nil {
+			return
+		}
+
+		if len(gr.Kvs) <= 0 {
+			return
+		}
+
+		groupAddrs = make([]string, 0, len(gr.Kvs))
+
+		for _, kv := range gr.Kvs {
+			groupAddrs = append(groupAddrs, string(kv.Key))
+		}
+
+		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
+	}
+
+	for _, groupAddr := range groupAddrs {
+		if group, ok := r.GetGroup(ctx, groupAddr); ok {
+			if !fun.Exec(group) {
+				return
+			}
+		}
+	}
 }
 
 func (r *_Router) newGroup(groupKey string, leaseId etcdv3.LeaseID, revision int64, entIds []uid.Id) *_Group {

@@ -14,12 +14,13 @@ import (
 type RouterOptions struct {
 	EtcdClient             *clientv3.Client
 	EtcdConfig             *clientv3.Config
-	KeyPrefix              string
-	WatchChanSize          int
+	GroupKeyPrefix         string
 	GroupTTL               time.Duration
 	GroupAutoRefreshTTL    bool
 	GroupSendDataChanSize  int
 	GroupSendEventChanSize int
+	EntityGroupsKeyPrefix  string
+	EntityGroupsCacheTTL   time.Duration
 	CustomUsername         string
 	CustomPassword         string
 	CustomAddresses        []string
@@ -35,11 +36,12 @@ func (_Option) Default() option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		With.EtcdClient(nil)(options)
 		With.EtcdConfig(nil)(options)
-		With.KeyPrefix("/golaxy/groups/")(options)
-		With.WatchChanSize(128)(options)
+		With.GroupKeyPrefix("/golaxy/groups/")(options)
 		With.GroupTTL(30*time.Second, true)(options)
 		With.GroupSendDataChanSize(128)(options)
 		With.GroupSendEventChanSize(0)(options)
+		With.EntityGroupsKeyPrefix("/golaxy/entity_groups/")(options)
+		With.EntityGroupCacheTTL(30 * time.Second)(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
 		With.CustomTLSConfig(nil)(options)
@@ -60,23 +62,13 @@ func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[RouterOptions]
 	}
 }
 
-// KeyPrefix 所有key的前缀
-func (_Option) KeyPrefix(prefix string) option.Setting[RouterOptions] {
+// GroupKeyPrefix 所有分组key的前缀
+func (_Option) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
-		options.KeyPrefix = prefix
-	}
-}
-
-// WatchChanSize 监控服务变化的channel大小
-func (_Option) WatchChanSize(size int) option.Setting[RouterOptions] {
-	return func(options *RouterOptions) {
-		if size < 0 {
-			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs))
-		}
-		options.WatchChanSize = size
+		options.GroupKeyPrefix = prefix
 	}
 }
 
@@ -102,6 +94,26 @@ func (_Option) GroupSendDataChanSize(size int) option.Setting[RouterOptions] {
 func (_Option) GroupSendEventChanSize(size int) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		options.GroupSendEventChanSize = size
+	}
+}
+
+// EntityGroupsKeyPrefix 实体的分组key的前缀
+func (_Option) EntityGroupsKeyPrefix(prefix string) option.Setting[RouterOptions] {
+	return func(options *RouterOptions) {
+		if prefix != "" && !strings.HasSuffix(prefix, "/") {
+			prefix += "/"
+		}
+		options.EntityGroupsKeyPrefix = prefix
+	}
+}
+
+// EntityGroupCacheTTL 实体的分组缓存默认TTL
+func (_Option) EntityGroupCacheTTL(ttl time.Duration) option.Setting[RouterOptions] {
+	return func(options *RouterOptions) {
+		if ttl < 3*time.Second {
+			panic(fmt.Errorf("%w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs))
+		}
+		options.EntityGroupsCacheTTL = ttl
 	}
 }
 

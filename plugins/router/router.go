@@ -6,6 +6,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
@@ -41,8 +42,8 @@ type IRouter interface {
 	DeleteGroup(ctx context.Context, groupAddr string)
 	// GetGroup 查询分组
 	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
-	// GetGroups 查询实体所在分组
-	GetGroups(ctx context.Context, entityId uid.Id) []IGroup
+	// RangeGroups 遍历实体所在的分组，要求实体必须在当前服务中存在
+	RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool])
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {

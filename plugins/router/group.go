@@ -21,8 +21,6 @@ type IGroup interface {
 	context.Context
 	// GetAddr 获取分组地址
 	GetAddr() string
-	// Reset 重置所有实体
-	Reset(ctx context.Context, entIds ...uid.Id) error
 	// Add 添加实体
 	Add(ctx context.Context, entIds ...uid.Id) error
 	// Remove 删除实体
@@ -58,26 +56,7 @@ type _Group struct {
 
 // GetAddr 获取分组地址
 func (g *_Group) GetAddr() string {
-	return strings.TrimPrefix(g.groupKey, g.router.options.KeyPrefix)
-}
-
-// Reset 重置所有实体
-func (g *_Group) Reset(ctx context.Context, entIds ...uid.Id) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	opsPut := make([]etcdv3.Op, 0, len(entIds))
-	for _, entId := range entIds {
-		opsPut = append(opsPut, etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId)))
-	}
-
-	_, err := g.router.client.Txn(ctx).
-		Then(etcdv3.OpDelete(g.groupKey+"/", etcdv3.WithPrefix())).
-		Then(opsPut...).
-		Commit()
-
-	return err
+	return strings.TrimPrefix(g.groupKey, g.router.options.GroupKeyPrefix)
 }
 
 // Add 添加实体
@@ -90,9 +69,12 @@ func (g *_Group) Add(ctx context.Context, entIds ...uid.Id) error {
 		return nil
 	}
 
-	opsPut := make([]etcdv3.Op, 0, len(entIds))
+	opsPut := make([]etcdv3.Op, 0, len(entIds)*2)
 	for _, entId := range entIds {
-		opsPut = append(opsPut, etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId), etcdv3.WithIgnoreValue()))
+		opsPut = append(opsPut,
+			etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId)),
+			etcdv3.OpPut(path.Join(g.router.options.EntityGroupsKeyPrefix, entId.String(), g.GetAddr()), "", etcdv3.WithLease(g.leaseId)),
+		)
 	}
 
 	_, err := g.router.client.Txn(ctx).
@@ -112,9 +94,12 @@ func (g *_Group) Remove(ctx context.Context, entIds ...uid.Id) error {
 		return nil
 	}
 
-	opsDel := make([]etcdv3.Op, 0, len(entIds))
+	opsDel := make([]etcdv3.Op, 0, len(entIds)*2)
 	for _, entId := range entIds {
-		opsDel = append(opsDel, etcdv3.OpDelete(path.Join(g.groupKey, entId.String())))
+		opsDel = append(opsDel,
+			etcdv3.OpDelete(path.Join(g.groupKey, entId.String())),
+			etcdv3.OpDelete(path.Join(g.router.options.EntityGroupsKeyPrefix, entId.String(), g.GetAddr())),
+		)
 	}
 
 	_, err := g.router.client.Txn(ctx).
@@ -243,11 +228,11 @@ watch:
 	for watchRsp := range watchChan {
 		if watchRsp.Canceled {
 			log.Debugf(g.router.servCtx, "stop watch groupKey %q", g.groupKey)
-			return
+			goto end
 		}
 		if watchRsp.Err() != nil {
 			log.Errorf(g.router.servCtx, "interrupt watch groupKey %q, %s", g.groupKey, watchRsp.Err())
-			return
+			goto end
 		}
 
 		g.Lock()
@@ -258,19 +243,30 @@ watch:
 				if key == g.groupKey {
 					continue
 				}
-				g.entities = append(g.entities, uid.From(path.Base(key)))
+
+				entId := uid.From(path.Base(key))
+
+				if !slices.Contains(g.entities, entId) {
+					g.entities = append(g.entities, entId)
+				}
+
+				g.router.entityGroupsCache.Del(entId, watchRsp.Header.Revision)
 
 			case etcdv3.EventTypeDelete:
 				key := string(event.Kv.Key)
 				if key == g.groupKey {
 					cancel()
-				} else {
-					entId := uid.From(path.Base(key))
-
-					g.entities = slices.DeleteFunc(g.entities, func(id uid.Id) bool {
-						return id == entId
-					})
+					continue
 				}
+
+				entId := uid.From(path.Base(key))
+
+				idx := slices.Index(g.entities, entId)
+				if idx >= 0 {
+					g.entities = slices.Delete(g.entities, idx, idx+1)
+				}
+
+				g.router.entityGroupsCache.Del(entId, watchRsp.Header.Revision)
 
 			default:
 				log.Errorf(g.router.servCtx, "unknown event type %q", event.Type)
@@ -283,4 +279,11 @@ watch:
 		}
 		g.Unlock()
 	}
+
+end:
+	g.RLock()
+	for _, entId := range g.entities {
+		g.router.entityGroupsCache.Del(entId, g.revision)
+	}
+	g.RUnlock()
 }
