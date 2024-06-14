@@ -110,9 +110,9 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.details = NodeDetails{
 		NodeDetails: netpath.NodeDetails{
 			Domain:             d.options.Domain,
-			BroadcastSubdomain: intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "broadcast")),
-			BalanceSubdomain:   intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "balance")),
-			NodeSubdomain:      intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "node")),
+			BroadcastSubdomain: intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "bc")),
+			BalanceSubdomain:   intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "lb")),
+			NodeSubdomain:      intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "nd")),
 			PathSeparator:      d.broker.GetSeparator(),
 		},
 	}

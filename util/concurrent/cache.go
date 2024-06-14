@@ -30,8 +30,9 @@ type _CacheItem[K comparable, V any] struct {
 }
 
 type Cache[K comparable, V any] struct {
-	mutex sync.RWMutex
-	items map[K]*_CacheItem[K, V]
+	mutex        sync.RWMutex
+	items        map[K]*_CacheItem[K, V]
+	onAdd, onDel generic.Action2[K, V]
 }
 
 func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
@@ -45,6 +46,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 		if now < item.expireNano.Load() && revision <= item.revision {
 			return item.value
 		}
+		c.onDel(k, item.value)
 	}
 
 	item = &_CacheItem[K, V]{
@@ -56,6 +58,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 	item.expireNano.Store(now + ttl.Nanoseconds())
 
 	c.items[k] = item
+	c.onAdd(k, v)
 	return v
 }
 
@@ -107,6 +110,7 @@ func (c *Cache[K, V]) Del(k K, revision int64) {
 	}
 
 	delete(c.items, k)
+	c.onDel(k, item.value)
 }
 
 func (c *Cache[K, V]) Clean(num int) {
@@ -133,6 +137,7 @@ func (c *Cache[K, V]) Clean(num int) {
 		existed, _ := c.items[item.key]
 		if existed == item {
 			delete(c.items, item.key)
+			c.onDel(item.key, item.value)
 		}
 		c.mutex.Unlock()
 	}
@@ -164,4 +169,12 @@ func (c *Cache[K, V]) AutoClean(ctx context.Context, interval time.Duration, num
 			}
 		}
 	}()
+}
+
+func (c *Cache[K, V]) OnAdd(cb generic.Action2[K, V]) {
+	c.onAdd = cb
+}
+
+func (c *Cache[K, V]) OnDel(cb generic.Action2[K, V]) {
+	c.onDel = cb
 }

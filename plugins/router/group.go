@@ -2,8 +2,6 @@ package router
 
 import (
 	"context"
-	"fmt"
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
@@ -11,28 +9,28 @@ import (
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/binaryutil"
-	"github.com/elliotchance/pie/v2"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"path"
 	"slices"
+	"strings"
 	"sync"
 )
 
 // IGroup 分组接口
 type IGroup interface {
 	context.Context
-	// GetId 获取分组Id
-	GetId() uid.Id
-	// AddEntities 添加实体
-	AddEntities(ctx context.Context, entIds ...uid.Id) error
-	// RemoveEntities 删除实体
-	RemoveEntities(ctx context.Context, entIds ...uid.Id) error
-	// RenewEntities 刷新所有实体
-	RenewEntities(ctx context.Context, entIds ...uid.Id) error
-	// RangeEntities 遍历所有实体
-	RangeEntities(fun generic.Func1[uid.Id, bool])
-	// CountEntities 获取实体数量
-	CountEntities() int
+	// GetAddr 获取分组地址
+	GetAddr() string
+	// Reset 重置所有实体
+	Reset(ctx context.Context, entIds ...uid.Id) error
+	// Add 添加实体
+	Add(ctx context.Context, entIds ...uid.Id) error
+	// Remove 删除实体
+	Remove(ctx context.Context, entIds ...uid.Id) error
+	// Range 遍历所有实体
+	Range(fun generic.Func1[uid.Id, bool])
+	// Count 获取实体数量
+	Count() int
 	// RefreshTTL 刷新TTL
 	RefreshTTL(ctx context.Context) error
 	// SendData 发送数据
@@ -45,151 +43,11 @@ type IGroup interface {
 	SendEventChan() chan<- transport.Event[gtp.MsgReader]
 }
 
-func (r *_Router) newGroup(groupId uid.Id, groupKey string, leaseId etcdv3.LeaseID, revision int64, entIds []uid.Id) *_Group {
-	group := &_Group{
-		router:   r,
-		deleted:  false,
-		id:       groupId,
-		groupKey: groupKey,
-		leaseId:  leaseId,
-		revision: revision,
-		entities: entIds,
-	}
-
-	group.Context, group.terminate = context.WithCancel(r.servCtx)
-
-	if r.options.GroupSendDataChanSize > 0 {
-		group.sendDataChan = make(chan binaryutil.RecycleBytes, r.options.GroupSendDataChanSize)
-	}
-
-	if r.options.GroupSendEventChanSize > 0 {
-		group.sendEventChan = make(chan transport.Event[gtp.MsgReader], r.options.GroupSendEventChanSize)
-	}
-
-	return group
-}
-
-func (r *_Router) addGroup(group *_Group) (*_Group, error) {
-	var newer, ret *_Group
-	var err error
-
-	r.groups.AutoLock(func(groups *map[uid.Id]*_Group) {
-		if exists, ok := (*groups)[group.id]; ok {
-			exists.Lock()
-			defer exists.Unlock()
-
-			if exists.revision > group.revision {
-				ret = nil
-				err = ErrGroupExisted
-				return
-			} else if exists.revision == group.revision {
-				ret = exists
-				err = nil
-				return
-			}
-		}
-
-		(*groups)[group.id] = group
-		newer = group
-		ret = group
-		err = nil
-	})
-
-	r.startGroup(newer)
-
-	return ret, err
-}
-
-func (r *_Router) getOrAddGroup(group *_Group) (*_Group, error) {
-	var newer, ret *_Group
-	var err error
-
-	r.groups.AutoLock(func(groups *map[uid.Id]*_Group) {
-		if exists, ok := (*groups)[group.id]; ok {
-			exists.Lock()
-			defer exists.Unlock()
-
-			if exists.revision >= group.revision {
-				ret = exists
-				err = nil
-				return
-			}
-		}
-
-		(*groups)[group.id] = group
-		newer = group
-		ret = group
-		err = nil
-	})
-
-	r.startGroup(newer)
-
-	return ret, err
-}
-
-func (r *_Router) startGroup(group *_Group) {
-	if group == nil {
-		return
-	}
-
-	if r.options.GroupAutoRefreshTTL {
-		rspChan, err := r.client.KeepAlive(group.Context, group.leaseId)
-		if err != nil {
-			log.Errorf(r.servCtx, "etcd keepalive %q failed, %s", group.groupKey, err)
-		} else {
-			go func() {
-				for range rspChan {
-				}
-			}()
-		}
-	}
-
-	if group.sendDataChan != nil {
-		go func() {
-			defer func() {
-				for bs := range group.sendDataChan {
-					bs.Release()
-				}
-			}()
-			for {
-				select {
-				case bs := <-group.sendDataChan:
-					err := group.SendData(bs.Data())
-					bs.Release()
-					if err != nil {
-						log.Errorf(r.servCtx, "group %q fetch data from the send data channel for sending failed, %s", group.GetId(), err)
-					}
-				case <-group.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	if group.sendEventChan != nil {
-		go func() {
-			for {
-				select {
-				case event := <-group.sendEventChan:
-					if err := group.SendEvent(event); err != nil {
-						log.Errorf(r.servCtx, "group %q fetch event from the send event channel for sending failed, %s", group.GetId(), err)
-					}
-				case <-group.Done():
-					return
-				}
-			}
-		}()
-	}
-
-}
-
 type _Group struct {
 	sync.RWMutex
 	context.Context
 	terminate     context.CancelFunc
 	router        *_Router
-	deleted       bool
-	id            uid.Id
 	groupKey      string
 	leaseId       etcdv3.LeaseID
 	revision      int64
@@ -198,23 +56,38 @@ type _Group struct {
 	sendEventChan chan transport.Event[gtp.MsgReader]
 }
 
-// GetId 获取分组Id
-func (g *_Group) GetId() uid.Id {
-	return g.id
+// GetAddr 获取分组地址
+func (g *_Group) GetAddr() string {
+	return strings.TrimPrefix(g.groupKey, g.router.options.KeyPrefix)
 }
 
-// AddEntities 添加实体
-func (g *_Group) AddEntities(ctx context.Context, entIds ...uid.Id) error {
+// Reset 重置所有实体
+func (g *_Group) Reset(ctx context.Context, entIds ...uid.Id) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	opsPut := make([]etcdv3.Op, 0, len(entIds))
+	for _, entId := range entIds {
+		opsPut = append(opsPut, etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId)))
+	}
+
+	_, err := g.router.client.Txn(ctx).
+		Then(etcdv3.OpDelete(g.groupKey+"/", etcdv3.WithPrefix())).
+		Then(opsPut...).
+		Commit()
+
+	return err
+}
+
+// Add 添加实体
+func (g *_Group) Add(ctx context.Context, entIds ...uid.Id) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(entIds) <= 0 {
-		return fmt.Errorf("%w: entIds is empty", core.ErrArgs)
-	}
-
-	if len(entIds) > 1 {
-		entIds = pie.Unique(entIds)
+		return nil
 	}
 
 	opsPut := make([]etcdv3.Op, 0, len(entIds))
@@ -222,37 +95,21 @@ func (g *_Group) AddEntities(ctx context.Context, entIds ...uid.Id) error {
 		opsPut = append(opsPut, etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId), etcdv3.WithIgnoreValue()))
 	}
 
-	rsp, err := g.router.client.Txn(ctx).
+	_, err := g.router.client.Txn(ctx).
 		Then(opsPut...).
 		Commit()
-	if err != nil {
-		return err
-	}
 
-	g.Lock()
-	defer g.Unlock()
-
-	if g.revision < rsp.Header.Revision {
-		g.revision = rsp.Header.Revision
-	}
-
-	g.entities = append(g.entities, entIds...)
-
-	return nil
+	return err
 }
 
-// RemoveEntities 删除实体
-func (g *_Group) RemoveEntities(ctx context.Context, entIds ...uid.Id) error {
+// Remove 删除实体
+func (g *_Group) Remove(ctx context.Context, entIds ...uid.Id) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(entIds) <= 0 {
-		return fmt.Errorf("%w: entIds is empty", core.ErrArgs)
-	}
-
-	if len(entIds) > 1 {
-		entIds = pie.Unique(entIds)
+		return nil
 	}
 
 	opsDel := make([]etcdv3.Op, 0, len(entIds))
@@ -260,64 +117,15 @@ func (g *_Group) RemoveEntities(ctx context.Context, entIds ...uid.Id) error {
 		opsDel = append(opsDel, etcdv3.OpDelete(path.Join(g.groupKey, entId.String())))
 	}
 
-	rsp, err := g.router.client.Txn(ctx).
+	_, err := g.router.client.Txn(ctx).
 		Then(opsDel...).
 		Commit()
-	if err != nil {
-		return err
-	}
 
-	g.Lock()
-	defer g.Unlock()
-
-	if g.revision < rsp.Header.Revision {
-		g.revision = rsp.Header.Revision
-	}
-
-	g.entities = slices.DeleteFunc(g.entities, func(id uid.Id) bool {
-		return pie.Contains(entIds, id)
-	})
-
-	return nil
+	return err
 }
 
-// RenewEntities 刷新所有实体
-func (g *_Group) RenewEntities(ctx context.Context, entIds ...uid.Id) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	if len(entIds) > 1 {
-		entIds = pie.Unique(entIds)
-	}
-
-	opDel := etcdv3.OpDelete(g.groupKey, etcdv3.WithPrefix())
-
-	opsPut := make([]etcdv3.Op, 0, len(entIds)+1)
-	opsPut = append(opsPut, etcdv3.OpPut(g.groupKey, "", etcdv3.WithLease(g.leaseId)))
-	for _, entId := range entIds {
-		opsPut = append(opsPut, etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId)))
-	}
-
-	rsp, err := g.router.client.Txn(ctx).
-		Then(opDel).
-		Then(opsPut...).
-		Commit()
-	if err != nil {
-		return err
-	}
-
-	g.Lock()
-	defer g.Unlock()
-
-	g.revision = rsp.Header.Revision
-	g.entities = entIds
-
-	return nil
-}
-
-// RangeEntities 遍历所有实体
-func (g *_Group) RangeEntities(fun generic.Func1[uid.Id, bool]) {
+// Range 遍历所有实体
+func (g *_Group) Range(fun generic.Func1[uid.Id, bool]) {
 	g.RLock()
 	copied := slices.Clone(g.entities)
 	g.RUnlock()
@@ -329,8 +137,8 @@ func (g *_Group) RangeEntities(fun generic.Func1[uid.Id, bool]) {
 	}
 }
 
-// CountEntities 获取实体数量
-func (g *_Group) CountEntities() int {
+// Count 获取实体数量
+func (g *_Group) Count() int {
 	g.RLock()
 	defer g.Unlock()
 	return len(g.entities)
@@ -350,10 +158,6 @@ func (g *_Group) RefreshTTL(ctx context.Context) error {
 func (g *_Group) SendData(data []byte) error {
 	g.RLock()
 	defer g.RUnlock()
-
-	if g.deleted {
-		return ErrGroupDeleted
-	}
 
 	for i := range g.entities {
 		entId := g.entities[i]
@@ -378,10 +182,6 @@ func (g *_Group) SendData(data []byte) error {
 func (g *_Group) SendEvent(event transport.Event[gtp.MsgReader]) error {
 	g.RLock()
 	defer g.RUnlock()
-
-	if g.deleted {
-		return ErrGroupDeleted
-	}
 
 	for i := range g.entities {
 		entId := g.entities[i]
@@ -416,4 +216,71 @@ func (g *_Group) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 		log.Panicf(g.router.servCtx, "send event channel size less equal 0, can't be used")
 	}
 	return g.sendEventChan
+}
+
+func (g *_Group) mainLoop() {
+	ctx, cancel := context.WithCancel(g)
+
+	if g.router.options.GroupAutoRefreshTTL {
+		rspChan, err := g.router.client.KeepAlive(ctx, g.leaseId)
+		if err != nil {
+			log.Errorf(g.router.servCtx, "keep alive groupKey %q lease %q failed, %s", g.groupKey, g.leaseId, err)
+			goto watch
+		}
+
+		go func() {
+			for range rspChan {
+				log.Debugf(g.router.servCtx, "refresh groupKey %q ttl success", g.groupKey)
+			}
+		}()
+	}
+
+watch:
+	watchChan := g.router.client.Watch(ctx, g.groupKey, etcdv3.WithRev(g.revision), etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
+
+	log.Debugf(g.router.servCtx, "start watch groupKey %q", g.groupKey)
+
+	for watchRsp := range watchChan {
+		if watchRsp.Canceled {
+			log.Debugf(g.router.servCtx, "stop watch groupKey %q", g.groupKey)
+			return
+		}
+		if watchRsp.Err() != nil {
+			log.Errorf(g.router.servCtx, "interrupt watch groupKey %q, %s", g.groupKey, watchRsp.Err())
+			return
+		}
+
+		g.Lock()
+		for _, event := range watchRsp.Events {
+			switch event.Type {
+			case etcdv3.EventTypePut:
+				key := string(event.Kv.Key)
+				if key == g.groupKey {
+					continue
+				}
+				g.entities = append(g.entities, uid.From(path.Base(key)))
+
+			case etcdv3.EventTypeDelete:
+				key := string(event.Kv.Key)
+				if key == g.groupKey {
+					cancel()
+				} else {
+					entId := uid.From(path.Base(key))
+
+					g.entities = slices.DeleteFunc(g.entities, func(id uid.Id) bool {
+						return id == entId
+					})
+				}
+
+			default:
+				log.Errorf(g.router.servCtx, "unknown event type %q", event.Type)
+				continue
+			}
+		}
+
+		if g.revision < watchRsp.Header.Revision {
+			g.revision = watchRsp.Header.Revision
+		}
+		g.Unlock()
+	}
 }

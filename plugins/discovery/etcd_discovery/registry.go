@@ -189,7 +189,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, node
 		return nil, discovery.ErrNotFound
 	}
 
-	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId), etcdv3.WithSerializable())
+	rsp, err := r.client.Get(ctx, getNodePath(r.options.KeyPrefix, serviceName, nodeId))
 	if err != nil {
 		return nil, fmt.Errorf("registry: %w", err)
 	}
@@ -213,8 +213,7 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 
 	rsp, err := r.client.Get(ctx, getServicePath(r.options.KeyPrefix, serviceName),
 		etcdv3.WithPrefix(),
-		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-		etcdv3.WithSerializable())
+		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend))
 	if err != nil {
 		return nil, fmt.Errorf("registry: %w", err)
 	}
@@ -255,8 +254,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 
 	rsp, err := r.client.Get(ctx, r.options.KeyPrefix,
 		etcdv3.WithPrefix(),
-		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-		etcdv3.WithSerializable())
+		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend))
 	if err != nil {
 		return nil, fmt.Errorf("registry: %w", err)
 	}

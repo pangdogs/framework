@@ -34,7 +34,7 @@ func (_Option) Default() option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		With.Version("")(options)
 		With.Meta(nil)(options)
-		With.Domain("service")(options)
+		With.Domain("svc")(options)
 		With.TTL(0, false)(options)
 		With.FutureTimeout(5 * time.Second)(options)
 		With.DecoderMsgCreator(gap.DefaultMsgCreator())(options)

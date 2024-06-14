@@ -4,23 +4,15 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/elliotchance/pie/v2"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"maps"
-	"math"
-	"path"
-	"strings"
 	"time"
 )
 
@@ -29,8 +21,6 @@ var (
 	ErrSessionNotFound = errors.New("router: session not found")
 	ErrEntityMapped    = errors.New("router: entity is already mapping")
 	ErrSessionMapped   = errors.New("router: session is already mapping")
-	ErrGroupExisted    = errors.New("router: group already existed")
-	ErrGroupDeleted    = errors.New("router: group already deleted")
 )
 
 // IRouter 路由器接口
@@ -45,37 +35,31 @@ type IRouter interface {
 	LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, string, bool)
 	// LookupSession 查找会话
 	LookupSession(entityId uid.Id) (gate.ISession, bool)
-	// GetGroup 查询分组
-	GetGroup(groupId uid.Id) (IGroup, bool)
-	// GetOrAddGroup 查询或添加分组
-	GetOrAddGroup(ctx context.Context, groupId uid.Id, ttl time.Duration, entIds ...uid.Id) (IGroup, error)
-	// GetAndDeleteGroup 查询并删除分组
-	GetAndDeleteGroup(ctx context.Context, groupId uid.Id) (IGroup, bool)
 	// AddGroup 添加分组
-	AddGroup(ctx context.Context, groupId uid.Id, ttl time.Duration, entIds ...uid.Id) (IGroup, error)
+	AddGroup(ctx context.Context, groupAddr string, ttl time.Duration) (IGroup, error)
 	// DeleteGroup 删除分组
-	DeleteGroup(ctx context.Context, groupId uid.Id)
-	// RangeGroups 遍历所有分组
-	RangeGroups(fun generic.Func1[IGroup, bool])
-	// CountGroups 统计所有分组数量
-	CountGroups() int
+	DeleteGroup(ctx context.Context, groupAddr string)
+	// GetGroup 查询分组
+	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
+	// GetGroups 查询实体所在分组
+	GetGroups(ctx context.Context, entityId uid.Id) []IGroup
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
 	return &_Router{
 		options:  option.Make(With.Default(), settings...),
 		planning: concurrent.MakeLockedMap[uid.Id, *_Mapping](0),
-		groups:   concurrent.MakeLockedMap[uid.Id, *_Group](0),
 	}
 }
 
 type _Router struct {
-	options  RouterOptions
-	servCtx  service.Context
-	gate     gate.IGate
-	client   *etcdv3.Client
-	planning concurrent.LockedMap[uid.Id, *_Mapping]
-	groups   concurrent.LockedMap[uid.Id, *_Group]
+	options           RouterOptions
+	servCtx           service.Context
+	gate              gate.IGate
+	client            *etcdv3.Client
+	planning          concurrent.LockedMap[uid.Id, *_Mapping]
+	groupCache        *concurrent.Cache[string, *_Group]
+	entityGroupsCache *concurrent.Cache[uid.Id, []string]
 }
 
 // InitSP 初始化服务插件
@@ -106,7 +90,12 @@ func (r *_Router) InitSP(ctx service.Context) {
 		}()
 	}
 
-	go r.mainLoop()
+	r.groupCache = concurrent.NewCache[string, *_Group]()
+	r.groupCache.AutoClean(r.servCtx, 30*time.Second, 256)
+	r.groupCache.OnDel(func(groupAddr string, group *_Group) { group.terminate() })
+
+	r.entityGroupsCache = concurrent.NewCache[uid.Id, []string]()
+	r.entityGroupsCache.AutoClean(r.servCtx, 30*time.Second, 256)
 }
 
 // ShutSP 关闭服务插件
@@ -217,199 +206,6 @@ func (r *_Router) LookupSession(entityId uid.Id) (gate.ISession, bool) {
 		return nil, false
 	}
 	return mapping.session, true
-}
-
-// GetGroup 查询分组
-func (r *_Router) GetGroup(groupId uid.Id) (IGroup, bool) {
-	return r.groups.Get(groupId)
-}
-
-// GetOrAddGroup 查询或添加分组
-func (r *_Router) GetOrAddGroup(ctx context.Context, groupId uid.Id, ttl time.Duration, entIds ...uid.Id) (IGroup, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	if groupId == uid.Nil {
-		return nil, fmt.Errorf("%w: groupId is nil", core.ErrArgs)
-	}
-
-	if ttl <= 0 {
-		ttl = r.options.GroupTTL
-	}
-
-	if len(entIds) > 1 {
-		entIds = pie.Unique(entIds)
-	}
-
-	lgr, err := r.client.Grant(ctx, int64(math.Ceil(ttl.Seconds())))
-	if err != nil {
-		return nil, err
-	}
-	leaseId := lgr.ID
-
-	groupKey := path.Join(r.options.KeyPrefix, groupId.String())
-
-	opsPut := make([]etcdv3.Op, 0, len(entIds)+1)
-	opsPut = append(opsPut, etcdv3.OpPut(groupKey, "", etcdv3.WithLease(leaseId)))
-	for _, entId := range entIds {
-		opsPut = append(opsPut, etcdv3.OpPut(path.Join(groupKey, entId.String()), "", etcdv3.WithLease(leaseId)))
-	}
-
-	opGet := etcdv3.OpGet(groupKey,
-		etcdv3.WithPrefix(),
-		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortAscend),
-		etcdv3.WithIgnoreValue(),
-		etcdv3.WithSerializable())
-
-	rsp, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
-		Then(opsPut...).
-		Else(opGet).
-		Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	if rsp.Succeeded {
-		return r.getOrAddGroup(r.newGroup(groupId, groupKey, leaseId, rsp.Header.Revision, entIds))
-	} else {
-		leaseId := etcdv3.NoLease
-		entIds := make([]uid.Id, 0, len(rsp.Responses)-1)
-
-		for _, kv := range rsp.Responses[0].GetResponseRange().Kvs {
-			leaseId = etcdv3.LeaseID(kv.Lease)
-
-			entId := strings.TrimPrefix(strings.TrimPrefix(string(kv.Key), groupKey), "/")
-			if entId == "" {
-				continue
-			}
-
-			entIds = append(entIds, uid.From(entId))
-		}
-
-		return r.getOrAddGroup(r.newGroup(groupId, groupKey, leaseId, rsp.Header.Revision, entIds))
-	}
-}
-
-// GetAndDeleteGroup 查询并删除分组
-func (r *_Router) GetAndDeleteGroup(ctx context.Context, groupId uid.Id) (IGroup, bool) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var group *_Group
-
-	r.groups.AutoLock(func(groups *map[uid.Id]*_Group) {
-		if group, _ = (*groups)[groupId]; group != nil {
-			group.Lock()
-			defer group.Lock()
-			group.deleted = true
-			delete(*groups, groupId)
-		}
-	})
-
-	if group != nil {
-		r.client.Revoke(ctx, group.leaseId)
-		group.terminate()
-		return group, true
-	}
-
-	return nil, false
-}
-
-// AddGroup 添加分组
-func (r *_Router) AddGroup(ctx context.Context, groupId uid.Id, ttl time.Duration, entIds ...uid.Id) (IGroup, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	if groupId == uid.Nil {
-		return nil, fmt.Errorf("%w: groupId is nil", core.ErrArgs)
-	}
-
-	if ttl <= 0 {
-		ttl = r.options.GroupTTL
-	}
-
-	if len(entIds) > 1 {
-		entIds = pie.Unique(entIds)
-	}
-
-	lgr, err := r.client.Grant(ctx, int64(math.Ceil(ttl.Seconds())))
-	if err != nil {
-		return nil, err
-	}
-	leaseId := lgr.ID
-
-	groupKey := path.Join(r.options.KeyPrefix, groupId.String())
-
-	opsPut := make([]etcdv3.Op, 0, len(entIds)+1)
-	opsPut = append(opsPut, etcdv3.OpPut(groupKey, "", etcdv3.WithLease(leaseId)))
-	for _, entId := range entIds {
-		opsPut = append(opsPut, etcdv3.OpPut(path.Join(groupKey, entId.String()), "", etcdv3.WithLease(leaseId)))
-	}
-
-	rsp, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
-		Then(opsPut...).
-		Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	if !rsp.Succeeded {
-		return nil, ErrGroupExisted
-	}
-
-	return r.addGroup(r.newGroup(groupId, groupKey, leaseId, rsp.Header.Revision, entIds))
-}
-
-// DeleteGroup 删除分组
-func (r *_Router) DeleteGroup(ctx context.Context, groupId uid.Id) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var group *_Group
-
-	r.groups.AutoLock(func(groups *map[uid.Id]*_Group) {
-		if group, _ = (*groups)[groupId]; group != nil {
-			group.Lock()
-			defer group.Lock()
-			group.deleted = true
-			delete(*groups, groupId)
-		}
-	})
-
-	if group != nil {
-		r.client.Revoke(ctx, group.leaseId)
-		group.terminate()
-	}
-}
-
-// RangeGroups 遍历所有分组
-func (r *_Router) RangeGroups(fun generic.Func1[IGroup, bool]) {
-	var copied map[uid.Id]*_Group
-
-	r.groups.AutoRLock(func(groups *map[uid.Id]*_Group) {
-		copied = maps.Clone(*groups)
-	})
-
-	for _, v := range copied {
-		if !fun.Exec(v) {
-			return
-		}
-	}
-}
-
-// CountGroups 统计所有分组数量
-func (r *_Router) CountGroups() int {
-	return r.groups.Len()
-}
-
-func (r *_Router) mainLoop() {
-
 }
 
 func (r *_Router) configure() etcdv3.Config {

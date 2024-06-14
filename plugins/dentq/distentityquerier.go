@@ -115,8 +115,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	rsp, err := d.client.Get(d.servCtx, path.Join(d.options.KeyPrefix, id.String()),
 		etcdv3.WithPrefix(),
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-		etcdv3.WithIgnoreValue(),
-		etcdv3.WithSerializable())
+		etcdv3.WithIgnoreValue())
 	if err != nil || len(rsp.Kvs) <= 0 {
 		return nil, false
 	}
