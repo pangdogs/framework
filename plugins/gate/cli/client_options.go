@@ -27,41 +27,41 @@ const (
 )
 
 type ClientOptions struct {
-	NetProtocol                 NetProtocol                         // 使用的网络协议（TCP/WebSocket）
-	TCPNoDelay                  *bool                               // TCP的NoDelay选项，nil表示使用系统默认值
-	TCPQuickAck                 *bool                               // TCP的QuickAck选项，nil表示使用系统默认值
-	TCPRecvBuf                  *int                                // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
-	TCPSendBuf                  *int                                // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
-	TCPLinger                   *int                                // TCP的PLinger选项，nil表示使用系统默认值
-	WebSocketOrigin             string                              // WebSocket的Origin地址，不填将会自动生成
-	TLSConfig                   *tls.Config                         // TLS配置，nil表示不使用TLS加密链路
-	IOTimeout                   time.Duration                       // 网络io超时时间
-	IORetryTimes                int                                 // 网络io超时后的重试次数
-	IOBufferCap                 int                                 // 网络io缓存容量（字节）
-	DecoderMsgCreator           gtp.IMsgCreator                     // 消息包解码器的消息构建器
-	EncCipherSuite              gtp.CipherSuite                     // 加密通信中的密码学套件
-	EncSignatureAlgorithm       gtp.SignatureAlgorithm              // 加密通信中的签名算法
-	EncSignaturePrivateKey      crypto.PrivateKey                   // 加密通信中，签名用的私钥
-	EncVerifyServerSignature    bool                                // 加密通信中，是否验证服务端签名
-	EncVerifySignaturePublicKey crypto.PublicKey                    // 加密通信中，验证服务端签名用的公钥
-	Compression                 gtp.Compression                     // 通信中的压缩函数
-	CompressedSize              int                                 // 通信中启用压缩阀值（字节），<=0表示不开启
-	AutoReconnect               bool                                // 开启自动重连
-	AutoReconnectInterval       time.Duration                       // 自动重连的时间间隔
-	AutoReconnectRetryTimes     int                                 // 自动重连的重试次数，<=0表示无限重试
-	InactiveTimeout             time.Duration                       // 连接不活跃后的超时时间，开启自动重连后无效
-	SendDataChan                chan binaryutil.RecycleBytes        // 发送数据的channel
-	RecvDataChan                chan binaryutil.RecycleBytes        // 接收数据的channel
-	RecvDataChanRecyclable      bool                                // 接收数据的channel中是否使用可回收字节对象
-	SendEventChan               chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
-	RecvEventChan               chan transport.Event[gtp.MsgReader] // 接收自定义事件的channel
-	RecvDataHandler             RecvDataHandler                     // 接收的数据的处理器
-	RecvEventHandler            RecvEventHandler                    // 接收的自定义事件的处理器
-	FutureTimeout               time.Duration                       // 异步模型Future超时时间
-	AuthUserId                  string                              // 鉴权userid
-	AuthToken                   string                              // 鉴权token
-	AuthExtensions              []byte                              // 鉴权extensions
-	ZapLogger                   *zap.Logger                         // zap日志
+	NetProtocol                 NetProtocol                  // 使用的网络协议（TCP/WebSocket）
+	TCPNoDelay                  *bool                        // TCP的NoDelay选项，nil表示使用系统默认值
+	TCPQuickAck                 *bool                        // TCP的QuickAck选项，nil表示使用系统默认值
+	TCPRecvBuf                  *int                         // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+	TCPSendBuf                  *int                         // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+	TCPLinger                   *int                         // TCP的PLinger选项，nil表示使用系统默认值
+	WebSocketOrigin             string                       // WebSocket的Origin地址，不填将会自动生成
+	TLSConfig                   *tls.Config                  // TLS配置，nil表示不使用TLS加密链路
+	IOTimeout                   time.Duration                // 网络io超时时间
+	IORetryTimes                int                          // 网络io超时后的重试次数
+	IOBufferCap                 int                          // 网络io缓存容量（字节）
+	DecoderMsgCreator           gtp.IMsgCreator              // 消息包解码器的消息构建器
+	EncCipherSuite              gtp.CipherSuite              // 加密通信中的密码学套件
+	EncSignatureAlgorithm       gtp.SignatureAlgorithm       // 加密通信中的签名算法
+	EncSignaturePrivateKey      crypto.PrivateKey            // 加密通信中，签名用的私钥
+	EncVerifyServerSignature    bool                         // 加密通信中，是否验证服务端签名
+	EncVerifySignaturePublicKey crypto.PublicKey             // 加密通信中，验证服务端签名用的公钥
+	Compression                 gtp.Compression              // 通信中的压缩函数
+	CompressedSize              int                          // 通信中启用压缩阀值（字节），<=0表示不开启
+	AutoReconnect               bool                         // 开启自动重连
+	AutoReconnectInterval       time.Duration                // 自动重连的时间间隔
+	AutoReconnectRetryTimes     int                          // 自动重连的重试次数，<=0表示无限重试
+	InactiveTimeout             time.Duration                // 连接不活跃后的超时时间，开启自动重连后无效
+	SendDataChan                chan binaryutil.RecycleBytes // 发送数据的channel
+	RecvDataChan                chan binaryutil.RecycleBytes // 接收数据的channel
+	RecvDataChanRecyclable      bool                         // 接收数据的channel中是否使用可回收字节对象
+	SendEventChan               chan transport.IEvent        // 发送自定义事件的channel
+	RecvEventChan               chan transport.IEvent        // 接收自定义事件的channel
+	RecvDataHandler             RecvDataHandler              // 接收的数据的处理器
+	RecvEventHandler            RecvEventHandler             // 接收的自定义事件的处理器
+	FutureTimeout               time.Duration                // 异步模型Future超时时间
+	AuthUserId                  string                       // 鉴权userid
+	AuthToken                   string                       // 鉴权token
+	AuthExtensions              []byte                       // 鉴权extensions
+	ZapLogger                   *zap.Logger                  // zap日志
 }
 
 var With _Option
@@ -282,7 +282,7 @@ func (_Option) RecvDataChanSize(size int, recyclable bool) option.Setting[Client
 func (_Option) SendEventChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
-			options.SendEventChan = make(chan transport.Event[gtp.MsgReader], size)
+			options.SendEventChan = make(chan transport.IEvent, size)
 		} else {
 			options.SendEventChan = nil
 		}
@@ -292,7 +292,7 @@ func (_Option) SendEventChanSize(size int) option.Setting[ClientOptions] {
 func (_Option) RecvEventChanSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if size > 0 {
-			options.RecvEventChan = make(chan transport.Event[gtp.MsgReader], size)
+			options.RecvEventChan = make(chan transport.IEvent, size)
 		} else {
 			options.RecvEventChan = nil
 		}

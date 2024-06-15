@@ -4,6 +4,9 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
+// IEvent 消息事件接口
+type IEvent = Event[gtp.MsgReader]
+
 // Event 消息事件
 type Event[T gtp.MsgReader] struct {
 	Flags gtp.Flags // 标志位
@@ -12,9 +15,9 @@ type Event[T gtp.MsgReader] struct {
 	Msg   T         // 消息
 }
 
-// Interface 泛化事件，转换为事件通用类型
-func (e Event[T]) Interface() Event[gtp.MsgReader] {
-	return Event[gtp.MsgReader]{
+// Interface 泛化事件，转换为事件接口
+func (e Event[T]) Interface() IEvent {
+	return IEvent{
 		Flags: e.Flags,
 		Seq:   e.Seq,
 		Ack:   e.Ack,
@@ -23,7 +26,7 @@ func (e Event[T]) Interface() Event[gtp.MsgReader] {
 }
 
 // EventT 特化事件，转换为事件具体类型
-func EventT[T gtp.MsgReader](e Event[gtp.MsgReader]) Event[T] {
+func EventT[T gtp.MsgReader](e IEvent) Event[T] {
 	ret := Event[T]{
 		Flags: e.Flags,
 		Seq:   e.Seq,

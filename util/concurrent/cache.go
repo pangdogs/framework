@@ -43,7 +43,10 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 
 	item, ok := c.items[k]
 	if ok {
-		if now < item.expireNano.Load() && revision <= item.revision {
+		if revision <= item.revision {
+			return item.value
+		}
+		if item.ttl > 0 && now < item.expireNano.Load() {
 			return item.value
 		}
 		c.onDel(k, item.value)
@@ -55,7 +58,9 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 		revision: revision,
 		ttl:      ttl,
 	}
-	item.expireNano.Store(now + ttl.Nanoseconds())
+	if ttl > 0 {
+		item.expireNano.Store(now + ttl.Nanoseconds())
+	}
 
 	c.items[k] = item
 	c.onAdd(k, v)
@@ -70,24 +75,31 @@ func (c *Cache[K, V]) Get(k K) (V, bool) {
 		return types.ZeroT[V](), false
 	}
 
-	now := time.Now().UnixNano()
+	if item.ttl > 0 {
+		now := time.Now().UnixNano()
 
-	expireNano := item.expireNano.Load()
-	if now >= expireNano {
-		return types.ZeroT[V](), false
+		expireNano := item.expireNano.Load()
+		if now >= expireNano {
+			return types.ZeroT[V](), false
+		}
+		item.expireNano.CompareAndSwap(expireNano, now+item.ttl.Nanoseconds())
 	}
-	item.expireNano.CompareAndSwap(expireNano, now+item.ttl.Nanoseconds())
 
 	return item.value, true
 }
 
 func (c *Cache[K, V]) Snapshot() generic.UnorderedSliceMap[K, V] {
+	now := time.Now().UnixNano()
+
 	c.mutex.RLock()
 	defer c.mutex.RLock()
 
 	sliceMap := make(generic.UnorderedSliceMap[K, V], 0, len(c.items))
 
 	for _, item := range c.items {
+		if item.ttl > 0 && now >= item.expireNano.Load() {
+			continue
+		}
 		sliceMap.Add(item.key, item.value)
 	}
 
@@ -105,12 +117,33 @@ func (c *Cache[K, V]) Del(k K, revision int64) {
 		return
 	}
 
-	if now >= item.expireNano.Load() || revision <= item.revision {
+	if revision <= item.revision {
+		return
+	}
+
+	if item.ttl > 0 && now >= item.expireNano.Load() {
 		return
 	}
 
 	delete(c.items, k)
 	c.onDel(k, item.value)
+}
+
+func (c *Cache[K, V]) RefreshTTL(k K) {
+	c.mutex.RLock()
+	item, ok := c.items[k]
+	c.mutex.RUnlock()
+	if ok {
+		if item.ttl > 0 {
+			now := time.Now().UnixNano()
+
+			expireNano := item.expireNano.Load()
+			if now >= expireNano {
+				return
+			}
+			item.expireNano.CompareAndSwap(expireNano, now+item.ttl.Nanoseconds())
+		}
+	}
 }
 
 func (c *Cache[K, V]) Clean(num int) {
@@ -126,7 +159,7 @@ func (c *Cache[K, V]) Clean(num int) {
 		if len(expireItems) >= num {
 			break
 		}
-		if now >= item.expireNano.Load() {
+		if item.ttl > 0 && now >= item.expireNano.Load() {
 			expireItems = append(expireItems, item)
 		}
 	}

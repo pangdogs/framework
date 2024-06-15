@@ -35,7 +35,7 @@ func (t *TransProtocol) retrySend(err error) error {
 }
 
 // HandleEvent 消息事件处理器
-func (t *TransProtocol) HandleEvent(e Event[gtp.MsgReader]) error {
+func (t *TransProtocol) HandleEvent(e IEvent) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
 		var errs []error

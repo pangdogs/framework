@@ -2,20 +2,19 @@ package gate
 
 import (
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/binaryutil"
 )
 
 type _SessionOptions struct {
-	StateChangedHandler    SessionStateChangedHandler          // 会话状态变化的处理器
-	SendDataChan           chan binaryutil.RecycleBytes        // 发送数据的channel
-	RecvDataChan           chan binaryutil.RecycleBytes        // 接收数据的channel
-	RecvDataChanRecyclable bool                                // 接收数据的channel中是否使用可回收字节对象
-	SendEventChan          chan transport.Event[gtp.MsgReader] // 发送自定义事件的channel
-	RecvEventChan          chan transport.Event[gtp.MsgReader] // 接收自定义事件的channel
-	RecvDataHandler        SessionRecvDataHandler              // 接收数据的处理器（优先级低于监控器）
-	RecvEventHandler       SessionRecvEventHandler             // 接收自定义事件的处理器（优先级低于监控器）
+	StateChangedHandler    SessionStateChangedHandler   // 会话状态变化的处理器
+	SendDataChan           chan binaryutil.RecycleBytes // 发送数据的channel
+	RecvDataChan           chan binaryutil.RecycleBytes // 接收数据的channel
+	RecvDataChanRecyclable bool                         // 接收数据的channel中是否使用可回收字节对象
+	SendEventChan          chan transport.IEvent        // 发送自定义事件的channel
+	RecvEventChan          chan transport.IEvent        // 接收自定义事件的channel
+	RecvDataHandler        SessionRecvDataHandler       // 接收数据的处理器（优先级低于监控器）
+	RecvEventHandler       SessionRecvEventHandler      // 接收自定义事件的处理器（优先级低于监控器）
 }
 
 var sessionWith _SessionOption
@@ -64,7 +63,7 @@ func (_SessionOption) RecvDataChanSize(size int, recyclable bool) option.Setting
 func (_SessionOption) SendEventChanSize(size int) option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		if size > 0 {
-			options.SendEventChan = make(chan transport.Event[gtp.MsgReader], size)
+			options.SendEventChan = make(chan transport.IEvent, size)
 		} else {
 			options.SendEventChan = nil
 		}
@@ -74,7 +73,7 @@ func (_SessionOption) SendEventChanSize(size int) option.Setting[_SessionOptions
 func (_SessionOption) RecvEventChanSize(size int) option.Setting[_SessionOptions] {
 	return func(options *_SessionOptions) {
 		if size > 0 {
-			options.RecvEventChan = make(chan transport.Event[gtp.MsgReader], size)
+			options.RecvEventChan = make(chan transport.IEvent, size)
 		} else {
 			options.RecvEventChan = nil
 		}

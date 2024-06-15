@@ -233,37 +233,37 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		var encryptionModule [2]codec.IEncryptionModule
 
 		// 与服务端交换秘钥
-		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.Event[gtp.MsgReader]) (transport.Event[gtp.MsgReader], error) {
+		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.IEvent) (transport.IEvent, error) {
 			// 解包ECDHESecretKeyExchange消息事件
 			switch e.Msg.MsgId() {
 			case gtp.MsgId_ECDHESecretKeyExchange:
 				break
 			default:
-				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
+				return transport.IEvent{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
 			}
 			servECDHE := transport.EventT[gtp.MsgECDHESecretKeyExchange](e)
 
 			// 验证服务端签名
 			if ctor.options.EncVerifyServerSignature {
 				if !servECDHE.Flags.Is(gtp.Flag_Signature) {
-					return transport.Event[gtp.MsgReader]{}, errors.New("no server signature")
+					return transport.IEvent{}, errors.New("no server signature")
 				}
 
 				if err := ctor.verify(servECDHE.Msg.SignatureAlgorithm, servECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionId, servECDHE.Msg.PublicKey); err != nil {
-					return transport.Event[gtp.MsgReader]{}, err
+					return transport.IEvent{}, err
 				}
 			}
 
 			// 创建曲线
 			curve, err := method.NewNamedCurve(servECDHE.Msg.NamedCurve)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, err
+				return transport.IEvent{}, err
 			}
 
 			// 生成客户端临时私钥
 			cliPriv, err := curve.GenerateKey(rand.Reader)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, err
+				return transport.IEvent{}, err
 			}
 
 			// 生成客户端临时公钥
@@ -273,27 +273,27 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			// 服务端临时公钥
 			servPub, err := curve.NewPublicKey(servECDHE.Msg.PublicKey)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("server ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err)
+				return transport.IEvent{}, fmt.Errorf("server ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err)
 			}
 
 			// 临时共享秘钥
 			sharedKeyBytes, err = cliPriv.ECDH(servPub)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("ECDH failed, %s", err)
+				return transport.IEvent{}, fmt.Errorf("ECDH failed, %s", err)
 			}
 
 			// 签名数据
 			signature, err := ctor.sign(cs, cm, cliRandom, servRandom, sessionId, cliPubBytes)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, err
+				return transport.IEvent{}, err
 			}
 
 			// 设置分组对齐填充方案
 			if padding[0], err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
-				return transport.Event[gtp.MsgReader]{}, err
+				return transport.IEvent{}, err
 			}
 			if padding[1], err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
-				return transport.Event[gtp.MsgReader]{}, err
+				return transport.IEvent{}, err
 			}
 
 			// 设置nonce值
@@ -307,7 +307,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			// 创建并设置加解密流
 			cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV)
 			if err != nil {
-				return transport.Event[gtp.MsgReader]{}, fmt.Errorf("new cipher stream failed, %s", err)
+				return transport.IEvent{}, fmt.Errorf("new cipher stream failed, %s", err)
 			}
 
 			cliECDHE := transport.Event[gtp.MsgECDHESecretKeyExchange]{

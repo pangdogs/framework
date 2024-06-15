@@ -67,7 +67,7 @@ func (c *CtrlProtocol) retrySend(err error) error {
 }
 
 // HandleEvent 消息事件处理器
-func (c *CtrlProtocol) HandleEvent(e Event[gtp.MsgReader]) error {
+func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {

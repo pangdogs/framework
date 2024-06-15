@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/util/binaryutil"
 	"git.golaxy.org/framework/util/concurrent"
@@ -102,7 +101,7 @@ func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) IWatche
 }
 
 // SendEvent 发送自定义事件
-func (c *Client) SendEvent(event transport.Event[gtp.MsgReader]) error {
+func (c *Client) SendEvent(event transport.IEvent) error {
 	return transport.Retry{
 		Transceiver: &c.transceiver,
 		Times:       c.options.IORetryTimes,
@@ -131,7 +130,7 @@ func (c *Client) RecvDataChan() <-chan binaryutil.RecycleBytes {
 }
 
 // SendEventChan 发送自定义事件的channel
-func (c *Client) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
+func (c *Client) SendEventChan() chan<- transport.IEvent {
 	if c.options.SendEventChan == nil {
 		c.logger.Panic("send event channel size less equal 0, can't be used")
 	}
@@ -139,7 +138,7 @@ func (c *Client) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (c *Client) RecvEventChan() <-chan transport.Event[gtp.MsgReader] {
+func (c *Client) RecvEventChan() <-chan transport.IEvent {
 	if c.options.RecvEventChan == nil {
 		c.logger.Panic("receive event channel size less equal 0, can't be used")
 	}

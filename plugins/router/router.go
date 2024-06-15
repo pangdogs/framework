@@ -42,7 +42,7 @@ type IRouter interface {
 	DeleteGroup(ctx context.Context, groupAddr string)
 	// GetGroup 查询分组
 	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
-	// RangeGroups 遍历实体所在的分组，要求实体必须在当前服务中存在
+	// RangeGroups 遍历实体所在的分组
 	RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool])
 }
 
@@ -92,7 +92,6 @@ func (r *_Router) InitSP(ctx service.Context) {
 	}
 
 	r.groupCache = concurrent.NewCache[string, *_Group]()
-	r.groupCache.AutoClean(r.servCtx, 30*time.Second, 256)
 	r.groupCache.OnDel(func(groupAddr string, group *_Group) { group.terminate() })
 
 	r.entityGroupsCache = concurrent.NewCache[uid.Id, []string]()

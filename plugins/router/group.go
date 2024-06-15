@@ -5,7 +5,6 @@ import (
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/binaryutil"
@@ -34,11 +33,11 @@ type IGroup interface {
 	// SendData 发送数据
 	SendData(data []byte) error
 	// SendEvent 发送自定义事件
-	SendEvent(event transport.Event[gtp.MsgReader]) error
+	SendEvent(event transport.IEvent) error
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- binaryutil.RecycleBytes
 	// SendEventChan 发送自定义事件的channel
-	SendEventChan() chan<- transport.Event[gtp.MsgReader]
+	SendEventChan() chan<- transport.IEvent
 }
 
 type _Group struct {
@@ -51,7 +50,7 @@ type _Group struct {
 	revision      int64
 	entities      []uid.Id
 	sendDataChan  chan binaryutil.RecycleBytes
-	sendEventChan chan transport.Event[gtp.MsgReader]
+	sendEventChan chan transport.IEvent
 }
 
 // GetAddr 获取分组地址
@@ -164,7 +163,7 @@ func (g *_Group) SendData(data []byte) error {
 }
 
 // SendEvent 发送自定义事件
-func (g *_Group) SendEvent(event transport.Event[gtp.MsgReader]) error {
+func (g *_Group) SendEvent(event transport.IEvent) error {
 	g.RLock()
 	defer g.RUnlock()
 
@@ -196,7 +195,7 @@ func (g *_Group) SendDataChan() chan<- binaryutil.RecycleBytes {
 }
 
 // SendEventChan 发送自定义事件的channel
-func (g *_Group) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
+func (g *_Group) SendEventChan() chan<- transport.IEvent {
 	if g.sendEventChan == nil {
 		log.Panicf(g.router.servCtx, "send event channel size less equal 0, can't be used")
 	}

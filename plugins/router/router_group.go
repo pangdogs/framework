@@ -7,7 +7,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/util/binaryutil"
@@ -74,7 +73,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error
 
 	group := r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL/2)
+	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, 0)
 	if cached == group {
 		go group.mainLoop()
 	}
@@ -164,7 +163,7 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 
 	group = r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, r.options.GroupTTL/2)
+	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, 0)
 	if cached == group {
 		go group.mainLoop()
 	}
@@ -172,7 +171,7 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 	return cached, true
 }
 
-// RangeGroups 遍历实体所在的分组，要求实体必须在当前服务中存在
+// RangeGroups 遍历实体所在的分组
 func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool]) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -230,7 +229,7 @@ func (r *_Router) newGroup(groupKey string, leaseId etcdv3.LeaseID, revision int
 	}
 
 	if r.options.GroupSendEventChanSize > 0 {
-		group.sendEventChan = make(chan transport.Event[gtp.MsgReader], r.options.GroupSendEventChanSize)
+		group.sendEventChan = make(chan transport.IEvent, r.options.GroupSendEventChanSize)
 	}
 
 	return group

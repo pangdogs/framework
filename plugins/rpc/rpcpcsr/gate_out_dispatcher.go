@@ -54,10 +54,8 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 		return
 
 	} else if gate.CliDetails.InMulticastSubdomain(req.Dst) {
-		// 目标为组播地址，解析分组Id
-		groupId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
-
-		group, ok := p.router.GetGroup(groupId)
+		// 目标为组播地址
+		group, ok := p.router.GetGroup(p.servCtx, req.Dst)
 		if !ok {
 			go p.finishOutbound(src, req, ErrGroupNotFound)
 			return

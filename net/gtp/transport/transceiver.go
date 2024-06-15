@@ -35,7 +35,7 @@ type Transceiver struct {
 }
 
 // Send 发送消息
-func (t *Transceiver) Send(e Event[gtp.MsgReader]) error {
+func (t *Transceiver) Send(e IEvent) error {
 	t.sendMutex.Lock()
 	defer t.sendMutex.Unlock()
 
@@ -117,7 +117,7 @@ func (t *Transceiver) Resend() error {
 }
 
 // Recv 接收消息事件
-func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.MsgReader], error) {
+func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 	t.recvMutex.Lock()
 	defer t.recvMutex.Unlock()
 
@@ -126,24 +126,24 @@ func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.MsgReader], error) {
 	}
 
 	if t.Conn == nil {
-		return Event[gtp.MsgReader]{}, errors.New("gtp: setting Conn is nil")
+		return IEvent{}, errors.New("gtp: setting Conn is nil")
 	}
 
 	if t.Decoder == nil {
-		return Event[gtp.MsgReader]{}, errors.New("gtp: setting Decoder is nil")
+		return IEvent{}, errors.New("gtp: setting Decoder is nil")
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: %w", context.Canceled)
+			return IEvent{}, fmt.Errorf("gtp: %w", context.Canceled)
 		default:
 		}
 
 		// 解码消息
 		mp, err := t.Decoder.Decode(t.Synchronizer)
 		if err == nil {
-			return Event[gtp.MsgReader]{
+			return IEvent{
 				Flags: mp.Head.Flags,
 				Seq:   mp.Head.Seq,
 				Ack:   mp.Head.Ack,
@@ -152,19 +152,19 @@ func (t *Transceiver) Recv(ctx context.Context) (Event[gtp.MsgReader], error) {
 		}
 
 		if !errors.Is(err, codec.ErrDataNotEnough) {
-			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
+			return IEvent{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
 		}
 
 		// 设置链路超时时间
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
-				return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: set conn recv timeout failed, %w: %w", ErrNetIO, err)
+				return IEvent{}, fmt.Errorf("gtp: set conn recv timeout failed, %w: %w", ErrNetIO, err)
 			}
 		}
 
 		// 从链路读取消息
 		if _, err := t.Decoder.ReadFrom(t.Conn); err != nil {
-			return Event[gtp.MsgReader]{}, fmt.Errorf("gtp: recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
+			return IEvent{}, fmt.Errorf("gtp: recv msg-packet failed, %w, %w: %w", err, ErrNetIO, err)
 		}
 	}
 }

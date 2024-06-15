@@ -17,7 +17,7 @@ var (
 type (
 	HelloAccept               = generic.PairFunc1[Event[gtp.MsgHello], Event[gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
 	HelloFin                  = generic.Func1[Event[gtp.MsgHello], error]                                                      // 客户端获取服务端Hello响应
-	SecretKeyExchangeAccept   = generic.PairFunc1[Event[gtp.MsgReader], Event[gtp.MsgReader], error]                           // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
+	SecretKeyExchangeAccept   = generic.PairFunc1[IEvent, IEvent, error]                                                       // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
 	ECDHESecretKeyExchangeFin = generic.PairFunc1[Event[gtp.MsgECDHESecretKeyExchange], Event[gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
 	ChangeCipherSpecAccept    = generic.PairFunc1[Event[gtp.MsgChangeCipherSpec], Event[gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
 	ChangeCipherSpecFin       = generic.Func1[Event[gtp.MsgChangeCipherSpec], error]                                           // 服务端获取客户端ChangeCipherSpec响应
@@ -483,7 +483,7 @@ func (h *HandshakeProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-func (h *HandshakeProtocol) retryRecv(ctx context.Context) (Event[gtp.MsgReader], error) {
+func (h *HandshakeProtocol) retryRecv(ctx context.Context) (IEvent, error) {
 	e, err := h.Transceiver.Recv(ctx)
 	return Retry{
 		Transceiver: h.Transceiver,

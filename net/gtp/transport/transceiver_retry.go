@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.golaxy.org/framework/net/gtp"
 )
 
 // Retry 网络io超时时重试
@@ -43,7 +42,7 @@ func (r Retry) Send(err error) error {
 }
 
 // Recv 重试接收
-func (r Retry) Recv(e Event[gtp.MsgReader], err error) (Event[gtp.MsgReader], error) {
+func (r Retry) Recv(e IEvent, err error) (IEvent, error) {
 	if err == nil {
 		return e, nil
 	}

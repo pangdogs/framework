@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/binaryutil"
@@ -53,7 +52,7 @@ type ISession interface {
 	// WatchData 监听数据
 	WatchData(ctx context.Context, handler SessionRecvDataHandler) IWatcher
 	// SendEvent 发送自定义事件
-	SendEvent(event transport.Event[gtp.MsgReader]) error
+	SendEvent(event transport.IEvent) error
 	// WatchEvent 监听自定义事件
 	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher
 	// SendDataChan 发送数据的channel
@@ -61,9 +60,9 @@ type ISession interface {
 	// RecvDataChan 接收数据的channel
 	RecvDataChan() <-chan binaryutil.RecycleBytes
 	// SendEventChan 发送自定义事件的channel
-	SendEventChan() chan<- transport.Event[gtp.MsgReader]
+	SendEventChan() chan<- transport.IEvent
 	// RecvEventChan 接收自定义事件的channel
-	RecvEventChan() <-chan transport.Event[gtp.MsgReader]
+	RecvEventChan() <-chan transport.IEvent
 	// Close 关闭
 	Close(err error) <-chan struct{}
 }
@@ -162,7 +161,7 @@ func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler
 }
 
 // SendEvent 发送自定义事件
-func (s *_Session) SendEvent(event transport.Event[gtp.MsgReader]) error {
+func (s *_Session) SendEvent(event transport.IEvent) error {
 	return transport.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
@@ -191,7 +190,7 @@ func (s *_Session) RecvDataChan() <-chan binaryutil.RecycleBytes {
 }
 
 // SendEventChan 发送自定义事件的channel
-func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
+func (s *_Session) SendEventChan() chan<- transport.IEvent {
 	if s.options.SendEventChan == nil {
 		log.Panicf(s.gate.servCtx, "send event channel size less equal 0, can't be used")
 	}
@@ -199,7 +198,7 @@ func (s *_Session) SendEventChan() chan<- transport.Event[gtp.MsgReader] {
 }
 
 // RecvEventChan 接收自定义事件的channel
-func (s *_Session) RecvEventChan() <-chan transport.Event[gtp.MsgReader] {
+func (s *_Session) RecvEventChan() <-chan transport.IEvent {
 	if s.options.RecvEventChan == nil {
 		log.Panicf(s.gate.servCtx, "receive event channel size less equal 0, can't be used")
 	}
