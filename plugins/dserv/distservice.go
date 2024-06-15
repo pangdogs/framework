@@ -202,12 +202,12 @@ func (d *_DistService) GetFutures() concurrent.IFutures {
 
 // MakeBroadcastAddr 创建服务广播地址
 func (d *_DistService) MakeBroadcastAddr(service string) string {
-	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.BroadcastSubdomain, service))
+	return intern.String(d.details.BroadcastSubdomainJoin(service))
 }
 
 // MakeBalanceAddr 创建服务负载均衡地址
 func (d *_DistService) MakeBalanceAddr(service string) string {
-	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.BalanceSubdomain, service))
+	return intern.String(d.details.BalanceSubdomainJoin(service))
 }
 
 // MakeNodeAddr 创建服务节点地址
@@ -215,7 +215,7 @@ func (d *_DistService) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
 		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
 	}
-	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.NodeSubdomain, nodeId.String())), nil
+	return intern.String(d.details.NodeSubdomainJoin(nodeId.String())), nil
 }
 
 // SendMsg 发送消息

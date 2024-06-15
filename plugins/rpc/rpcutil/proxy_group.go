@@ -5,7 +5,6 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -53,7 +52,7 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 	}
 
 	// 客户端组播地址
-	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.id.String())
+	dst := gate.CliDetails.MulticastSubdomainJoin(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain

@@ -9,7 +9,6 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
@@ -143,7 +142,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
-			cliAddr:   netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, entity.GetId().String()),
+			cliAddr:   gate.CliDetails.NodeSubdomainJoin(entity.GetId().String()),
 		}
 		ret = mapping
 

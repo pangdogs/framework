@@ -6,7 +6,6 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/gate"
@@ -419,7 +418,7 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 	}
 
 	// 客户端地址
-	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
+	dst := gate.CliDetails.NodeSubdomainJoin(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -449,7 +448,7 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	}
 
 	// 客户端地址
-	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
+	dst := gate.CliDetails.NodeSubdomainJoin(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
