@@ -132,8 +132,7 @@ func (w *_Watcher) mainLoop() {
 			select {
 			case w.eventChan <- ret:
 			case <-w.ctx.Done():
-				log.Debugf(w.registry.servCtx, "stop watch %q", w.pattern)
-				return
+				w.terminate()
 			}
 		}
 	}

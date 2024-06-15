@@ -10,7 +10,7 @@ import (
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/elliotchance/pie/v2"
+	"slices"
 	"sync"
 	"time"
 )
@@ -19,7 +19,6 @@ import (
 func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
 		options: option.Make(With.Default(), settings...),
-		cache:   concurrent.MakeLockedMap[string, *discovery.Service](0),
 	}
 }
 
@@ -30,7 +29,7 @@ type _Registry struct {
 	options   RegistryOptions
 	servCtx   service.Context
 	wg        sync.WaitGroup
-	cache     concurrent.LockedMap[string, *discovery.Service]
+	cache     *concurrent.Cache[string, *discovery.Service]
 	revision  int64
 }
 
@@ -53,6 +52,8 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	if err := r.refreshCache(); err != nil {
 		log.Panicf(r.servCtx, "refresh cache failed, %s", err)
 	}
+
+	r.cache = concurrent.NewCache[string, *discovery.Service]()
 
 	r.wg.Add(1)
 	go r.mainLoop()
@@ -77,7 +78,7 @@ func (r *_Registry) GetServiceNode(ctx context.Context, serviceName string, node
 		return nil, discovery.ErrNotFound
 	}
 
-	idx := pie.FindFirstUsing(services.Nodes, func(node discovery.Node) bool {
+	idx := slices.IndexFunc(services.Nodes, func(node discovery.Node) bool {
 		return node.Id == nodeId
 	})
 	if idx < 0 {
@@ -105,13 +106,12 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 
 // ListServices 查询所有服务
 func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, error) {
-	allServices := make([]discovery.Service, 0, r.cache.Len())
+	snapshot := r.cache.Snapshot()
+	allServices := make([]discovery.Service, 0, len(snapshot))
 
-	r.cache.AutoRLock(func(allServicesMap *map[string]*discovery.Service) {
-		for _, value := range *allServicesMap {
-			allServices = append(allServices, *value)
-		}
-	})
+	for _, kv := range snapshot {
+		allServices = append(allServices, *kv.V)
+	}
 
 	return allServices, nil
 }
@@ -174,7 +174,7 @@ func (r *_Registry) refreshCache() error {
 		if r.revision < service.Revision {
 			r.revision = service.Revision
 		}
-		r.cache.Insert(service.Name, &service)
+		r.cache.Set(service.Name, &service, service.Revision, 0)
 	}
 
 	return nil
@@ -189,23 +189,23 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 	case discovery.Create, discovery.Update:
 		service, ok := r.cache.Get(event.Service.Name)
 		if !ok {
-			r.cache.Insert(event.Service.Name, event.Service)
+			r.cache.Set(event.Service.Name, event.Service, service.Revision, 0)
 			return
 		}
 
 		serviceCopy := service.DeepCopy()
 
-		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(node discovery.Node) bool {
+		idx := slices.IndexFunc(serviceCopy.Nodes, func(node discovery.Node) bool {
 			return node.Id == event.Service.Nodes[0].Id
 		})
 		if idx < 0 {
 			serviceCopy.Nodes = append(serviceCopy.Nodes, event.Service.Nodes[0])
-			r.cache.Insert(serviceCopy.Name, serviceCopy)
+			r.cache.Set(serviceCopy.Name, serviceCopy, serviceCopy.Revision, 0)
 			return
 		}
 
 		serviceCopy.Nodes[idx] = event.Service.Nodes[0]
-		r.cache.Insert(serviceCopy.Name, serviceCopy)
+		r.cache.Set(serviceCopy.Name, serviceCopy, serviceCopy.Revision, 0)
 		return
 
 	case discovery.Delete:
@@ -216,15 +216,15 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 
 		serviceCopy := service.DeepCopy()
 
-		idx := pie.FindFirstUsing(serviceCopy.Nodes, func(node discovery.Node) bool {
+		idx := slices.IndexFunc(serviceCopy.Nodes, func(node discovery.Node) bool {
 			return node.Id == event.Service.Nodes[0].Id
 		})
 		if idx < 0 {
 			return
 		}
 
-		pie.Delete(serviceCopy.Nodes, idx)
-		r.cache.Insert(serviceCopy.Name, serviceCopy)
+		serviceCopy.Nodes = slices.Delete(serviceCopy.Nodes, idx, idx+1)
+		r.cache.Set(serviceCopy.Name, serviceCopy, serviceCopy.Revision, 0)
 		return
 	}
 }

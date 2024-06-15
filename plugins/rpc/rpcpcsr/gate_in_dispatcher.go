@@ -6,7 +6,7 @@ import (
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
-	"github.com/elliotchance/pie/v2"
+	"slices"
 )
 
 func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState gate.SessionState, lastState gate.SessionState) {
@@ -56,7 +56,7 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 		return ErrDistEntityNotFound
 	}
 
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
 		return node.Service == req.Dst || node.RemoteAddr == req.Dst
 	})
 	if nodeIdx < 0 {

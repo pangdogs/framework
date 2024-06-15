@@ -12,7 +12,7 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/elliotchance/pie/v2"
+	"slices"
 )
 
 // Match 是否匹配
@@ -136,7 +136,7 @@ func (p *_ForwardProcessor) getDistEntityForwardAddr(entId uid.Id) (string, erro
 		return "", ErrDistEntityNotFound
 	}
 
-	idx := pie.FindFirstUsing(dent.Nodes, func(node dentq.Node) bool {
+	idx := slices.IndexFunc(dent.Nodes, func(node dentq.Node) bool {
 		return node.Service == p.transitService
 	})
 	if idx < 0 {

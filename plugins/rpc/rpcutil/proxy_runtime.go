@@ -12,8 +12,8 @@ import (
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"github.com/elliotchance/pie/v2"
 	"math/rand"
+	"slices"
 )
 
 // ProxyRuntime 代理运行时
@@ -58,7 +58,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
@@ -202,7 +202,7 @@ func (p RuntimeProxied) OneWayRPC(service, plugin, method string, args ...any) e
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
@@ -346,7 +346,7 @@ func (p RuntimeProxied) BroadcastOneWayRPC(excludeSelf bool, service, plugin, me
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := pie.FindFirstUsing(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {

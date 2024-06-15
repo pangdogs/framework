@@ -13,10 +13,9 @@ import (
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/util/concurrent"
-	"github.com/elliotchance/pie/v2"
 	hash "github.com/mitchellh/hashstructure/v2"
 	"github.com/redis/go-redis/v9"
-	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -25,21 +24,21 @@ import (
 // NewRegistry 创建registry插件，可以配合registry cache将数据缓存本地，提高查询效率
 func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
 	return &_Registry{
-		options:   option.Make(With.Default(), settings...),
-		registers: concurrent.MakeLockedMap[string, *_Register](0),
+		options: option.Make(With.Default(), settings...),
 	}
 }
 
 type _Register struct {
-	hash uint64
-	ttl  time.Duration
+	hash     uint64
+	ttl      time.Duration
+	revision int64
 }
 
 type _Registry struct {
 	options   RegistryOptions
 	servCtx   service.Context
 	client    *redis.Client
-	registers concurrent.LockedMap[string, *_Register]
+	registers *concurrent.Cache[string, *_Register]
 }
 
 // InitSP 初始化服务插件
@@ -63,6 +62,8 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	if err != nil {
 		log.Panicf(r.servCtx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
+
+	r.registers = concurrent.NewCache[string, *_Register]()
 }
 
 // ShutSP 关闭服务插件
@@ -144,18 +145,13 @@ func (r *_Registry) RefreshTTL(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	var copied map[string]*_Register
-
-	r.registers.AutoLock(func(registers *map[string]*_Register) {
-		copied = maps.Clone(*registers)
-	})
-
+	snapshot := r.registers.Snapshot()
 	var errs []error
 
-	for nodePath, register := range copied {
-		_, err := r.client.Expire(ctx, nodePath, register.ttl).Result()
+	for _, kv := range snapshot {
+		_, err := r.client.Expire(ctx, kv.K, kv.V.ttl).Result()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("keeplive %q failed, %w", nodePath, err))
+			errs = append(errs, fmt.Errorf("keeplive %q failed, %w", kv.K, err))
 		}
 	}
 
@@ -294,7 +290,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	for i := range services {
 		service := services[i]
 
-		idx := pie.FindFirstUsing(rets, func(ret discovery.Service) bool {
+		idx := slices.IndexFunc(rets, func(ret discovery.Service) bool {
 			return ret.Name == service.Name
 		})
 		if idx < 0 {
@@ -367,7 +363,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 
 	register, ok := r.registers.Get(nodePath)
 	if ok && register.hash == hv && keepAlive {
-		log.Debugf(r.servCtx, "service %q node %q unchanged skipping registration", serviceName, node.Id)
+		log.Debugf(r.servCtx, "service %q node %q unchanged, skipping registration", serviceName, node.Id)
 		return nil
 	}
 
@@ -383,10 +379,16 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return err
 	}
 
-	r.registers.Insert(nodePath, &_Register{
-		hash: hv,
-		ttl:  ttl,
-	})
+	register = &_Register{
+		hash:     hv,
+		ttl:      ttl,
+		revision: serviceNode.Revision,
+	}
+
+	existed := r.registers.Set(nodePath, register, register.revision, 0)
+	if existed != register {
+		return nil
+	}
 
 	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 	return nil
@@ -395,7 +397,12 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 
-	r.registers.Delete(nodePath)
+	register, ok := r.registers.Get(nodePath)
+	if !ok {
+		return nil
+	}
+
+	r.registers.Del(nodePath, register.revision+1)
 
 	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
 		return err
