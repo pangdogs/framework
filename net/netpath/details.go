@@ -14,38 +14,58 @@ func (d NodeDetails) InDomain(path string) bool {
 	return InDir(d.PathSeparator, path, d.Domain)
 }
 
-func (d NodeDetails) SameDomain(path string) bool {
-	return SameDir(d.PathSeparator, path, d.Domain)
+func (d NodeDetails) EqualDomain(path string) bool {
+	return Equal(d.PathSeparator, path, d.Domain)
+}
+
+func (d NodeDetails) DomainJoin(elems ...string) string {
+	return Join(d.PathSeparator, append([]string{d.Domain}, elems...)...)
 }
 
 func (d NodeDetails) InBroadcastSubdomain(path string) bool {
 	return InDir(d.PathSeparator, path, d.BroadcastSubdomain)
 }
 
-func (d NodeDetails) SameBroadcastSubdomain(path string) bool {
-	return SameDir(d.PathSeparator, path, d.BroadcastSubdomain)
+func (d NodeDetails) EqualBroadcastSubdomain(path string) bool {
+	return Equal(d.PathSeparator, path, d.BroadcastSubdomain)
+}
+
+func (d NodeDetails) BroadcastSubdomainJoin(elems ...string) string {
+	return Join(d.PathSeparator, append([]string{d.BroadcastSubdomain}, elems...)...)
 }
 
 func (d NodeDetails) InBalanceSubdomain(path string) bool {
 	return InDir(d.PathSeparator, path, d.BalanceSubdomain)
 }
 
-func (d NodeDetails) SameBalanceSubdomain(path string) bool {
-	return SameDir(d.PathSeparator, path, d.BalanceSubdomain)
+func (d NodeDetails) EqualBalanceSubdomain(path string) bool {
+	return Equal(d.PathSeparator, path, d.BalanceSubdomain)
+}
+
+func (d NodeDetails) BalanceSubdomainJoin(elems ...string) string {
+	return Join(d.PathSeparator, append([]string{d.BalanceSubdomain}, elems...)...)
 }
 
 func (d NodeDetails) InMulticastSubdomain(path string) bool {
 	return InDir(d.PathSeparator, path, d.MulticastSubdomain)
 }
 
-func (d NodeDetails) SameMulticastSubdomain(path string) bool {
-	return SameDir(d.PathSeparator, path, d.MulticastSubdomain)
+func (d NodeDetails) EqualMulticastSubdomain(path string) bool {
+	return Equal(d.PathSeparator, path, d.MulticastSubdomain)
+}
+
+func (d NodeDetails) MulticastSubdomainJoin(elems ...string) string {
+	return Join(d.PathSeparator, append([]string{d.MulticastSubdomain}, elems...)...)
 }
 
 func (d NodeDetails) InNodeSubdomain(path string) bool {
 	return InDir(d.PathSeparator, path, d.NodeSubdomain)
 }
 
-func (d NodeDetails) SameNodeSubdomain(path string) bool {
-	return SameDir(d.PathSeparator, path, d.NodeSubdomain)
+func (d NodeDetails) EqualNodeSubdomain(path string) bool {
+	return Equal(d.PathSeparator, path, d.NodeSubdomain)
+}
+
+func (d NodeDetails) NodeSubdomainJoin(elems ...string) string {
+	return Join(d.PathSeparator, append([]string{d.NodeSubdomain}, elems...)...)
 }

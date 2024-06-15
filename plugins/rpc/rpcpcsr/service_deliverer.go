@@ -21,10 +21,10 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpc
 
 	if oneWay {
 		// 单向请求，支持广播、负载均衡、单播地址
-		return details.SameBroadcastSubdomain(dst) || details.SameBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
+		return details.InBroadcastSubdomain(dst) || details.EqualBroadcastSubdomain(dst) || details.InBalanceSubdomain(dst) || details.EqualBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
 	} else {
 		// 普通请求，支持负载均衡与单播地址
-		return details.SameBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
+		return details.InBalanceSubdomain(dst) || details.EqualBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
 	}
 }
 

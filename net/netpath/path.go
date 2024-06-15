@@ -51,17 +51,6 @@ func InDir(sep, path, dir string) bool {
 	return strings.HasPrefix(path[len(dir):], sep)
 }
 
-func SameDir(sep, path, dir string) bool {
-	path = strings.TrimSuffix(path, sep)
-	dir = strings.TrimSuffix(dir, sep)
-
-	if !strings.HasPrefix(path, dir) {
-		return false
-	}
-
-	if len(path) <= len(dir) {
-		return true
-	}
-
-	return strings.HasPrefix(path[len(dir):], sep)
+func Equal(sep, a, b string) bool {
+	return strings.TrimSuffix(a, sep) == strings.TrimSuffix(b, sep)
 }
