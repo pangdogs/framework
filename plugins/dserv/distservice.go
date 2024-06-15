@@ -40,7 +40,7 @@ type IWatcher interface {
 // IDistService 分布式服务支持
 type IDistService interface {
 	// GetNodeDetails 获取节点地址信息
-	GetNodeDetails() NodeDetails
+	GetNodeDetails() *NodeDetails
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
 	// MakeBroadcastAddr 创建服务广播地址
@@ -72,7 +72,7 @@ type _DistService struct {
 	registry      discovery.IRegistry
 	broker        broker.IBroker
 	dsync         dsync.IDistSync
-	details       NodeDetails
+	details       *NodeDetails
 	encoder       codec.Encoder
 	decoder       codec.Decoder
 	futures       concurrent.Futures
@@ -107,7 +107,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
 
 	// 初始化地址信息
-	d.details = NodeDetails{
+	d.details = &NodeDetails{
 		NodeDetails: netpath.NodeDetails{
 			Domain:             d.options.Domain,
 			BroadcastSubdomain: intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "bc")),
@@ -191,7 +191,7 @@ func (d *_DistService) ShutSP(ctx service.Context) {
 }
 
 // GetNodeDetails 获取节点地址信息
-func (d *_DistService) GetNodeDetails() NodeDetails {
+func (d *_DistService) GetNodeDetails() *NodeDetails {
 	return d.details
 }
 
