@@ -71,7 +71,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error
 		}
 	}
 
-	group := r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
+	group := r.newGroup(groupKey, leaseId, tr.Header.Revision, entIds)
 
 	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, 0)
 	if cached == group {
