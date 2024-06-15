@@ -67,9 +67,11 @@ func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
 	}
 
 	// 申请租约
-	if err := d.grantLease(); err != nil {
+	leaseId, err := d.grantLease()
+	if err != nil {
 		log.Panicf(d.rtCtx, "grant lease failed, %s", err)
 	}
+	d.leaseId = leaseId
 	log.Debugf(d.rtCtx, "grant lease %d", d.leaseId)
 
 	// 刷新实体信息
@@ -185,25 +187,24 @@ func (d *_DistEntityRegistry) keepAliveLease(ctx runtime.Context, ret async.Ret,
 	log.Debugf(d.rtCtx, "lease %d not found, try grant a new lease", d.leaseId)
 
 	// 重新申请租约
-	if err := d.grantLease(); err != nil {
+	leaseId, err := d.grantLease()
+	if err != nil {
 		log.Errorf(d.rtCtx, "grant new lease failed, %s", err)
 		return
 	}
+	d.leaseId = leaseId
 	log.Debugf(d.rtCtx, "grant new lease %d", d.leaseId)
 
 	// 刷新实体信息
 	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
 }
 
-func (d *_DistEntityRegistry) grantLease() error {
-	// 申请租约
+func (d *_DistEntityRegistry) grantLease() (etcdv3.LeaseID, error) {
 	lgr, err := d.client.Grant(d.rtCtx, int64(math.Ceil(d.options.TTL.Seconds())))
 	if err != nil {
-		return err
+		return etcdv3.NoLease, err
 	}
-	d.leaseId = lgr.ID
-
-	return nil
+	return lgr.ID, nil
 }
 
 func (d *_DistEntityRegistry) configure() etcdv3.Config {

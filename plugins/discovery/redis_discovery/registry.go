@@ -350,9 +350,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return errors.New("service node id can't empty")
 	}
 
-	if ttl <= 0 {
-		ttl = r.options.TTL
-	}
+	ttl = max(ttl, r.options.TTL)
 
 	hv, err := hash.Hash(node, hash.FormatV2, nil)
 	if err != nil {
