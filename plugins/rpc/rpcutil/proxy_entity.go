@@ -419,7 +419,7 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 	}
 
 	// 客户端地址
-	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
+	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -449,7 +449,7 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	}
 
 	// 客户端地址
-	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
+	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain

@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-func Path(sep string, elems ...string) string {
+func Join(sep string, elems ...string) string {
 	return strings.Join(elems, sep)
 }
 

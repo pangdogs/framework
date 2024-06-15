@@ -53,7 +53,7 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 	}
 
 	// 客户端组播地址
-	dst := netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.id.String())
+	dst := netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.MulticastSubdomain, p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain

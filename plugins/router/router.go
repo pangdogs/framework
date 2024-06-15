@@ -143,7 +143,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
-			cliAddr:   netpath.Path(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, entity.GetId().String()),
+			cliAddr:   netpath.Join(gate.CliDetails.PathSeparator, gate.CliDetails.NodeSubdomain, entity.GetId().String()),
 		}
 		ret = mapping
 

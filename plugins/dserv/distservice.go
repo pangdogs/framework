@@ -110,9 +110,9 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.details = NodeDetails{
 		NodeDetails: netpath.NodeDetails{
 			Domain:             d.options.Domain,
-			BroadcastSubdomain: intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "bc")),
-			BalanceSubdomain:   intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "lb")),
-			NodeSubdomain:      intern.String(netpath.Path(d.broker.GetSeparator(), d.options.Domain, "nd")),
+			BroadcastSubdomain: intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "bc")),
+			BalanceSubdomain:   intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "lb")),
+			NodeSubdomain:      intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "nd")),
 			PathSeparator:      d.broker.GetSeparator(),
 		},
 	}
@@ -123,7 +123,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId())
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutex(netpath.Path(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()))
+	mutex := d.dsync.NewMutex(netpath.Join(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()))
 	if err := mutex.Lock(d.servCtx); err != nil {
 		log.Panicf(d.servCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
@@ -202,12 +202,12 @@ func (d *_DistService) GetFutures() concurrent.IFutures {
 
 // MakeBroadcastAddr 创建服务广播地址
 func (d *_DistService) MakeBroadcastAddr(service string) string {
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.BroadcastSubdomain, service))
+	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.BroadcastSubdomain, service))
 }
 
 // MakeBalanceAddr 创建服务负载均衡地址
 func (d *_DistService) MakeBalanceAddr(service string) string {
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.BalanceSubdomain, service))
+	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.BalanceSubdomain, service))
 }
 
 // MakeNodeAddr 创建服务节点地址
@@ -215,7 +215,7 @@ func (d *_DistService) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
 		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
 	}
-	return intern.String(netpath.Path(d.broker.GetSeparator(), d.details.NodeSubdomain, nodeId.String())), nil
+	return intern.String(netpath.Join(d.broker.GetSeparator(), d.details.NodeSubdomain, nodeId.String())), nil
 }
 
 // SendMsg 发送消息
