@@ -24,7 +24,7 @@ func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpc
 
 	if oneWay {
 		// 单向请求，支持组播、单播地址
-		return gate.CliDetails.InNodeSubdomain(dst) || gate.CliDetails.InMulticastSubdomain(dst)
+		return gate.CliDetails.InNodeSubdomain(dst) || gate.CliDetails.InMulticastSubdomain(dst) || gate.CliDetails.InBroadcastSubdomain(dst)
 	} else {
 		// 普通请求，支持单播地址
 		return gate.CliDetails.InNodeSubdomain(dst)
@@ -121,7 +121,7 @@ func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 		// 目标为单播地址，查询实体的通信中转服务地址
 		return p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
 
-	} else if gate.CliDetails.InMulticastSubdomain(dst) {
+	} else if gate.CliDetails.InMulticastSubdomain(dst) || gate.CliDetails.InBroadcastSubdomain(dst) {
 		// 目标为组播地址，广播所有的通信中转服务
 		return p.transitBroadcastAddr, nil
 

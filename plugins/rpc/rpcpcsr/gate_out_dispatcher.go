@@ -9,6 +9,7 @@ import (
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/router"
 )
 
 func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
@@ -76,6 +77,30 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 			go p.finishOutbound(src, req, ErrGroupChanIsFull)
 		}
 		return
+
+	} else if gate.CliDetails.InBroadcastSubdomain(req.Dst) {
+		// 目标为广播地址，解析实体Id
+		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
+
+		// 遍历包含实体的所有分组
+		p.router.RangeGroups(p.servCtx, entId, func(group router.IGroup) bool {
+			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+			if err != nil {
+				go p.finishOutbound(src, req, err)
+				return true
+			}
+
+			// 为了保持消息时序，使用分组发送数据的channel
+			select {
+			case group.SendDataChan() <- bs:
+				go p.finishOutbound(src, req, nil)
+			default:
+				bs.Release()
+				go p.finishOutbound(src, req, ErrGroupChanIsFull)
+			}
+
+			return true
+		})
 
 	} else {
 		go p.finishOutbound(src, req, ErrIncorrectDestAddress)

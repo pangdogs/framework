@@ -171,7 +171,7 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 	return cached, true
 }
 
-// RangeGroups 遍历实体所在的分组
+// RangeGroups 遍历包含实体的所有分组
 func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool]) {
 	if ctx == nil {
 		ctx = context.Background()

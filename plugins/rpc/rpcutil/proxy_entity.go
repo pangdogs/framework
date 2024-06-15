@@ -465,3 +465,28 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 
 	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }
+
+// GroupOneWayCliRPC 向包含实体的分组发送单向RPC
+func (p EntityProxied) GroupOneWayCliRPC(method string, args ...any) error {
+	if p.servCtx == nil {
+		panic(errors.New("rpc: setting servCtx is nil"))
+	}
+
+	// 客户端地址
+	dst := gate.CliDetails.BroadcastSubdomainJoin(p.id.String())
+
+	// 调用链
+	callChain := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		callChain = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
+	// 调用路径
+	cp := callpath.CallPath{
+		Category: callpath.Client,
+		EntityId: p.id,
+		Method:   method,
+	}
+
+	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+}

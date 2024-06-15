@@ -41,7 +41,7 @@ type IRouter interface {
 	DeleteGroup(ctx context.Context, groupAddr string)
 	// GetGroup 查询分组
 	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
-	// RangeGroups 遍历实体所在的分组
+	// RangeGroups 遍历包含实体的所有分组
 	RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool])
 }
 

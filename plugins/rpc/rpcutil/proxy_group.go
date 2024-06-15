@@ -5,26 +5,25 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(ctx runtime.CurrentContextProvider, id uid.Id) GroupProxied {
+func ProxyGroup(ctx runtime.CurrentContextProvider, addr string) GroupProxied {
 	return GroupProxied{
 		servCtx: service.Current(ctx),
 		rtCtx:   runtime.Current(ctx),
-		id:      id,
+		addr:    addr,
 	}
 }
 
 // ConcurrentProxyGroup 代理分组
-func ConcurrentProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
+func ConcurrentProxyGroup(ctx service.Context, addr string) GroupProxied {
 	return GroupProxied{
 		servCtx: ctx,
-		id:      id,
+		addr:    addr,
 	}
 }
 
@@ -32,27 +31,24 @@ func ConcurrentProxyGroup(ctx service.Context, id uid.Id) GroupProxied {
 type GroupProxied struct {
 	servCtx service.Context
 	rtCtx   runtime.Context
-	id      uid.Id
+	addr    string
 }
 
-// GetId 获取分组id
-func (p GroupProxied) GetId() uid.Id {
-	return p.id
+// GetAddr 获取分组地址
+func (p GroupProxied) GetAddr() string {
+	return p.addr
 }
 
-// OneWayCliRPC 向分组客户端发送单向RPC
+// OneWayCliRPC 向分组发送单向RPC
 func (p GroupProxied) OneWayCliRPC(method string, args ...any) error {
 	return p.OneWayCliRPCToEntity(uid.Nil, method, args...)
 }
 
-// OneWayCliRPCToEntity 向分组客户端实体发送单向RPC
+// OneWayCliRPCToEntity 向分组发送单向RPC
 func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
-
-	// 客户端组播地址
-	dst := gate.CliDetails.MulticastSubdomainJoin(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -67,5 +63,5 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OneWayRPC(p.addr, callChain, cp.String(), args...)
 }
