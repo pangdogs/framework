@@ -181,34 +181,28 @@ func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.
 		return
 	}
 
-	groupAddrs, ok := r.entityGroupsCache.Get(entityId)
-	if !ok {
-		gr, err := r.client.Get(ctx, path.Join(r.options.EntityGroupsKeyPrefix, entityId.String())+"/",
-			etcdv3.WithPrefix(),
-			etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-			etcdv3.WithIgnoreValue())
-		if err != nil {
-			return
-		}
-
-		if len(gr.Kvs) <= 0 {
-			return
-		}
-
-		groupAddrs = make([]string, 0, len(gr.Kvs))
-
-		for _, kv := range gr.Kvs {
-			groupAddrs = append(groupAddrs, string(kv.Key))
-		}
-
-		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
-	}
-
-	for _, groupAddr := range groupAddrs {
+	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
 		if group, ok := r.GetGroup(ctx, groupAddr); ok {
 			if !fun.Exec(group) {
 				return
 			}
+		}
+	}
+}
+
+// EachGroups 遍历包含实体的所有分组
+func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.Action1[IGroup]) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if _, ok := r.servCtx.GetEntityMgr().GetEntity(entityId); !ok {
+		return
+	}
+
+	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
+		if group, ok := r.GetGroup(ctx, groupAddr); ok {
+			fun.Exec(group)
 		}
 	}
 }
@@ -233,4 +227,30 @@ func (r *_Router) newGroup(groupKey string, leaseId etcdv3.LeaseID, revision int
 	}
 
 	return group
+}
+
+func (r *_Router) getEntityGroupAddrs(ctx context.Context, entityId uid.Id) []string {
+	groupAddrs, ok := r.entityGroupsCache.Get(entityId)
+	if !ok {
+		gr, err := r.client.Get(ctx, path.Join(r.options.EntityGroupsKeyPrefix, entityId.String())+"/",
+			etcdv3.WithPrefix(),
+			etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
+			etcdv3.WithIgnoreValue())
+		if err != nil {
+			return nil
+		}
+
+		if len(gr.Kvs) <= 0 {
+			return nil
+		}
+
+		groupAddrs = make([]string, 0, len(gr.Kvs))
+
+		for _, kv := range gr.Kvs {
+			groupAddrs = append(groupAddrs, string(kv.Key))
+		}
+
+		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
+	}
+	return groupAddrs
 }

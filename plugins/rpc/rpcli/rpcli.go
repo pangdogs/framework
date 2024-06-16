@@ -148,7 +148,7 @@ func (c *RPCli) AddProcedure(id uid.Id, proc any) error {
 	}
 
 	_proc.init(c, id, proc)
-	c.procs.Insert(id, _proc)
+	c.procs.Add(id, _proc)
 
 	return nil
 }

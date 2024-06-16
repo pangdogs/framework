@@ -83,11 +83,11 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
 
 		// 遍历包含实体的所有分组
-		p.router.RangeGroups(p.servCtx, entId, func(group router.IGroup) bool {
+		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {
 			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				go p.finishOutbound(src, req, err)
-				return true
+				return
 			}
 
 			// 为了保持消息时序，使用分组发送数据的channel
@@ -98,8 +98,6 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 				bs.Release()
 				go p.finishOutbound(src, req, ErrGroupChanIsFull)
 			}
-
-			return true
 		})
 
 	} else {

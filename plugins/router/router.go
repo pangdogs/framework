@@ -43,6 +43,8 @@ type IRouter interface {
 	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 	// RangeGroups 遍历包含实体的所有分组
 	RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool])
+	// EachGroups 遍历包含实体的所有分组
+	EachGroups(ctx context.Context, entityId uid.Id, fun generic.Action1[IGroup])
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {

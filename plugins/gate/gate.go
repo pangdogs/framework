@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
@@ -30,7 +31,9 @@ type IGate interface {
 	// GetSession 查询会话
 	GetSession(sessionId uid.Id) (ISession, bool)
 	// RangeSessions 遍历所有会话
-	RangeSessions(fun func(session ISession) bool)
+	RangeSessions(fun generic.Func1[ISession, bool])
+	// EachSessions 遍历所有会话
+	EachSessions(fun generic.Action1[ISession])
 	// CountSessions 统计所有会话数量
 	CountSessions() int
 	// Watch 监听会话变化
@@ -161,12 +164,17 @@ func (g *_Gate) GetSession(sessionId uid.Id) (ISession, bool) {
 }
 
 // RangeSessions 遍历所有会话
-func (g *_Gate) RangeSessions(fun func(session ISession) bool) {
-	if fun == nil {
-		return
-	}
+func (g *_Gate) RangeSessions(fun generic.Func1[ISession, bool]) {
 	g.sessionMap.Range(func(k, v any) bool {
-		return fun(v.(ISession))
+		return fun.Exec(v.(ISession))
+	})
+}
+
+// EachSessions 遍历所有会话
+func (g *_Gate) EachSessions(fun generic.Action1[ISession]) {
+	g.sessionMap.Range(func(k, v any) bool {
+		fun.Exec(v.(ISession))
+		return true
 	})
 }
 

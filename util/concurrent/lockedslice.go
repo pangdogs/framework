@@ -46,20 +46,20 @@ func (ls *LockedSlice[T]) Len() (l int) {
 	return
 }
 
-func (ls *LockedSlice[T]) Each(fun generic.Action1[T]) {
-	ls.AutoRLock(func(s *[]T) {
-		for i := range *s {
-			fun.Exec((*s)[i])
-		}
-	})
-}
-
 func (ls *LockedSlice[T]) Range(fun generic.Func1[T, bool]) {
 	ls.AutoRLock(func(s *[]T) {
 		for i := range *s {
 			if !fun.Exec((*s)[i]) {
 				return
 			}
+		}
+	})
+}
+
+func (ls *LockedSlice[T]) Each(fun generic.Action1[T]) {
+	ls.AutoRLock(func(s *[]T) {
+		for i := range *s {
+			fun.Exec((*s)[i])
 		}
 	})
 }

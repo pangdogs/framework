@@ -26,6 +26,8 @@ type IGroup interface {
 	Remove(ctx context.Context, entIds ...uid.Id) error
 	// Range 遍历所有实体
 	Range(fun generic.Func1[uid.Id, bool])
+	// Each 遍历所有实体
+	Each(fun generic.Action1[uid.Id])
 	// Count 获取实体数量
 	Count() int
 	// RefreshTTL 刷新TTL
@@ -118,6 +120,17 @@ func (g *_Group) Range(fun generic.Func1[uid.Id, bool]) {
 		if !fun.Exec(copied[i]) {
 			return
 		}
+	}
+}
+
+// Each 遍历所有实体
+func (g *_Group) Each(fun generic.Action1[uid.Id]) {
+	g.RLock()
+	copied := slices.Clone(g.entities)
+	g.RUnlock()
+
+	for i := range copied {
+		fun.Exec(copied[i])
 	}
 }
 

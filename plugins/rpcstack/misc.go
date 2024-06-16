@@ -1,6 +1,9 @@
 package rpcstack
 
-import "git.golaxy.org/framework/net/gap/variant"
+import (
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/framework/net/gap/variant"
+)
 
 type (
 	Call      = variant.Call
@@ -9,30 +12,30 @@ type (
 
 var EmptyCallChain = CallChain{}
 
-type Variables map[string]any
+type Variables generic.UnorderedSliceMap[string, any]
 
 func (m *Variables) Set(k string, v any) {
-	if *m == nil {
-		*m = map[string]any{}
-	}
-	(*m)[k] = v
+	(*generic.UnorderedSliceMap[string, any])(m).Add(k, v)
 }
 
 func (m Variables) Get(k string) any {
-	if m == nil {
+	v, ok := (generic.UnorderedSliceMap[string, any])(m).Get(k)
+	if !ok {
 		return nil
 	}
-	return m[k]
+	return v
 }
 
-func (m Variables) Range(fun func(k string, v any) bool) {
-	if fun == nil {
-		return
-	}
-
-	for k, v := range m {
-		if !fun(k, v) {
+func (m Variables) Range(fun generic.Func2[string, any, bool]) {
+	for _, kv := range (generic.UnorderedSliceMap[string, any])(m) {
+		if !fun.Exec(kv.K, kv.V) {
 			return
 		}
+	}
+}
+
+func (m Variables) Each(fun generic.Action2[string, any]) {
+	for _, kv := range (generic.UnorderedSliceMap[string, any])(m) {
+		fun.Exec(kv.K, kv.V)
 	}
 }

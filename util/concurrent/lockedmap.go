@@ -18,8 +18,17 @@ type LockedMap[K comparable, V any] struct {
 	RWLocked[map[K]V]
 }
 
-func (lm *LockedMap[K, V]) Insert(k K, v V) {
+func (lm *LockedMap[K, V]) Add(k K, v V) {
 	lm.AutoLock(func(m *map[K]V) {
+		(*m)[k] = v
+	})
+}
+
+func (lm *LockedMap[K, V]) TryAdd(k K, v V) {
+	lm.AutoLock(func(m *map[K]V) {
+		if _, ok := (*m)[k]; ok {
+			return
+		}
 		(*m)[k] = v
 	})
 }
@@ -37,19 +46,25 @@ func (lm *LockedMap[K, V]) Get(k K) (v V, ok bool) {
 	return
 }
 
+func (lm *LockedMap[K, V]) Value(k K) (v V) {
+	lm.AutoRLock(func(m *map[K]V) {
+		v, _ = (*m)[k]
+	})
+	return
+}
+
+func (lm *LockedMap[K, V]) Exist(k K) (b bool) {
+	lm.AutoRLock(func(m *map[K]V) {
+		_, b = (*m)[k]
+	})
+	return
+}
+
 func (lm *LockedMap[K, V]) Len() (l int) {
 	lm.AutoRLock(func(m *map[K]V) {
 		l = len(*m)
 	})
 	return
-}
-
-func (lm *LockedMap[K, V]) Each(fun generic.Action2[K, V]) {
-	lm.AutoRLock(func(m *map[K]V) {
-		for k, v := range *m {
-			fun.Exec(k, v)
-		}
-	})
 }
 
 func (lm *LockedMap[K, V]) Range(fun generic.Func2[K, V, bool]) {
@@ -58,6 +73,14 @@ func (lm *LockedMap[K, V]) Range(fun generic.Func2[K, V, bool]) {
 			if !fun.Exec(k, v) {
 				return
 			}
+		}
+	})
+}
+
+func (lm *LockedMap[K, V]) Each(fun generic.Action2[K, V]) {
+	lm.AutoRLock(func(m *map[K]V) {
+		for k, v := range *m {
+			fun.Exec(k, v)
 		}
 	})
 }
