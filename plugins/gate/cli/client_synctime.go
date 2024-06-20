@@ -36,5 +36,5 @@ func (c *Client) RequestTime(ctx context.Context) async.AsyncRetT[*ResponseTime]
 	if err := c.ctrl.RequestTime(future.Id); err != nil {
 		future.Cancel(err)
 	}
-	return resp.CastAsyncRetT()
+	return resp.ToAsyncRetT()
 }

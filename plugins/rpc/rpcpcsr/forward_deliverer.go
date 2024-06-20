@@ -39,13 +39,13 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 	forwardAddr, err := p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	vargs, err := variant.MakeArrayReadonly(args)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	msg := &gap.MsgRPCRequest{
@@ -58,7 +58,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 	bs, err := gap.Marshal(msg)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 	defer bs.Release()
 
@@ -71,11 +71,11 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 
 	if err = p.dist.SendMsg(forwardAddr, forwardMsg); err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	log.Debugf(p.servCtx, "rpc request(%d) forwarding to dst:%q, path:%q ok", future.Id, forwardAddr, path)
-	return ret.CastAsyncRet()
+	return ret.ToAsyncRet()
 }
 
 // Notify 通知

@@ -20,7 +20,7 @@ func MakeMapReadonlyFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 			return nil, err
 		}
 
-		varMap.CastUnorderedSliceMap().Add(varK, varV)
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
 	}
 
 	return varMap, nil
@@ -41,7 +41,7 @@ func MakeMapReadonlyFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V])
 			return nil, err
 		}
 
-		varMap.CastUnorderedSliceMap().Add(varK, varV)
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
 	}
 
 	return varMap, nil
@@ -62,7 +62,7 @@ func MakeMapReadonlyFromUnorderedSliceMap[K comparable, V any](m generic.Unorder
 			return nil, err
 		}
 
-		varMap.CastUnorderedSliceMap().Add(varK, varV)
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
 	}
 
 	return varMap, nil

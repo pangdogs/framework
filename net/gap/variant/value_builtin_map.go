@@ -93,7 +93,7 @@ func (v Map) Release() {
 	}
 }
 
-// CastUnorderedSliceMap 转换为UnorderedSliceMap
-func (v *Map) CastUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
+// ToUnorderedSliceMap 转换为UnorderedSliceMap
+func (v *Map) ToUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
 	return (*generic.UnorderedSliceMap[Variant, Variant])(v)
 }

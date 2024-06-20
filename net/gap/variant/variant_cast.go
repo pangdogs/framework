@@ -68,7 +68,7 @@ func CastVariantReflected(variant Variant, valueRT reflect.Type) (reflect.Value,
 	case mapStringAnyRT, reflect.PointerTo(mapStringAnyRT):
 		switch variant.TypeId {
 		case TypeId_Map:
-			m := *variant.Value.(*Map).CastUnorderedSliceMap()
+			m := *variant.Value.(*Map).ToUnorderedSliceMap()
 
 			rv := make(map[string]any, len(m))
 			for _, kv := range m {
@@ -88,7 +88,7 @@ func CastVariantReflected(variant Variant, valueRT reflect.Type) (reflect.Value,
 	case sliceMapStringAnyRT, reflect.PointerTo(sliceMapStringAnyRT):
 		switch variant.TypeId {
 		case TypeId_Map:
-			m := *variant.Value.(*Map).CastUnorderedSliceMap()
+			m := *variant.Value.(*Map).ToUnorderedSliceMap()
 
 			rv := make(generic.SliceMap[string, any], 0, len(m))
 			for _, kv := range m {
@@ -108,7 +108,7 @@ func CastVariantReflected(variant Variant, valueRT reflect.Type) (reflect.Value,
 	case unorderedSliceMapStringAnyRT, reflect.PointerTo(unorderedSliceMapStringAnyRT):
 		switch variant.TypeId {
 		case TypeId_Map:
-			m := variant.Value.(*Map).CastUnorderedSliceMap()
+			m := variant.Value.(*Map).ToUnorderedSliceMap()
 
 			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {

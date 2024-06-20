@@ -42,7 +42,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 	vargs, err := variant.MakeArrayReadonly(args)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	cp := callpath.CallPath{
@@ -61,7 +61,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 	msgbs, err := gap.Marshal(msg)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 	defer msgbs.Release()
 
@@ -75,16 +75,16 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 	bs, err := c.encoder.EncodeBytes("", 0, forwardMsg)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 	defer bs.Release()
 
 	if err = c.SendData(bs.Data()); err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
-	return ret.CastAsyncRet()
+	return ret.ToAsyncRet()
 }
 
 // OneWayRPC 单向RPC调用

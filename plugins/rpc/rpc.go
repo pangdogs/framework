@@ -69,7 +69,7 @@ func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args .
 	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
 		ret.Push(async.MakeRet(nil, rpcpcsr.ErrTerminated))
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	if callChain == nil {
@@ -88,7 +88,7 @@ func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args .
 
 	ret := concurrent.MakeRespAsyncRet()
 	ret.Push(async.MakeRet(nil, rpcpcsr.ErrUndeliverable))
-	return ret.CastAsyncRet()
+	return ret.ToAsyncRet()
 }
 
 // OneWayRPC 单向RPC调用

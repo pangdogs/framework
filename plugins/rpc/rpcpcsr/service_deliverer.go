@@ -36,7 +36,7 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 	vargs, err := variant.MakeArrayReadonly(args)
 	if err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	msg := &gap.MsgRPCRequest{
@@ -48,11 +48,11 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 
 	if err = p.dist.SendMsg(dst, msg); err != nil {
 		future.Cancel(err)
-		return ret.CastAsyncRet()
+		return ret.ToAsyncRet()
 	}
 
 	log.Debugf(p.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, path)
-	return ret.CastAsyncRet()
+	return ret.ToAsyncRet()
 }
 
 // Notify 通知

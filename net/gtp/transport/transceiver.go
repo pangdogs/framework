@@ -81,7 +81,7 @@ func (t *Transceiver) SendRst(err error) error {
 			rstErr.Message = err.Error()
 		}
 	}
-	return t.Send(rstErr.CastEvent().Interface())
+	return t.Send(rstErr.ToEvent().Interface())
 }
 
 // Resend 重新发送未完整发送的消息事件

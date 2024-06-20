@@ -28,7 +28,7 @@ func (ch RespAsyncRet) Push(ret async.Ret) error {
 	return nil
 }
 
-// CastAsyncRet 转换为异步调用结果
-func (ch RespAsyncRet) CastAsyncRet() async.AsyncRet {
+// ToAsyncRet 转换为异步调用结果
+func (ch RespAsyncRet) ToAsyncRet() async.AsyncRet {
 	return chan async.Ret(ch)
 }
