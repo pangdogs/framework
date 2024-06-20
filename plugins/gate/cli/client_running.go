@@ -8,7 +8,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"net"
 	"time"
 )

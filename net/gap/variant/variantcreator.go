@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 	"reflect"
 )
 

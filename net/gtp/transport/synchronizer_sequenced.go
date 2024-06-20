@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gtp"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"sync/atomic"
 )

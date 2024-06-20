@@ -3,7 +3,7 @@ package gate
 import (
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 type _SessionOptions struct {

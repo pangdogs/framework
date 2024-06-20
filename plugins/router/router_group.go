@@ -9,7 +9,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/plugins/gate"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"math"
 	"path"

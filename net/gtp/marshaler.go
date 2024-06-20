@@ -2,7 +2,7 @@ package gtp
 
 import (
 	"fmt"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 func Marshal[T MsgReader](msg T) (binaryutil.RecycleBytes, error) {

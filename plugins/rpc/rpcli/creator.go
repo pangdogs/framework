@@ -13,7 +13,7 @@ import (
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/plugins/gate/cli"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 	"go.uber.org/zap"
 	"time"
 )

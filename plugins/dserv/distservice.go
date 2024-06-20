@@ -16,7 +16,7 @@ import (
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 	"github.com/josharian/intern"
 	"sync"
 )

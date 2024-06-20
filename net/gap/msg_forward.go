@@ -1,7 +1,7 @@
 package gap
 
 import (
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgForward 转发

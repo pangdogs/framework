@@ -11,7 +11,7 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/gate/cli"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 )
 
 var (

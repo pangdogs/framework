@@ -3,7 +3,7 @@ package gtp
 import (
 	"bytes"
 	"fmt"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"strings"
 )
 

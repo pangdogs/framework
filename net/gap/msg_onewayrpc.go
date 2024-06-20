@@ -2,7 +2,7 @@ package gap
 
 import (
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgOneWayRPC 单程RPC请求

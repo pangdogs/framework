@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.1
 
 require (
-	git.golaxy.org/core v0.3.0
+	git.golaxy.org/core v0.3.1
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.8.0
 	github.com/fsnotify/fsnotify v1.7.0

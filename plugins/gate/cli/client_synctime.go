@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 	"time"
 )
 

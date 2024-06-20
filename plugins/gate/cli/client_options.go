@@ -9,7 +9,7 @@ import (
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"go.uber.org/zap"
 	"time"
 )

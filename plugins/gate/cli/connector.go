@@ -9,7 +9,7 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gtp/codec"
-	"git.golaxy.org/framework/util/concurrent"
+	"git.golaxy.org/framework/utils/concurrent"
 	"golang.org/x/net/websocket"
 	"net"
 	"net/url"

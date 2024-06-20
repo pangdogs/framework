@@ -11,7 +11,7 @@ import (
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"math/big"
 	"net"

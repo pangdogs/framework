@@ -1,6 +1,6 @@
 package variant
 
-import "git.golaxy.org/framework/util/binaryutil"
+import "git.golaxy.org/framework/utils/binaryutil"
 
 type Call struct {
 	Src, Transit string

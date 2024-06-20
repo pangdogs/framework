@@ -1,7 +1,7 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Uint32 builtin uint32

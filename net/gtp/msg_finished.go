@@ -1,7 +1,7 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Finished消息标志位

@@ -2,7 +2,7 @@ package variant
 
 import (
 	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/util/binaryutil"
+	"git.golaxy.org/framework/utils/binaryutil"
 	"hash/fnv"
 	"reflect"
 )
