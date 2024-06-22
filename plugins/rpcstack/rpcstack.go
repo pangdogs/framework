@@ -3,7 +3,6 @@ package rpcstack
 import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/framework/plugins/log"
-	"slices"
 )
 
 // IRPCStack RPC调用堆栈支持
@@ -44,7 +43,7 @@ func (r *_RPCStack) ShutRP(ctx runtime.Context) {
 
 // CallChain 调用链
 func (r *_RPCStack) CallChain() CallChain {
-	return slices.Clone(r.callChain)
+	return r.callChain
 }
 
 // Variables 栈变量

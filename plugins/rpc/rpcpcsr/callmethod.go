@@ -12,7 +12,6 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"reflect"
-	"slices"
 )
 
 func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
@@ -147,7 +146,7 @@ func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args varian
 		if !callChainRT.AssignableTo(methodRT.In(0)) {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(slices.Clone(callChain)))
+		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(callChain))
 		argsPos = 1
 
 	case len(args):
