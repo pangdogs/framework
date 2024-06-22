@@ -1,5 +1,5 @@
-//go:generate go run git.golaxy.org/core/event/eventcode gen_event --default_export=false
-//go:generate go run git.golaxy.org/core/event/eventcode gen_eventtab --name=distEntityRegistryEventTab
+//go:generate go run git.golaxy.org/core/event/eventc event --default_export=false
+//go:generate go run git.golaxy.org/core/event/eventc eventtab --name=distEntityRegistryEventTab
 package dentr
 
 import (
