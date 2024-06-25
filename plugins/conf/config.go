@@ -54,7 +54,7 @@ func (c *_Config) InitSP(ctx service.Context) {
 	if local {
 		vp.SetConfigFile(c.options.LocalPath)
 
-		if err := vp.ReadInConfig(); err != nil {
+		if err := vp.MergeInConfig(); err != nil {
 			log.Panicf(ctx, "read local config %q failed, %s", c.options.LocalPath, err)
 		}
 
