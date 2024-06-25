@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
@@ -84,44 +84,112 @@ func (app *App) TerminateCB(cb generic.DelegateAction1[*App]) *App {
 func (app *App) Run() {
 	app.lazyInit()
 
+	cmd := &cobra.Command{
+		Short: "属性同步代码生成工具。",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			// 初始化回调
+			app.initCB.Exec(nil, app)
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			// 合并启动参数配置
+			startupConf := app.startupConf
+
+			startupConf.AutomaticEnv()
+			startupConf.BindPFlags(cmd.Flags())
+			startupConf.SetConfigType(startupConf.GetString("conf.format"))
+			startupConf.SetConfigFile(startupConf.GetString("conf.local_path"))
+
+			if startupConf.ConfigFileUsed() != "" {
+				if err := startupConf.ReadInConfig(); err != nil {
+					panic(fmt.Errorf("read config file failed, %s", err))
+				}
+			}
+
+			// 启动回调
+			app.startingCB.Exec(nil, app)
+
+			// 监听退出信号
+			ctx, cancel := context.WithCancel(context.Background())
+
+			sigChan := make(chan os.Signal, 1)
+			signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+			go func() {
+				<-sigChan
+				cancel()
+			}()
+
+			// 启动服务
+			wg := &sync.WaitGroup{}
+
+			serviceNum := startupConf.GetStringMapString("startup.services")
+
+			for name, pt := range app.servicePTs {
+				pt.generic.init(startupConf, name, pt.generic)
+				pt.num, _ = strconv.Atoi(serviceNum[name])
+			}
+
+			for _, pt := range app.servicePTs {
+				for i := 0; i < pt.num; i++ {
+					wg.Add(1)
+					go func(generic iServiceGeneric, no int) {
+						defer wg.Done()
+						<-generic.generate(ctx, no).Run()
+					}(pt.generic, i)
+				}
+			}
+
+			wg.Wait()
+		},
+		PostRun: func(cmd *cobra.Command, args []string) {
+			// 结束回调
+			app.terminatedCB.Exec(nil, app)
+		},
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd:   true,
+			DisableNoDescFlag:   true,
+			DisableDescriptions: true,
+		},
+	}
+
 	// 日志参数
-	pflag.String("log.format", "console", "logging output format (json|console)")
-	pflag.String("log.level", "info", "logging level")
-	pflag.String("log.dir", "./log/", "logging directory path")
-	pflag.Int("log.size", 100*1024*1024, "log file splitting size")
-	pflag.Bool("log.stdout", false, "logging output to stdout")
-	pflag.Bool("log.development", false, "logging in development mode")
-	pflag.Bool("log.service_info", false, "logging output service info")
-	pflag.Bool("log.runtime_info", false, "logging output generic info")
+	cmd.PersistentFlags().String("log.format", "console", "logging output format (json|console)")
+	cmd.PersistentFlags().String("log.level", "info", "logging level")
+	cmd.PersistentFlags().String("log.dir", "./log/", "logging directory path")
+	cmd.PersistentFlags().Int("log.size", 100*1024*1024, "log file splitting size")
+	cmd.PersistentFlags().Bool("log.stdout", false, "logging output to stdout")
+	cmd.PersistentFlags().Bool("log.development", false, "logging in development mode")
+	cmd.PersistentFlags().Bool("log.service_info", false, "logging output service info")
+	cmd.PersistentFlags().Bool("log.runtime_info", false, "logging output generic info")
 
 	// 配置参数
-	pflag.String("conf.format", "json", "config file format")
-	pflag.String("conf.local_path", "", "local config file path")
-	pflag.String("conf.remote_provider", "", "remote config provider")
-	pflag.String("conf.remote_endpoint", "", "remote config endpoint")
-	pflag.String("conf.remote_path", "", "remote config file path")
-	pflag.Bool("conf.auto_update", true, "auto update config")
+	cmd.PersistentFlags().String("conf.format", "json", "config file format")
+	cmd.PersistentFlags().String("conf.local_path", "", "local config file path")
+	cmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
+	cmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
+	cmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
+	cmd.PersistentFlags().Bool("conf.auto_update", true, "auto update config")
 
 	// nats参数
-	pflag.String("nats.address", "localhost:4222", "nats address")
-	pflag.String("nats.username", "", "nats auth username")
-	pflag.String("nats.password", "", "nats auth password")
+	cmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")
+	cmd.PersistentFlags().String("nats.username", "", "nats auth username")
+	cmd.PersistentFlags().String("nats.password", "", "nats auth password")
 
 	// etcd参数
-	pflag.String("etcd.address", "localhost:2379", "etcd address")
-	pflag.String("etcd.username", "", "etcd auth username")
-	pflag.String("etcd.password", "", "etcd auth password")
+	cmd.PersistentFlags().String("etcd.address", "localhost:2379", "etcd address")
+	cmd.PersistentFlags().String("etcd.username", "", "etcd auth username")
+	cmd.PersistentFlags().String("etcd.password", "", "etcd auth password")
 
 	// 分布式服务参数
-	pflag.String("service.version", "v0.0.0", "service version info")
-	pflag.StringToString("service.meta", map[string]string{}, "service meta info")
-	pflag.Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
-	pflag.Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
-	pflag.Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
-	pflag.Bool("service.auto_recover", false, "enable panic auto recover")
+	cmd.PersistentFlags().String("service.version", "v0.0.0", "service version info")
+	cmd.PersistentFlags().StringToString("service.meta", map[string]string{}, "service meta info")
+	cmd.PersistentFlags().Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
+	cmd.PersistentFlags().Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
+	cmd.PersistentFlags().Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
+	cmd.PersistentFlags().Bool("service.auto_recover", false, "enable panic auto recover")
 
 	// 启动的服务列表
-	pflag.StringToString("startup.services", func() map[string]string {
+	cmd.PersistentFlags().StringToString("startup.services", func() map[string]string {
 		ret := map[string]string{}
 		for name, pt := range app.servicePTs {
 			ret[name] = strconv.Itoa(pt.num)
@@ -129,64 +197,10 @@ func (app *App) Run() {
 		return ret
 	}(), "instances required for each service to start")
 
-	// 初始化回调
-	app.initCB.Exec(nil, app)
-
-	// 解析启动参数
-	pflag.Parse()
-
-	// 合并启动参数配置
-	startupConf := app.startupConf
-
-	startupConf.AutomaticEnv()
-	startupConf.BindPFlags(pflag.CommandLine)
-	startupConf.SetConfigType(startupConf.GetString("conf.format"))
-	startupConf.SetConfigFile(startupConf.GetString("conf.local_path"))
-
-	if startupConf.ConfigFileUsed() != "" {
-		if err := startupConf.ReadInConfig(); err != nil {
-			panic(fmt.Errorf("read config file failed, %s", err))
-		}
+	// 开始运行
+	if err := cmd.Execute(); err != nil {
+		panic(err)
 	}
-
-	// 启动回调
-	app.startingCB.Exec(nil, app)
-
-	// 监听退出信号
-	ctx, cancel := context.WithCancel(context.Background())
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	go func() {
-		<-sigChan
-		cancel()
-	}()
-
-	// 启动服务
-	wg := &sync.WaitGroup{}
-
-	serviceNum := startupConf.GetStringMapString("startup.services")
-
-	for name, pt := range app.servicePTs {
-		pt.generic.init(startupConf, name, pt.generic)
-		pt.num, _ = strconv.Atoi(serviceNum[name])
-	}
-
-	for _, pt := range app.servicePTs {
-		for i := 0; i < pt.num; i++ {
-			wg.Add(1)
-			go func(generic iServiceGeneric, no int) {
-				defer wg.Done()
-				<-generic.generate(ctx, no).Run()
-			}(pt.generic, i)
-		}
-	}
-
-	wg.Wait()
-
-	// 结束回调
-	app.terminatedCB.Exec(nil, app)
 }
 
 // GetStartupConf 获取启动参数配置
