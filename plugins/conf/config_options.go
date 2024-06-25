@@ -2,12 +2,11 @@ package conf
 
 import (
 	"git.golaxy.org/core/utils/option"
+	"github.com/spf13/viper"
 )
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
-	AutoEnv        bool           // 是否合并环境变量
-	AutoPFlags     bool           // 是否合并启动参数
 	Format         string         // 配置格式（json,yaml,ini...）
 	LocalPath      string         // 本地配置文件路径
 	RemoteProvider string         // 远端配置类型（etcd3,consul...）
@@ -15,6 +14,8 @@ type ConfigOptions struct {
 	RemotePath     string         // 远端路径
 	AutoUpdate     bool           // 是否热更新
 	DefaultKVs     map[string]any // 默认配置
+	MergeEnv       bool           // 合并环境变量
+	MergeConf      *viper.Viper   // 合并配置
 }
 
 var With _Option
@@ -24,13 +25,13 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		With.AutoEnv(true).Apply(options)
-		With.AutoPFlags(true).Apply(options)
 		With.Format("json").Apply(options)
 		With.LocalPath("").Apply(options)
 		With.Remote("", "", "").Apply(options)
 		With.AutoUpdate(false).Apply(options)
 		With.DefaultKVs(nil).Apply(options)
+		With.MergeEnv(false).Apply(options)
+		With.MergeConf(nil).Apply(options)
 	}
 }
 
@@ -71,16 +72,16 @@ func (_Option) DefaultKVs(kvs map[string]any) option.Setting[ConfigOptions] {
 	}
 }
 
-// AutoEnv 是否合并环境变量
-func (_Option) AutoEnv(b bool) option.Setting[ConfigOptions] {
+// MergeEnv 合并环境变量
+func (_Option) MergeEnv(b bool) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
-		o.AutoEnv = b
+		o.MergeEnv = b
 	}
 }
 
-// AutoPFlags 是否合并启动参数
-func (_Option) AutoPFlags(b bool) option.Setting[ConfigOptions] {
+// MergeConf 合并配置
+func (_Option) MergeConf(conf *viper.Viper) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
-		o.AutoPFlags = b
+		o.MergeConf = conf
 	}
 }

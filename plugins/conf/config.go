@@ -6,7 +6,6 @@ import (
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"time"
@@ -41,12 +40,12 @@ func (c *_Config) InitSP(ctx service.Context) {
 		vp.SetDefault(k, v)
 	}
 
-	if c.options.AutoEnv {
+	if c.options.MergeEnv {
 		vp.AutomaticEnv()
 	}
 
-	if c.options.AutoPFlags {
-		vp.BindPFlags(pflag.CommandLine)
+	if c.options.MergeConf != nil {
+		vp.MergeConfigMap(c.options.MergeConf.AllSettings())
 	}
 
 	local := c.options.LocalPath != ""
