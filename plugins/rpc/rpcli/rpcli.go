@@ -72,7 +72,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", 0, forwardMsg)
+	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -123,7 +123,7 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", 0, forwardMsg)
+	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
 	if err != nil {
 		return err
 	}

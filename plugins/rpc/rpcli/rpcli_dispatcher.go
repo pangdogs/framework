@@ -103,7 +103,7 @@ func (c *RPCli) reply(src string, corrId int64, rets variant.Array, retErr error
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", 0, forwardMsg)
+	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
 	if err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return

@@ -18,10 +18,10 @@ func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OneWayRPC:
-		return p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOneWayRPC))
+		return p.acceptNotify(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgOneWayRPC))
 
 	case gap.MsgId_RPC_Request:
-		return p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		return p.acceptRequest(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
 		return p.resolve(mp.Msg.(*gap.MsgRPCReply))
@@ -30,7 +30,7 @@ func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	return nil
 }
 
-func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) error {
+func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOneWayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
@@ -40,7 +40,7 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 		return nil
 	}
 
-	callChain := append(req.CallChain, rpcstack.Call{Src: src})
+	callChain := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
@@ -111,7 +111,7 @@ func (p *_ServiceProcessor) acceptNotify(src string, req *gap.MsgOneWayRPC) erro
 	return nil
 }
 
-func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) error {
+func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
@@ -119,7 +119,7 @@ func (p *_ServiceProcessor) acceptRequest(src string, req *gap.MsgRPCRequest) er
 		return err
 	}
 
-	callChain := append(req.CallChain, rpcstack.Call{Src: src})
+	callChain := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {

@@ -72,7 +72,7 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 		TransData: req.TransData,
 	}
 
-	if err := p.dist.ForwardMsg(cliAddr, node.RemoteAddr, seq, msg); err != nil {
+	if err := p.dist.ForwardMsg(gate.CliDetails.Domain, cliAddr, node.RemoteAddr, seq, msg); err != nil {
 		go p.finishInbound(session, node.RemoteAddr, req.CorrId, err)
 		return err
 	}
@@ -108,7 +108,7 @@ func (p *_GateProcessor) replyInbound(session gate.ISession, corrId int64, retEr
 		Error:  *variant.MakeError(retErr),
 	}
 
-	bs, err := p.encoder.EncodeBytes(p.dist.GetNodeDetails().LocalAddr, 0, msg)
+	bs, err := p.encoder.EncodeBytes(p.servCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
 	if err != nil {
 		log.Errorf(p.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return

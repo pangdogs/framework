@@ -52,7 +52,7 @@ type IDistService interface {
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// ForwardMsg 转发消息
-	ForwardMsg(src, dst string, seq int64, msg gap.Msg) error
+	ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
 	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
 }
@@ -233,7 +233,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplication.Make()
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(d.details.LocalAddr, seq, msg)
+	mpBuf, err := d.encoder.EncodeBytes(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}
@@ -243,12 +243,12 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 }
 
 // ForwardMsg 转发消息
-func (d *_DistService) ForwardMsg(src, dst string, seq int64, msg gap.Msg) error {
+func (d *_DistService) ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) error {
 	if msg == nil {
 		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(src, seq, msg)
+	mpBuf, err := d.encoder.EncodeBytes(svc, src, seq, msg)
 	if err != nil {
 		return err
 	}

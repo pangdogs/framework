@@ -20,20 +20,20 @@ func (p *_ForwardProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		return p.acceptForward(mp.Head.Src, mp.Msg.(*gap.MsgForward))
+		return p.acceptForward(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgForward))
 	}
 
 	return nil
 }
 
-func (p *_ForwardProcessor) acceptForward(src string, req *gap.MsgForward) error {
+func (p *_ForwardProcessor) acceptForward(svc, src string, req *gap.MsgForward) error {
 	switch req.TransId {
 	case gap.MsgId_OneWayRPC:
 		msg := &gap.MsgOneWayRPC{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
 			return err
 		}
-		return p.acceptNotify(src, req.Dst, req.Transit, msg)
+		return p.acceptNotify(svc, src, req.Dst, req.Transit, msg)
 
 	case gap.MsgId_RPC_Request:
 		msg := &gap.MsgRPCRequest{}
@@ -41,7 +41,7 @@ func (p *_ForwardProcessor) acceptForward(src string, req *gap.MsgForward) error
 			go p.reply(src, req.Transit, req.CorrId, nil, err)
 			return err
 		}
-		return p.acceptRequest(src, req.Dst, req.Transit, msg)
+		return p.acceptRequest(svc, src, req.Dst, req.Transit, msg)
 
 	case gap.MsgId_RPC_Reply:
 		msg := &gap.MsgRPCReply{}
@@ -54,13 +54,13 @@ func (p *_ForwardProcessor) acceptForward(src string, req *gap.MsgForward) error
 	return nil
 }
 
-func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgOneWayRPC) error {
+func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap.MsgOneWayRPC) error {
 	cp, err := p.parseCallPath(dst, req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 	}
 
-	callChain := rpcstack.CallChain{{Src: src, Transit: transit}}
+	callChain := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit}}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
@@ -131,7 +131,7 @@ func (p *_ForwardProcessor) acceptNotify(src, dst, transit string, req *gap.MsgO
 	return nil
 }
 
-func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.MsgRPCRequest) error {
+func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *gap.MsgRPCRequest) error {
 	cp, err := p.parseCallPath(dst, req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
@@ -139,7 +139,7 @@ func (p *_ForwardProcessor) acceptRequest(src, dst, transit string, req *gap.Msg
 		return err
 	}
 
-	callChain := rpcstack.CallChain{{Src: src, Transit: transit}}
+	callChain := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit}}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {

@@ -43,17 +43,17 @@ func (e *Encoder) Reset() {
 }
 
 // Encode 编码消息包，写入缓存
-func (e *Encoder) Encode(src string, seq int64, msg gap.MsgReader) error {
-	return e.EncodeWriter(&e.buffer, src, seq, msg)
+func (e *Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) error {
+	return e.EncodeWriter(&e.buffer, svc, src, seq, msg)
 }
 
 // EncodeWriter 编码消息包，写入指定writer
-func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.MsgReader) error {
+func (e Encoder) EncodeWriter(writer io.Writer, svc, src string, seq int64, msg gap.MsgReader) error {
 	if writer == nil {
 		return fmt.Errorf("gap: %w: writer is nil", core.ErrArgs)
 	}
 
-	mpBuf, err := e.encode(src, seq, msg)
+	mpBuf, err := e.encode(svc, src, seq, msg)
 	if err != nil {
 		return err
 	}
@@ -68,20 +68,20 @@ func (e Encoder) EncodeWriter(writer io.Writer, src string, seq int64, msg gap.M
 }
 
 // EncodeBuff 编码消息包，写入指定buffer
-func (e Encoder) EncodeBuff(buff *bytes.Buffer, src string, seq int64, msg gap.MsgReader) error {
+func (e Encoder) EncodeBuff(buff *bytes.Buffer, svc, src string, seq int64, msg gap.MsgReader) error {
 	if buff == nil {
 		return fmt.Errorf("gap: %w: buff is nil", core.ErrArgs)
 	}
-	return e.EncodeWriter(buff, src, seq, msg)
+	return e.EncodeWriter(buff, svc, src, seq, msg)
 }
 
 // EncodeBytes 编码消息包，返回可回收bytes
-func (e Encoder) EncodeBytes(src string, seq int64, msg gap.MsgReader) (binaryutil.RecycleBytes, error) {
-	return e.encode(src, seq, msg)
+func (e Encoder) EncodeBytes(svc, src string, seq int64, msg gap.MsgReader) (binaryutil.RecycleBytes, error) {
+	return e.encode(svc, src, seq, msg)
 }
 
 // encode 编码消息包
-func (Encoder) encode(src string, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
+func (Encoder) encode(svc, src string, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("gap: %w: msg is nil", core.ErrArgs)
 	}
@@ -89,6 +89,7 @@ func (Encoder) encode(src string, seq int64, msg gap.MsgReader) (ret binaryutil.
 	mp := gap.MsgPacket{
 		Head: gap.MsgHead{
 			MsgId: msg.MsgId(),
+			Svc:   svc,
 			Src:   src,
 			Seq:   seq,
 		},

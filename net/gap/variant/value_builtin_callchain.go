@@ -3,7 +3,7 @@ package variant
 import "git.golaxy.org/framework/utils/binaryutil"
 
 type Call struct {
-	Src, Transit string
+	Svc, Addr, Transit string
 }
 
 type CallChain []Call
@@ -17,7 +17,10 @@ func (v CallChain) Read(p []byte) (int, error) {
 	}
 
 	for i := range v {
-		if err := bs.WriteString(v[i].Src); err != nil {
+		if err := bs.WriteString(v[i].Svc); err != nil {
+			return bs.BytesWritten(), err
+		}
+		if err := bs.WriteString(v[i].Addr); err != nil {
 			return bs.BytesWritten(), err
 		}
 		if err := bs.WriteString(v[i].Transit); err != nil {
@@ -40,7 +43,12 @@ func (v *CallChain) Write(p []byte) (int, error) {
 	*v = make([]Call, l)
 
 	for i := uint64(0); i < l; i++ {
-		src, err := bs.ReadString()
+		svc, err := bs.ReadString()
+		if err != nil {
+			return bs.BytesRead(), err
+		}
+
+		addr, err := bs.ReadString()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
@@ -50,7 +58,8 @@ func (v *CallChain) Write(p []byte) (int, error) {
 			return bs.BytesRead(), err
 		}
 
-		(*v)[i].Src = src
+		(*v)[i].Svc = svc
+		(*v)[i].Addr = addr
 		(*v)[i].Transit = transit
 	}
 
@@ -61,7 +70,8 @@ func (v *CallChain) Write(p []byte) (int, error) {
 func (v CallChain) Size() int {
 	n := binaryutil.SizeofUvarint(uint64(len(v)))
 	for i := range v {
-		n += binaryutil.SizeofString(v[i].Src)
+		n += binaryutil.SizeofString(v[i].Svc)
+		n += binaryutil.SizeofString(v[i].Addr)
 		n += binaryutil.SizeofString(v[i].Transit)
 	}
 	return n

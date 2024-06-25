@@ -20,13 +20,13 @@ func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		p.acceptOutbound(mp.Head.Src, mp.Msg.(*gap.MsgForward))
+		p.acceptOutbound(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgForward))
 	}
 
 	return nil
 }
 
-func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
+func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	if gate.CliDetails.InNodeSubdomain(req.Dst) {
 		// 目标为单播地址，解析实体Id
 		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
@@ -38,7 +38,7 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+			bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
@@ -62,7 +62,7 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 			return
 		}
 
-		bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+		bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 		if err != nil {
 			go p.finishOutbound(src, req, err)
 			return
@@ -84,7 +84,7 @@ func (p *_GateProcessor) acceptOutbound(src string, req *gap.MsgForward) {
 
 		// 遍历包含实体的所有分组
 		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {
-			bs, err := p.encoder.EncodeBytes(src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+			bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				go p.finishOutbound(src, req, err)
 				return
