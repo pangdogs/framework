@@ -94,7 +94,7 @@ func (v CallChain) First() Call {
 	if len(v) <= 0 {
 		return Call{}
 	}
-	return v[len(v)-1]
+	return v[0]
 }
 
 func (v CallChain) Last() Call {
