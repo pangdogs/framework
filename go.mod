@@ -2,7 +2,7 @@ module git.golaxy.org/framework
 
 go 1.22
 
-toolchain go1.22.1
+toolchain go1.22.4
 
 require (
 	git.golaxy.org/core v0.3.10
@@ -18,7 +18,7 @@ require (
 	github.com/nats-io/nats.go v1.34.1
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/redis/go-redis/v9 v9.5.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	go.etcd.io/etcd/api/v3 v3.5.13
 	go.etcd.io/etcd/client/v3 v3.5.13
@@ -70,6 +70,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
@@ -99,6 +100,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
