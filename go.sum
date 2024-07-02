@@ -11,6 +11,7 @@ cloud.google.com/go/longrunning v0.5.5 h1:GOE6pZFdSrTb4KAiKnXsJBtlE6mEyaW44oKyMI
 cloud.google.com/go/longrunning v0.5.5/go.mod h1:WV2LAxD8/rg5Z1cNW6FJ/ZpX4E4VnDnoTk0yawPBB7s=
 git.golaxy.org/core v0.3.12 h1:sKWWZFFdnoS/FNgMKbdI3C2u3H+k8BH8ZPjA4LKHI/4=
 git.golaxy.org/core v0.3.12/go.mod h1:Nmb6Jvyl8mNhmxXTX11vpKsDQIyo166aX6ONwMcuqQw=
+git.golaxy.org/core v0.3.14/go.mod h1:Nmb6Jvyl8mNhmxXTX11vpKsDQIyo166aX6ONwMcuqQw=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0/go.mod h1:ON4tFdPTwRcgWEaVDrN3584Ef+b7GgSJaXxe5fW9t4M=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.1/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
