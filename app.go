@@ -85,7 +85,7 @@ func (app *App) Run() {
 	app.lazyInit()
 
 	cmd := &cobra.Command{
-		Short: "属性同步代码生成工具。",
+		Short: "Application for Launching Services",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// 初始化回调
 			app.initCB.Exec(nil, app)
