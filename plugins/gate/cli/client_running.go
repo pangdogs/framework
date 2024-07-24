@@ -95,10 +95,11 @@ func (c *Client) mainLoop() {
 			for {
 				select {
 				case bs := <-c.options.SendDataChan:
-					if err := c.SendData(bs.Data()); err != nil {
+					err := c.SendData(bs.Data())
+					bs.Release()
+					if err != nil {
 						c.logger.Errorf("client %q fetch data from the send data channel for sending failed, %s", c.GetSessionId(), err)
 					}
-					bs.Release()
 				case <-c.Done():
 					return
 				}

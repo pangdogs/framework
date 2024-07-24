@@ -33,10 +33,10 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 		}()
 		for bs := range ch {
 			err := broker.Publish(context.Background(), topic, bs.Data())
+			bs.Release()
 			if err != nil {
 				_errorHandler.Invoke(nil, err)
 			}
-			bs.Release()
 		}
 	}()
 
