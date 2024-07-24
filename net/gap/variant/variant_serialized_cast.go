@@ -129,7 +129,7 @@ retry:
 	case *Map:
 		return MakeSerializedVariant(*v)
 	case map[string]any:
-		m, err := MakeMapSerializedFromGoMap[string, any](v)
+		m, err := MakeSerializedMapFromGoMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -140,7 +140,7 @@ retry:
 		}()
 		return MakeSerializedVariant(m)
 	case *map[string]any:
-		m, err := MakeMapSerializedFromGoMap[string, any](*v)
+		m, err := MakeSerializedMapFromGoMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -151,7 +151,7 @@ retry:
 		}()
 		return MakeSerializedVariant(m)
 	case generic.SliceMap[string, any]:
-		m, err := MakeMapSerializedFromSliceMap[string, any](v)
+		m, err := MakeSerializedMapFromSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -162,7 +162,7 @@ retry:
 		}()
 		return MakeSerializedVariant(m)
 	case *generic.SliceMap[string, any]:
-		m, err := MakeMapSerializedFromSliceMap[string, any](*v)
+		m, err := MakeSerializedMapFromSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -173,7 +173,7 @@ retry:
 		}()
 		return MakeSerializedVariant(m)
 	case generic.UnorderedSliceMap[string, any]:
-		m, err := MakeMapSerializedFromUnorderedSliceMap[string, any](v)
+		m, err := MakeSerializedMapFromUnorderedSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -184,7 +184,7 @@ retry:
 		}()
 		return MakeSerializedVariant(m)
 	case *generic.UnorderedSliceMap[string, any]:
-		m, err := MakeMapSerializedFromUnorderedSliceMap[string, any](*v)
+		m, err := MakeSerializedMapFromUnorderedSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}

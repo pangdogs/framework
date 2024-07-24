@@ -109,37 +109,37 @@ retry:
 	case *Map:
 		return MakeReadonlyVariant(*v)
 	case map[string]any:
-		m, err := MakeMapReadonlyFromGoMap[string, any](v)
+		m, err := MakeReadonlyMapFromGoMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
 		return MakeReadonlyVariant(m)
 	case *map[string]any:
-		m, err := MakeMapReadonlyFromGoMap[string, any](*v)
+		m, err := MakeReadonlyMapFromGoMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
 		return MakeReadonlyVariant(m)
 	case generic.SliceMap[string, any]:
-		m, err := MakeMapReadonlyFromSliceMap[string, any](v)
+		m, err := MakeReadonlyMapFromSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
 		return MakeReadonlyVariant(m)
 	case *generic.SliceMap[string, any]:
-		m, err := MakeMapReadonlyFromSliceMap[string, any](*v)
+		m, err := MakeReadonlyMapFromSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
 		return MakeReadonlyVariant(m)
 	case generic.UnorderedSliceMap[string, any]:
-		m, err := MakeMapReadonlyFromUnorderedSliceMap[string, any](v)
+		m, err := MakeReadonlyMapFromUnorderedSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
 		return MakeReadonlyVariant(m)
 	case *generic.UnorderedSliceMap[string, any]:
-		m, err := MakeMapReadonlyFromUnorderedSliceMap[string, any](*v)
+		m, err := MakeReadonlyMapFromUnorderedSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
