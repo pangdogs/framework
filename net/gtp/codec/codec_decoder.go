@@ -42,7 +42,7 @@ func (d *Decoder) Decode(data []byte, validate ...IValidate) (gtp.MsgPacket, int
 	// 解码消息包
 	mp, err := d.decode(data[:length], validate...)
 	if err != nil {
-		return gtp.MsgPacket{}, 0, err
+		return gtp.MsgPacket{}, length, err
 	}
 
 	return mp, length, nil
