@@ -89,28 +89,28 @@ func (c *RPCli) reply(src string, corrId int64, rets variant.Array, retErr error
 		msg.Error = *variant.MakeError(retErr)
 	}
 
-	msgbs, err := gap.Marshal(msg)
+	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
-	defer msgbs.Release()
+	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       src,
 		CorrId:    msg.CorrId,
 		TransId:   msg.MsgId(),
-		TransData: msgbs.Data(),
+		TransData: msgBuf.Data(),
 	}
 
-	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
-	defer bs.Release()
+	defer mpBuf.Release()
 
-	if err = c.SendData(bs.Data()); err != nil {
+	if err = c.SendData(mpBuf.Data()); err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}

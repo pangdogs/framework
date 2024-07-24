@@ -58,28 +58,28 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 		Args:   vargs,
 	}
 
-	msgbs, err := gap.Marshal(msg)
+	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
 	}
-	defer msgbs.Release()
+	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       service,
 		CorrId:    msg.CorrId,
 		TransId:   msg.MsgId(),
-		TransData: msgbs.Data(),
+		TransData: msgBuf.Data(),
 	}
 
-	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
 	}
-	defer bs.Release()
+	defer mpBuf.Release()
 
-	if err = c.SendData(bs.Data()); err != nil {
+	if err = c.SendData(mpBuf.Data()); err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
 	}
@@ -111,25 +111,25 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 		Args: vargs,
 	}
 
-	msgbs, err := gap.Marshal(msg)
+	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
 		return err
 	}
-	defer msgbs.Release()
+	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       service,
 		TransId:   msg.MsgId(),
-		TransData: msgbs.Data(),
+		TransData: msgBuf.Data(),
 	}
 
-	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		return err
 	}
-	defer bs.Release()
+	defer mpBuf.Release()
 
-	if err = c.SendData(bs.Data()); err != nil {
+	if err = c.SendData(mpBuf.Data()); err != nil {
 		return err
 	}
 

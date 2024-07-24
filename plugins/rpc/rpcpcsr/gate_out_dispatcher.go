@@ -38,13 +38,13 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
-			defer bs.Release()
+			defer mpBuf.Release()
 
-			err = session.SendData(bs.Data())
+			err = session.SendData(mpBuf.Data())
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
@@ -62,7 +62,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 			return
 		}
 
-		bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+		mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 		if err != nil {
 			go p.finishOutbound(src, req, err)
 			return
@@ -70,10 +70,10 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 
 		// 为了保持消息时序，使用分组发送数据的channel
 		select {
-		case group.SendDataChan() <- bs:
+		case group.SendDataChan() <- mpBuf:
 			go p.finishOutbound(src, req, nil)
 		default:
-			bs.Release()
+			mpBuf.Release()
 			go p.finishOutbound(src, req, ErrGroupChanIsFull)
 		}
 		return
@@ -84,7 +84,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 
 		// 遍历包含实体的所有分组
 		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {
-			bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				go p.finishOutbound(src, req, err)
 				return
@@ -92,10 +92,10 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 
 			// 为了保持消息时序，使用分组发送数据的channel
 			select {
-			case group.SendDataChan() <- bs:
+			case group.SendDataChan() <- mpBuf:
 				go p.finishOutbound(src, req, nil)
 			default:
-				bs.Release()
+				mpBuf.Release()
 				go p.finishOutbound(src, req, ErrGroupChanIsFull)
 			}
 		})
