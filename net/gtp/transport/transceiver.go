@@ -34,7 +34,7 @@ type Transceiver struct {
 	Decoder              codec.IDecoder // 消息包解码器
 	Timeout              time.Duration  // 网络io超时时间
 	Synchronizer         ISynchronizer  // 同步器
-	Buffer               bytes.Buffer   // 接收消息缓存
+	buffer               bytes.Buffer   // 接收消息缓存
 	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
 }
 
@@ -151,13 +151,13 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 		default:
 		}
 
-		bufLen := t.Buffer.Len()
+		bufLen := t.buffer.Len()
 
 		if bufLen > 0 && bufLen >= mpLen {
 			// 解码消息
-			mp, l, err := t.Decoder.Decode(t.Buffer.Bytes())
+			mp, l, err := t.Decoder.Decode(t.buffer.Bytes())
 			if err == nil {
-				t.Buffer.Next(l)
+				t.buffer.Next(l)
 				return IEvent{
 					Flags: mp.Head.Flags,
 					Seq:   mp.Head.Seq,
@@ -167,7 +167,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 			}
 
 			if !errors.Is(err, ErrShortBuffer) {
-				t.Buffer.Next(l)
+				t.buffer.Next(l)
 				return IEvent{}, fmt.Errorf("gtp: decode msg-packet failed, %w", err)
 			}
 
@@ -191,10 +191,10 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 
 			// 写入消息缓存
 			if n > 0 {
-				t.Buffer.Write(mpCache[:n])
+				t.buffer.Write(mpCache[:n])
 			}
 
-			if mpLen <= 0 || t.Buffer.Len() >= mpLen {
+			if mpLen <= 0 || t.buffer.Len() >= mpLen {
 				break
 			}
 		}
@@ -221,6 +221,9 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 		t.Conn.Close()
 	}
 	t.Conn = conn
+
+	// 清除缓存
+	t.buffer.Reset()
 
 	return t.Synchronizer.SendSeq(), t.Synchronizer.RecvSeq(), nil
 }
@@ -251,6 +254,8 @@ func (t *Transceiver) Clean() {
 	if t.Synchronizer != nil {
 		t.Synchronizer.Clean()
 	}
+
+	t.buffer.Reset()
 }
 
 func (t *Transceiver) writeToSynchronizer(e IEvent) error {
