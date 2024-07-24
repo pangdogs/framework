@@ -155,7 +155,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 
 		if bufLen > 0 && bufLen >= mpLen {
 			// 解码消息
-			mp, l, err := t.Decoder.Decode(t.buffer.Bytes())
+			mp, l, err := t.Decoder.Decode(t.buffer.Bytes(), t.Synchronizer)
 			if err == nil {
 				t.buffer.Next(l)
 				return IEvent{

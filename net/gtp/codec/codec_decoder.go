@@ -11,7 +11,7 @@ import (
 // IValidate 验证消息包接口
 type IValidate interface {
 	// Validate 验证消息包
-	Validate(msgHead gtp.MsgHead, msgBuff []byte) error
+	Validate(msgHead gtp.MsgHead, msgBuf []byte) error
 }
 
 // IDecoder 消息包解码器接口

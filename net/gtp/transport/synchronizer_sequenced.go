@@ -114,7 +114,7 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 }
 
 // Validate 验证消息包
-func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
+func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) error {
 	// 检测消息包序号
 	d := int32(msgHead.Seq - s.recvSeq)
 	if d > 0 {

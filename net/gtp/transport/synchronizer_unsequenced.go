@@ -28,7 +28,7 @@ func (s *UnsequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 }
 
 // Validate 验证消息包
-func (s *UnsequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuff []byte) error {
+func (s *UnsequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) error {
 	return nil
 }
 
