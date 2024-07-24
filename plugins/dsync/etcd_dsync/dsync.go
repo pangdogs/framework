@@ -18,8 +18,8 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 }
 
 type _DistSync struct {
-	options DSyncOptions
 	servCtx service.Context
+	options DSyncOptions
 	client  *etcdv3.Client
 }
 

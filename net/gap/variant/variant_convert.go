@@ -31,7 +31,7 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 
 		if retRV.CanConvert(valueRT) {
 			if retRT.Size() > valueRT.Size() {
-				return reflect.Zero(retRT), ErrInvalidCast
+				return reflect.Value{}, ErrInvalidCast
 			}
 			return retRV.Convert(valueRT), nil
 		}

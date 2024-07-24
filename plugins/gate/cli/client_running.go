@@ -328,13 +328,13 @@ func (c *Client) handleRecvEvent(event transport.IEvent) error {
 func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error {
 	// 写入channel
 	if c.options.RecvDataChan != nil {
-		bs := func() binaryutil.RecycleBytes {
-			if c.options.RecvDataChanRecyclable {
-				return binaryutil.CloneRecycleBytes(event.Msg.Data)
-			} else {
-				return binaryutil.MakeNonRecycleBytes(bytes.Clone(event.Msg.Data))
-			}
-		}()
+		var bs binaryutil.RecycleBytes
+
+		if c.options.RecvDataChanRecyclable {
+			bs = binaryutil.CloneRecycleBytes(event.Msg.Data)
+		} else {
+			bs = binaryutil.MakeNonRecycleBytes(bytes.Clone(event.Msg.Data))
+		}
 
 		select {
 		case c.options.RecvDataChan <- bs:

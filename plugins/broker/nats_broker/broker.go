@@ -19,9 +19,9 @@ func newBroker(settings ...option.Setting[BrokerOptions]) broker.IBroker {
 }
 
 type _Broker struct {
+	servCtx   service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
-	servCtx   service.Context
 	wg        sync.WaitGroup
 	options   BrokerOptions
 	client    *nats.Conn
@@ -31,8 +31,8 @@ type _Broker struct {
 func (b *_Broker) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	b.ctx, b.terminate = context.WithCancel(context.Background())
 	b.servCtx = ctx
+	b.ctx, b.terminate = context.WithCancel(context.Background())
 
 	if b.options.NatsClient == nil {
 		client, err := nats.Connect(strings.Join(b.options.CustomAddresses, ","), nats.UserInfo(b.options.CustomUsername, b.options.CustomPassword), nats.Name(ctx.String()))

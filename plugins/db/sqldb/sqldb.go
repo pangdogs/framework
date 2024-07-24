@@ -28,8 +28,8 @@ func newSQLDB(settings ...option.Setting[SQLDBOptions]) ISQLDB {
 }
 
 type _SQLDB struct {
-	options SQLDBOptions
 	servCtx service.Context
+	options SQLDBOptions
 	dbs     map[string]*gorm.DB
 }
 
@@ -44,7 +44,7 @@ func (s *_SQLDB) InitSP(ctx service.Context) {
 }
 
 func (s *_SQLDB) ShutSP(ctx service.Context) {
-	log.Infof(s.servCtx, "shut plugin %q", self.Name)
+	log.Infof(ctx, "shut plugin %q", self.Name)
 
 	for _, db := range s.dbs {
 		sqldb, _ := db.DB()

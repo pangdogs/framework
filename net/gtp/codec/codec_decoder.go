@@ -154,8 +154,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	}
 
 	// 读取消息
-	_, err = msg.Write(msgBuf)
-	if err != nil {
+	if _, err = msg.Write(msgBuf); err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg failed, %w", err)
 	}
 

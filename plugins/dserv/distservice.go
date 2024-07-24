@@ -64,9 +64,9 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 }
 
 type _DistService struct {
+	servCtx       service.Context
 	ctx           context.Context
 	terminate     context.CancelFunc
-	servCtx       service.Context
 	wg            sync.WaitGroup
 	options       DistServiceOptions
 	registry      discovery.IRegistry
@@ -85,8 +85,8 @@ type _DistService struct {
 func (d *_DistService) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	d.ctx, d.terminate = context.WithCancel(context.Background())
 	d.servCtx = ctx
+	d.ctx, d.terminate = context.WithCancel(context.Background())
 
 	// 获取依赖的插件
 	d.registry = discovery.Using(d.servCtx)

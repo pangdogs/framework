@@ -24,10 +24,10 @@ func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistr
 
 type _Registry struct {
 	discovery.IRegistry
+	servCtx   service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
 	options   RegistryOptions
-	servCtx   service.Context
 	wg        sync.WaitGroup
 	cache     *concurrent.Cache[string, *discovery.Service]
 	revision  int64
@@ -42,8 +42,8 @@ func (r *_Registry) InitSP(ctx service.Context) {
 	}
 	r.IRegistry = r.options.Registry
 
-	r.ctx, r.terminate = context.WithCancel(context.Background())
 	r.servCtx = ctx
+	r.ctx, r.terminate = context.WithCancel(context.Background())
 
 	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
 		init.InitSP(r.servCtx)

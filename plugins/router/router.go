@@ -55,8 +55,8 @@ func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
 }
 
 type _Router struct {
-	options           RouterOptions
 	servCtx           service.Context
+	options           RouterOptions
 	gate              gate.IGate
 	client            *etcdv3.Client
 	planning          concurrent.LockedMap[uid.Id, *_Mapping]

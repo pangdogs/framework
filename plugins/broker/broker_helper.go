@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
@@ -34,10 +33,10 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 		}()
 		for bs := range ch {
 			err := broker.Publish(context.Background(), topic, bs.Data())
-			bs.Release()
 			if err != nil {
 				_errorHandler.Invoke(nil, err)
 			}
+			bs.Release()
 		}
 	}()
 
@@ -45,7 +44,7 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 }
 
 // MakeReadChan creates a new channel for receiving data from a specific pattern.
-func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int, recyclable ...bool) (<-chan binaryutil.RecycleBytes, error) {
+func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int) (<-chan binaryutil.RecycleBytes, error) {
 	if broker == nil {
 		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
 	}
@@ -54,29 +53,17 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 		ctx = context.Background()
 	}
 
-	var _recyclable bool
-	if len(recyclable) > 0 {
-		_recyclable = recyclable[0]
-	}
-
 	ch := make(chan binaryutil.RecycleBytes, size)
 
 	_, err := broker.Subscribe(ctx, pattern,
 		With.Queue(queue),
 		With.EventHandler(generic.MakeDelegateFunc1(func(e IEvent) error {
-			bs := func() binaryutil.RecycleBytes {
-				if _recyclable {
-					return binaryutil.CloneRecycleBytes(e.Message())
-				} else {
-					return binaryutil.MakeNonRecycleBytes(bytes.Clone(e.Message()))
-				}
-			}()
+			bs := binaryutil.MakeNonRecycleBytes(e.Message())
 
 			select {
 			case ch <- bs:
 				return nil
 			default:
-				bs.Release()
 				var nakErr error
 				if e.Queue() != "" {
 					nakErr = e.Nak(context.Background())

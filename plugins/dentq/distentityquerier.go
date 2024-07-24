@@ -49,8 +49,8 @@ func newDistEntityQuerier(settings ...option.Setting[DistEntityQuerierOptions]) 
 }
 
 type _DistEntityQuerier struct {
-	options  DistEntityQuerierOptions
 	servCtx  service.Context
+	options  DistEntityQuerierOptions
 	distServ dserv.IDistService
 	client   *etcdv3.Client
 	wg       sync.WaitGroup

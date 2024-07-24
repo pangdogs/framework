@@ -35,8 +35,8 @@ type _Register struct {
 }
 
 type _Registry struct {
-	options   RegistryOptions
 	servCtx   service.Context
+	options   RegistryOptions
 	client    *redis.Client
 	registers *concurrent.Cache[string, *_Register]
 }

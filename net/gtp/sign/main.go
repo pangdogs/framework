@@ -15,7 +15,7 @@ import (
 
 func main() {
 	cmd := &cobra.Command{
-		Short: "签名生成工具。",
+		Short: "生成签名工具。",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			viper.BindPFlags(cmd.Flags())
 		},

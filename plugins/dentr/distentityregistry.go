@@ -32,8 +32,8 @@ func newDistEntityRegistry(settings ...option.Setting[DistEntityRegistryOptions]
 
 type _DistEntityRegistry struct {
 	distEntityRegistryEventTab
-	options DistEntityRegistryOptions
 	rtCtx   runtime.Context
+	options DistEntityRegistryOptions
 	client  *etcdv3.Client
 	leaseId etcdv3.LeaseID
 }

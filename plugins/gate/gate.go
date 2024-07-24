@@ -47,10 +47,10 @@ func newGate(settings ...option.Setting[GateOptions]) IGate {
 }
 
 type _Gate struct {
+	servCtx         service.Context
 	ctx             context.Context
 	terminate       context.CancelCauseFunc
 	options         GateOptions
-	servCtx         service.Context
 	wg              sync.WaitGroup
 	tcpListener     net.Listener
 	wsListener      *http.Server
@@ -63,8 +63,8 @@ type _Gate struct {
 func (g *_Gate) InitSP(ctx service.Context) {
 	log.Infof(ctx, "init plugin %q", self.Name)
 
-	g.ctx, g.terminate = context.WithCancelCause(context.Background())
 	g.servCtx = ctx
+	g.ctx, g.terminate = context.WithCancelCause(context.Background())
 
 	if g.options.TCPAddress != "" {
 		listener, err := newListenConfig(&g.options).Listen(context.Background(), "tcp", g.options.TCPAddress)

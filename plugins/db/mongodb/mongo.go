@@ -23,8 +23,8 @@ func newMongoDB(settings ...option.Setting[MongoDBOptions]) IMongoDB {
 }
 
 type _MongoDB struct {
-	options MongoDBOptions
 	servCtx service.Context
+	options MongoDBOptions
 	dbs     map[string]*mongo.Client
 }
 

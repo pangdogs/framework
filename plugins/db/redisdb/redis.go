@@ -21,8 +21,8 @@ func newRedisDB(settings ...option.Setting[RedisDBOptions]) IRedisDB {
 }
 
 type _RedisDB struct {
-	options RedisDBOptions
 	servCtx service.Context
+	options RedisDBOptions
 	dbs     map[string]*redis.Client
 }
 

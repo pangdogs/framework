@@ -30,11 +30,11 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 	ctx, cancel := context.WithCancel(ctx)
 
 	sub := &_Subscriber{
-		Context:             ctx,
-		terminate:           cancel,
-		terminatedChan:      make(chan struct{}),
-		broker:              b,
-		unsubscribedHandler: opts.UnsubscribedCB,
+		Context:        ctx,
+		terminate:      cancel,
+		terminatedChan: make(chan struct{}),
+		broker:         b,
+		unsubscribedCB: opts.UnsubscribedCB,
 	}
 
 	var handleMsg nats.MsgHandler
@@ -74,13 +74,13 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 type _Subscriber struct {
 	context.Context
-	terminate           context.CancelFunc
-	terminatedChan      chan struct{}
-	broker              *_Broker
-	natsSub             *nats.Subscription
-	eventChan           chan broker.IEvent
-	eventHandler        broker.EventHandler
-	unsubscribedHandler broker.UnsubscribedCB
+	terminate      context.CancelFunc
+	terminatedChan chan struct{}
+	broker         *_Broker
+	natsSub        *nats.Subscription
+	eventChan      chan broker.IEvent
+	eventHandler   broker.EventHandler
+	unsubscribedCB broker.UnsubscribedCB
 }
 
 // Pattern returns the subscription pattern used to create the subscriber.
@@ -134,7 +134,7 @@ func (s *_Subscriber) mainLoop() {
 		close(s.eventChan)
 	}
 
-	s.unsubscribedHandler.Invoke(func(panicErr error) bool {
+	s.unsubscribedCB.Invoke(func(panicErr error) bool {
 		log.Errorf(s.broker.servCtx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
 		return false
 	}, s)
