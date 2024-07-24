@@ -19,18 +19,18 @@ func MakeSerializedValue(v ValueReader) (ret *SerializedValue, err error) {
 
 	size := v.Size()
 	if size > 0 {
-		buff := binaryutil.MakeRecycleBytes(size)
+		buf := binaryutil.MakeRecycleBytes(size)
 		defer func() {
 			if ret == nil {
-				buff.Release()
+				buf.Release()
 			}
 		}()
 
-		if _, err := v.Read(buff.Data()); err != nil {
+		if _, err := v.Read(buf.Data()); err != nil {
 			return nil, err
 		}
 
-		sv.Data = buff
+		sv.Data = buf
 
 	} else {
 		sv.Data = binaryutil.NilRecycleBytes

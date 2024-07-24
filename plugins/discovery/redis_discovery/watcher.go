@@ -37,7 +37,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 
 	pubSub := r.client.PSubscribe(ctx)
 	defer func() {
-		if err != nil {
+		if watcher == nil {
 			pubSub.Close()
 		}
 	}()
