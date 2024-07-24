@@ -109,7 +109,7 @@ end:
 }
 
 func (d *_DistService) handleEvent(e broker.IEvent) error {
-	mp, err := d.decoder.DecodeBytes(e.Message())
+	mp, err := d.decoder.Decode(e.Message())
 	if err != nil {
 		return err
 	}

@@ -68,8 +68,8 @@ func (v Array) Release() {
 	for i := range v {
 		it := &v[i]
 
-		if it.Readonly() {
-			it.ValueReadonly.Release()
+		if it.Serialized() {
+			it.SerializedValue.Release()
 		}
 	}
 }

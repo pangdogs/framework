@@ -41,6 +41,3 @@ func (Int8) TypeId() TypeId {
 func (v Int8) Indirect() any {
 	return int8(v)
 }
-
-// Release 释放资源
-func (Int8) Release() {}

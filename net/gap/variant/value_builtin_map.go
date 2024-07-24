@@ -83,12 +83,12 @@ func (v Map) Release() {
 	for i := range v {
 		kv := &v[i]
 
-		if kv.K.Readonly() {
-			kv.K.ValueReadonly.Release()
+		if kv.K.Serialized() {
+			kv.K.SerializedValue.Release()
 		}
 
-		if kv.V.Readonly() {
-			kv.V.ValueReadonly.Release()
+		if kv.V.Serialized() {
+			kv.V.SerializedValue.Release()
 		}
 	}
 }

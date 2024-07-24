@@ -27,6 +27,3 @@ func (Null) TypeId() TypeId {
 func (Null) Indirect() any {
 	return nil
 }
-
-// Release 释放资源
-func (Null) Release() {}

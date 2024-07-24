@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 )
 
-// NewSequencedSynchronizer 创建有时序同步器缓存
+// NewSequencedSynchronizer 创建有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息
 func NewSequencedSynchronizer(sendSeq, recvSeq uint32, cap int) ISynchronizer {
 	s := &SequencedSynchronizer{}
 	s.Reset(sendSeq, recvSeq, cap)
@@ -23,7 +23,7 @@ type _SequencedFrame struct {
 	data   []byte // 帧数据
 }
 
-// SequencedSynchronizer 有时序同步器缓存，主要用于断线重连时，同步对端时序，补发消息
+// SequencedSynchronizer 有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息
 type SequencedSynchronizer struct {
 	sendSeq uint32            // 发送消息序号
 	recvSeq uint32            // 接收消息序号

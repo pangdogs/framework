@@ -87,9 +87,6 @@ func (v CallChain) Indirect() any {
 	return v
 }
 
-// Release 释放资源
-func (CallChain) Release() {}
-
 func (v CallChain) First() Call {
 	if len(v) <= 0 {
 		return Call{}

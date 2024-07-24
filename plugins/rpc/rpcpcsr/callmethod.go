@@ -43,7 +43,7 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 		return nil, err
 	}
 
-	return variant.MakeArrayBuffReadonly(methodRV.Call(argsRV))
+	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
 func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
@@ -85,7 +85,7 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(variant.MakeArrayBuffReadonly(methodRV.Call(argsRV)))
+		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
 	}, callChain, plugin, method, args), nil
 }
 
@@ -128,7 +128,7 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(variant.MakeArrayBuffReadonly(methodRV.Call(argsRV)))
+		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
 	}, callChain, component, method, args), nil
 }
 
@@ -158,35 +158,10 @@ func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args varian
 	}
 
 	for i := range args {
-		argRV := args[i].Reflected
-		argRT := argRV.Type()
-		inRT := methodRT.In(argsPos + i)
-
-	retry:
-		if argRT.AssignableTo(inRT) {
-			argsRV = append(argsRV, argRV)
-			continue
-		}
-
-		if argRV.CanConvert(inRT) {
-			if argRT.Size() > inRT.Size() {
-				return nil, ErrMethodParameterTypeMismatch
-			}
-			argsRV = append(argsRV, argRV.Convert(inRT))
-			continue
-		}
-
-		if argRT.Kind() == reflect.Pointer {
-			argRV = argRV.Elem()
-			argRT = argRV.Type()
-			goto retry
-		}
-
-		argRV, err := variant.CastVariantReflected(args[i], inRT)
+		argRV, err := args[i].Convert(methodRT.In(argsPos + i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-
 		argsRV = append(argsRV, argRV)
 	}
 

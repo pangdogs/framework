@@ -38,7 +38,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+			bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
@@ -62,7 +62,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 			return
 		}
 
-		bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+		bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 		if err != nil {
 			go p.finishOutbound(src, req, err)
 			return
@@ -84,7 +84,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 
 		// 遍历包含实体的所有分组
 		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {
-			bs, err := p.encoder.EncodeBytes(svc, src, 0, &gap.MsgBuff{Id: req.TransId, Data: req.TransData})
+			bs, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				go p.finishOutbound(src, req, err)
 				return

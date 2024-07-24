@@ -233,7 +233,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplication.Make()
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
+	mpBuf, err := d.encoder.Encode(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (d *_DistService) ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) 
 		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
 	}
 
-	mpBuf, err := d.encoder.EncodeBytes(svc, src, seq, msg)
+	mpBuf, err := d.encoder.Encode(svc, src, seq, msg)
 	if err != nil {
 		return err
 	}

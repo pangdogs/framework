@@ -23,7 +23,7 @@ func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState ga
 }
 
 func (p *_GateProcessor) handleRecvData(session gate.ISession, data []byte) error {
-	mp, err := p.decoder.DecodeBytes(data)
+	mp, err := p.decoder.Decode(data)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (p *_GateProcessor) replyInbound(session gate.ISession, corrId int64, retEr
 		Error:  *variant.MakeError(retErr),
 	}
 
-	bs, err := p.encoder.EncodeBytes(p.servCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
+	bs, err := p.encoder.Encode(p.servCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
 	if err != nil {
 		log.Errorf(p.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return

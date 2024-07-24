@@ -3,12 +3,10 @@ package codec
 import (
 	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/method"
 	"hash/fnv"
-	"io"
 	"testing"
 )
 
@@ -39,11 +37,17 @@ func TestCodec(t *testing.T) {
 		SetupCompressionModule(NewCompressionModule(compressionStream), 1).
 		Spawn()
 
-	for i := 0; i < 5; i++ {
+	decoder := CreateDecoder(gtp.DefaultMsgCreator()).
+		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
+		SetupCompressionModule(NewCompressionModule(compressionStream)).
+		Spawn()
+
+	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
 		random, _ := rand.Prime(rand.Reader, 1024)
 
-		err = encoder.Encode(gtp.Flags_None(), &gtp.MsgHello{
+		bs, err := encoder.Encode(gtp.Flags_None(), &gtp.MsgHello{
 			Version:   gtp.Version(i),
 			SessionId: sessionId.String(),
 			Random:    random.Bytes(),
@@ -57,33 +61,14 @@ func TestCodec(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-	}
 
-	decoder := CreateDecoder(gtp.DefaultMsgCreator()).
-		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
-		SetupCompressionModule(NewCompressionModule(compressionStream)).
-		Spawn()
-
-	for {
-		_, err = decoder.ReadFrom(encoder)
+		mp, _, err := decoder.Decode(bs.Data())
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			panic(err)
-		}
-	}
-
-	for {
-		mp, err := decoder.Decode()
-		if err != nil {
-			if errors.Is(err, ErrDataNotEnough) {
-				return
-			}
 			panic(err)
 		}
 		v, _ := json.Marshal(mp)
 		fmt.Printf("%s\n", v)
+
+		bs.Release()
 	}
 }

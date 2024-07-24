@@ -66,7 +66,7 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 		With.EventHandler(generic.MakeDelegateFunc1(func(e IEvent) error {
 			bs := func() binaryutil.RecycleBytes {
 				if _recyclable {
-					return binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Clone(e.Message()))
+					return binaryutil.CloneRecycleBytes(e.Message())
 				} else {
 					return binaryutil.MakeNonRecycleBytes(bytes.Clone(e.Message()))
 				}

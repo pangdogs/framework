@@ -41,6 +41,3 @@ func (Float) TypeId() TypeId {
 func (v Float) Indirect() any {
 	return float32(v)
 }
-
-// Release 释放资源
-func (Float) Release() {}

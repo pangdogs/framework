@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// ISynchronizer 同步器缓存
+// ISynchronizer 同步器
 type ISynchronizer interface {
 	io.Writer
 	io.WriterTo

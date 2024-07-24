@@ -10,12 +10,12 @@ func MakeMapReadonlyFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	varMap := make(Map, 0, len(m))
 
 	for k, v := range m {
-		varK, err := CastVariantReadonly(k)
+		varK, err := CastReadonlyVariant(k)
 		if err != nil {
 			return nil, err
 		}
 
-		varV, err := CastVariantReadonly(v)
+		varV, err := CastReadonlyVariant(v)
 		if err != nil {
 			return nil, err
 		}
@@ -31,12 +31,12 @@ func MakeMapReadonlyFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V])
 	varMap := make(Map, 0, len(m))
 
 	for _, kv := range m {
-		varK, err := CastVariantReadonly(kv.K)
+		varK, err := CastReadonlyVariant(kv.K)
 		if err != nil {
 			return nil, err
 		}
 
-		varV, err := CastVariantReadonly(kv.V)
+		varV, err := CastReadonlyVariant(kv.V)
 		if err != nil {
 			return nil, err
 		}
@@ -52,12 +52,12 @@ func MakeMapReadonlyFromUnorderedSliceMap[K comparable, V any](m generic.Unorder
 	varMap := make(Map, 0, len(m))
 
 	for _, kv := range m {
-		varK, err := CastVariantReadonly(kv.K)
+		varK, err := CastReadonlyVariant(kv.K)
 		if err != nil {
 			return nil, err
 		}
 
-		varV, err := CastVariantReadonly(kv.V)
+		varV, err := CastReadonlyVariant(kv.V)
 		if err != nil {
 			return nil, err
 		}

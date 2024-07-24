@@ -11,7 +11,7 @@ import (
 )
 
 func (c *RPCli) handleRecvData(data []byte) error {
-	mp, err := c.decoder.DecodeBytes(data)
+	mp, err := c.decoder.Decode(data)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (c *RPCli) reply(src string, corrId int64, rets variant.Array, retErr error
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
+	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
@@ -148,7 +148,7 @@ func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (re
 		return nil, err
 	}
 
-	return variant.MakeArrayBuffReadonly(methodRV.Call(argsRV))
+	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
 func parseArgs(methodRV reflect.Value, args variant.Array) ([]reflect.Value, error) {
@@ -161,35 +161,10 @@ func parseArgs(methodRV reflect.Value, args variant.Array) ([]reflect.Value, err
 	argsRV := make([]reflect.Value, 0, len(args))
 
 	for i := range args {
-		argRV := args[i].Reflected
-		argRT := argRV.Type()
-		inRT := methodRT.In(i)
-
-	retry:
-		if argRT.AssignableTo(inRT) {
-			argsRV = append(argsRV, argRV)
-			continue
-		}
-
-		if argRV.CanConvert(inRT) {
-			if argRT.Size() > inRT.Size() {
-				return nil, ErrMethodParameterTypeMismatch
-			}
-			argsRV = append(argsRV, argRV.Convert(inRT))
-			continue
-		}
-
-		if argRT.Kind() == reflect.Pointer {
-			argRV = argRV.Elem()
-			argRT = argRV.Type()
-			goto retry
-		}
-
-		argRV, err := variant.CastVariantReflected(args[i], inRT)
+		argRV, err := args[i].Convert(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-
 		argsRV = append(argsRV, argRV)
 	}
 

@@ -63,9 +63,9 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 		MAC:  m.Hash.Sum(nil),
 	}
 
-	buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(msgMAC.Size()))
+	buf := binaryutil.MakeRecycleBytes(msgMAC.Size())
 	defer func() {
-		if err != nil {
+		if !buf.Equal(dst) {
 			buf.Release()
 		}
 	}()

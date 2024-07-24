@@ -33,7 +33,7 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
-	vargs, err := variant.MakeArrayReadonly(args)
+	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -57,7 +57,7 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 
 // Notify 通知
 func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error {
-	vargs, err := variant.MakeArrayReadonly(args)
+	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
 	}

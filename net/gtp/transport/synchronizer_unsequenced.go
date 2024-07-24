@@ -9,12 +9,12 @@ import (
 	"io"
 )
 
-// NewUnsequencedSynchronizer 创建无时序同步器缓存
+// NewUnsequencedSynchronizer 创建无时序同步器，不支持断连重连时同步时序
 func NewUnsequencedSynchronizer() ISynchronizer {
 	return &UnsequencedSynchronizer{}
 }
 
-// UnsequencedSynchronizer 无时序同步器缓存
+// UnsequencedSynchronizer 无时序同步器，不支持断连重连时补发消息
 type UnsequencedSynchronizer struct {
 	bytes.Buffer
 }

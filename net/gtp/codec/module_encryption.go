@@ -63,7 +63,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 
 	is := m.Cipher.InputSize(len(src))
 	if is > len(src) {
-		buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(is))
+		buf := binaryutil.MakeRecycleBytes(is)
 		defer buf.Release()
 
 		copy(buf.Data(), src)
@@ -74,9 +74,9 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 
 	os := m.Cipher.OutputSize(len(src))
 	if os > len(dst) {
-		buf := binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Get(os))
+		buf := binaryutil.MakeRecycleBytes(os)
 		defer func() {
-			if err != nil {
+			if !buf.Equal(ret) {
 				buf.Release()
 			}
 		}()
@@ -112,7 +112,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 	if err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
-	ret = binaryutil.SliceRecycleBytes(ret, 0, ts)
+	ret = ret.Slice(0, ts)
 
 	if m.Cipher.Unpad() {
 		if m.Padding == nil {
@@ -122,7 +122,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 		if err != nil {
 			return binaryutil.NilRecycleBytes, err
 		}
-		ret = binaryutil.SliceRecycleBytes(ret, 0, len(buf))
+		ret = ret.Slice(0, len(buf))
 	}
 
 	return ret, nil

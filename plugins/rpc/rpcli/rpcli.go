@@ -39,7 +39,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(c.GetFutures(), nil, ret)
 
-	vargs, err := variant.MakeArrayReadonly(args)
+	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -72,7 +72,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
+	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -94,7 +94,7 @@ func (c *RPCli) OneWayRPC(service, comp, method string, args ...any) error {
 
 // OneWayRPCToEntity 实体单向RPC调用
 func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string, args ...any) error {
-	vargs, err := variant.MakeArrayReadonly(args)
+	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 		TransData: msgbs.Data(),
 	}
 
-	bs, err := c.encoder.EncodeBytes("", "", 0, forwardMsg)
+	bs, err := c.encoder.Encode("", "", 0, forwardMsg)
 	if err != nil {
 		return err
 	}

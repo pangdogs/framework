@@ -3,6 +3,8 @@ package binaryutil
 import (
 	"github.com/fufuok/bytespool"
 	"math"
+	"reflect"
+	"unsafe"
 )
 
 // BytesPool 字节对象池，用于减少GC提高编解码性能
@@ -12,38 +14,32 @@ var BytesPool = bytespool.NewCapacityPools(32, math.MaxInt32)
 var NilRecycleBytes = MakeNonRecycleBytes(nil)
 
 // MakeRecycleBytes 创建可回收字节对象
-func MakeRecycleBytes(bytes []byte) RecycleBytes {
+func MakeRecycleBytes(size int) RecycleBytes {
 	return RecycleBytes{
-		data:       bytes,
+		data:       BytesPool.Get(size),
 		low:        0,
-		high:       len(bytes),
+		high:       size,
+		recyclable: true,
+	}
+}
+
+// CloneRecycleBytes 克隆并创建可回收字节对象
+func CloneRecycleBytes(bs []byte) RecycleBytes {
+	return RecycleBytes{
+		data:       BytesPool.Clone(bs),
+		low:        0,
+		high:       len(bs),
 		recyclable: true,
 	}
 }
 
 // MakeNonRecycleBytes 创建不可回收字节对象
-func MakeNonRecycleBytes(bytes []byte) RecycleBytes {
+func MakeNonRecycleBytes(bs []byte) RecycleBytes {
 	return RecycleBytes{
-		data:       bytes,
+		data:       bs,
 		low:        0,
-		high:       len(bytes),
+		high:       len(bs),
 		recyclable: false,
-	}
-}
-
-// SliceRecycleBytes 切片操作字节对象
-func SliceRecycleBytes(bytes RecycleBytes, low, high int) RecycleBytes {
-	if low < 0 || high < 0 {
-		panic("negative index")
-	}
-	if high == 0 {
-		high = len(bytes.data) - bytes.low
-	}
-	return RecycleBytes{
-		data:       bytes.data,
-		low:        bytes.low + low,
-		high:       bytes.low + high,
-		recyclable: bytes.recyclable,
 	}
 }
 
@@ -54,9 +50,32 @@ type RecycleBytes struct {
 	recyclable bool
 }
 
+// Equal 是否是相同
+func (b RecycleBytes) Equal(other RecycleBytes) bool {
+	refA := (*reflect.SliceHeader)(unsafe.Pointer(&b.data)).Data
+	refB := (*reflect.SliceHeader)(unsafe.Pointer(&other.data)).Data
+	return refA == refB
+}
+
 // Data 数据
 func (b RecycleBytes) Data() []byte {
 	return b.data[b.low:b.high]
+}
+
+// Slice 切片
+func (b RecycleBytes) Slice(low, high int) RecycleBytes {
+	if low < 0 || high < 0 {
+		panic("negative index")
+	}
+	if high == 0 {
+		high = len(b.data) - b.low
+	}
+	return RecycleBytes{
+		data:       b.data,
+		low:        b.low + low,
+		high:       b.low + high,
+		recyclable: b.recyclable,
+	}
 }
 
 // Recyclable 可否回收

@@ -14,36 +14,14 @@ var (
 )
 
 func parseRet[T any](retArr variant.Array, idx int) (T, error) {
-	retVariant := retArr[idx]
+	v := retArr[idx]
 
-	retVal, ok := retVariant.Value.Indirect().(T)
+	ret, ok := v.Value.Indirect().(T)
 	if ok {
-		return retVal, nil
+		return ret, nil
 	}
 
-	retRV := retVariant.Reflected
-	retRT := retRV.Type()
-	outRT := reflect.TypeFor[T]()
-
-retry:
-	if retRT.AssignableTo(outRT) {
-		return retRV.Interface().(T), nil
-	}
-
-	if retRV.CanConvert(outRT) {
-		if retRT.Size() > outRT.Size() {
-			return types.ZeroT[T](), ErrMethodResultTypeMismatch
-		}
-		return retRV.Interface().(T), nil
-	}
-
-	if retRT.Kind() == reflect.Pointer {
-		retRV = retRV.Elem()
-		retRT = retRV.Type()
-		goto retry
-	}
-
-	retRV, err := variant.CastVariantReflected(retVariant, outRT)
+	retRV, err := v.Convert(reflect.TypeFor[T]())
 	if err != nil {
 		return types.ZeroT[T](), ErrMethodResultTypeMismatch
 	}

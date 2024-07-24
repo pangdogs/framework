@@ -311,7 +311,7 @@ func (s *_Session) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) err
 	if s.options.RecvDataChan != nil {
 		bs := func() binaryutil.RecycleBytes {
 			if s.options.RecvDataChanRecyclable {
-				return binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Clone(event.Msg.Data))
+				return binaryutil.CloneRecycleBytes(event.Msg.Data)
 			} else {
 				return binaryutil.MakeNonRecycleBytes(bytes.Clone(event.Msg.Data))
 			}

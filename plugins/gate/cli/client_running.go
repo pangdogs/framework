@@ -95,11 +95,10 @@ func (c *Client) mainLoop() {
 			for {
 				select {
 				case bs := <-c.options.SendDataChan:
-					err := c.SendData(bs.Data())
-					bs.Release()
-					if err != nil {
+					if err := c.SendData(bs.Data()); err != nil {
 						c.logger.Errorf("client %q fetch data from the send data channel for sending failed, %s", c.GetSessionId(), err)
 					}
+					bs.Release()
 				case <-c.Done():
 					return
 				}
@@ -331,7 +330,7 @@ func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error
 	if c.options.RecvDataChan != nil {
 		bs := func() binaryutil.RecycleBytes {
 			if c.options.RecvDataChanRecyclable {
-				return binaryutil.MakeRecycleBytes(binaryutil.BytesPool.Clone(event.Msg.Data))
+				return binaryutil.CloneRecycleBytes(event.Msg.Data)
 			} else {
 				return binaryutil.MakeNonRecycleBytes(bytes.Clone(event.Msg.Data))
 			}
