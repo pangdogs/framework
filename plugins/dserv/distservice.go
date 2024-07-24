@@ -233,13 +233,13 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplication.Make()
 	}
 
-	buf, err := d.encoder.Encode(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
+	mpBuf, err := d.encoder.Encode(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}
-	defer buf.Release()
+	defer mpBuf.Release()
 
-	return d.broker.Publish(d.ctx, dst, buf.Data())
+	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
 }
 
 // ForwardMsg 转发消息
@@ -248,13 +248,13 @@ func (d *_DistService) ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) 
 		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
 	}
 
-	buf, err := d.encoder.Encode(svc, src, seq, msg)
+	mpBuf, err := d.encoder.Encode(svc, src, seq, msg)
 	if err != nil {
 		return err
 	}
-	defer buf.Release()
+	defer mpBuf.Release()
 
-	return d.broker.Publish(d.ctx, dst, buf.Data())
+	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
 }
 
 // WatchMsg 监听消息（优先级高）
