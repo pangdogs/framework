@@ -61,8 +61,7 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 	mpl := gtp.MsgPacketLen{}
 
 	// 读取消息包长度
-	_, err := mpl.Write(data)
-	if err != nil {
+	if _, err := mpl.Write(data); err != nil {
 		return 0, io.ErrShortBuffer
 	}
 
@@ -89,8 +88,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	_, err := mp.Head.Write(mpBuf.Data())
-	if err != nil {
+	if _, err := mp.Head.Write(mpBuf.Data()); err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("gtp: read msg-packet-head failed, %w", err)
 	}
 
@@ -98,8 +96,7 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 
 	// 验证消息包
 	if len(validate) > 0 {
-		err = validate[0].Validate(mp.Head, msgBuf)
-		if err != nil {
+		if err := validate[0].Validate(mp.Head, msgBuf); err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("gtp: validate msg-packet-head failed, %w", err)
 		}
 	}

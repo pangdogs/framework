@@ -90,8 +90,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 		if m.Padding == nil {
 			return binaryutil.NilRecycleBytes, errors.New("setting Padding is nil")
 		}
-		err = m.Padding.Pad(in, len(src))
-		if err != nil {
+		if err = m.Padding.Pad(in, len(src)); err != nil {
 			return binaryutil.NilRecycleBytes, err
 		}
 	}

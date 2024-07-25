@@ -56,12 +56,12 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 			return 0, err
 		}
 		defer func() {
+			closeErr := w.Close()
 			if err == nil {
-				if err = w.Close(); err == nil {
-					n = bw.N
-				}
-			} else {
-				w.Close()
+				err = closeErr
+			}
+			if err == nil {
+				n = bw.N
 			}
 		}()
 
@@ -110,8 +110,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 
 	msgCompressed := gtp.MsgCompressed{}
 
-	_, err = msgCompressed.Write(src)
-	if err != nil {
+	if _, err = msgCompressed.Write(src); err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
 

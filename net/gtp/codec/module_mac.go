@@ -70,8 +70,7 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 		}
 	}()
 
-	_, err = msgMAC.Read(buf.Data())
-	if err != nil {
+	if _, err = msgMAC.Read(buf.Data()); err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
 
@@ -86,8 +85,7 @@ func (m *MACModule) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 
 	msgMAC := gtp.MsgMAC{}
 
-	_, err = msgMAC.Write(msgBuf)
-	if err != nil {
+	if _, err = msgMAC.Write(msgBuf); err != nil {
 		return nil, err
 	}
 
