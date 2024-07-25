@@ -38,8 +38,7 @@ func (s *UnsequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
 }
 
 // Ack 确认消息序号
-func (s *UnsequencedSynchronizer) Ack(ack uint32) error {
-	return nil
+func (s *UnsequencedSynchronizer) Ack(ack uint32) {
 }
 
 // SendSeq 发送消息序号

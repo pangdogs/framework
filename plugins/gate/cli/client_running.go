@@ -173,63 +173,72 @@ loop:
 		}
 
 		// 分发消息事件
-		if err := c.eventDispatcher.Dispatching(c); err != nil {
-			// 网络io错误
-			if errors.Is(err, transport.ErrNetIO) {
-				// 网络io超时，触发心跳检测，向对方发送ping
-				if errors.Is(err, transport.ErrTimeout) {
-					if !pinged {
-						// 尝试ping对端
-						c.logger.Debugf("client %q send ping", c.GetSessionId())
-						c.ctrl.SendPing()
-						pinged = true
-					} else {
-						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
-						c.logger.Debugf("client %q no pong received", c.GetSessionId())
-						changeActive(false)
+		err := c.eventDispatcher.Dispatching(c)
+		if err != nil {
+			// 网络传输错误
+			if errors.Is(err, transport.ErrTrans) {
+				// 网络io错误
+				if errors.Is(err, transport.ErrNetIO) {
+					// 网络io超时，触发心跳检测，向对方发送ping
+					if errors.Is(err, transport.ErrDeadlineExceeded) {
+						if !pinged {
+							// 尝试ping对端
+							c.logger.Debugf("client %q send ping", c.GetSessionId())
+							c.ctrl.SendPing()
+							pinged = true
+						} else {
+							// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
+							c.logger.Debugf("client %q no pong received", c.GetSessionId())
+							changeActive(false)
+						}
+						continue
 					}
+
+					// 其他网络io类错误，调整连接状态不活跃
+					changeActive(false)
+
+					func() {
+						timer := time.NewTimer(10 * time.Second)
+						defer timer.Stop()
+
+						select {
+						case <-timer.C:
+							return
+						case <-c.renewChan:
+							// 发送缓存的消息
+							transport.Retry{
+								Transceiver: &c.transceiver,
+								Times:       c.options.IORetryTimes,
+							}.Send(c.transceiver.Resend())
+							// 重置ping状态
+							pinged = false
+							return
+						case <-c.Done():
+							return
+						}
+					}()
+
+					c.logger.Debugf("client %q retry dispatching event, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 					continue
 				}
 
-				// 其他网络io类错误，调整连接状态不活跃
-				changeActive(false)
-
-				func() {
-					timer := time.NewTimer(10 * time.Second)
-					defer timer.Stop()
-
-					select {
-					case <-timer.C:
-						return
-					case <-c.renewChan:
-						// 发送缓存的消息
-						transport.Retry{
-							Transceiver: &c.transceiver,
-							Times:       c.options.IORetryTimes,
-						}.Send(c.transceiver.Resend())
-						// 重置ping状态
-						pinged = false
-						return
-					case <-c.Done():
-						return
-					}
-				}()
-
-				c.logger.Debugf("client %q retry dispatching event, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+				// 其他网络传输错误，关闭连接
+				c.logger.Errorf("client %q dispatching event failed, %s, terminating client", c.GetSessionId(), err)
+				c.terminate(err)
 				continue
 			}
 
+			// 非网络传输错误，不处理
 			c.logger.Errorf("client %q dispatching event failed, %s", c.GetSessionId(), err)
-			continue
 		}
 
-		// 没有错误，或非网络io类错误，重置ping状态
+		// 没有错误，或非网络传输错误，重置ping状态
 		pinged = false
 		// 调整连接状态活跃
 		changeActive(true)
 	}
 
-	c.logger.Infof("client %q stopped, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
+	c.logger.Infof("client %q terminated, conn %q -> %q", c.GetSessionId(), c.GetLocalAddr(), c.GetRemoteAddr())
 }
 
 // reconnect 重连
@@ -261,7 +270,7 @@ func (c *Client) reconnect() {
 
 			// 服务端返回rst拒绝连接，刷新链路失败，这两种情况下不再重试，关闭客户端
 			var rstErr *transport.RstError
-			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenewConn) {
+			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenew) {
 				c.logger.Errorf("client %q auto reconnect aborted, %s, close client", c.GetSessionId(), err)
 				c.terminate(err)
 				return

@@ -155,61 +155,73 @@ loop:
 		}
 
 		// 分发消息事件
-		if err := s.eventDispatcher.Dispatching(s.gate.ctx); err != nil {
-			// 网络io错误
-			if errors.Is(err, transport.ErrNetIO) {
-				// 网络io超时，触发心跳检测，向对方发送ping
-				if errors.Is(err, transport.ErrTimeout) {
-					if !pinged {
-						// 尝试ping对端
-						log.Debugf(s.gate.servCtx, "session %q send ping", s.GetId())
-						s.ctrl.SendPing()
-						pinged = true
-					} else {
-						// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-						log.Debugf(s.gate.servCtx, "session %q no pong received", s.GetId())
-						if s.setState(SessionState_Inactive) {
-							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+		err := s.eventDispatcher.Dispatching(s.gate.ctx)
+		if err != nil {
+			// 网络传输错误
+			if errors.Is(err, transport.ErrTrans) {
+				// 网络io错误
+				if errors.Is(err, transport.ErrNetIO) {
+					// 网络io超时，触发心跳检测，向对方发送ping
+					if errors.Is(err, transport.ErrDeadlineExceeded) {
+						if !pinged {
+							// 尝试ping对端
+							log.Debugf(s.gate.servCtx, "session %q send ping", s.GetId())
+							s.ctrl.SendPing()
+							pinged = true
+						} else {
+							// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
+							log.Debugf(s.gate.servCtx, "session %q no pong received", s.GetId())
+							if s.setState(SessionState_Inactive) {
+								timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+							}
 						}
+						continue
 					}
+
+					// 其他网络io类错误，调整会话状态不活跃
+					if s.setState(SessionState_Inactive) {
+						timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
+					}
+
+					func() {
+						timer := time.NewTimer(10 * time.Second)
+						defer timer.Stop()
+
+						select {
+						case <-timer.C:
+							return
+						case <-s.renewChan:
+							// 发送缓存的消息
+							transport.Retry{
+								Transceiver: &s.transceiver,
+								Times:       s.gate.options.IORetryTimes,
+							}.Send(s.transceiver.Resend())
+							// 重置ping状态
+							pinged = false
+							return
+						case <-s.Done():
+							return
+						}
+					}()
+
+					log.Debugf(s.gate.servCtx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 					continue
 				}
 
-				// 其他网络io类错误，调整会话状态不活跃
-				if s.setState(SessionState_Inactive) {
-					timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
-				}
-
-				func() {
-					timer := time.NewTimer(10 * time.Second)
-					defer timer.Stop()
-
-					select {
-					case <-timer.C:
-						return
-					case <-s.renewChan:
-						// 发送缓存的消息
-						transport.Retry{
-							Transceiver: &s.transceiver,
-							Times:       s.gate.options.IORetryTimes,
-						}.Send(s.transceiver.Resend())
-						// 重置ping状态
-						pinged = false
-						return
-					case <-s.Done():
-						return
-					}
-				}()
-
-				log.Debugf(s.gate.servCtx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+				// 其他网络传输错误，关闭会话
+				log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s, terminating session", s.GetId(), err)
+				s.terminate(&transport.RstError{
+					Code:    gtp.Code_Reject,
+					Message: err.Error(),
+				})
 				continue
 			}
 
-			log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s", s.GetId(), err)
-			continue
+			// 非网络传输错误，不处理
+			log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s, skipping it", s.GetId(), err)
 		}
 
-		// 没有错误，或非网络io类错误，重置ping状态
+		// 没有错误，或非网络传输错误，重置ping状态
 		pinged = false
 		// 调整会话状态活跃
 		s.setState(SessionState_Active)
@@ -218,7 +230,7 @@ loop:
 	// 发送关闭原因
 	s.ctrl.SendRst(context.Cause(s))
 
-	log.Debugf(s.gate.servCtx, "session %q stopped, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.servCtx, "session %q terminated, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
 
 // setState 调整会话状态

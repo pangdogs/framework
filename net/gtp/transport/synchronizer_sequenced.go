@@ -153,13 +153,11 @@ func (s *SequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
 }
 
 // Ack 确认消息序号
-func (s *SequencedSynchronizer) Ack(ack uint32) error {
+func (s *SequencedSynchronizer) Ack(ack uint32) {
 	// 自增接收消息序号
 	atomic.AddUint32(&s.recvSeq, 1)
 	// 记录ack序号
 	atomic.StoreUint32(&s.ackSeq, ack)
-
-	return nil
 }
 
 // SendSeq 发送消息序号

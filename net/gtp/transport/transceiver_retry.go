@@ -18,7 +18,7 @@ func (r Retry) Send(err error) error {
 	if err == nil {
 		return nil
 	}
-	if !errors.Is(err, ErrTimeout) {
+	if !errors.Is(err, ErrDeadlineExceeded) {
 		return err
 	}
 	ctx := r.Ctx
@@ -32,7 +32,7 @@ func (r Retry) Send(err error) error {
 		default:
 		}
 		if err = r.Transceiver.Resend(); err != nil {
-			if errors.Is(err, ErrTimeout) {
+			if errors.Is(err, ErrDeadlineExceeded) {
 				continue
 			}
 		}
@@ -46,13 +46,13 @@ func (r Retry) Recv(e IEvent, err error) (IEvent, error) {
 	if err == nil {
 		return e, nil
 	}
-	if !errors.Is(err, ErrTimeout) && !errors.Is(err, ErrDiscardSeq) {
+	if !errors.Is(err, ErrDeadlineExceeded) && !errors.Is(err, ErrDiscardSeq) {
 		return e, err
 	}
 	for i := r.Times; i > 0; {
 		e, err = r.Transceiver.Recv(r.Ctx)
 		if err != nil {
-			if errors.Is(err, ErrTimeout) {
+			if errors.Is(err, ErrDeadlineExceeded) {
 				i--
 				continue
 			}

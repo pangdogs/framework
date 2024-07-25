@@ -76,7 +76,8 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 		default:
 		}
 
-		if err := d.Dispatching(ctx); err != nil {
+		err := d.Dispatching(ctx)
+		if err != nil {
 			_errorHandler.Invoke(nil, err)
 		}
 	}
