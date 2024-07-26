@@ -51,7 +51,7 @@ func (d *_DistService) mainLoop(serviceNode *discovery.Service, subs []broker.IS
 
 	d.broker.Flush(context.Background())
 
-	log.Infof(d.servCtx, "service %q node %q stopped", d.servCtx.GetName(), d.servCtx.GetId())
+	log.Infof(d.servCtx, "service %q node %q terminated", d.servCtx.GetName(), d.servCtx.GetId())
 }
 
 func (d *_DistService) watchingService() {
