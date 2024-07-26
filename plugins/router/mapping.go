@@ -19,8 +19,8 @@ type IMapping interface {
 
 type _Mapping struct {
 	context.Context
-	router    *_Router
 	terminate context.CancelFunc
+	router    *_Router
 	entity    ec.ConcurrentEntity
 	session   gate.ISession
 	cliAddr   string

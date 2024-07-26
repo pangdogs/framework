@@ -26,8 +26,8 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 }
 
 type _RPC struct {
-	options    RPCOptions
 	servCtx    service.Context
+	options    RPCOptions
 	terminated atomic.Bool
 	deliverers []rpcpcsr.IDeliverer
 }

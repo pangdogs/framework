@@ -43,8 +43,8 @@ type IGroup interface {
 }
 
 type _Group struct {
-	sync.RWMutex
 	context.Context
+	sync.RWMutex
 	terminate     context.CancelFunc
 	router        *_Router
 	groupKey      string
