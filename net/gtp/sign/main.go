@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"time"
 )
@@ -56,7 +57,7 @@ func main() {
 				panic(err)
 			}
 
-			fmt.Printf("saved to %s, %s\n", priKeyFile.Name(), pubKeyFile.Name())
+			log.Printf("saved to %s, %s", priKeyFile.Name(), pubKeyFile.Name())
 		},
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd:   true,
