@@ -64,6 +64,8 @@ func (m *_Mapping) mainLoop() {
 	select {
 	case <-m.Done():
 		return
+	case <-m.entity.Done():
+		m.router.CleanEntity(m.entity.GetId())
 	case <-m.session.Done():
 		m.router.CleanSession(m.session.GetId())
 	}
