@@ -28,6 +28,6 @@ import (
 func (c *ComponentBehavior) Await(asyncRet ...async.AsyncRet) AwaitDirector {
 	return AwaitDirector{
 		iec:      c,
-		director: core.Await(c.GetRuntime(), asyncRet...),
+		director: core.Await(c, asyncRet...),
 	}
 }

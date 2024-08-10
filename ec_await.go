@@ -34,41 +34,41 @@ type AwaitDirector struct {
 }
 
 // Any 异步等待任意一个结果返回
-func (ad AwaitDirector) Any(fun generic.ActionVar1[async.Ret, any], va ...any) {
-	ad.director.Any(func(_ runtime.Context, ret async.Ret, a ...any) {
+func (ad AwaitDirector) Any(fun generic.ActionVar1[async.Ret, any], args ...any) {
+	ad.director.Any(func(_ runtime.Context, ret async.Ret, _ ...any) {
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, a...)
-	}, va...)
+		fun.Exec(ret, args...)
+	})
 }
 
 // AnyOK 异步等待任意一个结果成功返回
-func (ad AwaitDirector) AnyOK(fun generic.ActionVar1[async.Ret, any], va ...any) {
-	ad.director.AnyOK(func(_ runtime.Context, ret async.Ret, a ...any) {
+func (ad AwaitDirector) AnyOK(fun generic.ActionVar1[async.Ret, any], args ...any) {
+	ad.director.AnyOK(func(_ runtime.Context, ret async.Ret, _ ...any) {
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, a...)
-	}, va...)
+		fun.Exec(ret, args...)
+	})
 }
 
 // All 异步等待所有结果返回
-func (ad AwaitDirector) All(fun generic.ActionVar1[[]async.Ret, any], va ...any) {
-	ad.director.All(func(_ runtime.Context, rets []async.Ret, a ...any) {
+func (ad AwaitDirector) All(fun generic.ActionVar1[[]async.Ret, any], args ...any) {
+	ad.director.All(func(_ runtime.Context, rets []async.Ret, _ ...any) {
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(rets, a...)
-	}, va...)
+		fun.Exec(rets, args...)
+	})
 }
 
 // Pipe 异步等待管道返回
-func (ad AwaitDirector) Pipe(ctx context.Context, fun generic.ActionVar1[async.Ret, any], va ...any) {
-	ad.director.Pipe(ctx, func(_ runtime.Context, ret async.Ret, a ...any) {
+func (ad AwaitDirector) Pipe(ctx context.Context, fun generic.ActionVar1[async.Ret, any], args ...any) {
+	ad.director.Pipe(ctx, func(_ runtime.Context, ret async.Ret, _ ...any) {
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, a...)
-	}, va...)
+		fun.Exec(ret, args...)
+	})
 }
