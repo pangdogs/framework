@@ -97,7 +97,7 @@ func TestProtocol(t *testing.T) {
 						}
 						fmt.Printf("%s server <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 						return nil
-					}).CastDelegate(),
+					}).ToDelegate(),
 				}
 
 				trans := &TransProtocol{
@@ -105,7 +105,7 @@ func TestProtocol(t *testing.T) {
 					PayloadHandler: generic.MakeFunc1(func(e Event[gtp.MsgPayload]) error {
 						fmt.Printf("%s server <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
-					}).CastDelegate(),
+					}).ToDelegate(),
 				}
 
 				dispatcher := EventDispatcher{
@@ -145,7 +145,7 @@ func TestProtocol(t *testing.T) {
 
 				dispatcher.Run(context.Background(), generic.MakeAction1(func(err error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err:", err)
-				}).CastDelegate())
+				}).ToDelegate())
 			}()
 		}
 	}()
@@ -197,11 +197,11 @@ func TestProtocol(t *testing.T) {
 				}
 				fmt.Printf("%s client <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 				return nil
-			}).CastDelegate(),
+			}).ToDelegate(),
 			SyncTimeHandler: generic.MakeFunc1(func(e Event[gtp.MsgSyncTime]) error {
 				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalUnixMilli, e.Msg.RemoteUnixMilli)
 				return nil
-			}).CastDelegate(),
+			}).ToDelegate(),
 		}
 
 		trans := &TransProtocol{
@@ -209,7 +209,7 @@ func TestProtocol(t *testing.T) {
 			PayloadHandler: generic.MakeFunc1(func(e Event[gtp.MsgPayload]) error {
 				fmt.Printf("%s client <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
-			}).CastDelegate(),
+			}).ToDelegate(),
 		}
 
 		dispatcher := EventDispatcher{
@@ -264,7 +264,7 @@ func TestProtocol(t *testing.T) {
 
 		dispatcher.Run(context.Background(), generic.MakeAction1(func(err error) {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err:", err)
-		}).CastDelegate())
+		}).ToDelegate())
 	}()
 
 	wg.Wait()
