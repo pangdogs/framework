@@ -120,7 +120,7 @@ func (app *App) Run() {
 
 			if startupConf.ConfigFileUsed() != "" {
 				if err := startupConf.ReadInConfig(); err != nil {
-					panic(fmt.Errorf("read config file failed, %s", err))
+					panic(fmt.Errorf("load startup config [--conf.local_path] = %q failed, %s", startupConf.GetString("conf.local_path"), err))
 				}
 			}
 

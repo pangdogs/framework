@@ -179,7 +179,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	if !installed(log.Name) {
 		level, err := zapcore.ParseLevel(startupConf.GetString("log.level"))
 		if err != nil {
-			panic(fmt.Errorf("parse config log.level failed, %s", err))
+			panic(fmt.Errorf("parse startup config [--log.level] = %q failed, %s", startupConf.GetString("log.level"), err))
 		}
 
 		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
