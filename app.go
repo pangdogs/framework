@@ -48,6 +48,7 @@ type _ServPT struct {
 type App struct {
 	servicePTs                       map[string]*_ServPT
 	startupConf                      *viper.Viper
+	initFlags                        generic.DelegateAction1[*cobra.Command]
 	initCB, startingCB, terminatedCB generic.DelegateAction1[*App]
 }
 
@@ -78,6 +79,12 @@ func (app *App) Setup(name string, generic any) *App {
 		num:     1,
 	}
 
+	return app
+}
+
+// InitFlags 自定义启动参数
+func (app *App) InitFlags(fun generic.DelegateAction1[*cobra.Command]) *App {
+	app.initFlags = fun
 	return app
 }
 
@@ -215,6 +222,9 @@ func (app *App) Run() {
 		}
 		return ret
 	}(), "instances required for each service to start")
+
+	// 自定义启动参数
+	app.initFlags.Exec(nil, cmd)
 
 	// 开始运行
 	if err := cmd.Execute(); err != nil {
