@@ -26,6 +26,9 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net/http"
+	_ "net/http/pprof"
+	"net/netip"
 	"os"
 	"os/signal"
 	"strconv"
@@ -69,13 +72,13 @@ func (app *App) Setup(name string, generic any) *App {
 		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_generic, ok := generic.(iServiceGeneric)
+	g, ok := generic.(iServiceGeneric)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
 
 	app.servicePTs[name] = &_ServPT{
-		generic: _generic,
+		generic: g,
 		num:     1,
 	}
 
@@ -121,41 +124,14 @@ func (app *App) Run() {
 				}
 			}
 
+			// 启动pprof
+			app.initPProf()
+
 			// 启动回调
 			app.startingCB.Exec(nil, app)
 
-			// 监听退出信号
-			ctx, cancel := context.WithCancel(context.Background())
-
-			sigChan := make(chan os.Signal, 1)
-			signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-			go func() {
-				<-sigChan
-				cancel()
-			}()
-
-			// 启动服务
-			wg := &sync.WaitGroup{}
-
-			serviceNum := startupConf.GetStringMapString("startup.services")
-
-			for name, pt := range app.servicePTs {
-				pt.generic.init(startupConf, name, pt.generic)
-				pt.num, _ = strconv.Atoi(serviceNum[name])
-			}
-
-			for _, pt := range app.servicePTs {
-				for i := 0; i < pt.num; i++ {
-					wg.Add(1)
-					go func(generic iServiceGeneric, no int) {
-						defer wg.Done()
-						<-generic.generate(ctx, no).Run()
-					}(pt.generic, i)
-				}
-			}
-
-			wg.Wait()
+			// 主循环
+			app.mainLoop()
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			// 结束回调
@@ -168,6 +144,24 @@ func (app *App) Run() {
 		},
 	}
 
+	// 初始化参数
+	app.initFlags(cmd)
+
+	// 初始化回调
+	app.initCB.Exec(nil, cmd)
+
+	// 开始运行
+	if err := cmd.Execute(); err != nil {
+		panic(err)
+	}
+}
+
+// GetStartupConf 获取启动参数配置
+func (app *App) GetStartupConf() *viper.Viper {
+	return app.startupConf
+}
+
+func (app *App) initFlags(cmd *cobra.Command) {
 	// 日志参数
 	cmd.PersistentFlags().String("log.format", "console", "logging output format (json|console)")
 	cmd.PersistentFlags().String("log.level", "info", "logging level")
@@ -213,16 +207,60 @@ func (app *App) Run() {
 		return ret
 	}(), "instances required for each service to start")
 
-	// 初始化回调
-	app.initCB.Exec(nil, cmd)
-
-	// 开始运行
-	if err := cmd.Execute(); err != nil {
-		panic(err)
-	}
+	// pprof参数
+	cmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
+	cmd.PersistentFlags().String("pprof.addr", "0.0.0.0:7070", "pprof listening address")
 }
 
-// GetStartupConf 获取启动参数配置
-func (app *App) GetStartupConf() *viper.Viper {
-	return app.startupConf
+func (app *App) initPProf() {
+	if !app.GetStartupConf().GetBool("pprof.enable") {
+		return
+	}
+
+	addr := app.GetStartupConf().GetString("pprof.addr")
+
+	_, err := netip.ParseAddrPort(addr)
+	if err != nil {
+		panic(fmt.Errorf("startup config [--pprof.addr] = %q is invalid, %s", addr, err))
+	}
+
+	go func() {
+		http.ListenAndServe(addr, nil)
+	}()
+}
+
+func (app *App) mainLoop() {
+	// 监听退出信号
+	ctx, cancel := context.WithCancel(context.Background())
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
+	// 启动所有服务
+	wg := &sync.WaitGroup{}
+
+	serviceNum := app.startupConf.GetStringMapString("startup.services")
+
+	for name, pt := range app.servicePTs {
+		pt.generic.init(app.startupConf, name, pt.generic)
+		pt.num, _ = strconv.Atoi(serviceNum[name])
+	}
+
+	for _, pt := range app.servicePTs {
+		for i := 0; i < pt.num; i++ {
+			wg.Add(1)
+			go func(generic iServiceGeneric, no int) {
+				defer wg.Done()
+				<-generic.generate(ctx, no).Run()
+			}(pt.generic, i)
+		}
+	}
+
+	// 等待运行结束
+	wg.Wait()
 }
