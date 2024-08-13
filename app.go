@@ -21,14 +21,15 @@ package framework
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"net/netip"
 	"os"
 	"os/signal"
 	"strconv"
@@ -209,7 +210,7 @@ func (app *App) initFlags(cmd *cobra.Command) {
 
 	// pprof参数
 	cmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
-	cmd.PersistentFlags().String("pprof.addr", "0.0.0.0:7070", "pprof listening address")
+	cmd.PersistentFlags().String("pprof.address", "0.0.0.0:6060", "pprof listening address")
 }
 
 func (app *App) initPProf() {
@@ -217,15 +218,17 @@ func (app *App) initPProf() {
 		return
 	}
 
-	addr := app.GetStartupConf().GetString("pprof.addr")
+	addr := app.GetStartupConf().GetString("pprof.address")
 
-	_, err := netip.ParseAddrPort(addr)
+	_, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
-		panic(fmt.Errorf("startup config [--pprof.addr] = %q is invalid, %s", addr, err))
+		panic(fmt.Errorf("startup config [--pprof.address] = %q is invalid, %s", addr, err))
 	}
 
 	go func() {
-		http.ListenAndServe(addr, nil)
+		if err := http.ListenAndServe(addr, nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			panic(fmt.Errorf("interrupt listening %q, %s", addr, err))
+		}
 	}()
 }
 
