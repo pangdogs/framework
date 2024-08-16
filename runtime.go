@@ -42,6 +42,11 @@ type iRuntimeGeneric interface {
 	generate(settings _RuntimeSettings) core.Runtime
 }
 
+// NewRuntimeGenericT 创建运行时泛化类型
+func NewRuntimeGenericT[T any]() *RuntimeGenericT[T] {
+	return &RuntimeGenericT[T]{}
+}
+
 type _RuntimeSettings struct {
 	Name                 string
 	PersistId            uid.Id

@@ -56,6 +56,11 @@ type iServiceGeneric interface {
 	generate(ctx context.Context, no int) core.Service
 }
 
+// NewServiceGenericT 创建服务泛化类型
+func NewServiceGenericT[T any]() *ServiceGenericT[T] {
+	return &ServiceGenericT[T]{}
+}
+
 // ServiceGenericT 服务泛化类型实例化
 type ServiceGenericT[T any] struct {
 	ServiceGeneric
