@@ -170,3 +170,8 @@ func (c *Client) Close(err error) <-chan struct{} {
 	c.terminate(err)
 	return c.terminated
 }
+
+// Closed 已关闭
+func (c *Client) Closed() <-chan struct{} {
+	return c.terminated
+}
