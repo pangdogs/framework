@@ -55,11 +55,13 @@ type IRouter interface {
 	// LookupSession 查找会话
 	LookupSession(entityId uid.Id) (gate.ISession, bool)
 	// AddGroup 添加分组
-	AddGroup(ctx context.Context, groupAddr string) (IGroup, error)
+	AddGroup(ctx context.Context, name string) (IGroup, error)
 	// DeleteGroup 删除分组
-	DeleteGroup(ctx context.Context, groupAddr string)
+	DeleteGroup(ctx context.Context, name string)
 	// GetGroup 查询分组
-	GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
+	GetGroup(ctx context.Context, name string) (IGroup, bool)
+	// GetGroupByAddr 使用分组地址查询分组
+	GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool)
 	// RangeGroups 遍历包含实体的所有分组
 	RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool])
 	// EachGroups 遍历包含实体的所有分组

@@ -22,8 +22,6 @@ package router
 import (
 	"context"
 	"errors"
-	"fmt"
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -33,16 +31,13 @@ import (
 	"math"
 	"path"
 	"strconv"
+	"strings"
 )
 
 // AddGroup 添加分组
-func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error) {
+func (r *_Router) AddGroup(ctx context.Context, name string) (IGroup, error) {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-
-	if !gate.CliDetails.InMulticastSubdomain(groupAddr) {
-		return nil, fmt.Errorf("%w: incorrect groupAddr", core.ErrArgs)
 	}
 
 	lgr, err := r.client.Grant(ctx, int64(math.Ceil(r.options.GroupTTL.Seconds())))
@@ -51,6 +46,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error
 	}
 	leaseId := lgr.ID
 
+	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
@@ -92,7 +88,7 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error
 
 	group := r.newGroup(groupKey, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, 0)
+	cached := r.groupCache.Set(group.GetName(), group, tr.Header.Revision, 0)
 	if cached == group {
 		go group.mainLoop()
 	}
@@ -101,15 +97,12 @@ func (r *_Router) AddGroup(ctx context.Context, groupAddr string) (IGroup, error
 }
 
 // DeleteGroup 删除分组
-func (r *_Router) DeleteGroup(ctx context.Context, groupAddr string) {
+func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if !gate.CliDetails.InMulticastSubdomain(groupAddr) {
-		return
-	}
-
+	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	gr, err := r.client.Get(ctx, groupKey)
@@ -134,20 +127,17 @@ func (r *_Router) DeleteGroup(ctx context.Context, groupAddr string) {
 }
 
 // GetGroup 查询分组
-func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool) {
+func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if !gate.CliDetails.InMulticastSubdomain(groupAddr) {
-		return nil, false
-	}
-
-	group, ok := r.groupCache.Get(groupAddr)
+	group, ok := r.groupCache.Get(name)
 	if ok {
 		return group, true
 	}
 
+	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
@@ -182,12 +172,17 @@ func (r *_Router) GetGroup(ctx context.Context, groupAddr string) (IGroup, bool)
 
 	group = r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
 
-	cached := r.groupCache.Set(groupAddr, group, tr.Header.Revision, 0)
+	cached := r.groupCache.Set(group.GetName(), group, tr.Header.Revision, 0)
 	if cached == group {
 		go group.mainLoop()
 	}
 
 	return cached, true
+}
+
+// GetGroupByAddr 使用分组地址查询分组
+func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
+	return r.GetGroup(ctx, strings.TrimPrefix(strings.TrimPrefix(addr, gate.CliDetails.MulticastSubdomain), gate.CliDetails.PathSeparator))
 }
 
 // RangeGroups 遍历包含实体的所有分组
@@ -201,7 +196,7 @@ func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.
 	}
 
 	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
-		if group, ok := r.GetGroup(ctx, groupAddr); ok {
+		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
 			if !fun.Exec(group) {
 				return
 			}
@@ -220,7 +215,7 @@ func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.A
 	}
 
 	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
-		if group, ok := r.GetGroup(ctx, groupAddr); ok {
+		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
 			fun.Exec(group)
 		}
 	}
@@ -266,7 +261,7 @@ func (r *_Router) getEntityGroupAddrs(ctx context.Context, entityId uid.Id) []st
 		groupAddrs = make([]string, 0, len(gr.Kvs))
 
 		for _, kv := range gr.Kvs {
-			groupAddrs = append(groupAddrs, string(kv.Key))
+			groupAddrs = append(groupAddrs, strings.TrimPrefix(string(kv.Key), r.options.GroupKeyPrefix))
 		}
 
 		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)

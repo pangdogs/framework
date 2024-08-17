@@ -25,6 +25,7 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/utils/binaryutil"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -37,6 +38,8 @@ import (
 // IGroup 分组接口
 type IGroup interface {
 	context.Context
+	// GetName 获取分组名称
+	GetName() string
 	// GetAddr 获取分组地址
 	GetAddr() string
 	// Add 添加实体
@@ -72,6 +75,11 @@ type _Group struct {
 	entities      []uid.Id
 	sendDataChan  chan binaryutil.RecycleBytes
 	sendEventChan chan transport.IEvent
+}
+
+// GetName 获取分组名称
+func (g *_Group) GetName() string {
+	return strings.TrimPrefix(strings.TrimPrefix(g.GetAddr(), gate.CliDetails.MulticastSubdomain), gate.CliDetails.PathSeparator)
 }
 
 // GetAddr 获取分组地址
