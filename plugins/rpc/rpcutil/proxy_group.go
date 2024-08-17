@@ -24,25 +24,27 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/uid"
+	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
+	"strings"
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(ctx runtime.CurrentContextProvider, addr string) GroupProxied {
+func ProxyGroup(ctx runtime.CurrentContextProvider, name string) GroupProxied {
 	return GroupProxied{
 		servCtx: service.Current(ctx),
 		rtCtx:   runtime.Current(ctx),
-		addr:    addr,
+		addr:    gate.CliDetails.MulticastSubdomainJoin(name),
 	}
 }
 
 // ConcurrentProxyGroup 代理分组
-func ConcurrentProxyGroup(ctx service.Context, addr string) GroupProxied {
+func ConcurrentProxyGroup(ctx service.Context, name string) GroupProxied {
 	return GroupProxied{
 		servCtx: ctx,
-		addr:    addr,
+		addr:    gate.CliDetails.MulticastSubdomainJoin(name),
 	}
 }
 
@@ -51,6 +53,11 @@ type GroupProxied struct {
 	servCtx service.Context
 	rtCtx   runtime.Context
 	addr    string
+}
+
+// GetName 获取分组名称
+func (p GroupProxied) GetName() string {
+	return strings.TrimPrefix(strings.TrimPrefix(p.addr, gate.CliDetails.MulticastSubdomain), gate.CliDetails.PathSeparator)
 }
 
 // GetAddr 获取分组地址
