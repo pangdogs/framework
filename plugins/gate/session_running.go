@@ -104,7 +104,7 @@ func (s *_Session) mainLoop() {
 		s.gate.deleteSession(s.GetId())
 
 		s.gate.wg.Done()
-		close(s.terminatedChan)
+		close(s.terminated)
 	}()
 
 	log.Debugf(s.gate.servCtx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())

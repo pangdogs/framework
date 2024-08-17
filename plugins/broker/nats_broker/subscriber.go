@@ -51,7 +51,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 	sub := &_Subscriber{
 		Context:        ctx,
 		terminate:      cancel,
-		terminatedChan: make(chan struct{}),
+		terminated:     make(chan struct{}),
 		broker:         b,
 		unsubscribedCB: opts.UnsubscribedCB,
 	}
@@ -94,7 +94,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 type _Subscriber struct {
 	context.Context
 	terminate      context.CancelFunc
-	terminatedChan chan struct{}
+	terminated     chan struct{}
 	broker         *_Broker
 	natsSub        *nats.Subscription
 	eventChan      chan broker.IEvent
@@ -115,7 +115,12 @@ func (s *_Subscriber) Queue() string {
 // Unsubscribe unsubscribes the subscriber from the topic.
 func (s *_Subscriber) Unsubscribe() <-chan struct{} {
 	s.terminate()
-	return s.terminatedChan
+	return s.terminated
+}
+
+// Unsubscribed subscriber is unsubscribed.
+func (s *_Subscriber) Unsubscribed() <-chan struct{} {
+	return s.terminated
 }
 
 // Next is a blocking call that waits for the next event to be received from the subscriber.
@@ -135,7 +140,7 @@ func (s *_Subscriber) mainLoop() {
 	defer func() {
 		s.terminate()
 		s.broker.wg.Done()
-		close(s.terminatedChan)
+		close(s.terminated)
 	}()
 
 	select {

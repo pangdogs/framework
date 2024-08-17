@@ -43,6 +43,7 @@ import (
 type IWatcher interface {
 	context.Context
 	Terminate() <-chan struct{}
+	Terminated() <-chan struct{}
 }
 
 // IGate 网关

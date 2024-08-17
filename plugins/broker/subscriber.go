@@ -32,6 +32,8 @@ type ISubscriber interface {
 	Queue() string
 	// Unsubscribe unsubscribes the subscriber from the topic.
 	Unsubscribe() <-chan struct{}
+	// Unsubscribed subscriber is unsubscribed.
+	Unsubscribed() <-chan struct{}
 }
 
 // ISyncSubscriber is a convenience return type for the IBroker.SubscribeSync method.

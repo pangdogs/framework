@@ -54,6 +54,7 @@ type NodeDetails struct {
 type IWatcher interface {
 	context.Context
 	Terminate() <-chan struct{}
+	Terminated() <-chan struct{}
 }
 
 // IDistService 分布式服务支持

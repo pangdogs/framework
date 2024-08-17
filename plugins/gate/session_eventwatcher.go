@@ -32,11 +32,11 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEvent
 	ctx, cancel := context.WithCancel(ctx)
 
 	watcher := &_EventWatcher{
-		Context:        ctx,
-		terminate:      cancel,
-		terminatedChan: make(chan struct{}),
-		session:        s,
-		handler:        handler,
+		Context:    ctx,
+		terminate:  cancel,
+		terminated: make(chan struct{}),
+		session:    s,
+		handler:    handler,
 	}
 	s.eventWatchers.Append(watcher)
 
@@ -48,22 +48,26 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEvent
 
 type _EventWatcher struct {
 	context.Context
-	terminate      context.CancelFunc
-	terminatedChan chan struct{}
-	session        *_Session
-	handler        SessionRecvEventHandler
+	terminate  context.CancelFunc
+	terminated chan struct{}
+	session    *_Session
+	handler    SessionRecvEventHandler
 }
 
 func (w *_EventWatcher) Terminate() <-chan struct{} {
 	w.terminate()
-	return w.terminatedChan
+	return w.terminated
+}
+
+func (w *_EventWatcher) Terminated() <-chan struct{} {
+	return w.terminated
 }
 
 func (w *_EventWatcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		w.session.gate.wg.Done()
-		close(w.terminatedChan)
+		close(w.terminated)
 	}()
 
 	select {

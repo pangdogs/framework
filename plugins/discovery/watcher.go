@@ -34,6 +34,8 @@ type IWatcher interface {
 	Next() (*Event, error)
 	// Terminate stop watching
 	Terminate() <-chan struct{}
+	// Terminated stopped notify
+	Terminated() <-chan struct{}
 }
 
 // Event is returned by a call to Next on the watcher. Type can be create, update, delete

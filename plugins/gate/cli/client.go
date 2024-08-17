@@ -41,13 +41,14 @@ var (
 type IWatcher interface {
 	context.Context
 	Terminate() <-chan struct{}
+	Terminated() <-chan struct{}
 }
 
 // Client 客户端
 type Client struct {
 	context.Context
 	terminate       context.CancelCauseFunc
-	terminatedChan  chan struct{}
+	terminated      chan struct{}
 	wg              sync.WaitGroup
 	mutex           sync.Mutex
 	options         ClientOptions
@@ -167,5 +168,5 @@ func (c *Client) RecvEventChan() <-chan transport.IEvent {
 // Close 关闭
 func (c *Client) Close(err error) <-chan struct{} {
 	c.terminate(err)
-	return c.terminatedChan
+	return c.terminated
 }
