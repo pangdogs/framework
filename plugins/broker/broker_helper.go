@@ -28,7 +28,7 @@ import (
 )
 
 type (
-	ErrorHandler = generic.DelegateAction1[error] // 错误处理器
+	ErrorHandler = generic.DelegateAction1[error] // handling errors
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
