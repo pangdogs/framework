@@ -118,6 +118,13 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 		return errors.New("client is nil")
 	}
 
+	select {
+	case <-client.Done():
+		return context.Canceled
+	default:
+		break
+	}
+
 	var conn net.Conn
 
 	switch ctor.options.NetProtocol {

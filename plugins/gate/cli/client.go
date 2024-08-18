@@ -112,6 +112,12 @@ func (c *Client) GetLogger() *zap.SugaredLogger {
 
 // SendData 发送数据
 func (c *Client) SendData(data []byte) error {
+	select {
+	case <-c.Done():
+		return context.Canceled
+	default:
+		break
+	}
 	return c.trans.SendData(data)
 }
 
@@ -122,6 +128,12 @@ func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) IWatche
 
 // SendEvent 发送自定义事件
 func (c *Client) SendEvent(event transport.IEvent) error {
+	select {
+	case <-c.Done():
+		return context.Canceled
+	default:
+		break
+	}
 	return transport.Retry{
 		Transceiver: &c.transceiver,
 		Times:       c.options.IORetryTimes,
