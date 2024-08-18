@@ -20,6 +20,7 @@
 package router
 
 import (
+	"bytes"
 	"context"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/utils/generic"
@@ -55,9 +56,9 @@ type IGroup interface {
 	// RefreshTTL 刷新TTL
 	RefreshTTL(ctx context.Context) error
 	// SendData 发送数据
-	SendData(data []byte) error
+	SendData(data []byte)
 	// SendEvent 发送自定义事件
-	SendEvent(event transport.IEvent) error
+	SendEvent(event transport.IEvent)
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- binaryutil.RecycleBytes
 	// SendEventChan 发送自定义事件的channel
@@ -93,6 +94,13 @@ func (g *_Group) Add(ctx context.Context, entIds ...uid.Id) error {
 		ctx = context.Background()
 	}
 
+	select {
+	case <-g.Done():
+		return context.Canceled
+	default:
+		break
+	}
+
 	if len(entIds) <= 0 {
 		return nil
 	}
@@ -116,6 +124,13 @@ func (g *_Group) Add(ctx context.Context, entIds ...uid.Id) error {
 func (g *_Group) Remove(ctx context.Context, entIds ...uid.Id) error {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	select {
+	case <-g.Done():
+		return context.Canceled
+	default:
+		break
 	}
 
 	if len(entIds) <= 0 {
@@ -174,14 +189,28 @@ func (g *_Group) RefreshTTL(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
+	select {
+	case <-g.Done():
+		return context.Canceled
+	default:
+		break
+	}
+
 	_, err := g.router.client.KeepAliveOnce(ctx, g.leaseId)
 	return err
 }
 
 // SendData 发送数据
-func (g *_Group) SendData(data []byte) error {
+func (g *_Group) SendData(data []byte) {
 	g.RLock()
 	defer g.RUnlock()
+
+	select {
+	case <-g.Done():
+		return
+	default:
+		break
+	}
 
 	for i := range g.entities {
 		entId := g.entities[i]
@@ -198,14 +227,19 @@ func (g *_Group) SendData(data []byte) error {
 			}
 		})
 	}
-
-	return nil
 }
 
 // SendEvent 发送自定义事件
-func (g *_Group) SendEvent(event transport.IEvent) error {
+func (g *_Group) SendEvent(event transport.IEvent) {
 	g.RLock()
 	defer g.RUnlock()
+
+	select {
+	case <-g.Done():
+		return
+	default:
+		break
+	}
 
 	for i := range g.entities {
 		entId := g.entities[i]
@@ -222,8 +256,6 @@ func (g *_Group) SendEvent(event transport.IEvent) error {
 			}
 		})
 	}
-
-	return nil
 }
 
 // SendDataChan 发送数据的channel
@@ -269,11 +301,8 @@ func (g *_Group) mainLoop() {
 			for {
 				select {
 				case bs := <-g.sendDataChan:
-					err := g.SendData(bs.Data())
+					g.SendData(bytes.Clone(bs.Data()))
 					bs.Release()
-					if err != nil {
-						log.Errorf(g.router.servCtx, "group %q fetch data from the send data channel for sending failed, %s", g.GetName(), err)
-					}
 				case <-g.Done():
 					return
 				}
@@ -286,9 +315,7 @@ func (g *_Group) mainLoop() {
 			for {
 				select {
 				case event := <-g.sendEventChan:
-					if err := g.SendEvent(event); err != nil {
-						log.Errorf(g.router.servCtx, "group %q fetch event from the send event channel for sending failed, %s", g.GetName(), err)
-					}
+					g.SendEvent(event)
 				case <-g.Done():
 					return
 				}
@@ -361,5 +388,6 @@ end:
 	for _, entId := range g.entities {
 		g.router.entityGroupsCache.Del(entId, g.revision)
 	}
+	g.router.groupCache.Del(g.GetName(), g.revision)
 	g.RUnlock()
 }

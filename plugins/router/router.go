@@ -114,7 +114,7 @@ func (r *_Router) InitSP(ctx service.Context) {
 	}
 
 	r.groupCache = concurrent.NewCache[string, *_Group]()
-	r.groupCache.OnDel(func(groupAddr string, group *_Group) { group.terminate() })
+	r.groupCache.OnDel(func(name string, group *_Group) { group.terminate() })
 
 	r.entityGroupsCache = concurrent.NewCache[uid.Id, []string]()
 	r.entityGroupsCache.AutoClean(r.servCtx, 30*time.Second, 256)

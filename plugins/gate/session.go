@@ -173,6 +173,12 @@ func (s *_Session) GetSettings() SessionSettings {
 
 // SendData 发送数据
 func (s *_Session) SendData(data []byte) error {
+	select {
+	case <-s.Done():
+		return context.Canceled
+	default:
+		break
+	}
 	return s.trans.SendData(data)
 }
 
@@ -183,6 +189,12 @@ func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler
 
 // SendEvent 发送自定义事件
 func (s *_Session) SendEvent(event transport.IEvent) error {
+	select {
+	case <-s.Done():
+		return context.Canceled
+	default:
+		break
+	}
 	return transport.Retry{
 		Transceiver: &s.transceiver,
 		Times:       s.gate.options.IORetryTimes,
