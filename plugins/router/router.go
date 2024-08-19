@@ -165,7 +165,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 			terminate: cancel,
 			entity:    entity,
 			session:   session,
-			cliAddr:   gate.CliDetails.DomainNode.Join(entity.GetId().String()),
+			cliAddr:   gate.CliDetails.DomainUnicast.Join(entity.GetId().String()),
 		}
 		ret = mapping
 

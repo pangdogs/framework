@@ -25,7 +25,6 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/router"
@@ -46,12 +45,10 @@ func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 }
 
 func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
-	if gate.CliDetails.DomainNode.Contains(req.Dst) {
-		// 目标为单播地址，解析实体Id
-		entId := uid.From(netpath.Base(gate.CliDetails.DomainNode.Sep, req.Dst))
-
-		// 为了保持消息时序，在实体线程中，向对端发送消息
-		asyncRet := p.servCtx.Call(entId, func(entity ec.Entity, _ ...any) async.Ret {
+	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
+	if ok {
+		// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
+		asyncRet := p.servCtx.Call(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
 			session, ok := p.router.LookupSession(entity.GetId())
 			if !ok {
 				return async.MakeRet(nil, ErrSessionNotFound)
@@ -72,9 +69,32 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 		})
 		go func() { p.finishOutbound(src, req, (<-asyncRet).Error) }()
 		return
+	}
 
-	} else if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
-		// 目标为组播地址
+	entId, ok = gate.CliDetails.DomainBroadcast.Relative(req.Dst)
+	if ok {
+		// 目标为广播地址，遍历包含实体的所有分组，向每个分组发送消息
+		p.router.EachGroups(p.servCtx, uid.From(entId), func(group router.IGroup) {
+			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+			if err != nil {
+				go p.finishOutbound(src, req, err)
+				return
+			}
+
+			// 为了保持消息时序，使用分组发送数据的channel
+			select {
+			case group.SendDataChan() <- mpBuf:
+				go p.finishOutbound(src, req, nil)
+			default:
+				mpBuf.Release()
+				go p.finishOutbound(src, req, ErrGroupChanIsFull)
+			}
+		})
+		return
+	}
+
+	if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
+		// 目标为组播地址，向分组发送消息
 		group, ok := p.router.GetGroupByAddr(p.servCtx, req.Dst)
 		if !ok {
 			go p.finishOutbound(src, req, ErrGroupNotFound)
@@ -96,33 +116,10 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 			go p.finishOutbound(src, req, ErrGroupChanIsFull)
 		}
 		return
-
-	} else if gate.CliDetails.DomainBroadcast.Contains(req.Dst) {
-		// 目标为广播地址，解析实体Id
-		entId := uid.From(netpath.Base(gate.CliDetails.DomainBroadcast.Sep, req.Dst))
-
-		// 遍历包含实体的所有分组
-		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {
-			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
-			if err != nil {
-				go p.finishOutbound(src, req, err)
-				return
-			}
-
-			// 为了保持消息时序，使用分组发送数据的channel
-			select {
-			case group.SendDataChan() <- mpBuf:
-				go p.finishOutbound(src, req, nil)
-			default:
-				mpBuf.Release()
-				go p.finishOutbound(src, req, ErrGroupChanIsFull)
-			}
-		})
-
-	} else {
-		go p.finishOutbound(src, req, ErrIncorrectDestAddress)
-		return
 	}
+
+	// 目的地址错误
+	go p.finishOutbound(src, req, ErrIncorrectDestAddress)
 }
 
 func (p *_GateProcessor) finishOutbound(src string, req *gap.MsgForward, err error) {

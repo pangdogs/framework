@@ -52,5 +52,5 @@ func (d *NodeDetails) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
 		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
 	}
-	return intern.String(d.DomainNode.Join(nodeId.String())), nil
+	return intern.String(d.DomainUnicast.Join(nodeId.String())), nil
 }

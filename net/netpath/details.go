@@ -63,5 +63,5 @@ type NodeDetails struct {
 	DomainBroadcast Domain // 广播地址子域
 	DomainBalance   Domain // 负载均衡地址子域
 	DomainMulticast Domain // 组播地址子域
-	DomainNode      Domain // 单播地址子域
+	DomainUnicast   Domain // 单播地址子域
 }
