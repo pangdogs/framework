@@ -46,7 +46,7 @@ func (r *_Router) AddGroup(ctx context.Context, name string) (IGroup, error) {
 	}
 	leaseId := lgr.ID
 
-	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
+	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
@@ -102,7 +102,7 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 		ctx = context.Background()
 	}
 
-	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
+	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	gr, err := r.client.Get(ctx, groupKey)
@@ -137,7 +137,7 @@ func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
 		return group, true
 	}
 
-	groupAddr := gate.CliDetails.MulticastSubdomainJoin(name)
+	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
 	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
 
 	tr, err := r.client.Txn(ctx).
@@ -182,7 +182,7 @@ func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
 
 // GetGroupByAddr 使用分组地址查询分组
 func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
-	return r.GetGroup(ctx, strings.TrimPrefix(strings.TrimPrefix(addr, gate.CliDetails.MulticastSubdomain), gate.CliDetails.PathSeparator))
+	return r.GetGroup(ctx, strings.TrimPrefix(strings.TrimPrefix(addr, gate.CliDetails.DomainMulticast.Path), gate.CliDetails.DomainMulticast.Sep))
 }
 
 // RangeGroups 遍历包含实体的所有分组

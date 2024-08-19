@@ -61,7 +61,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.servCtx).MakeNodeAddr(nodeId)
+	dst, err := dserv.Using(p.servCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return makeErr(err)
 	}
@@ -86,7 +86,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).MakeBalanceAddr(p.service)
+		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
 		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBalanceAddr
 	}
@@ -108,7 +108,7 @@ func (p ServiceProxied) OneWayRPC(nodeId uid.Id, plugin, method string, args ...
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.servCtx).MakeNodeAddr(nodeId)
+	dst, err := dserv.Using(p.servCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (p ServiceProxied) BalanceOneWayRPC(plugin, method string, args ...any) err
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).MakeBalanceAddr(p.service)
+		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
 		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBalanceAddr
 	}
@@ -158,7 +158,7 @@ func (p ServiceProxied) BroadcastOneWayRPC(excludeSelf bool, plugin, method stri
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).MakeBroadcastAddr(p.service)
+		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBroadcastAddr(p.service)
 	} else {
 		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
 	}

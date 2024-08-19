@@ -34,16 +34,16 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpc
 	details := p.dist.GetNodeDetails()
 
 	// 只支持服务域通信
-	if !details.InDomain(dst) {
+	if !details.DomainRoot.Contains(dst) {
 		return false
 	}
 
 	if oneWay {
 		// 单向请求，支持广播、负载均衡、单播地址
-		return details.InBroadcastSubdomain(dst) || details.EqualBroadcastSubdomain(dst) || details.InBalanceSubdomain(dst) || details.EqualBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
+		return details.DomainBroadcast.Contains(dst) || details.DomainBroadcast.Equal(dst) || details.DomainBalance.Contains(dst) || details.DomainBalance.Equal(dst) || details.DomainNode.Contains(dst)
 	} else {
 		// 普通请求，支持负载均衡与单播地址
-		return details.InBalanceSubdomain(dst) || details.EqualBalanceSubdomain(dst) || details.InNodeSubdomain(dst)
+		return details.DomainBalance.Contains(dst) || details.DomainBalance.Equal(dst) || details.DomainNode.Contains(dst)
 	}
 }
 

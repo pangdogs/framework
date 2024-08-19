@@ -23,10 +23,12 @@ import (
 	"strings"
 )
 
+// Join 拼接路径
 func Join(sep string, elems ...string) string {
 	return strings.Join(elems, sep)
 }
 
+// Split 分割路径
 func Split(sep, path string) (dir, file string) {
 	idx := strings.LastIndex(path, sep)
 	if idx < 0 {
@@ -35,6 +37,7 @@ func Split(sep, path string) (dir, file string) {
 	return path[:idx], path[idx+len(sep):]
 }
 
+// Root 根目录
 func Root(sep, path string) string {
 	idx := strings.Index(path, sep)
 	if idx < 0 {
@@ -43,6 +46,7 @@ func Root(sep, path string) string {
 	return path[:idx]
 }
 
+// Base 基础目录
 func Base(sep, path string) string {
 	idx := strings.LastIndex(path, sep)
 	if idx < 0 {
@@ -51,6 +55,7 @@ func Base(sep, path string) string {
 	return path[idx+len(sep):]
 }
 
+// Dir 上层目录
 func Dir(sep, path string) string {
 	idx := strings.LastIndex(path, sep)
 	if idx < 0 {
@@ -59,6 +64,7 @@ func Dir(sep, path string) string {
 	return path[:idx]
 }
 
+// InDir 在目录中
 func InDir(sep, path, dir string) bool {
 	path = strings.TrimSuffix(path, sep)
 	dir = strings.TrimSuffix(dir, sep)
@@ -70,6 +76,7 @@ func InDir(sep, path, dir string) bool {
 	return strings.HasPrefix(path[len(dir):], sep)
 }
 
+// Equal 路径是否相等
 func Equal(sep, a, b string) bool {
 	return strings.TrimSuffix(a, sep) == strings.TrimSuffix(b, sep)
 }

@@ -91,7 +91,7 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 		TransData: req.TransData,
 	}
 
-	if err := p.dist.ForwardMsg(gate.CliDetails.Domain, cliAddr, node.RemoteAddr, seq, msg); err != nil {
+	if err := p.dist.ForwardMsg(gate.CliDetails.DomainRoot.Path, cliAddr, node.RemoteAddr, seq, msg); err != nil {
 		go p.finishInbound(session, node.RemoteAddr, req.CorrId, err)
 		return err
 	}

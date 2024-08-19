@@ -27,7 +27,6 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/netpath"
@@ -39,16 +38,6 @@ import (
 	"github.com/josharian/intern"
 	"sync"
 )
-
-// NodeDetails 节点地址信息
-type NodeDetails struct {
-	netpath.NodeDetails
-	GlobalBroadcastAddr string // 全局广播地址
-	GlobalBalanceAddr   string // 全局负载均衡地址
-	BroadcastAddr       string // 服务广播地址
-	BalanceAddr         string // 服务负载均衡地址
-	LocalAddr           string // 本服务节点地址
-}
 
 // IWatcher 监听器
 type IWatcher interface {
@@ -63,12 +52,6 @@ type IDistService interface {
 	GetNodeDetails() *NodeDetails
 	// GetFutures 获取异步模型Future控制器
 	GetFutures() concurrent.IFutures
-	// MakeBroadcastAddr 创建服务广播地址
-	MakeBroadcastAddr(service string) string
-	// MakeBalanceAddr 创建服务负载均衡地址
-	MakeBalanceAddr(service string) string
-	// MakeNodeAddr 创建服务节点地址
-	MakeNodeAddr(nodeId uid.Id) (string, error)
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// ForwardMsg 转发消息
@@ -127,20 +110,33 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
 
 	// 初始化地址信息
-	d.details = &NodeDetails{
-		NodeDetails: netpath.NodeDetails{
-			Domain:             d.options.Domain,
-			BroadcastSubdomain: intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "bc")),
-			BalanceSubdomain:   intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "lb")),
-			NodeSubdomain:      intern.String(netpath.Join(d.broker.GetSeparator(), d.options.Domain, "nd")),
-			PathSeparator:      d.broker.GetSeparator(),
-		},
+	details := &NodeDetails{}
+	sep := d.broker.GetSeparator()
+
+	details.DomainRoot = netpath.Domain{
+		Path: intern.String(d.options.DomainRoot),
+		Sep:  sep,
 	}
-	d.details.GlobalBroadcastAddr = d.details.BroadcastSubdomain
-	d.details.GlobalBalanceAddr = d.details.BalanceSubdomain
-	d.details.BroadcastAddr = d.MakeBroadcastAddr(d.servCtx.GetName())
-	d.details.BalanceAddr = d.MakeBalanceAddr(d.servCtx.GetName())
-	d.details.LocalAddr, _ = d.MakeNodeAddr(d.servCtx.GetId())
+	details.DomainBroadcast = netpath.Domain{
+		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "bc")),
+		Sep:  sep,
+	}
+	details.DomainBalance = netpath.Domain{
+		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "lb")),
+		Sep:  sep,
+	}
+	details.DomainNode = netpath.Domain{
+		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "nd")),
+		Sep:  sep,
+	}
+
+	details.GlobalBroadcastAddr = details.DomainBroadcast.Path
+	details.GlobalBalanceAddr = details.DomainBalance.Path
+	details.BroadcastAddr = details.MakeBroadcastAddr(d.servCtx.GetName())
+	details.BalanceAddr = details.MakeBalanceAddr(d.servCtx.GetName())
+	details.LocalAddr, _ = details.MakeNodeAddr(d.servCtx.GetId())
+
+	d.details = details
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(netpath.Join(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()))
@@ -218,24 +214,6 @@ func (d *_DistService) GetNodeDetails() *NodeDetails {
 // GetFutures 获取异步模型Future控制器
 func (d *_DistService) GetFutures() concurrent.IFutures {
 	return &d.futures
-}
-
-// MakeBroadcastAddr 创建服务广播地址
-func (d *_DistService) MakeBroadcastAddr(service string) string {
-	return intern.String(d.details.BroadcastSubdomainJoin(service))
-}
-
-// MakeBalanceAddr 创建服务负载均衡地址
-func (d *_DistService) MakeBalanceAddr(service string) string {
-	return intern.String(d.details.BalanceSubdomainJoin(service))
-}
-
-// MakeNodeAddr 创建服务节点地址
-func (d *_DistService) MakeNodeAddr(nodeId uid.Id) (string, error) {
-	if nodeId.IsNil() {
-		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
-	}
-	return intern.String(d.details.NodeSubdomainJoin(nodeId.String())), nil
 }
 
 // SendMsg 发送消息

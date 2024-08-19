@@ -33,7 +33,7 @@ import (
 
 func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持服务域通信
-	if !p.dist.GetNodeDetails().InDomain(mp.Head.Src) {
+	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src) {
 		return nil
 	}
 
@@ -46,9 +46,9 @@ func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 }
 
 func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
-	if gate.CliDetails.InNodeSubdomain(req.Dst) {
+	if gate.CliDetails.DomainNode.Contains(req.Dst) {
 		// 目标为单播地址，解析实体Id
-		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
+		entId := uid.From(netpath.Base(gate.CliDetails.DomainNode.Sep, req.Dst))
 
 		// 为了保持消息时序，在实体线程中，向对端发送消息
 		asyncRet := p.servCtx.Call(entId, func(entity ec.Entity, _ ...any) async.Ret {
@@ -73,7 +73,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 		go func() { p.finishOutbound(src, req, (<-asyncRet).Error) }()
 		return
 
-	} else if gate.CliDetails.InMulticastSubdomain(req.Dst) {
+	} else if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
 		// 目标为组播地址
 		group, ok := p.router.GetGroupByAddr(p.servCtx, req.Dst)
 		if !ok {
@@ -97,9 +97,9 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 		}
 		return
 
-	} else if gate.CliDetails.InBroadcastSubdomain(req.Dst) {
+	} else if gate.CliDetails.DomainBroadcast.Contains(req.Dst) {
 		// 目标为广播地址，解析实体Id
-		entId := uid.From(netpath.Base(gate.CliDetails.PathSeparator, req.Dst))
+		entId := uid.From(netpath.Base(gate.CliDetails.DomainBroadcast.Sep, req.Dst))
 
 		// 遍历包含实体的所有分组
 		p.router.EachGroups(p.servCtx, entId, func(group router.IGroup) {

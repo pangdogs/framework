@@ -36,7 +36,7 @@ type (
 type DistServiceOptions struct {
 	Version           string            // 服务版本号
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
-	Domain            string            // 服务地址域
+	DomainRoot        string            // 服务地址根域
 	TTL               time.Duration     // 服务信息TTL
 	RefreshTTL        bool              // 主动刷新服务信息TTL
 	FutureTimeout     time.Duration     // 异步模型Future超时时间
@@ -53,7 +53,7 @@ func (_Option) Default() option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		With.Version("")(options)
 		With.Meta(nil)(options)
-		With.Domain("svc")(options)
+		With.DomainRoot("svc")(options)
 		With.TTL(0, false)(options)
 		With.FutureTimeout(5 * time.Second)(options)
 		With.DecoderMsgCreator(gap.DefaultMsgCreator())(options)
@@ -75,10 +75,10 @@ func (_Option) Meta(meta map[string]string) option.Setting[DistServiceOptions] {
 	}
 }
 
-// Domain 服务地址域
-func (_Option) Domain(domain string) option.Setting[DistServiceOptions] {
+// DomainRoot 服务地址根域
+func (_Option) DomainRoot(path string) option.Setting[DistServiceOptions] {
 	return func(o *DistServiceOptions) {
-		o.Domain = domain
+		o.DomainRoot = path
 	}
 }
 

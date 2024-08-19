@@ -37,16 +37,16 @@ import (
 // Match 是否匹配
 func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool {
 	// 只支持客户端域通信
-	if !gate.CliDetails.InDomain(dst) {
+	if !gate.CliDetails.DomainRoot.Contains(dst) {
 		return false
 	}
 
 	if oneWay {
 		// 单向请求，支持组播、单播地址
-		return gate.CliDetails.InNodeSubdomain(dst) || gate.CliDetails.InMulticastSubdomain(dst) || gate.CliDetails.InBroadcastSubdomain(dst)
+		return gate.CliDetails.DomainNode.Contains(dst) || gate.CliDetails.DomainMulticast.Contains(dst) || gate.CliDetails.DomainBroadcast.Contains(dst)
 	} else {
 		// 普通请求，支持单播地址
-		return gate.CliDetails.InNodeSubdomain(dst)
+		return gate.CliDetails.DomainNode.Contains(dst)
 	}
 }
 
@@ -55,7 +55,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
-	forwardAddr, err := p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
+	forwardAddr, err := p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.DomainRoot.Sep, dst)))
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -136,11 +136,11 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rp
 }
 
 func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
-	if gate.CliDetails.InNodeSubdomain(dst) {
+	if gate.CliDetails.DomainNode.Contains(dst) {
 		// 目标为单播地址，查询实体的通信中转服务地址
-		return p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.PathSeparator, dst)))
+		return p.getDistEntityForwardAddr(uid.From(netpath.Base(gate.CliDetails.DomainRoot.Sep, dst)))
 
-	} else if gate.CliDetails.InMulticastSubdomain(dst) || gate.CliDetails.InBroadcastSubdomain(dst) {
+	} else if gate.CliDetails.DomainMulticast.Contains(dst) || gate.CliDetails.DomainBroadcast.Contains(dst) {
 		// 目标为组播地址，广播所有的通信中转服务
 		return p.transitBroadcastAddr, nil
 

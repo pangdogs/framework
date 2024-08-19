@@ -145,6 +145,8 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		Revision: rsp.Header.Revision,
 	}
 
+	details := d.distServ.GetNodeDetails()
+
 	for _, kv := range rsp.Kvs {
 		subs := strings.Split(strings.TrimPrefix(string(kv.Key), d.options.KeyPrefix), "/")
 		if len(subs) != 3 {
@@ -155,9 +157,9 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 			Service: intern.String(subs[1]),
 			Id:      uid.From(intern.String(subs[2])),
 		}
-		node.BroadcastAddr = d.distServ.MakeBroadcastAddr(node.Service)
-		node.BalanceAddr = d.distServ.MakeBalanceAddr(node.Service)
-		node.RemoteAddr, _ = d.distServ.MakeNodeAddr(node.Id)
+		node.BroadcastAddr = details.MakeBroadcastAddr(node.Service)
+		node.BalanceAddr = details.MakeBalanceAddr(node.Service)
+		node.RemoteAddr, _ = details.MakeNodeAddr(node.Id)
 
 		entity.Nodes = append(entity.Nodes, node)
 	}

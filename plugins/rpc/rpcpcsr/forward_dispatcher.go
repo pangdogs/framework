@@ -33,7 +33,7 @@ import (
 
 func (p *_ForwardProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持客户端域通信
-	if !gate.CliDetails.InDomain(mp.Head.Src) {
+	if !gate.CliDetails.DomainRoot.Contains(mp.Head.Src) {
 		return nil
 	}
 

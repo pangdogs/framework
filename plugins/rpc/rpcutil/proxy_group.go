@@ -36,7 +36,7 @@ func ProxyGroup(ctx runtime.CurrentContextProvider, name string) GroupProxied {
 	return GroupProxied{
 		servCtx: service.Current(ctx),
 		rtCtx:   runtime.Current(ctx),
-		addr:    gate.CliDetails.MulticastSubdomainJoin(name),
+		addr:    gate.CliDetails.DomainMulticast.Join(name),
 	}
 }
 
@@ -44,7 +44,7 @@ func ProxyGroup(ctx runtime.CurrentContextProvider, name string) GroupProxied {
 func ConcurrentProxyGroup(ctx service.Context, name string) GroupProxied {
 	return GroupProxied{
 		servCtx: ctx,
-		addr:    gate.CliDetails.MulticastSubdomainJoin(name),
+		addr:    gate.CliDetails.DomainMulticast.Join(name),
 	}
 }
 
@@ -57,7 +57,7 @@ type GroupProxied struct {
 
 // GetName 获取分组名称
 func (p GroupProxied) GetName() string {
-	return strings.TrimPrefix(strings.TrimPrefix(p.addr, gate.CliDetails.MulticastSubdomain), gate.CliDetails.PathSeparator)
+	return strings.TrimPrefix(strings.TrimPrefix(p.addr, gate.CliDetails.DomainMulticast.Path), gate.CliDetails.DomainMulticast.Sep)
 }
 
 // GetAddr 获取分组地址

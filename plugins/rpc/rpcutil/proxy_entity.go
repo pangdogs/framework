@@ -437,7 +437,7 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.NodeSubdomainJoin(p.id.String())
+	dst := gate.CliDetails.DomainNode.Join(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -467,7 +467,7 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.NodeSubdomainJoin(p.id.String())
+	dst := gate.CliDetails.DomainNode.Join(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain
@@ -492,7 +492,7 @@ func (p EntityProxied) GroupOneWayCliRPC(method string, args ...any) error {
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.BroadcastSubdomainJoin(p.id.String())
+	dst := gate.CliDetails.DomainBroadcast.Join(p.id.String())
 
 	// 调用链
 	callChain := rpcstack.EmptyCallChain

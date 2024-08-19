@@ -64,7 +64,7 @@ func (p *_ForwardProcessor) Init(ctx service.Context) {
 	p.servCtx = ctx
 	p.dist = dserv.Using(ctx)
 	p.dentq = dentq.Using(ctx)
-	p.transitBroadcastAddr = p.dist.MakeBroadcastAddr(p.transitService)
+	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
 	log.Debugf(p.servCtx, "rpc processor %q started", types.FullName(*p))

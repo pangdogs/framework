@@ -22,10 +22,9 @@ package gate
 import "git.golaxy.org/framework/net/netpath"
 
 // CliDetails 客户端地址信息
-var CliDetails = netpath.NodeDetails{
-	Domain:             "cli",
-	BroadcastSubdomain: "cli.bc",
-	MulticastSubdomain: "cli.mc",
-	NodeSubdomain:      "cli.nd",
-	PathSeparator:      ".",
+var CliDetails = &netpath.NodeDetails{
+	DomainRoot:      netpath.Domain{Path: "cli", Sep: "."},
+	DomainBroadcast: netpath.Domain{Path: "cli.bc", Sep: "."},
+	DomainMulticast: netpath.Domain{Path: "cli.mc", Sep: "."},
+	DomainNode:      netpath.Domain{Path: "cli.nd", Sep: "."},
 }

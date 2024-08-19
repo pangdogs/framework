@@ -31,7 +31,7 @@ import (
 
 func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持服务域通信
-	if !p.dist.GetNodeDetails().InDomain(mp.Head.Src) {
+	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src) {
 		return nil
 	}
 
