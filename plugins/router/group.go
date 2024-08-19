@@ -80,7 +80,8 @@ type _Group struct {
 
 // GetName 获取分组名称
 func (g *_Group) GetName() string {
-	return strings.TrimPrefix(strings.TrimPrefix(g.GetAddr(), gate.CliDetails.DomainMulticast.Path), gate.CliDetails.DomainMulticast.Sep)
+	name, _ := gate.CliDetails.DomainMulticast.Relative(g.GetAddr())
+	return name
 }
 
 // GetAddr 获取分组地址

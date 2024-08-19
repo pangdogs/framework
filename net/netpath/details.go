@@ -19,6 +19,10 @@
 
 package netpath
 
+import (
+	"strings"
+)
+
 // Domain 域
 type Domain struct {
 	Path string // 路径
@@ -43,6 +47,14 @@ func (d Domain) Equal(path string) bool {
 // Join 拼接路径
 func (d Domain) Join(elems ...string) string {
 	return Join(d.Sep, append([]string{d.Path}, elems...)...)
+}
+
+// Relative 相对路径
+func (d Domain) Relative(path string) (string, bool) {
+	if !d.Contains(path) {
+		return "", false
+	}
+	return strings.TrimPrefix(strings.TrimPrefix(path, d.Path), d.Sep), true
 }
 
 // NodeDetails 节点地址信息

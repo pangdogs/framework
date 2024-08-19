@@ -182,7 +182,11 @@ func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
 
 // GetGroupByAddr 使用分组地址查询分组
 func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
-	return r.GetGroup(ctx, strings.TrimPrefix(strings.TrimPrefix(addr, gate.CliDetails.DomainMulticast.Path), gate.CliDetails.DomainMulticast.Sep))
+	name, ok := gate.CliDetails.DomainMulticast.Relative(addr)
+	if !ok {
+		return nil, false
+	}
+	return r.GetGroup(ctx, name)
 }
 
 // RangeGroups 遍历包含实体的所有分组

@@ -28,7 +28,6 @@ import (
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
-	"strings"
 )
 
 // ProxyGroup 代理分组
@@ -57,7 +56,8 @@ type GroupProxied struct {
 
 // GetName 获取分组名称
 func (p GroupProxied) GetName() string {
-	return strings.TrimPrefix(strings.TrimPrefix(p.addr, gate.CliDetails.DomainMulticast.Path), gate.CliDetails.DomainMulticast.Sep)
+	name, _ := gate.CliDetails.DomainMulticast.Relative(p.addr)
+	return name
 }
 
 // GetAddr 获取分组地址
