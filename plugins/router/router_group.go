@@ -170,7 +170,7 @@ func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
 		entIds = append(entIds, uid.From(path.Base(string(kv.Key))))
 	}
 
-	group = r.newGroup(groupAddr, leaseId, tr.Header.Revision, entIds)
+	group = r.newGroup(groupKey, leaseId, tr.Header.Revision, entIds)
 
 	cached := r.groupCache.Set(group.GetName(), group, tr.Header.Revision, 0)
 	if cached == group {
