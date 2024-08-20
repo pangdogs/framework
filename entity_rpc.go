@@ -84,3 +84,8 @@ func (e *EntityBehavior) OneWayCliRPC(method string, args ...any) error {
 func (e *EntityBehavior) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
 	return rpcutil.ProxyEntity(e, e.GetId()).OneWayCliRPCToEntity(entityId, method, args...)
 }
+
+// OneWayCliRPCToGroups 向包含实体的所有分组发送单向RPC
+func (e *EntityBehavior) OneWayCliRPCToGroups(method string, args ...any) error {
+	return rpcutil.ProxyEntity(e, e.GetId()).OneWayCliRPCToGroups(method, args...)
+}
