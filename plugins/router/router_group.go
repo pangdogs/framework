@@ -254,18 +254,14 @@ func (r *_Router) getEntityGroupAddrs(ctx context.Context, entityId uid.Id) []st
 			etcdv3.WithPrefix(),
 			etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
 			etcdv3.WithIgnoreValue())
-		if err != nil {
-			return nil
-		}
-
-		if len(gr.Kvs) <= 0 {
+		if err != nil || len(gr.Kvs) <= 0 {
 			return nil
 		}
 
 		groupAddrs = make([]string, 0, len(gr.Kvs))
 
 		for _, kv := range gr.Kvs {
-			groupAddrs = append(groupAddrs, strings.TrimPrefix(string(kv.Key), r.options.GroupKeyPrefix))
+			groupAddrs = append(groupAddrs, strings.TrimPrefix(string(kv.Key), r.options.EntityGroupsKeyPrefix))
 		}
 
 		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
