@@ -485,8 +485,8 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
 }
 
-// GroupOneWayCliRPC 向包含实体的分组发送单向RPC
-func (p EntityProxied) GroupOneWayCliRPC(method string, args ...any) error {
+// OneWayCliRPCToGroups 向包含实体的所有分组发送单向RPC
+func (p EntityProxied) OneWayCliRPCToGroups(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
