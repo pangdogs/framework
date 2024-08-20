@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
@@ -45,7 +46,7 @@ type RPCli struct {
 	*cli.Client
 	encoder codec.Encoder
 	decoder codec.Decoder
-	procs   concurrent.LockedMap[uid.Id, IProcedure]
+	procs   generic.SliceMap[uid.Id, IProcedure]
 }
 
 // RPC RPC调用

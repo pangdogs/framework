@@ -27,12 +27,10 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/plugins/gate/cli"
-	"git.golaxy.org/framework/utils/concurrent"
 	"go.uber.org/zap"
 	"time"
 )
@@ -44,9 +42,9 @@ func CreateRPCli() RPCliCreator {
 
 // RPCliCreator RPC客户端构建器
 type RPCliCreator struct {
-	settings []option.Setting[cli.ClientOptions]
-	mc       gap.IMsgCreator
-	proc     IProcedure
+	settings   []option.Setting[cli.ClientOptions]
+	msgCreator gap.IMsgCreator
+	mainProc   IProcedure
 }
 
 func (ctor RPCliCreator) NetProtocol(p cli.NetProtocol) RPCliCreator {
@@ -195,7 +193,7 @@ func (ctor RPCliCreator) GTPRecvEventHandler(handler cli.RecvEventHandler) RPCli
 }
 
 func (ctor RPCliCreator) GAPDecoderMsgCreator(mc gap.IMsgCreator) RPCliCreator {
-	ctor.mc = mc
+	ctor.msgCreator = mc
 	return ctor
 }
 
@@ -229,7 +227,7 @@ func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect proc type", core.ErrArgs))
 	}
-	ctor.proc = _proc
+	ctor.mainProc = _proc
 	return ctor
 }
 
@@ -242,18 +240,17 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	rpcli := &RPCli{
 		Client:  client,
 		encoder: codec.MakeEncoder(),
-		procs:   concurrent.MakeLockedMap[uid.Id, IProcedure](0),
 	}
 
-	if ctor.mc != nil {
-		rpcli.decoder = codec.MakeDecoder(ctor.mc)
+	if ctor.msgCreator != nil {
+		rpcli.decoder = codec.MakeDecoder(ctor.msgCreator)
 	} else {
 		rpcli.decoder = codec.MakeDecoder(gap.DefaultMsgCreator())
 	}
 
-	if ctor.proc != nil {
-		ctor.proc.init(rpcli, Main, ctor.proc)
-		rpcli.procs.Add(Main, ctor.proc)
+	if ctor.mainProc != nil {
+		ctor.mainProc.init(rpcli, Main, ctor.mainProc)
+		rpcli.procs.Add(Main, ctor.mainProc)
 	}
 
 	rpcli.WatchData(context.Background(), generic.MakeDelegateFunc1(rpcli.handleRecvData))
