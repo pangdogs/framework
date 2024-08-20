@@ -137,6 +137,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	details.LocalAddr, _ = details.MakeNodeAddr(d.servCtx.GetId())
 
 	d.details = details
+	log.Debugf(d.servCtx, "service %q node %q details: %+v", d.servCtx.GetName(), d.servCtx.GetId(), d.details)
 
 	// 加分布式锁
 	mutex := d.dsync.NewMutex(netpath.Join(d.dsync.GetSeparator(), "service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()))
