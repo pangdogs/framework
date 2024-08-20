@@ -261,7 +261,7 @@ func (r *_Router) getEntityGroupAddrs(ctx context.Context, entityId uid.Id) []st
 		groupAddrs = make([]string, 0, len(gr.Kvs))
 
 		for _, kv := range gr.Kvs {
-			groupAddrs = append(groupAddrs, strings.TrimPrefix(string(kv.Key), r.options.EntityGroupsKeyPrefix))
+			groupAddrs = append(groupAddrs, strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(string(kv.Key), r.options.EntityGroupsKeyPrefix), entityId.String()), "/"))
 		}
 
 		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
