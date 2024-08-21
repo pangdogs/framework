@@ -71,9 +71,9 @@ func (p GroupProxied) OnewayCliRPC(method string, args ...any) error {
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -82,5 +82,5 @@ func (p GroupProxied) OnewayCliRPC(method string, args ...any) error {
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(p.addr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(p.addr, cc, cp.String(), args...)
 }

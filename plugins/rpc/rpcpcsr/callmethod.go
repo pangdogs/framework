@@ -33,7 +33,7 @@ import (
 	"reflect"
 )
 
-func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
+func CallService(servCtx service.Context, cc rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -57,7 +57,7 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 		return nil, ErrMethodNotFound
 	}
 
-	argsRV, err := parseArgs(methodRV, callChain, args)
+	argsRV, err := parseArgs(methodRV, cc, args)
 	if err != nil {
 		return nil, err
 	}
@@ -65,19 +65,14 @@ func CallService(servCtx service.Context, callChain rpcstack.CallChain, plugin, 
 	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
-func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallRuntime(servCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) async.Ret {
-		callChain := a[0].(rpcstack.CallChain)
-		plugin := a[1].(string)
-		method := a[2].(string)
-		args := a[3].(variant.Array)
-
+	return servCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var reflected reflect.Value
 
 		if plugin == "" {
@@ -95,38 +90,33 @@ func CallRuntime(servCtx service.Context, callChain rpcstack.CallChain, entityId
 			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := parseArgs(methodRV, callChain, args)
+		argsRV, err := parseArgs(methodRV, cc, args)
 		if err != nil {
 			return async.MakeRet(nil, err)
 		}
 
 		stack := rpcstack.Using(runtime.Current(entity))
-		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
+		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
 		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
-	}, callChain, plugin, method, args), nil
+	}), nil
 }
 
-func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallEntity(servCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, a ...any) async.Ret {
-		callChain := a[0].(rpcstack.CallChain)
-		compName := a[1].(string)
-		method := a[2].(string)
-		args := a[3].(variant.Array)
-
+	return servCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var reflected reflect.Value
 
-		if compName == "" {
+		if component == "" {
 			reflected = ec.UnsafeEntity(entity).GetReflected()
 		} else {
-			comp := entity.GetComponent(compName)
+			comp := entity.GetComponent(component)
 			if comp == nil {
 				return async.MakeRet(nil, ErrComponentNotFound)
 			}
@@ -138,24 +128,24 @@ func CallEntity(servCtx service.Context, callChain rpcstack.CallChain, entityId 
 			return async.MakeRet(nil, ErrMethodNotFound)
 		}
 
-		argsRV, err := parseArgs(methodRV, callChain, args)
+		argsRV, err := parseArgs(methodRV, cc, args)
 		if err != nil {
 			return async.MakeRet(nil, err)
 		}
 
 		stack := rpcstack.Using(runtime.Current(entity))
-		rpcstack.UnsafeRPCStack(stack).PushCallChain(callChain)
+		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
 		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
-	}, callChain, component, method, args), nil
+	}), nil
 }
 
 var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
+func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
 	var argsRV []reflect.Value
 	var argsPos int
@@ -165,7 +155,7 @@ func parseArgs(methodRV reflect.Value, callChain rpcstack.CallChain, args varian
 		if !callChainRT.AssignableTo(methodRT.In(0)) {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(callChain))
+		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(cc))
 		argsPos = 1
 
 	case len(args):

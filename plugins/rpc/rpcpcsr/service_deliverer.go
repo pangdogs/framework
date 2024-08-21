@@ -30,7 +30,7 @@ import (
 )
 
 // Match 是否匹配
-func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool {
+func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, path string, oneway bool) bool {
 	details := p.dist.GetNodeDetails()
 
 	// 只支持服务域通信
@@ -38,7 +38,7 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpc
 		return false
 	}
 
-	if oneWay {
+	if oneway {
 		// 单向请求，支持广播、负载均衡、单播地址
 		return details.DomainBroadcast.Contains(dst) || details.DomainBroadcast.Equal(dst) || details.DomainBalance.Contains(dst) || details.DomainBalance.Equal(dst) || details.DomainUnicast.Contains(dst)
 	} else {
@@ -48,7 +48,7 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, callChain rpc
 }
 
 // Request 请求
-func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) async.AsyncRet {
+func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -60,7 +60,7 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 
 	msg := &gap.MsgRPCRequest{
 		CorrId:    future.Id,
-		CallChain: callChain,
+		CallChain: cc,
 		Path:      path,
 		Args:      vargs,
 	}
@@ -75,14 +75,14 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, callChain r
 }
 
 // Notify 通知
-func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error {
+func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) error {
 	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
 	}
 
 	msg := &gap.MsgOnewayRPC{
-		CallChain: callChain,
+		CallChain: cc,
 		Path:      path,
 		Args:      vargs,
 	}

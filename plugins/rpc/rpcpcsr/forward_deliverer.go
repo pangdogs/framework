@@ -34,13 +34,13 @@ import (
 )
 
 // Match 是否匹配
-func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, oneWay bool) bool {
+func (p *_ForwardProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, path string, oneway bool) bool {
 	// 只支持客户端域通信
 	if !gate.CliDetails.DomainRoot.Contains(dst) {
 		return false
 	}
 
-	if oneWay {
+	if oneway {
 		// 单向请求，支持组播、单播地址
 		return gate.CliDetails.DomainUnicast.Contains(dst) || gate.CliDetails.DomainMulticast.Contains(dst) || gate.CliDetails.DomainBroadcast.Contains(dst)
 	} else {
@@ -50,7 +50,7 @@ func (p *_ForwardProcessor) Match(ctx service.Context, dst string, callChain rpc
 }
 
 // Request 请求
-func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) async.AsyncRet {
+func (p *_ForwardProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -69,7 +69,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 
 	msg := &gap.MsgRPCRequest{
 		CorrId:    future.Id,
-		CallChain: callChain,
+		CallChain: cc,
 		Path:      path,
 		Args:      vargs,
 	}
@@ -98,7 +98,7 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, callChain r
 }
 
 // Notify 通知
-func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rpcstack.CallChain, path string, args []any) error {
+func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) error {
 	forwardAddr, err := p.getForwardAddr(dst)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rp
 	}
 
 	msg := &gap.MsgOnewayRPC{
-		CallChain: callChain,
+		CallChain: cc,
 		Path:      path,
 		Args:      vargs,
 	}

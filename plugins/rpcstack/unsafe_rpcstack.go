@@ -30,8 +30,8 @@ type _UnsafeRPCStack struct {
 	IRPCStack
 }
 
-func (ur _UnsafeRPCStack) PushCallChain(callChain CallChain) {
-	ur.pushCallChain(callChain)
+func (ur _UnsafeRPCStack) PushCallChain(cc CallChain) {
+	ur.pushCallChain(cc)
 }
 
 func (ur _UnsafeRPCStack) PopCallChain() {

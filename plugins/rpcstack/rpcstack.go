@@ -34,7 +34,7 @@ type IRPCStack interface {
 }
 
 type iRPCStack interface {
-	pushCallChain(callChain CallChain)
+	pushCallChain(cc CallChain)
 	popCallChain()
 }
 
@@ -70,11 +70,11 @@ func (r *_RPCStack) Variables() *Variables {
 	return &r.variables
 }
 
-func (r *_RPCStack) pushCallChain(callChain CallChain) {
-	if callChain == nil {
-		callChain = EmptyCallChain
+func (r *_RPCStack) pushCallChain(cc CallChain) {
+	if cc == nil {
+		cc = EmptyCallChain
 	}
-	r.callChain = callChain
+	r.callChain = cc
 	r.variables = nil
 }
 

@@ -85,9 +85,9 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -98,7 +98,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp.String(), args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送RPC
@@ -139,9 +139,9 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -152,7 +152,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, cc, cp.String(), args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送RPC
@@ -192,9 +192,9 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -205,7 +205,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, cc, cp.String(), args...)
 }
 
 // OnewayRPC 向分布式实体目标服务的运行时发送单向RPC
@@ -229,9 +229,9 @@ func (p RuntimeProxied) OnewayRPC(service, plugin, method string, args ...any) e
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -242,7 +242,7 @@ func (p RuntimeProxied) OnewayRPC(service, plugin, method string, args ...any) e
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp.String(), args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送单向RPC
@@ -283,9 +283,9 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, plugin, method string, args ..
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -296,7 +296,7 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, plugin, method string, args ..
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp.String(), args...)
 }
 
 // GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送单向RPC
@@ -336,9 +336,9 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, plugin, method 
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -349,7 +349,7 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, plugin, method 
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp.String(), args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务的运行时发送单向RPC
@@ -373,9 +373,9 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, plugin, me
 	}
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -387,7 +387,7 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, plugin, me
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp.String(), args...)
 }
 
 // GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务的运行时发送单向RPC
@@ -400,9 +400,9 @@ func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, plugin, metho
 	dst := dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
 
 	// 调用链
-	callChain := rpcstack.EmptyCallChain
+	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		callChain = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.Using(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
@@ -414,5 +414,5 @@ func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, plugin, metho
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp.String(), args...)
 }

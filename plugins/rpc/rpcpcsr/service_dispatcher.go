@@ -60,12 +60,12 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		return nil
 	}
 
-	callChain := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
+	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
 			return !passed || err != nil
-		}, callChain, cp)
+		}, cc, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
 		}
@@ -78,7 +78,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
 			} else {
@@ -90,7 +90,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, callChain, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.Entity, cp.Plugin, cp.Method, err)
 			return nil
@@ -109,7 +109,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, callChain, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Entity, cp.Component, cp.Method, err)
 			return nil
@@ -139,12 +139,12 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return err
 	}
 
-	callChain := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
+	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
 			return !passed || err != nil
-		}, callChain, cp)
+		}, cc, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
 		}
@@ -158,7 +158,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
 			} else {
@@ -170,7 +170,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, callChain, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)
@@ -191,7 +191,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, callChain, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)

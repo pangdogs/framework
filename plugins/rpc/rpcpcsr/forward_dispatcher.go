@@ -80,12 +80,12 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 	}
 
-	callChain := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
+	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
 			return !passed || err != nil
-		}, callChain, cp)
+		}, cc, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
 		}
@@ -98,7 +98,7 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
@@ -110,7 +110,7 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, callChain, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			return nil
@@ -129,7 +129,7 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, callChain, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			return nil
@@ -159,12 +159,12 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		return err
 	}
 
-	callChain := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
+	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
 			return !passed || err != nil
-		}, callChain, cp)
+		}, cc, cp)
 		if !passed && err == nil {
 			err = ErrPermissionDenied
 		}
@@ -178,7 +178,7 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, callChain, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
 				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
@@ -190,7 +190,7 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, callChain, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
@@ -211,7 +211,7 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, callChain, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
 			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
