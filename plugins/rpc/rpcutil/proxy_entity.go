@@ -101,7 +101,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
@@ -155,7 +155,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
@@ -208,7 +208,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
@@ -216,8 +216,8 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
 }
 
-// OneWayRPC 向分布式实体目标服务发送单向RPC
-func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) error {
+// OnewayRPC 向分布式实体目标服务发送单向RPC
+func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -245,16 +245,16 @@ func (p EntityProxied) OneWayRPC(service, comp, method string, args ...any) erro
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, callChain, cp.String(), args...)
 }
 
-// BalanceOneWayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
-func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...any) error {
+// BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
+func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -299,16 +299,16 @@ func (p EntityProxied) BalanceOneWayRPC(service, comp, method string, args ...an
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
 }
 
-// GlobalBalanceOneWayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
-func (p EntityProxied) GlobalBalanceOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
+// GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
+func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -352,16 +352,16 @@ func (p EntityProxied) GlobalBalanceOneWayRPC(excludeSelf bool, comp, method str
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  p.id,
+		Entity:    p.id,
 		Component: comp,
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
 }
 
-// BroadcastOneWayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
-func (p EntityProxied) BroadcastOneWayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
+// BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
+func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -390,16 +390,16 @@ func (p EntityProxied) BroadcastOneWayRPC(excludeSelf bool, service, comp, metho
 	cp := callpath.CallPath{
 		Category:   callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		EntityId:   p.id,
+		Entity:     p.id,
 		Component:  comp,
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, callChain, cp.String(), args...)
 }
 
-// GlobalBroadcastOneWayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
-func (p EntityProxied) GlobalBroadcastOneWayRPC(excludeSelf bool, comp, method string, args ...any) error {
+// GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
+func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -417,21 +417,16 @@ func (p EntityProxied) GlobalBroadcastOneWayRPC(excludeSelf bool, comp, method s
 	cp := callpath.CallPath{
 		Category:   callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		EntityId:   p.id,
+		Entity:     p.id,
 		Component:  comp,
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
 }
 
 // CliRPC 向客户端发送RPC
 func (p EntityProxied) CliRPC(method string, args ...any) async.AsyncRet {
-	return p.CliRPCToEntity(uid.Nil, method, args...)
-}
-
-// CliRPCToEntity 向客户端实体发送RPC
-func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...any) async.AsyncRet {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -448,20 +443,14 @@ func (p EntityProxied) CliRPCToEntity(entityId uid.Id, method string, args ...an
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: entityId,
 		Method:   method,
 	}
 
 	return rpc.Using(p.servCtx).RPC(dst, callChain, cp.String(), args...)
 }
 
-// OneWayCliRPC 向客户端发送单向RPC
-func (p EntityProxied) OneWayCliRPC(method string, args ...any) error {
-	return p.OneWayCliRPCToEntity(uid.Nil, method, args...)
-}
-
-// OneWayCliRPCToEntity 向客户端实体发送单向RPC
-func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
+// OnewayCliRPC 向客户端发送单向RPC
+func (p EntityProxied) OnewayCliRPC(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -478,15 +467,14 @@ func (p EntityProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: entityId,
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
 }
 
-// OneWayCliRPCToGroups 向包含实体的所有分组发送单向RPC
-func (p EntityProxied) OneWayCliRPCToGroups(method string, args ...any) error {
+// OnewayCliRPCToGroups 向包含实体的所有分组发送单向RPC
+func (p EntityProxied) OnewayCliRPCToGroups(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -503,9 +491,8 @@ func (p EntityProxied) OneWayCliRPCToGroups(method string, args ...any) error {
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: p.id,
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, callChain, cp.String(), args...)
 }

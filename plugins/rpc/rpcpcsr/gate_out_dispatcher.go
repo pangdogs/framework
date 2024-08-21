@@ -45,9 +45,9 @@ func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 }
 
 func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
+	// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
 	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
 	if ok {
-		// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
 		asyncRet := p.servCtx.Call(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
 			session, ok := p.router.LookupSession(entity.GetId())
 			if !ok {
@@ -71,9 +71,9 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 		return
 	}
 
+	// 目标为广播地址，遍历包含实体的所有分组，向每个分组发送消息
 	entId, ok = gate.CliDetails.DomainBroadcast.Relative(req.Dst)
 	if ok {
-		// 目标为广播地址，遍历包含实体的所有分组，向每个分组发送消息
 		p.router.EachGroups(p.servCtx, uid.From(entId), func(group router.IGroup) {
 			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
@@ -93,8 +93,8 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 		return
 	}
 
+	// 目标为组播地址，向分组发送消息
 	if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
-		// 目标为组播地址，向分组发送消息
 		group, ok := p.router.GetGroupByAddr(p.servCtx, req.Dst)
 		if !ok {
 			go p.finishOutbound(src, req, ErrGroupNotFound)

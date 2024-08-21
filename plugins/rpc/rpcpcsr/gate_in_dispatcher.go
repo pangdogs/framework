@@ -57,7 +57,7 @@ func (p *_GateProcessor) handleRecvData(session gate.ISession, data []byte) erro
 
 func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *gap.MsgForward) error {
 	switch req.TransId {
-	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OneWayRPC:
+	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OnewayRPC:
 		break
 	default:
 		return nil

@@ -109,7 +109,7 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, callChain rp
 		return err
 	}
 
-	msg := &gap.MsgOneWayRPC{
+	msg := &gap.MsgOnewayRPC{
 		CallChain: callChain,
 		Path:      path,
 		Args:      vargs,

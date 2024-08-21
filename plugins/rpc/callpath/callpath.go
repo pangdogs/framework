@@ -40,7 +40,7 @@ var (
 type CallPath struct {
 	Category   string
 	ExcludeSrc bool
-	EntityId   uid.Id
+	Entity     uid.Id
 	Plugin     string
 	Component  string
 	Method     string
@@ -66,7 +66,7 @@ func (cp CallPath) Encode() (string, error) {
 		sb.WriteByte(Sep)
 		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 0x30)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId.String())
+		sb.WriteString(cp.Entity.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Plugin)
 		sb.WriteByte(Sep)
@@ -79,7 +79,7 @@ func (cp CallPath) Encode() (string, error) {
 		sb.WriteByte(Sep)
 		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 0x30)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId.String())
+		sb.WriteString(cp.Entity.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Component)
 		sb.WriteByte(Sep)
@@ -90,7 +90,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Client:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.EntityId.String())
+		sb.WriteString(cp.Entity.String())
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
 
@@ -138,15 +138,13 @@ loop:
 				}
 				cp.ExcludeSrc = types.Int2Bool[byte](field[0] - 0x30)
 			case Client:
-				cp.EntityId = uid.From(field)
+				cp.Method = field
 			}
 
 		case 2:
 			switch cp.Category {
 			case Service, Runtime, Entity:
-				cp.EntityId = uid.From(field)
-			case Client:
-				cp.Method = field
+				cp.Entity = uid.From(field)
 			}
 
 		case 3:

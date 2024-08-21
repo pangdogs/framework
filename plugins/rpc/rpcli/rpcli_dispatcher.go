@@ -36,8 +36,8 @@ func (c *RPCli) handleRecvData(data []byte) error {
 	}
 
 	switch mp.Head.MsgId {
-	case gap.MsgId_OneWayRPC:
-		return c.acceptNotify(mp.Msg.(*gap.MsgOneWayRPC))
+	case gap.MsgId_OnewayRPC:
+		return c.acceptNotify(mp.Msg.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
 		return c.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
@@ -49,7 +49,7 @@ func (c *RPCli) handleRecvData(data []byte) error {
 	return nil
 }
 
-func (c *RPCli) acceptNotify(req *gap.MsgOneWayRPC) error {
+func (c *RPCli) acceptNotify(req *gap.MsgOnewayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
@@ -57,10 +57,10 @@ func (c *RPCli) acceptNotify(req *gap.MsgOneWayRPC) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		if rets, err := c.callProc(cp.EntityId, cp.Method, req.Args); err != nil {
-			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.EntityId, cp.Method, err)
+		if rets, err := c.callProc(cp.Entity, cp.Method, req.Args); err != nil {
+			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.Entity, cp.Method, err)
 		} else {
-			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.EntityId, cp.Method)
+			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.Entity, cp.Method)
 			rets.Release()
 		}
 		return nil
@@ -79,11 +79,11 @@ func (c *RPCli) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		rets, err := c.callProc(cp.EntityId, cp.Method, req.Args)
+		rets, err := c.callProc(cp.Entity, cp.Method, req.Args)
 		if err != nil {
-			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.EntityId, cp.Method, err)
+			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Method, err)
 		} else {
-			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.EntityId, cp.Method)
+			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Method)
 		}
 		go c.reply(src, req.CorrId, rets, err)
 		return nil

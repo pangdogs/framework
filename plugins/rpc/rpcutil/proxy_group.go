@@ -23,7 +23,6 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -65,13 +64,8 @@ func (p GroupProxied) GetAddr() string {
 	return p.addr
 }
 
-// OneWayCliRPC 向分组发送单向RPC
-func (p GroupProxied) OneWayCliRPC(method string, args ...any) error {
-	return p.OneWayCliRPCToEntity(uid.Nil, method, args...)
-}
-
-// OneWayCliRPCToEntity 向分组发送单向RPC
-func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args ...any) error {
+// OnewayCliRPC 向分组发送单向RPC
+func (p GroupProxied) OnewayCliRPC(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -85,9 +79,8 @@ func (p GroupProxied) OneWayCliRPCToEntity(entityId uid.Id, method string, args 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Client,
-		EntityId: entityId,
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(p.addr, callChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(p.addr, callChain, cp.String(), args...)
 }

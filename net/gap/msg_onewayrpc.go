@@ -24,15 +24,15 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgOneWayRPC 单程RPC请求
-type MsgOneWayRPC struct {
+// MsgOnewayRPC 单程RPC请求
+type MsgOnewayRPC struct {
 	CallChain variant.CallChain // 调用链
 	Path      string            // 调用路径
 	Args      variant.Array     // 参数列表
 }
 
 // Read implements io.Reader
-func (m MsgOneWayRPC) Read(p []byte) (int, error) {
+func (m MsgOnewayRPC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if _, err := binaryutil.ReadFrom(&bs, m.CallChain); err != nil {
 		return bs.BytesWritten(), err
@@ -47,7 +47,7 @@ func (m MsgOneWayRPC) Read(p []byte) (int, error) {
 }
 
 // Write implements io.Writer
-func (m *MsgOneWayRPC) Write(p []byte) (int, error) {
+func (m *MsgOnewayRPC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
@@ -68,11 +68,11 @@ func (m *MsgOneWayRPC) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m MsgOneWayRPC) Size() int {
+func (m MsgOnewayRPC) Size() int {
 	return m.CallChain.Size() + binaryutil.SizeofString(m.Path) + m.Args.Size()
 }
 
 // MsgId 消息Id
-func (MsgOneWayRPC) MsgId() MsgId {
-	return MsgId_OneWayRPC
+func (MsgOnewayRPC) MsgId() MsgId {
+	return MsgId_OnewayRPC
 }

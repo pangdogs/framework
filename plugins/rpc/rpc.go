@@ -34,8 +34,8 @@ import (
 type IRPC interface {
 	// RPC RPC调用
 	RPC(dst string, callChain rpcstack.CallChain, path string, args ...any) async.AsyncRet
-	// OneWayRPC 单向RPC调用
-	OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error
+	// OnewayRPC 单向RPC调用
+	OnewayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error
 }
 
 func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
@@ -110,8 +110,8 @@ func (r *_RPC) RPC(dst string, callChain rpcstack.CallChain, path string, args .
 	return ret.ToAsyncRet()
 }
 
-// OneWayRPC 单向RPC调用
-func (r *_RPC) OneWayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error {
+// OnewayRPC 单向RPC调用
+func (r *_RPC) OnewayRPC(dst string, callChain rpcstack.CallChain, path string, args ...any) error {
 	if r.terminated.Load() {
 		return rpcpcsr.ErrTerminated
 	}

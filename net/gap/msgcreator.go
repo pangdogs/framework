@@ -52,7 +52,7 @@ func DefaultMsgCreator() IMsgCreator {
 func init() {
 	DefaultMsgCreator().Declare(&MsgRPCRequest{})
 	DefaultMsgCreator().Declare(&MsgRPCReply{})
-	DefaultMsgCreator().Declare(&MsgOneWayRPC{})
+	DefaultMsgCreator().Declare(&MsgOnewayRPC{})
 	DefaultMsgCreator().Declare(&MsgForward{})
 }
 

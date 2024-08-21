@@ -40,8 +40,8 @@ type IProcedure interface {
 	GetReflected() reflect.Value
 	// RPC RPC调用
 	RPC(service, comp, method string, args ...any) async.AsyncRet
-	// OneWayRPC 单向RPC调用
-	OneWayRPC(service, comp, method string, args ...any) error
+	// OnewayRPC 单向RPC调用
+	OnewayRPC(service, comp, method string, args ...any) error
 }
 
 type iProcedure interface {
@@ -81,7 +81,7 @@ func (p *Procedure) RPC(service, comp, method string, args ...any) async.AsyncRe
 	return p.cli.RPCToEntity(p.id, service, comp, method, args...)
 }
 
-// OneWayRPC 单向RPC调用
-func (p *Procedure) OneWayRPC(service, comp, method string, args ...any) error {
-	return p.cli.OneWayRPCToEntity(p.id, service, comp, method, args...)
+// OnewayRPC 单向RPC调用
+func (p *Procedure) OnewayRPC(service, comp, method string, args ...any) error {
+	return p.cli.OnewayRPCToEntity(p.id, service, comp, method, args...)
 }

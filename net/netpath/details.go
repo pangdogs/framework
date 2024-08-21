@@ -29,8 +29,8 @@ type Domain struct {
 	Sep  string // 分隔符
 }
 
-// Valid 是否有效
-func (d Domain) Valid() bool {
+// IsValid 是否有效
+func (d Domain) IsValid() bool {
 	return d.Path != "" && d.Sep != ""
 }
 

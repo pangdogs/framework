@@ -23,6 +23,7 @@ import "git.golaxy.org/framework/utils/binaryutil"
 
 type Call struct {
 	Svc, Addr, Transit string
+	Time               int64
 }
 
 type CallChain []Call
@@ -43,6 +44,9 @@ func (v CallChain) Read(p []byte) (int, error) {
 			return bs.BytesWritten(), err
 		}
 		if err := bs.WriteString(v[i].Transit); err != nil {
+			return bs.BytesWritten(), err
+		}
+		if err := bs.WriteVarint(v[i].Time); err != nil {
 			return bs.BytesWritten(), err
 		}
 	}
@@ -77,9 +81,15 @@ func (v *CallChain) Write(p []byte) (int, error) {
 			return bs.BytesRead(), err
 		}
 
+		t, err := bs.ReadVarint()
+		if err != nil {
+			return bs.BytesRead(), err
+		}
+
 		(*v)[i].Svc = svc
 		(*v)[i].Addr = addr
 		(*v)[i].Transit = transit
+		(*v)[i].Time = t
 	}
 
 	return bs.BytesRead(), nil
@@ -92,6 +102,7 @@ func (v CallChain) Size() int {
 		n += binaryutil.SizeofString(v[i].Svc)
 		n += binaryutil.SizeofString(v[i].Addr)
 		n += binaryutil.SizeofString(v[i].Transit)
+		n += binaryutil.SizeofVarint(v[i].Time)
 	}
 	return n
 }

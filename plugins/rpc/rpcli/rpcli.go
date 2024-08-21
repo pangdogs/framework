@@ -67,7 +67,7 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  entityId,
+		Entity:    entityId,
 		Component: comp,
 		Method:    method,
 	}
@@ -107,13 +107,13 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 	return ret.ToAsyncRet()
 }
 
-// OneWayRPC 单向RPC调用
-func (c *RPCli) OneWayRPC(service, comp, method string, args ...any) error {
-	return c.OneWayRPCToEntity(uid.Nil, service, comp, method, args...)
+// OnewayRPC 单向RPC调用
+func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
+	return c.OnewayRPCToEntity(uid.Nil, service, comp, method, args...)
 }
 
-// OneWayRPCToEntity 实体单向RPC调用
-func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string, args ...any) error {
+// OnewayRPCToEntity 实体单向RPC调用
+func (c *RPCli) OnewayRPCToEntity(entityId uid.Id, service, comp, method string, args ...any) error {
 	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
@@ -121,12 +121,12 @@ func (c *RPCli) OneWayRPCToEntity(entityId uid.Id, service, comp, method string,
 
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		EntityId:  entityId,
+		Entity:    entityId,
 		Component: comp,
 		Method:    method,
 	}
 
-	msg := &gap.MsgOneWayRPC{
+	msg := &gap.MsgOnewayRPC{
 		Path: cp.String(),
 		Args: vargs,
 	}

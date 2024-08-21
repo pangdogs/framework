@@ -101,8 +101,8 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
-// OneWayRPC 向分布式服务指定节点发送单向RPC
-func (p ServiceProxied) OneWayRPC(nodeId uid.Id, plugin, method string, args ...any) error {
+// OnewayRPC 向分布式服务指定节点发送单向RPC
+func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -120,11 +120,11 @@ func (p ServiceProxied) OneWayRPC(nodeId uid.Id, plugin, method string, args ...
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
-// BalanceOneWayRPC 使用负载均衡模式，向分布式服务发送单向RPC
-func (p ServiceProxied) BalanceOneWayRPC(plugin, method string, args ...any) error {
+// BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
+func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -145,11 +145,11 @@ func (p ServiceProxied) BalanceOneWayRPC(plugin, method string, args ...any) err
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
 
-// BroadcastOneWayRPC 使用广播模式，向分布式服务发送单向RPC
-func (p ServiceProxied) BroadcastOneWayRPC(excludeSelf bool, plugin, method string, args ...any) error {
+// BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
+func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -171,5 +171,5 @@ func (p ServiceProxied) BroadcastOneWayRPC(excludeSelf bool, plugin, method stri
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OneWayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
 }
