@@ -449,8 +449,8 @@ func (p EntityProxied) CliRPC(method string, args ...any) async.AsyncRet {
 	return rpc.Using(p.servCtx).RPC(dst, cc, cp.String(), args...)
 }
 
-// OnewayCliRPC 向客户端发送单向RPC
-func (p EntityProxied) OnewayCliRPC(method string, args ...any) error {
+// CliOnewayRPC 向客户端发送单向RPC
+func (p EntityProxied) CliOnewayRPC(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -473,8 +473,8 @@ func (p EntityProxied) OnewayCliRPC(method string, args ...any) error {
 	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp.String(), args...)
 }
 
-// OnewayCliRPCToGroups 向包含实体的所有分组发送单向RPC
-func (p EntityProxied) OnewayCliRPCToGroups(method string, args ...any) error {
+// BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
+func (p EntityProxied) BroadcastCliOnewayRPC(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}

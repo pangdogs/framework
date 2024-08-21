@@ -64,8 +64,8 @@ func (p GroupProxied) GetAddr() string {
 	return p.addr
 }
 
-// OnewayCliRPC 向分组发送单向RPC
-func (p GroupProxied) OnewayCliRPC(method string, args ...any) error {
+// CliOnewayRPC 向分组中所有客户端发送单向RPC
+func (p GroupProxied) CliOnewayRPC(method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}

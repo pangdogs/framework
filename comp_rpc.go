@@ -69,12 +69,12 @@ func (c *ComponentBehavior) CliRPC(method string, args ...any) async.AsyncRet {
 	return rpcutil.ProxyEntity(c, c.GetEntity().GetId()).CliRPC(method, args...)
 }
 
-// OnewayCliRPC 向客户端发送单向RPC
-func (c *ComponentBehavior) OnewayCliRPC(method string, args ...any) error {
-	return rpcutil.ProxyEntity(c, c.GetEntity().GetId()).OnewayCliRPC(method, args...)
+// CliOnewayRPC 向客户端发送单向RPC
+func (c *ComponentBehavior) CliOnewayRPC(method string, args ...any) error {
+	return rpcutil.ProxyEntity(c, c.GetEntity().GetId()).CliOnewayRPC(method, args...)
 }
 
-// OnewayCliRPCToGroups 向包含实体的所有分组发送单向RPC
-func (c *ComponentBehavior) OnewayCliRPCToGroups(method string, args ...any) error {
-	return rpcutil.ProxyEntity(c, c.GetEntity().GetId()).OnewayCliRPCToGroups(method, args...)
+// BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
+func (c *ComponentBehavior) BroadcastCliOnewayRPC(method string, args ...any) error {
+	return rpcutil.ProxyEntity(c, c.GetEntity().GetId()).BroadcastCliOnewayRPC(method, args...)
 }
