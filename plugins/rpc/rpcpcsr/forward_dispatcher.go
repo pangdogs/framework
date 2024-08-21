@@ -75,10 +75,11 @@ func (p *_ForwardProcessor) acceptForward(svc, src string, req *gap.MsgForward) 
 }
 
 func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap.MsgOnewayRPC) error {
-	cp, err := p.parseCallPath(dst, req.Path)
+	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 	}
+	cp.Entity = uid.From(dst)
 
 	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
@@ -152,12 +153,13 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 }
 
 func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *gap.MsgRPCRequest) error {
-	cp, err := p.parseCallPath(dst, req.Path)
+	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
 		go p.reply(src, transit, req.CorrId, nil, err)
 		return err
 	}
+	cp.Entity = uid.From(dst)
 
 	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
@@ -286,17 +288,4 @@ func (p *_ForwardProcessor) resolve(reply *gap.MsgRPCReply) error {
 	}
 
 	return p.dist.GetFutures().Resolve(reply.CorrId, ret)
-}
-
-func (p *_ForwardProcessor) parseCallPath(dst, path string) (callpath.CallPath, error) {
-	cp, err := callpath.Parse(path)
-	if err != nil {
-		return callpath.CallPath{}, err
-	}
-
-	if cp.Entity.IsNil() {
-		cp.Entity = uid.From(dst)
-	}
-
-	return cp, nil
 }

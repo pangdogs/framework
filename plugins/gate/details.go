@@ -26,5 +26,5 @@ var CliDetails = &netpath.NodeDetails{
 	DomainRoot:      netpath.Domain{Path: "cli", Sep: "."},
 	DomainBroadcast: netpath.Domain{Path: "cli.bc", Sep: "."},
 	DomainMulticast: netpath.Domain{Path: "cli.mc", Sep: "."},
-	DomainUnicast:   netpath.Domain{Path: "cli.nd", Sep: "."},
+	DomainUnicast:   netpath.Domain{Path: "cli.ep", Sep: "."},
 }

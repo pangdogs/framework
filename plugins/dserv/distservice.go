@@ -126,7 +126,7 @@ func (d *_DistService) InitSP(ctx service.Context) {
 		Sep:  sep,
 	}
 	details.DomainUnicast = netpath.Domain{
-		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "nd")),
+		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "ep")),
 		Sep:  sep,
 	}
 
