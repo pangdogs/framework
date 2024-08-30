@@ -24,7 +24,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
-	"github.com/josharian/intern"
+	"unique"
 )
 
 // NodeDetails 服务节点地址信息
@@ -39,12 +39,12 @@ type NodeDetails struct {
 
 // MakeBroadcastAddr 创建服务广播地址
 func (d *NodeDetails) MakeBroadcastAddr(service string) string {
-	return intern.String(d.DomainBroadcast.Join(service))
+	return unique.Make(d.DomainBroadcast.Join(service)).Value()
 }
 
 // MakeBalanceAddr 创建服务负载均衡地址
 func (d *NodeDetails) MakeBalanceAddr(service string) string {
-	return intern.String(d.DomainBalance.Join(service))
+	return unique.Make(d.DomainBalance.Join(service)).Value()
 }
 
 // MakeNodeAddr 创建服务节点地址
@@ -52,5 +52,5 @@ func (d *NodeDetails) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
 		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
 	}
-	return intern.String(d.DomainUnicast.Join(nodeId.String())), nil
+	return unique.Make(d.DomainUnicast.Join(nodeId.String())).Value(), nil
 }

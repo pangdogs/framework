@@ -66,15 +66,15 @@ func (c ConcurrentEntityCreator) RuntimeCreator(rtCreator RuntimeCreator) Concur
 	return c
 }
 
-// CompositeFace 设置扩展者，在扩展实体自身能力时使用
-func (c ConcurrentEntityCreator) CompositeFace(face iface.Face[ec.Entity]) ConcurrentEntityCreator {
-	c.settings = append(c.settings, ec.With.CompositeFace(face))
+// InstanceFace 实例，用于扩展实体能力
+func (c ConcurrentEntityCreator) InstanceFace(face iface.Face[ec.Entity]) ConcurrentEntityCreator {
+	c.settings = append(c.settings, ec.With.InstanceFace(face))
 	return c
 }
 
-// Composite 设置扩展者，在扩展实体自身能力时使用
-func (c ConcurrentEntityCreator) Composite(composite ec.Entity) ConcurrentEntityCreator {
-	c.settings = append(c.settings, ec.With.CompositeFace(iface.MakeFaceT(composite)))
+// Instance 实例，用于扩展实体能力
+func (c ConcurrentEntityCreator) Instance(composite ec.Entity) ConcurrentEntityCreator {
+	c.settings = append(c.settings, ec.With.InstanceFace(iface.MakeFaceT(composite)))
 	return c
 }
 

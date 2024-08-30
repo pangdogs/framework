@@ -105,7 +105,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	runGCEndCB, _ := r.composite.(LifecycleRuntimeRunGCEnd)
 
 	rtCtx := runtime.NewContext(r.GetService(),
-		runtime.With.Context.CompositeFace(face),
+		runtime.With.Context.InstanceFace(face),
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),

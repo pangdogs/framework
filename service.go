@@ -107,7 +107,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 
 	servCtx := service.NewContext(
-		service.With.CompositeFace(face),
+		service.With.InstanceFace(face),
 		service.With.Context(ctx),
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),

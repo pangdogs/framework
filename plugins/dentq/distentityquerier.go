@@ -29,12 +29,12 @@ import (
 	"git.golaxy.org/framework/plugins/dserv"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/utils/concurrent"
-	"github.com/josharian/intern"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"path"
 	"strings"
 	"sync"
 	"time"
+	"unique"
 )
 
 // DistEntity 分布式实体信息
@@ -154,8 +154,8 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		}
 
 		node := Node{
-			Service: intern.String(subs[1]),
-			Id:      uid.From(intern.String(subs[2])),
+			Service: unique.Make(subs[1]).Value(),
+			Id:      uid.From(unique.Make(subs[2]).Value()),
 		}
 		node.BroadcastAddr = details.MakeBroadcastAddr(node.Service)
 		node.BalanceAddr = details.MakeBalanceAddr(node.Service)

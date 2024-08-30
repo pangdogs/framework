@@ -35,8 +35,8 @@ import (
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/utils/concurrent"
-	"github.com/josharian/intern"
 	"sync"
+	"unique"
 )
 
 // IWatcher 监听器
@@ -114,19 +114,19 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	sep := d.broker.GetSeparator()
 
 	details.DomainRoot = netpath.Domain{
-		Path: intern.String(d.options.DomainRoot),
+		Path: unique.Make(d.options.DomainRoot).Value(),
 		Sep:  sep,
 	}
 	details.DomainBroadcast = netpath.Domain{
-		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "bc")),
+		Path: unique.Make(netpath.Join(sep, details.DomainRoot.Path, "bc")).Value(),
 		Sep:  sep,
 	}
 	details.DomainBalance = netpath.Domain{
-		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "lb")),
+		Path: unique.Make(netpath.Join(sep, details.DomainRoot.Path, "lb")).Value(),
 		Sep:  sep,
 	}
 	details.DomainUnicast = netpath.Domain{
-		Path: intern.String(netpath.Join(sep, details.DomainRoot.Path, "ep")),
+		Path: unique.Make(netpath.Join(sep, details.DomainRoot.Path, "ep")).Value(),
 		Sep:  sep,
 	}
 
