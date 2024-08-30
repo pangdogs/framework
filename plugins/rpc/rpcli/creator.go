@@ -249,8 +249,8 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	}
 
 	if ctor.mainProc != nil {
-		ctor.mainProc.init(rpcli, Main, ctor.mainProc)
-		rpcli.procs.Add(Main, ctor.mainProc)
+		ctor.mainProc.init(rpcli, "", ctor.mainProc)
+		rpcli.procs.Add("", ctor.mainProc)
 	}
 
 	rpcli.WatchData(context.Background(), generic.MakeDelegateFunc1(rpcli.handleRecvData))

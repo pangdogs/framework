@@ -20,13 +20,7 @@
 package rpcli
 
 import (
-	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/core/utils/uid"
 	"reflect"
-)
-
-var (
-	Main = uid.Nil // 主过程
 )
 
 // IProcedure 过程接口
@@ -34,31 +28,27 @@ type IProcedure interface {
 	iProcedure
 	// GetCli 获取RPC客户端
 	GetCli() *RPCli
-	// GetId 获取实体Id
-	GetId() uid.Id
+	// GetName 获取名称
+	GetName() string
 	// GetReflected 获取反射值
 	GetReflected() reflect.Value
-	// RPC RPC调用
-	RPC(service, comp, method string, args ...any) async.AsyncRet
-	// OnewayRPC 单向RPC调用
-	OnewayRPC(service, comp, method string, args ...any) error
 }
 
 type iProcedure interface {
-	init(cli *RPCli, entityId uid.Id, composite any)
+	init(cli *RPCli, name string, instance any)
 }
 
 // Procedure 过程
 type Procedure struct {
 	cli       *RPCli
-	id        uid.Id
+	name      string
 	reflected reflect.Value
 }
 
-func (p *Procedure) init(cli *RPCli, entityId uid.Id, composite any) {
+func (p *Procedure) init(cli *RPCli, name string, instance any) {
 	p.cli = cli
-	p.id = entityId
-	p.reflected = reflect.ValueOf(composite)
+	p.name = name
+	p.reflected = reflect.ValueOf(instance)
 }
 
 // GetCli 获取RPC客户端
@@ -66,22 +56,12 @@ func (p *Procedure) GetCli() *RPCli {
 	return p.cli
 }
 
-// GetId 获取实体Id
-func (p *Procedure) GetId() uid.Id {
-	return p.id
+// GetName 获取名称
+func (p *Procedure) GetName() string {
+	return p.name
 }
 
 // GetReflected 获取反射值
 func (p *Procedure) GetReflected() reflect.Value {
 	return p.reflected
-}
-
-// RPC RPC调用
-func (p *Procedure) RPC(service, comp, method string, args ...any) async.AsyncRet {
-	return p.cli.RPCToEntity(p.id, service, comp, method, args...)
-}
-
-// OnewayRPC 单向RPC调用
-func (p *Procedure) OnewayRPC(service, comp, method string, args ...any) error {
-	return p.cli.OnewayRPCToEntity(p.id, service, comp, method, args...)
 }

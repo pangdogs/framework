@@ -11,7 +11,6 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/golang/snappy v0.0.4
-	github.com/josharian/intern v1.0.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nats-io/nats.go v1.34.1
 	github.com/pierrec/lz4/v4 v4.1.21

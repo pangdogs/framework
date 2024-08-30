@@ -21,8 +21,6 @@ package rpcli
 
 import (
 	"errors"
-	"fmt"
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
@@ -51,11 +49,6 @@ type RPCli struct {
 
 // RPC RPC调用
 func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
-	return c.RPCToEntity(uid.Nil, service, comp, method, args...)
-}
-
-// RPCToEntity 实体RPC调用
-func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args ...any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(c.GetFutures(), nil, ret)
 
@@ -67,7 +60,6 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		Entity:    entityId,
 		Component: comp,
 		Method:    method,
 	}
@@ -109,11 +101,6 @@ func (c *RPCli) RPCToEntity(entityId uid.Id, service, comp, method string, args 
 
 // OnewayRPC 单向RPC调用
 func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
-	return c.OnewayRPCToEntity(uid.Nil, service, comp, method, args...)
-}
-
-// OnewayRPCToEntity 实体单向RPC调用
-func (c *RPCli) OnewayRPCToEntity(entityId uid.Id, service, comp, method string, args ...any) error {
 	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
@@ -121,7 +108,6 @@ func (c *RPCli) OnewayRPCToEntity(entityId uid.Id, service, comp, method string,
 
 	cp := callpath.CallPath{
 		Category:  callpath.Entity,
-		Entity:    entityId,
 		Component: comp,
 		Method:    method,
 	}
@@ -154,37 +140,4 @@ func (c *RPCli) OnewayRPCToEntity(entityId uid.Id, service, comp, method string,
 	}
 
 	return nil
-}
-
-// AddProcedure 添加过程
-func (c *RPCli) AddProcedure(id uid.Id, proc any) error {
-	if id.IsNil() {
-		return fmt.Errorf("%w: id is nil", core.ErrArgs)
-	}
-
-	_proc, ok := proc.(IProcedure)
-	if !ok {
-		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
-	}
-
-	_proc.init(c, id, proc)
-	c.procs.Add(id, _proc)
-
-	return nil
-}
-
-// RemoveProcedure 删除过程
-func (c *RPCli) RemoveProcedure(id uid.Id) error {
-	if id.IsNil() {
-		return fmt.Errorf("%w: id is nil", core.ErrArgs)
-	}
-
-	c.procs.Delete(id)
-
-	return nil
-}
-
-// GetProcedure 查询过程
-func (c *RPCli) GetProcedure(id uid.Id) (IProcedure, bool) {
-	return c.procs.Get(id)
 }
