@@ -43,6 +43,7 @@ type CallPath struct {
 	Entity     uid.Id
 	Plugin     string
 	Component  string
+	Procedure  string
 	Method     string
 }
 
@@ -90,7 +91,7 @@ func (cp CallPath) Encode() (string, error) {
 	case Client:
 		sb.WriteString(cp.Category)
 		sb.WriteByte(Sep)
-		sb.WriteString(cp.Entity.String())
+		sb.WriteString(cp.Procedure)
 		sb.WriteByte(Sep)
 		sb.WriteString(cp.Method)
 
@@ -138,13 +139,15 @@ loop:
 				}
 				cp.ExcludeSrc = types.Int2Bool[byte](field[0] - 0x30)
 			case Client:
-				cp.Method = field
+				cp.Procedure = field
 			}
 
 		case 2:
 			switch cp.Category {
 			case Service, Runtime, Entity:
 				cp.Entity = uid.From(field)
+			case Client:
+				cp.Method = field
 			}
 
 		case 3:

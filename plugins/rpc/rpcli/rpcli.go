@@ -23,7 +23,6 @@ import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
-	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gap/variant"
@@ -33,7 +32,8 @@ import (
 )
 
 var (
-	ErrEntityNotFound               = errors.New("rpc: entity not found")                // 找不到实体
+	ErrProcedureExists              = errors.New("rpc: procedure exists")                // 过程已存在
+	ErrProcedureNotFound            = errors.New("rpc: procedure not found")             // 找不到过程
 	ErrMethodNotFound               = errors.New("rpc: method not found")                // 找不到方法
 	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch") // 方法参数数量不匹配
 	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")  // 方法参数类型不匹配
@@ -44,7 +44,7 @@ type RPCli struct {
 	*cli.Client
 	encoder codec.Encoder
 	decoder codec.Decoder
-	procs   generic.SliceMap[uid.Id, IProcedure]
+	procs   generic.SliceMap[string, IProcedure]
 }
 
 // RPC RPC调用

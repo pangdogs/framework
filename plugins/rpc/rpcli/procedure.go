@@ -20,41 +20,48 @@
 package rpcli
 
 import (
-	"errors"
-	"fmt"
-	"git.golaxy.org/core"
+	"reflect"
 )
 
-// AddProcedure 添加过程
-func (c *RPCli) AddProcedure(name string, proc any) error {
-	_proc, ok := proc.(IProcedure)
-	if !ok {
-		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
-	}
-
-	_proc.init(c, name, proc)
-
-	if !c.procs.TryAdd(name, _proc) {
-		return ErrProcedureExists
-	}
-
-	return nil
+// IProcedure 过程接口
+type IProcedure interface {
+	iProcedure
+	// GetCli 获取RPC客户端
+	GetCli() *RPCli
+	// GetName 获取名称
+	GetName() string
+	// GetReflected 获取反射值
+	GetReflected() reflect.Value
 }
 
-// RemoveProcedure 删除过程
-func (c *RPCli) RemoveProcedure(name string) error {
-	if name == "" {
-		return errors.New("rpc: the main procedure can't be removed")
-	}
-
-	if !c.procs.Delete(name) {
-		return ErrProcedureNotFound
-	}
-
-	return nil
+type iProcedure interface {
+	init(cli *RPCli, name string, instance any)
 }
 
-// GetProcedure 查询过程
-func (c *RPCli) GetProcedure(name string) (IProcedure, bool) {
-	return c.procs.Get(name)
+// Procedure 过程
+type Procedure struct {
+	cli       *RPCli
+	name      string
+	reflected reflect.Value
+}
+
+func (p *Procedure) init(cli *RPCli, name string, instance any) {
+	p.cli = cli
+	p.name = name
+	p.reflected = reflect.ValueOf(instance)
+}
+
+// GetCli 获取RPC客户端
+func (p *Procedure) GetCli() *RPCli {
+	return p.cli
+}
+
+// GetName 获取名称
+func (p *Procedure) GetName() string {
+	return p.name
+}
+
+// GetReflected 获取反射值
+func (p *Procedure) GetReflected() reflect.Value {
+	return p.reflected
 }

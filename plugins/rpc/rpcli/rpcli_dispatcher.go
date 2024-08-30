@@ -22,7 +22,6 @@ package rpcli
 import (
 	"fmt"
 	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -57,7 +56,7 @@ func (c *RPCli) acceptNotify(req *gap.MsgOnewayRPC) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		if rets, err := c.callProc(cp.Entity, cp.Method, req.Args); err != nil {
+		if rets, err := c.callProc(cp.Procedure, cp.Method, req.Args); err != nil {
 			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.Entity, cp.Method, err)
 		} else {
 			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.Entity, cp.Method)
@@ -79,7 +78,7 @@ func (c *RPCli) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		rets, err := c.callProc(cp.Entity, cp.Method, req.Args)
+		rets, err := c.callProc(cp.Procedure, cp.Method, req.Args)
 		if err != nil {
 			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Method, err)
 		} else {
@@ -151,10 +150,10 @@ func (c *RPCli) resolve(reply *gap.MsgRPCReply) error {
 	return c.GetFutures().Resolve(reply.CorrId, ret)
 }
 
-func (c *RPCli) callProc(entityId uid.Id, method string, args variant.Array) (rets variant.Array, err error) {
-	proc, ok := c.procs.Get(entityId)
+func (c *RPCli) callProc(procedure, method string, args variant.Array) (rets variant.Array, err error) {
+	proc, ok := c.procs.Get(procedure)
 	if !ok {
-		return nil, ErrEntityNotFound
+		return nil, ErrProcedureNotFound
 	}
 
 	methodRV := proc.GetReflected().MethodByName(method)
