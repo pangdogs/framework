@@ -65,16 +65,16 @@ func (e *EntityBehavior) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method
 }
 
 // CliRPC 向客户端发送RPC
-func (e *EntityBehavior) CliRPC(method string, args ...any) async.AsyncRet {
-	return rpcutil.ProxyEntity(e, e.GetId()).CliRPC(method, args...)
+func (e *EntityBehavior) CliRPC(proc, method string, args ...any) async.AsyncRet {
+	return rpcutil.ProxyEntity(e, e.GetId()).CliRPC(proc, method, args...)
 }
 
 // CliOnewayRPC 向客户端发送单向RPC
-func (e *EntityBehavior) CliOnewayRPC(method string, args ...any) error {
-	return rpcutil.ProxyEntity(e, e.GetId()).CliOnewayRPC(method, args...)
+func (e *EntityBehavior) CliOnewayRPC(proc, method string, args ...any) error {
+	return rpcutil.ProxyEntity(e, e.GetId()).CliOnewayRPC(proc, method, args...)
 }
 
 // BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
-func (e *EntityBehavior) BroadcastCliOnewayRPC(method string, args ...any) error {
-	return rpcutil.ProxyEntity(e, e.GetId()).BroadcastCliOnewayRPC(method, args...)
+func (e *EntityBehavior) BroadcastCliOnewayRPC(proc, method string, args ...any) error {
+	return rpcutil.ProxyEntity(e, e.GetId()).BroadcastCliOnewayRPC(proc, method, args...)
 }
