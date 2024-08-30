@@ -65,7 +65,7 @@ func (p GroupProxied) GetAddr() string {
 }
 
 // CliOnewayRPC 向分组发送单向RPC
-func (p GroupProxied) CliOnewayRPC(method string, args ...any) error {
+func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 	if p.servCtx == nil {
 		panic(errors.New("rpc: setting servCtx is nil"))
 	}
@@ -78,8 +78,9 @@ func (p GroupProxied) CliOnewayRPC(method string, args ...any) error {
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Client,
-		Method:   method,
+		Category:  callpath.Client,
+		Procedure: proc,
+		Method:    method,
 	}
 
 	return rpc.Using(p.servCtx).OnewayRPC(p.addr, cc, cp.String(), args...)

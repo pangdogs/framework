@@ -23,6 +23,10 @@ import (
 	"reflect"
 )
 
+const (
+	Main = "" // 主过程名称
+)
+
 // IProcedure 过程接口
 type IProcedure interface {
 	iProcedure
