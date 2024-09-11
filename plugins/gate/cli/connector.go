@@ -216,7 +216,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	client.ctrl.RstHandler = generic.MakeDelegateFunc1(client.handleRecvRst)
 
 	// 初始化异步模型Future控制器
-	client.futures = concurrent.MakeFutures(client.Context, ctor.options.FutureTimeout)
+	client.futures = concurrent.NewFutures(client.Context, ctor.options.FutureTimeout)
 
 	// 初始化监听器
 	client.dataWatchers = concurrent.MakeLockedSlice[*_DataWatcher](0, 0)

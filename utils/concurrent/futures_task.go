@@ -64,7 +64,7 @@ func (t *_Task[T]) Run(ctx context.Context, timeout time.Duration) {
 	defer timer.Stop()
 
 	select {
-	case <-t.future.futures.Ctx.Done():
+	case <-t.future.futures.ctx.Done():
 		t.future.futures.Resolve(t.future.Id, async.RetT[any]{Error: ErrFuturesClosed})
 	case <-ctx.Done():
 		t.future.futures.Resolve(t.future.Id, async.RetT[any]{Error: ErrFutureCanceled})

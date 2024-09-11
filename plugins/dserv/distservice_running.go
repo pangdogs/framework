@@ -114,7 +114,7 @@ retry:
 		switch e.Type {
 		case discovery.Delete:
 			for _, node := range e.Service.Nodes {
-				d.deduplication.Remove(node.Address)
+				d.deduplicator.Remove(node.Address)
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func (d *_DistService) handleEvent(e broker.IEvent) error {
 
 	// 最少一次交付模式，需要消息去重
 	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
-		if !d.deduplication.Validate(mp.Head.Src, mp.Head.Seq) {
+		if !d.deduplicator.Validate(mp.Head.Src, mp.Head.Seq) {
 			return fmt.Errorf("gap: discard duplicate msg-packet, head:%+v", mp.Head)
 		}
 	}

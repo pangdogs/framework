@@ -51,7 +51,7 @@ type IDistService interface {
 	// GetNodeDetails 获取节点地址信息
 	GetNodeDetails() *NodeDetails
 	// GetFutures 获取异步模型Future控制器
-	GetFutures() concurrent.IFutures
+	GetFutures() *concurrent.Futures
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// ForwardMsg 转发消息
@@ -67,21 +67,21 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 }
 
 type _DistService struct {
-	servCtx       service.Context
-	ctx           context.Context
-	terminate     context.CancelFunc
-	wg            sync.WaitGroup
-	options       DistServiceOptions
-	registry      discovery.IRegistry
-	broker        broker.IBroker
-	dsync         dsync.IDistSync
-	details       *NodeDetails
-	encoder       codec.Encoder
-	decoder       codec.Decoder
-	futures       concurrent.Futures
-	sendMutex     sync.Mutex
-	deduplication concurrent.Deduplication
-	msgWatchers   concurrent.LockedSlice[*_MsgWatcher]
+	servCtx      service.Context
+	ctx          context.Context
+	terminate    context.CancelFunc
+	wg           sync.WaitGroup
+	options      DistServiceOptions
+	registry     discovery.IRegistry
+	broker       broker.IBroker
+	dsync        dsync.IDistSync
+	details      *NodeDetails
+	encoder      codec.Encoder
+	decoder      codec.Decoder
+	futures      *concurrent.Futures
+	deduplicator *concurrent.Deduplicator
+	msgWatchers  concurrent.LockedSlice[*_MsgWatcher]
+	sendMutex    sync.Mutex
 }
 
 // InitSP 初始化服务插件
@@ -101,10 +101,10 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	d.encoder = codec.MakeEncoder()
 
 	// 初始化异步模型Future
-	d.futures = concurrent.MakeFutures(d.ctx, d.options.FutureTimeout)
+	d.futures = concurrent.NewFutures(d.ctx, d.options.FutureTimeout)
 
 	// 初始化消息去重器
-	d.deduplication = concurrent.MakeDeduplication()
+	d.deduplicator = concurrent.NewDeduplicator()
 
 	// 初始化监听器
 	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
@@ -213,8 +213,8 @@ func (d *_DistService) GetNodeDetails() *NodeDetails {
 }
 
 // GetFutures 获取异步模型Future控制器
-func (d *_DistService) GetFutures() concurrent.IFutures {
-	return &d.futures
+func (d *_DistService) GetFutures() *concurrent.Futures {
+	return d.futures
 }
 
 // SendMsg 发送消息
@@ -229,7 +229,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
 		d.sendMutex.Lock()
 		defer d.sendMutex.Unlock()
-		seq = d.deduplication.Make()
+		seq = d.deduplicator.Make()
 	}
 
 	mpBuf, err := d.encoder.Encode(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)

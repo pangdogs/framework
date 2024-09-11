@@ -32,7 +32,7 @@ func MakeRespAsyncRetT[T any]() RespAsyncRetT[T] {
 }
 
 // MakeFutureRespAsyncRetT 创建future与接收响应返回值的异步调用结果
-func MakeFutureRespAsyncRetT[T any](fs IFutures, ctx context.Context, timeout ...time.Duration) (Future, RespAsyncRetT[T]) {
+func MakeFutureRespAsyncRetT[T any](fs *Futures, ctx context.Context, timeout ...time.Duration) (Future, RespAsyncRetT[T]) {
 	resp := MakeRespAsyncRetT[T]()
 	future := MakeFuture(fs, ctx, resp, timeout...)
 	return future, resp

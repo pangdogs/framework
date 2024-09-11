@@ -26,17 +26,17 @@ import (
 )
 
 // MakeFuture 创建Future
-func MakeFuture[T Resp](fs IFutures, ctx context.Context, resp T, timeout ...time.Duration) Future {
+func MakeFuture[T Resp](fs *Futures, ctx context.Context, resp T, timeout ...time.Duration) Future {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	_timeout := fs.ptr().Timeout
+	_timeout := fs.timeout
 	if len(timeout) > 0 {
 		_timeout = timeout[0]
 	}
 
-	task := newTask(fs.ptr(), resp)
+	task := newTask(fs, resp)
 	go task.Run(ctx, _timeout)
 
 	return task.Future()

@@ -60,7 +60,7 @@ type Client struct {
 	ctrl            transport.CtrlProtocol
 	reconnectChan   chan struct{}
 	renewChan       chan struct{}
-	futures         concurrent.Futures
+	futures         *concurrent.Futures
 	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
 	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
 	logger          *zap.SugaredLogger
@@ -101,8 +101,8 @@ func (c *Client) GetRemoteAddr() net.Addr {
 }
 
 // GetFutures 获取异步模型Future控制器
-func (c *Client) GetFutures() concurrent.IFutures {
-	return &c.futures
+func (c *Client) GetFutures() *concurrent.Futures {
+	return c.futures
 }
 
 // GetLogger 获取logger

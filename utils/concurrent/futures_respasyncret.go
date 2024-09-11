@@ -31,7 +31,7 @@ func MakeRespAsyncRet() RespAsyncRet {
 }
 
 // MakeFutureRespAsyncRet 创建future与接收响应返回值的异步调用结果
-func MakeFutureRespAsyncRet(fs IFutures, ctx context.Context, timeout ...time.Duration) (Future, RespAsyncRet) {
+func MakeFutureRespAsyncRet(fs *Futures, ctx context.Context, timeout ...time.Duration) (Future, RespAsyncRet) {
 	resp := MakeRespAsyncRet()
 	future := MakeFuture(fs, ctx, resp, timeout...)
 	return future, resp

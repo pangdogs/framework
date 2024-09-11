@@ -42,38 +42,23 @@ type (
 	RequestHandler = generic.Action1[Future] // Future请求处理器
 )
 
-// IFutures Future控制器接口
-type IFutures interface {
-	iFutures
-	// Make 创建Future
-	Make(ctx context.Context, resp Resp, timeout ...time.Duration) Future
-	// Request 请求
-	Request(ctx context.Context, handler RequestHandler, timeout ...time.Duration) async.AsyncRet
-	// Resolve 解决
-	Resolve(id int64, ret async.Ret) error
-}
-
-type iFutures interface {
-	ptr() *Futures
-}
-
-// MakeFutures 创建Future控制器
-func MakeFutures(ctx context.Context, timeout time.Duration) Futures {
+// NewFutures 创建Future控制器
+func NewFutures(ctx context.Context, timeout time.Duration) *Futures {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return Futures{
-		Ctx:     ctx,
-		Id:      rand.Int63(),
-		Timeout: timeout,
+	return &Futures{
+		ctx:     ctx,
+		id:      rand.Int63(),
+		timeout: timeout,
 	}
 }
 
 // Futures Future控制器
 type Futures struct {
-	Ctx     context.Context // 上下文
-	Id      int64           // 请求id生成器
-	Timeout time.Duration   // 请求超时时间
+	ctx     context.Context // 上下文
+	id      int64           // 请求id生成器
+	timeout time.Duration   // 请求超时时间
 	tasks   sync.Map
 }
 
@@ -83,7 +68,7 @@ func (fs *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration
 		ctx = context.Background()
 	}
 
-	_timeout := fs.Timeout
+	_timeout := fs.timeout
 	if len(timeout) > 0 {
 		_timeout = timeout[0]
 	}
@@ -115,14 +100,10 @@ func (fs *Futures) Resolve(id int64, ret async.Ret) error {
 	return v.(iTask).Resolve(ret)
 }
 
-func (fs *Futures) ptr() *Futures {
-	return fs
-}
-
 func (fs *Futures) makeId() int64 {
-	id := atomic.AddInt64(&fs.Id, 1)
+	id := atomic.AddInt64(&fs.id, 1)
 	if id == 0 {
-		id = atomic.AddInt64(&fs.Id, 1)
+		id = atomic.AddInt64(&fs.id, 1)
 	}
 	return id
 }
