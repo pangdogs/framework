@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core/utils/uid"
@@ -59,7 +60,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	var cs gtp.CipherSuite
 	var cm gtp.Compression
 	var cliRandom, servRandom []byte
-	var cliHelloBytes, servHelloBytes []byte
+	var cliHelloHash, servHelloHash [sha256.Size]byte
 	var continueFlow, encryptionFlow, authFlow bool
 	var session *_Session
 
@@ -69,12 +70,6 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 		if servRandom != nil {
 			binaryutil.BytesPool.Put(servRandom)
-		}
-		if cliHelloBytes != nil {
-			binaryutil.BytesPool.Put(cliHelloBytes)
-		}
-		if servHelloBytes != nil {
-			binaryutil.BytesPool.Put(servHelloBytes)
 		}
 	}()
 
@@ -176,21 +171,30 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 		// 开启加密时，记录双方hello数据，用于ecdh后加密验证
 		if encryptionFlow {
-			cliHelloBytes = binaryutil.BytesPool.Get(cliHello.Msg.Size())
-			if _, err := cliHello.Msg.Read(cliHelloBytes); err != nil {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
-					Code:    gtp.Code_EncryptFailed,
-					Message: err.Error(),
-				}
-			}
+			h := sha256.New()
 
-			servHelloBytes = binaryutil.BytesPool.Get(servHello.Msg.Size())
-			if _, err := servHello.Msg.Read(servHelloBytes); err != nil {
+			hashBuff := binaryutil.BytesPool.Get(8 * 1024)
+			defer binaryutil.BytesPool.Put(hashBuff)
+
+			h.Reset()
+			_, err := io.CopyBuffer(h, cliHello.Msg, hashBuff)
+			if err != nil {
 				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: err.Error(),
 				}
 			}
+			copy(cliHelloHash[:], h.Sum(nil))
+
+			h.Reset()
+			_, err = io.CopyBuffer(h, servHello.Msg, hashBuff)
+			if err != nil {
+				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+					Code:    gtp.Code_EncryptFailed,
+					Message: err.Error(),
+				}
+			}
+			copy(servHelloHash[:], h.Sum(nil))
 		}
 
 		return servHello, nil
@@ -201,7 +205,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 	// 开启加密时，与客户端交换秘钥
 	if encryptionFlow {
-		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloBytes, servHelloBytes, session.GetId())
+		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, session.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +329,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 // secretKeyExchange 秘钥交换过程
 func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
-	cliRandom, servRandom, cliHelloBytes, servHelloBytes []byte, sessionId uid.Id) (err error) {
+	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionId uid.Id) (err error) {
 	// 控制协议
 	ctrl := transport.CtrlProtocol{
 		Transceiver: handshake.Transceiver,
@@ -486,7 +490,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				encryptionModule[0] = codec.NewEncryptionModule(cipher[0], padding[0], fetchNonce[0])
 
 				// 加密hello消息
-				encryptedHello, err = encryptionModule[0].Transforming(nil, servHelloBytes)
+				encryptedHello, err = encryptionModule[0].Transforming(nil, servHelloHash[:])
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
@@ -519,7 +523,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 				defer decryptedHello.Release()
 
-				if bytes.Compare(decryptedHello.Data(), cliHelloBytes) != 0 {
+				if bytes.Compare(decryptedHello.Data(), cliHelloHash[:]) != 0 {
 					return &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: "verify hello failed",
