@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/nats-io/nats.go"
@@ -102,14 +103,68 @@ func (b *_Broker) Subscribe(ctx context.Context, pattern string, settings ...opt
 	return b.newSubscriber(ctx, _SubscribeMode_Handler, pattern, option.Make(broker.With.Default(), settings...))
 }
 
+// Subscribef will express interest in the given topic pattern with a formatted string. Use option EventHandler to handle message events.
+func (b *_Broker) Subscribef(ctx context.Context, format string, args ...any) broker.ISubscriberSettings {
+	return &_SubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: fmt.Sprintf(format, args...),
+	}
+}
+
+// Subscribep will express interest in the given topic pattern with elements. Use option EventHandler to handle message events.
+func (b *_Broker) Subscribep(ctx context.Context, elems ...string) broker.ISubscriberSettings {
+	return &_SubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: netpath.Join(b.GetSeparator(), elems...),
+	}
+}
+
 // SubscribeSync will express interest in the given topic pattern.
 func (b *_Broker) SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.ISyncSubscriber, error) {
 	return b.newSubscriber(ctx, _SubscribeMode_Sync, pattern, option.Make(broker.With.Default(), settings...))
 }
 
+// SubscribeSyncf will express interest in the given topic pattern with a formatted string.
+func (b *_Broker) SubscribeSyncf(ctx context.Context, format string, args ...any) broker.ISyncSubscriberSettings {
+	return &_SyncSubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: fmt.Sprintf(format, args...),
+	}
+}
+
+// SubscribeSyncp will express interest in the given topic pattern with elements.
+func (b *_Broker) SubscribeSyncp(ctx context.Context, elems ...string) broker.ISyncSubscriberSettings {
+	return &_SyncSubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: netpath.Join(b.GetSeparator(), elems...),
+	}
+}
+
 // SubscribeChan will express interest in the given topic pattern.
 func (b *_Broker) SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscriberOptions]) (broker.IChanSubscriber, error) {
 	return b.newSubscriber(ctx, _SubscribeMode_Chan, pattern, option.Make(broker.With.Default(), settings...))
+}
+
+// SubscribeChanf will express interest in the given topic pattern with a formatted string.
+func (b *_Broker) SubscribeChanf(ctx context.Context, format string, args ...any) broker.IChanSubscriberSettings {
+	return &_ChanSubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: fmt.Sprintf(format, args...),
+	}
+}
+
+// SubscribeChanp will express interest in the given topic pattern with elements.
+func (b *_Broker) SubscribeChanp(ctx context.Context, elems ...string) broker.IChanSubscriberSettings {
+	return &_ChanSubscriberSettings{
+		broker:  b,
+		ctx:     ctx,
+		pattern: netpath.Join(b.GetSeparator(), elems...),
+	}
 }
 
 // Flush will perform a round trip to the server and return when it receives the internal reply.

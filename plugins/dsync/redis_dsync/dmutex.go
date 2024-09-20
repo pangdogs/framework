@@ -22,11 +22,22 @@ package redis_dsync
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/go-redsync/redsync/v4"
 	"strings"
 )
+
+type _DistMutexSettings struct {
+	dsync *_DistSync
+	name  string
+}
+
+// With applies additional settings to the distributed mutex.
+func (s *_DistMutexSettings) With(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
+	return s.dsync.NewMutex(s.name, settings...)
+}
 
 func (s *_DistSync) newMutex(name string, options dsync.DistMutexOptions) *_DistMutex {
 	if s.options.KeyPrefix != "" {

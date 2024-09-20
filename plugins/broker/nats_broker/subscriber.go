@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/log"
 	"github.com/nats-io/nats.go"
@@ -36,6 +37,39 @@ const (
 	_SubscribeMode_Sync
 	_SubscribeMode_Chan
 )
+
+type _SubscriberSettings struct {
+	broker  *_Broker
+	ctx     context.Context
+	pattern string
+}
+
+// With applies additional settings to the subscriber.
+func (s *_SubscriberSettings) With(settings ...option.Setting[broker.SubscriberOptions]) (broker.ISubscriber, error) {
+	return s.broker.Subscribe(s.ctx, s.pattern, settings...)
+}
+
+type _SyncSubscriberSettings struct {
+	broker  *_Broker
+	ctx     context.Context
+	pattern string
+}
+
+// With applies additional settings to the subscriber.
+func (s *_SyncSubscriberSettings) With(settings ...option.Setting[broker.SubscriberOptions]) (broker.ISyncSubscriber, error) {
+	return s.broker.SubscribeSync(s.ctx, s.pattern, settings...)
+}
+
+type _ChanSubscriberSettings struct {
+	broker  *_Broker
+	ctx     context.Context
+	pattern string
+}
+
+// With applies additional settings to the subscriber.
+func (s *_ChanSubscriberSettings) With(settings ...option.Setting[broker.SubscriberOptions]) (broker.IChanSubscriber, error) {
+	return s.broker.SubscribeChan(s.ctx, s.pattern, settings...)
+}
 
 func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, pattern string, opts broker.SubscriberOptions) (*_Subscriber, error) {
 	if ctx == nil {

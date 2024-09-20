@@ -22,8 +22,10 @@ package etcd_dsync
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/log"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -84,6 +86,22 @@ func (s *_DistSync) ShutSP(ctx service.Context) {
 // NewMutex returns a new distributed mutex with given name.
 func (s *_DistSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.Make(dsync.With.Default(), settings...))
+}
+
+// NewMutexf returns a new distributed mutex using a formatted string.
+func (s *_DistSync) NewMutexf(format string, args ...any) dsync.IDistMutexSettings {
+	return &_DistMutexSettings{
+		dsync: s,
+		name:  fmt.Sprintf(format, args...),
+	}
+}
+
+// NewMutexp returns a new distributed mutex using elements.
+func (s *_DistSync) NewMutexp(elems ...string) dsync.IDistMutexSettings {
+	return &_DistMutexSettings{
+		dsync: s,
+		name:  netpath.Join(s.GetSeparator(), elems...),
+	}
 }
 
 // GetSeparator return name path separator.

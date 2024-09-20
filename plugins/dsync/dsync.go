@@ -29,10 +29,20 @@ var (
 	ErrNotAcquired = errors.New("dsync: lock is not acquired")
 )
 
+// IDistMutexSettings represents an interface for configuring a distributed mutex.
+type IDistMutexSettings interface {
+	// With applies additional settings to the distributed mutex.
+	With(settings ...option.Setting[DistMutexOptions]) IDistMutex
+}
+
 // IDistSync represents a distributed synchronization mechanism.
 type IDistSync interface {
 	// NewMutex returns a new distributed mutex with given name.
 	NewMutex(name string, settings ...option.Setting[DistMutexOptions]) IDistMutex
+	// NewMutexf returns a new distributed mutex using a formatted string.
+	NewMutexf(format string, args ...any) IDistMutexSettings
+	// NewMutexp returns a new distributed mutex using elements.
+	NewMutexp(elems ...string) IDistMutexSettings
 	// GetSeparator return name path separator.
 	GetSeparator() string
 }
