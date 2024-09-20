@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgMAC32 包含MAC(32bit)消息
@@ -38,7 +39,7 @@ func (m MsgMAC32) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.MAC); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer
@@ -79,7 +80,7 @@ func (m MsgMAC64) Read(p []byte) (int, error) {
 	if err := bs.WriteUint64(m.MAC); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer
@@ -120,7 +121,7 @@ func (m MsgMAC) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.MAC); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

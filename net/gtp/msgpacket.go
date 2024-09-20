@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgPacket 消息包
@@ -38,14 +39,14 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 	}
 
 	if mp.Msg == nil {
-		return bs.BytesWritten(), nil
+		return bs.BytesWritten(), io.EOF
 	}
 
 	if _, err := binaryutil.ReadFrom(&bs, mp.Msg); err != nil {
 		return bs.BytesWritten(), err
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Size 大小
@@ -70,7 +71,7 @@ func (m MsgPacketLen) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

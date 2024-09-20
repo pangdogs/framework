@@ -22,6 +22,7 @@ package gap
 import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgRPCReply RPC答复
@@ -43,7 +44,7 @@ func (m MsgRPCReply) Read(p []byte) (int, error) {
 	if _, err := binaryutil.ReadFrom(&bs, m.Error); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

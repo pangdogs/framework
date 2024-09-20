@@ -19,7 +19,10 @@
 
 package gap
 
-import "git.golaxy.org/framework/utils/binaryutil"
+import (
+	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
+)
 
 // MsgPacket 消息包
 type MsgPacket struct {
@@ -36,14 +39,14 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 	}
 
 	if mp.Msg == nil {
-		return bs.BytesWritten(), nil
+		return bs.BytesWritten(), io.EOF
 	}
 
 	if _, err := binaryutil.ReadFrom(&bs, mp.Msg); err != nil {
 		return bs.BytesWritten(), err
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Size 大小

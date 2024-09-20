@@ -22,6 +22,7 @@ package variant
 import (
 	"errors"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 	"reflect"
 )
 
@@ -62,7 +63,7 @@ func (v Variant) Read(p []byte) (int, error) {
 		}
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

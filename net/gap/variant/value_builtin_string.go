@@ -21,6 +21,7 @@ package variant
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // String string
@@ -32,7 +33,7 @@ func (v String) Read(p []byte) (int, error) {
 	if err := bs.WriteString(string(v)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

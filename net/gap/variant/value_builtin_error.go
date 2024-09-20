@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 func MakeError(err error) *Error {
@@ -67,7 +68,7 @@ func (v Error) Read(p []byte) (int, error) {
 	if err := bs.WriteString(v.Message); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

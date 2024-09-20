@@ -22,6 +22,7 @@ package variant
 import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // Map map
@@ -47,7 +48,7 @@ func (v Map) Read(p []byte) (int, error) {
 		}
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

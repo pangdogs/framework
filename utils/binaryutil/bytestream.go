@@ -62,6 +62,9 @@ func NewLittleEndianStream(p []byte) ByteStream {
 
 func ReadFrom[T io.Reader](bs *ByteStream, reader T) (int64, error) {
 	n, err := reader.Read(bs.wp)
+	if err == io.EOF {
+		err = nil
+	}
 	bs.wp = bs.wp[n:]
 	return int64(n), err
 }

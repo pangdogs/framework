@@ -21,6 +21,7 @@ package gap
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgForward 转发
@@ -50,7 +51,7 @@ func (m MsgForward) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.TransData); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

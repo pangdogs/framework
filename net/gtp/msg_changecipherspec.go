@@ -22,6 +22,7 @@ package gtp
 import (
 	"bytes"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgChangeCipherSpec消息标志位
@@ -40,7 +41,7 @@ func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

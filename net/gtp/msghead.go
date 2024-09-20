@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // Flags 所有标志位
@@ -93,7 +94,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.Ack); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

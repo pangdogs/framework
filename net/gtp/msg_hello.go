@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 	"strings"
 )
 
@@ -106,7 +107,7 @@ func (cs CipherSuite) Read(p []byte) (int, error) {
 	if err := bs.WriteUint8(uint8(cs.MACHash)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer
@@ -179,7 +180,7 @@ func (m MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

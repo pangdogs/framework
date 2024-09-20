@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 	"strings"
 )
 
@@ -85,7 +86,7 @@ func (sa SignatureAlgorithm) Read(p []byte) (int, error) {
 	if err := bs.WriteUint8(uint8(sa.Hash)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer
@@ -154,7 +155,7 @@ func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Signature); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

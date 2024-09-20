@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // SyncTime消息标志位
@@ -48,7 +49,7 @@ func (m MsgSyncTime) Read(p []byte) (int, error) {
 	if err := bs.WriteInt64(m.RemoteUnixMilli); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

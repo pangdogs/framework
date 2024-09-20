@@ -21,6 +21,7 @@ package gap
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgHead 消息头
@@ -50,7 +51,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	if err := bs.WriteInt64(m.Seq); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

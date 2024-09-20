@@ -69,7 +69,7 @@ func (v *SerializedValue) Read(p []byte) (int, error) {
 	if len(p) < len(v.Data.Data()) {
 		return 0, io.ErrShortWrite
 	}
-	return copy(p, v.Data.Data()), nil
+	return copy(p, v.Data.Data()), io.EOF
 }
 
 // Size 大小

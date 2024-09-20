@@ -34,7 +34,7 @@ func (m *SerializedMsg) Read(p []byte) (int, error) {
 	if len(p) < len(m.Data) {
 		return 0, io.ErrShortWrite
 	}
-	return copy(p, m.Data), nil
+	return copy(p, m.Data), io.EOF
 }
 
 // Size 大小

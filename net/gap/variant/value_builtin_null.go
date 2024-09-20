@@ -19,12 +19,14 @@
 
 package variant
 
+import "io"
+
 // Null builtin null
 type Null struct{}
 
 // Read implements io.Reader
 func (Null) Read(p []byte) (int, error) {
-	return 0, nil
+	return 0, io.EOF
 }
 
 // Write implements io.Writer

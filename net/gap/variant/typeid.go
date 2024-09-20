@@ -23,6 +23,7 @@ import (
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"hash/fnv"
+	"io"
 	"reflect"
 )
 
@@ -35,7 +36,7 @@ func (t TypeId) Read(p []byte) (int, error) {
 	if err := bs.WriteUvarint(uint64(t)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

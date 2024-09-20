@@ -21,6 +21,7 @@ package variant
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // Array array
@@ -40,7 +41,7 @@ func (v Array) Read(p []byte) (int, error) {
 		}
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

@@ -22,6 +22,7 @@ package gap
 import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgOnewayRPC 单程RPC请求
@@ -43,7 +44,7 @@ func (m MsgOnewayRPC) Read(p []byte) (int, error) {
 	if _, err := binaryutil.ReadFrom(&bs, m.Args); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

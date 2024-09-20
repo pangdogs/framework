@@ -19,7 +19,10 @@
 
 package variant
 
-import "git.golaxy.org/framework/utils/binaryutil"
+import (
+	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
+)
 
 type Call struct {
 	Svc, Addr, Transit string
@@ -51,7 +54,7 @@ func (v CallChain) Read(p []byte) (int, error) {
 		}
 	}
 
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

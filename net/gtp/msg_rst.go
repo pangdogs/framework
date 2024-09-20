@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 	"strings"
 )
 
@@ -54,7 +55,7 @@ func (m MsgRst) Read(p []byte) (int, error) {
 	if err := bs.WriteString(m.Message); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

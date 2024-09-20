@@ -21,6 +21,7 @@ package variant
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // Uint32 builtin uint32
@@ -32,7 +33,7 @@ func (v Uint32) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(uint32(v)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

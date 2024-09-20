@@ -22,6 +22,7 @@ package gtp
 import (
 	"bytes"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 	"strings"
 )
 
@@ -44,7 +45,7 @@ func (m MsgAuth) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Extensions); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

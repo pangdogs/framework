@@ -22,6 +22,7 @@ package gtp
 import (
 	"bytes"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // MsgPayload 数据传输（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
@@ -35,7 +36,7 @@ func (m MsgPayload) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer

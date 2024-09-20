@@ -19,6 +19,8 @@
 
 package gtp
 
+import "io"
+
 // Heartbeat消息标志位
 const (
 	Flag_Ping Flag = 1 << (iota + Flag_Customize) // 心跳ping
@@ -30,7 +32,7 @@ type MsgHeartbeat struct{}
 
 // Read implements io.Reader
 func (MsgHeartbeat) Read(p []byte) (int, error) {
-	return 0, nil
+	return 0, io.EOF
 }
 
 // Write implements io.Writer

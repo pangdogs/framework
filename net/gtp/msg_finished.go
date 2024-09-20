@@ -21,6 +21,7 @@ package gtp
 
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
 // Finished消息标志位
@@ -45,7 +46,7 @@ func (m MsgFinished) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.RecvSeq); err != nil {
 		return bs.BytesWritten(), err
 	}
-	return bs.BytesWritten(), nil
+	return bs.BytesWritten(), io.EOF
 }
 
 // Write implements io.Writer
