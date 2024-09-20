@@ -60,7 +60,7 @@ func NewLittleEndianStream(p []byte) ByteStream {
 	return NewByteStream(p, binary.LittleEndian)
 }
 
-func ReadFrom[T io.Reader](bs *ByteStream, reader T) (int64, error) {
+func ReadTo[T io.Reader](bs *ByteStream, reader T) (int64, error) {
 	n, err := reader.Read(bs.wp)
 	if err == io.EOF {
 		err = nil
@@ -79,7 +79,7 @@ func (s *ByteStream) ReadFrom(reader io.Reader) (int64, error) {
 	if reader == nil {
 		return 0, fmt.Errorf("%w: reader is nil", core.ErrArgs)
 	}
-	return ReadFrom(s, reader)
+	return ReadTo(s, reader)
 }
 
 func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {

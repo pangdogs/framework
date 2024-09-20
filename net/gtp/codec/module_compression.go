@@ -27,7 +27,6 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
 	"math"
 )
 
@@ -110,7 +109,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 		}
 	}()
 
-	if _, err = msgCompressed.Read(buf.Data()); err != nil {
+	if _, err = binaryutil.ReadToBuff(buf.Data(), msgCompressed); err != nil {
 		return binaryutil.NilRecycleBytes, false, err
 	}
 
@@ -149,7 +148,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 		return binaryutil.NilRecycleBytes, err
 	}
 
-	if _, err = r.Read(buf.Data()); err != nil && !errors.Is(err, io.EOF) {
+	if _, err = binaryutil.ReadToBuff(buf.Data(), r); err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
 

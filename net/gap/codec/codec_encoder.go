@@ -65,7 +65,7 @@ func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binary
 		}
 	}()
 
-	if _, err := mp.Read(mpBuf.Data()); err != nil {
+	if _, err := binaryutil.ReadToBuff(mpBuf.Data(), mp); err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
 

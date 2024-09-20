@@ -74,7 +74,7 @@ func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 		}
 	}()
 
-	if _, err = msgMAC.Read(buf.Data()); err != nil {
+	if _, err = binaryutil.ReadToBuff(buf.Data(), msgMAC); err != nil {
 		return binaryutil.NilRecycleBytes, err
 	}
 
