@@ -42,9 +42,57 @@ type LockedSlice[T any] struct {
 	RWLocked[[]T]
 }
 
+func (ls *LockedSlice[T]) Prepend(values ...T) {
+	if len(values) <= 0 {
+		return
+	}
+
+	ls.AutoLock(func(s *[]T) {
+		newer := make([]T, 0, len(*s)+len(values))
+		newer = append(newer, values...)
+		*s = append(newer, *s...)
+	})
+}
+
 func (ls *LockedSlice[T]) Append(values ...T) {
+	if len(values) <= 0 {
+		return
+	}
+
 	ls.AutoLock(func(s *[]T) {
 		*s = append(*s, values...)
+	})
+}
+
+func (ls *LockedSlice[T]) AppendSorted(fun generic.Func2[T, T, int], values ...T) {
+	if len(values) <= 0 {
+		return
+	}
+
+	ls.AutoLock(func(s *[]T) {
+		if len(values) <= 1 {
+			idx, _ := slices.BinarySearchFunc(*s, values[0], fun)
+			*s = slices.Insert(*s, idx, values[0])
+		} else {
+			*s = append(*s, values...)
+			slices.SortFunc(*s, fun)
+		}
+	})
+}
+
+func (ls *LockedSlice[T]) AppendStableSorted(fun generic.Func2[T, T, int], values ...T) {
+	if len(values) <= 0 {
+		return
+	}
+
+	ls.AutoLock(func(s *[]T) {
+		if len(values) <= 1 {
+			idx, _ := slices.BinarySearchFunc(*s, values[0], fun)
+			*s = slices.Insert(*s, idx, values[0])
+		} else {
+			*s = append(*s, values...)
+			slices.SortStableFunc(*s, fun)
+		}
 	})
 }
 
@@ -54,9 +102,34 @@ func (ls *LockedSlice[T]) Delete(fun generic.Func1[T, bool]) {
 	})
 }
 
+func (ls *LockedSlice[T]) DeleteOnce(fun generic.Func1[T, bool]) {
+	ls.AutoLock(func(s *[]T) {
+		idx := slices.IndexFunc(*s, fun)
+		if idx >= 0 {
+			*s = slices.Delete(*s, idx, idx+1)
+		}
+	})
+}
+
+func (ls *LockedSlice[T]) DeleteOnceSorted(target T, fun generic.Func2[T, T, int]) {
+	ls.AutoLock(func(s *[]T) {
+		idx, ok := slices.BinarySearchFunc(*s, target, fun)
+		if ok {
+			*s = slices.Delete(*s, idx, idx+1)
+		}
+	})
+}
+
 func (ls *LockedSlice[T]) Any(fun generic.Func1[T, bool]) (ret bool) {
 	ls.AutoRLock(func(s *[]T) {
 		ret = pie.Any(*s, fun)
+	})
+	return
+}
+
+func (ls *LockedSlice[T]) AnySorted(target T, fun generic.Func2[T, T, int]) (ret bool) {
+	ls.AutoLock(func(s *[]T) {
+		_, ret = slices.BinarySearchFunc(*s, target, fun)
 	})
 	return
 }

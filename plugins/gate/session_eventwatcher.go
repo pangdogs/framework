@@ -74,7 +74,7 @@ func (w *_EventWatcher) mainLoop() {
 	case <-w.session.Done():
 	}
 
-	w.session.eventWatchers.Delete(func(exists *_EventWatcher) bool {
+	w.session.eventWatchers.DeleteOnce(func(exists *_EventWatcher) bool {
 		return exists == w
 	})
 }

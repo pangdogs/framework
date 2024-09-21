@@ -74,7 +74,7 @@ func (w *_SessionWatcher) mainLoop() {
 	case <-w.gate.ctx.Done():
 	}
 
-	w.gate.sessionWatchers.Delete(func(exists *_SessionWatcher) bool {
+	w.gate.sessionWatchers.DeleteOnce(func(exists *_SessionWatcher) bool {
 		return exists == w
 	})
 }
