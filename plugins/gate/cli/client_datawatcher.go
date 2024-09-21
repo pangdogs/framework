@@ -21,7 +21,6 @@ package cli
 
 import (
 	"context"
-	"github.com/elliotchance/pie/v2"
 )
 
 func (c *Client) newDataWatcher(ctx context.Context, handler RecvDataHandler) *_DataWatcher {
@@ -75,9 +74,7 @@ func (w *_DataWatcher) mainLoop() {
 	case <-w.client.Done():
 	}
 
-	w.client.dataWatchers.AutoLock(func(watchers *[]*_DataWatcher) {
-		*watchers = pie.DropWhile(*watchers, func(other *_DataWatcher) bool {
-			return other == w
-		})
+	w.client.dataWatchers.Delete(func(exists *_DataWatcher) bool {
+		return exists == w
 	})
 }

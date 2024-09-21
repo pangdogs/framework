@@ -21,7 +21,7 @@ package dserv
 
 import (
 	"context"
-	"github.com/elliotchance/pie/v2"
+	"slices"
 )
 
 func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler) *_MsgWatcher {
@@ -76,7 +76,7 @@ func (w *_MsgWatcher) mainLoop() {
 	}
 
 	w.distributed.msgWatchers.AutoLock(func(watchers *[]*_MsgWatcher) {
-		*watchers = pie.DropWhile(*watchers, func(other *_MsgWatcher) bool {
+		*watchers = slices.DeleteFunc(*watchers, func(other *_MsgWatcher) bool {
 			return other == w
 		})
 	})

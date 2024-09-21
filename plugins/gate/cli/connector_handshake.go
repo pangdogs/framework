@@ -124,7 +124,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 				// 记录双方hello数据，用于ecdh后加密验证
 				h := sha256.New()
 
-				hashBuff := binaryutil.BytesPool.Get(8 * 1024)
+				hashBuff := binaryutil.BytesPool.Get(4 * 1024)
 				defer binaryutil.BytesPool.Put(hashBuff)
 
 				h.Reset()

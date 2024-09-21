@@ -173,7 +173,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		if encryptionFlow {
 			h := sha256.New()
 
-			hashBuff := binaryutil.BytesPool.Get(8 * 1024)
+			hashBuff := binaryutil.BytesPool.Get(4 * 1024)
 			defer binaryutil.BytesPool.Put(hashBuff)
 
 			h.Reset()

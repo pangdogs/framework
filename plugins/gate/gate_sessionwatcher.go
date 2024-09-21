@@ -21,7 +21,6 @@ package gate
 
 import (
 	"context"
-	"github.com/elliotchance/pie/v2"
 )
 
 func (g *_Gate) newSessionWatcher(ctx context.Context, handler SessionStateChangedHandler) *_SessionWatcher {
@@ -75,9 +74,7 @@ func (w *_SessionWatcher) mainLoop() {
 	case <-w.gate.ctx.Done():
 	}
 
-	w.gate.sessionWatchers.AutoLock(func(watchers *[]*_SessionWatcher) {
-		*watchers = pie.DropWhile(*watchers, func(other *_SessionWatcher) bool {
-			return other == w
-		})
+	w.gate.sessionWatchers.Delete(func(exists *_SessionWatcher) bool {
+		return exists == w
 	})
 }

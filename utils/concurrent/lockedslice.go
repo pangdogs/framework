@@ -22,6 +22,8 @@ package concurrent
 import (
 	"git.golaxy.org/core/utils/generic"
 	"github.com/elliotchance/pie/v2"
+	"math/rand"
+	"slices"
 )
 
 func MakeLockedSlice[T any](len, cap int) LockedSlice[T] {
@@ -40,21 +42,63 @@ type LockedSlice[T any] struct {
 	RWLocked[[]T]
 }
 
-func (ls *LockedSlice[T]) Insert(idx int, values ...T) {
-	ls.AutoLock(func(s *[]T) {
-		*s = pie.Insert(*s, idx, values...)
-	})
-}
-
 func (ls *LockedSlice[T]) Append(values ...T) {
 	ls.AutoLock(func(s *[]T) {
-		*s = pie.Insert(ls.object, len(ls.object), values...)
+		*s = append(*s, values...)
 	})
 }
 
-func (ls *LockedSlice[T]) Delete(idx ...int) {
+func (ls *LockedSlice[T]) Delete(fun generic.Func1[T, bool]) {
 	ls.AutoLock(func(s *[]T) {
-		*s = pie.Delete(ls.object, idx...)
+		*s = slices.DeleteFunc(*s, fun)
+	})
+}
+
+func (ls *LockedSlice[T]) Any(fun generic.Func1[T, bool]) (ret bool) {
+	ls.AutoRLock(func(s *[]T) {
+		ret = pie.Any(*s, fun)
+	})
+	return
+}
+
+func (ls *LockedSlice[T]) All(fun generic.Func1[T, bool]) (ret bool) {
+	ls.AutoRLock(func(s *[]T) {
+		ret = pie.All(*s, fun)
+	})
+	return
+}
+
+func (ls *LockedSlice[T]) Filter(fun generic.Func1[T, bool]) (ret []T) {
+	ls.AutoRLock(func(s *[]T) {
+		ret = pie.Filter(*s, fun)
+	})
+	return
+}
+
+func (ls *LockedSlice[T]) FilterNot(fun generic.Func1[T, bool]) (ret []T) {
+	ls.AutoRLock(func(s *[]T) {
+		ret = pie.FilterNot(*s, fun)
+	})
+	return
+}
+
+func (ls *LockedSlice[T]) Sort(fun generic.Func2[T, T, int]) {
+	ls.AutoLock(func(s *[]T) {
+		slices.SortFunc(*s, fun)
+	})
+}
+
+func (ls *LockedSlice[T]) SortStable(fun generic.Func2[T, T, int]) {
+	ls.AutoLock(func(s *[]T) {
+		slices.SortStableFunc(*s, fun)
+	})
+}
+
+func (ls *LockedSlice[T]) Shuffle(n int) {
+	ls.AutoLock(func(s *[]T) {
+		rand.Shuffle(n, func(i, j int) {
+			(*s)[i], (*s)[j] = (*s)[j], (*s)[i]
+		})
 	})
 }
 
