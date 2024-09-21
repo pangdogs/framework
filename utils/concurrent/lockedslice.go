@@ -94,9 +94,9 @@ func (ls *LockedSlice[T]) SortStable(fun generic.Func2[T, T, int]) {
 	})
 }
 
-func (ls *LockedSlice[T]) Shuffle(n int) {
+func (ls *LockedSlice[T]) Shuffle() {
 	ls.AutoLock(func(s *[]T) {
-		rand.Shuffle(n, func(i, j int) {
+		rand.Shuffle(len(*s), func(i, j int) {
 			(*s)[i], (*s)[j] = (*s)[j], (*s)[i]
 		})
 	})
