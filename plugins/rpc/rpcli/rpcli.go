@@ -42,9 +42,15 @@ var (
 // RPCli RCP客户端
 type RPCli struct {
 	*cli.Client
-	encoder codec.Encoder
-	decoder codec.Decoder
-	procs   generic.SliceMap[string, IProcedure]
+	encoder    codec.Encoder
+	decoder    codec.Decoder
+	remoteTime cli.ResponseTime
+	procs      generic.SliceMap[string, IProcedure]
+}
+
+// GetRemoteTime 获取对端时间
+func (c *RPCli) GetRemoteTime() cli.ResponseTime {
+	return c.remoteTime
 }
 
 // RPC RPC调用

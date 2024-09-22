@@ -237,9 +237,15 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 		return nil, err
 	}
 
+	remoteTime := <-client.RequestTime(ctx)
+	if !remoteTime.OK() {
+		return nil, remoteTime.Error
+	}
+
 	rpcli := &RPCli{
-		Client:  client,
-		encoder: codec.MakeEncoder(),
+		Client:     client,
+		remoteTime: *remoteTime.Value,
+		encoder:    codec.MakeEncoder(),
 	}
 
 	if ctor.msgCreator != nil {
