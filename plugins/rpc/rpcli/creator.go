@@ -258,6 +258,8 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 			if respTime.Value.RTT() < remoteTime.RTT() {
 				remoteTime = respTime.Value
 			}
+		} else {
+			remoteTime = respTime.Value
 		}
 	}
 
