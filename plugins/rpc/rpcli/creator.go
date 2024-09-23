@@ -42,9 +42,10 @@ func CreateRPCli() RPCliCreator {
 
 // RPCliCreator RPC客户端构建器
 type RPCliCreator struct {
-	settings   []option.Setting[cli.ClientOptions]
-	msgCreator gap.IMsgCreator
-	mainProc   IProcedure
+	settings    []option.Setting[cli.ClientOptions]
+	rttSampling int
+	msgCreator  gap.IMsgCreator
+	mainProc    IProcedure
 }
 
 func (ctor RPCliCreator) NetProtocol(p cli.NetProtocol) RPCliCreator {
@@ -192,6 +193,14 @@ func (ctor RPCliCreator) GTPRecvEventHandler(handler cli.RecvEventHandler) RPCli
 	return ctor
 }
 
+func (ctor RPCliCreator) GTPRTTSampling(n int) RPCliCreator {
+	if n < 3 {
+		panic(fmt.Errorf("%w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs))
+	}
+	ctor.rttSampling = n
+	return ctor
+}
+
 func (ctor RPCliCreator) GAPDecoderMsgCreator(mc gap.IMsgCreator) RPCliCreator {
 	ctor.msgCreator = mc
 	return ctor
@@ -237,14 +246,24 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 		return nil, err
 	}
 
-	remoteTime := <-client.RequestTime(ctx)
-	if !remoteTime.OK() {
-		return nil, remoteTime.Error
+	var remoteTime *cli.ResponseTime
+
+	for range max(3, ctor.rttSampling) {
+		respTime := <-client.RequestTime(ctx)
+		if !respTime.OK() {
+			return nil, respTime.Error
+		}
+
+		if remoteTime != nil {
+			if respTime.Value.RTT() < remoteTime.RTT() {
+				remoteTime = respTime.Value
+			}
+		}
 	}
 
 	rpcli := &RPCli{
 		Client:     client,
-		remoteTime: *remoteTime.Value,
+		remoteTime: *remoteTime,
 		encoder:    codec.MakeEncoder(),
 	}
 
