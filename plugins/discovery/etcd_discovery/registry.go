@@ -58,22 +58,22 @@ type _Register struct {
 }
 
 type _Registry struct {
-	servCtx   service.Context
+	svcCtx    service.Context
 	options   RegistryOptions
 	client    *etcdv3.Client
 	registers *concurrent.Cache[string, *_Register]
 }
 
 // InitSP 初始化服务插件
-func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (r *_Registry) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	r.servCtx = ctx
+	r.svcCtx = svcCtx
 
 	if r.options.EtcdClient == nil {
 		cli, err := etcdv3.New(r.configure())
 		if err != nil {
-			log.Panicf(r.servCtx, "new etcd client failed, %s", err)
+			log.Panicf(r.svcCtx, "new etcd client failed, %s", err)
 		}
 		r.client = cli
 	} else {
@@ -82,11 +82,11 @@ func (r *_Registry) InitSP(ctx service.Context) {
 
 	for _, ep := range r.client.Endpoints() {
 		func() {
-			ctx, cancel := context.WithTimeout(r.servCtx, 3*time.Second)
+			ctx, cancel := context.WithTimeout(r.svcCtx, 3*time.Second)
 			defer cancel()
 
 			if _, err := r.client.Status(ctx, ep); err != nil {
-				log.Panicf(r.servCtx, "status etcd %q failed, %s", ep, err)
+				log.Panicf(r.svcCtx, "status etcd %q failed, %s", ep, err)
 			}
 		}()
 	}
@@ -96,8 +96,8 @@ func (r *_Registry) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (r *_Registry) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {
@@ -243,12 +243,12 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 	for _, kv := range rsp.Kvs {
 		serviceNode, err := decodeService(kv.Value)
 		if err != nil {
-			log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
+			log.Errorf(r.svcCtx, "decode service %q failed, %s", kv.Value, err)
 			continue
 		}
 
 		if len(serviceNode.Nodes) <= 0 {
-			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", kv.Value)
+			log.Errorf(r.svcCtx, "decode service %q failed, nodes is empty", kv.Value)
 			continue
 		}
 
@@ -280,12 +280,12 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	for _, kv := range rsp.Kvs {
 		serviceNode, err := decodeService(kv.Value)
 		if err != nil {
-			log.Errorf(r.servCtx, "decode service %q failed, %s", kv.Value, err)
+			log.Errorf(r.svcCtx, "decode service %q failed, %s", kv.Value, err)
 			continue
 		}
 
 		if len(serviceNode.Nodes) <= 0 {
-			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", kv.Value)
+			log.Errorf(r.svcCtx, "decode service %q failed, nodes is empty", kv.Value)
 			continue
 		}
 
@@ -368,7 +368,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		}
 		if err == nil {
 			if register.hash == hv {
-				log.Debugf(r.servCtx, "service %q node %q unchanged, keep alive lease", serviceName, node.Id)
+				log.Debugf(r.svcCtx, "service %q node %q unchanged, keep alive lease", serviceName, node.Id)
 				return nil
 			}
 			leaseId = register.leaseId
@@ -416,7 +416,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		leaseId:  leaseId,
 		revision: revision,
 	}
-	register.ctx, register.terminate = context.WithCancel(r.servCtx)
+	register.ctx, register.terminate = context.WithCancel(r.svcCtx)
 
 	existed := r.registers.Set(nodePath, register, register.revision, 0)
 	if existed != register {
@@ -430,12 +430,12 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		}
 		go func() {
 			for range rspChan {
-				log.Debugf(r.servCtx, "refresh service %q node %q ttl success", servNode.Name, node.Id)
+				log.Debugf(r.svcCtx, "refresh service %q node %q ttl success", servNode.Name, node.Id)
 			}
 		}()
 	}
 
-	log.Debugf(r.servCtx, "register service %q node %q success", servNode.Name, node.Id)
+	log.Debugf(r.svcCtx, "register service %q node %q success", servNode.Name, node.Id)
 	return nil
 }
 
@@ -453,7 +453,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node
 		return err
 	}
 
-	log.Debugf(r.servCtx, "deregister service %q node %q success", serviceName, node.Id)
+	log.Debugf(r.svcCtx, "deregister service %q node %q success", serviceName, node.Id)
 	return nil
 }
 

@@ -67,7 +67,7 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 }
 
 type _DistService struct {
-	servCtx      service.Context
+	svcCtx       service.Context
 	ctx          context.Context
 	terminate    context.CancelFunc
 	wg           sync.WaitGroup
@@ -85,16 +85,16 @@ type _DistService struct {
 }
 
 // InitSP 初始化服务插件
-func (d *_DistService) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (d *_DistService) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	d.servCtx = ctx
+	d.svcCtx = svcCtx
 	d.ctx, d.terminate = context.WithCancel(context.Background())
 
 	// 获取依赖的插件
-	d.registry = discovery.Using(d.servCtx)
-	d.broker = broker.Using(d.servCtx)
-	d.dsync = dsync.Using(d.servCtx)
+	d.registry = discovery.Using(d.svcCtx)
+	d.broker = broker.Using(d.svcCtx)
+	d.dsync = dsync.Using(d.svcCtx)
 
 	// 初始化消息包编解码器
 	d.decoder = codec.MakeDecoder(d.options.DecoderMsgCreator)
@@ -132,27 +132,27 @@ func (d *_DistService) InitSP(ctx service.Context) {
 
 	details.GlobalBroadcastAddr = details.DomainBroadcast.Path
 	details.GlobalBalanceAddr = details.DomainBalance.Path
-	details.BroadcastAddr = details.MakeBroadcastAddr(d.servCtx.GetName())
-	details.BalanceAddr = details.MakeBalanceAddr(d.servCtx.GetName())
-	details.LocalAddr, _ = details.MakeNodeAddr(d.servCtx.GetId())
+	details.BroadcastAddr = details.MakeBroadcastAddr(d.svcCtx.GetName())
+	details.BalanceAddr = details.MakeBalanceAddr(d.svcCtx.GetName())
+	details.LocalAddr, _ = details.MakeNodeAddr(d.svcCtx.GetId())
 
 	d.details = details
-	log.Debugf(d.servCtx, "service %q node %q details: %+v", d.servCtx.GetName(), d.servCtx.GetId(), d.details)
+	log.Debugf(d.svcCtx, "service %q node %q details: %+v", d.svcCtx.GetName(), d.svcCtx.GetId(), d.details)
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutexp("service", d.servCtx.GetName(), "init", d.servCtx.GetId().String()).With()
-	if err := mutex.Lock(d.servCtx); err != nil {
-		log.Panicf(d.servCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
+	mutex := d.dsync.NewMutexp("service", d.svcCtx.GetName(), "init", d.svcCtx.GetId().String()).With()
+	if err := mutex.Lock(d.svcCtx); err != nil {
+		log.Panicf(d.svcCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}
 	defer mutex.Unlock(context.Background())
 
 	// 检查服务节点是否已被注册
-	_, err := d.registry.GetServiceNode(d.servCtx, d.servCtx.GetName(), d.servCtx.GetId())
+	_, err := d.registry.GetServiceNode(d.svcCtx, d.svcCtx.GetName(), d.svcCtx.GetId())
 	if err == nil {
-		log.Panicf(d.servCtx, "check service %q node %q failed, already registered", d.servCtx.GetName(), d.servCtx.GetId())
+		log.Panicf(d.svcCtx, "check service %q node %q failed, already registered", d.svcCtx.GetName(), d.svcCtx.GetId())
 	}
 	if !errors.Is(err, discovery.ErrNotFound) {
-		log.Panicf(d.servCtx, "check service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
+		log.Panicf(d.svcCtx, "check service %q node %q failed, %s", d.svcCtx.GetName(), d.svcCtx.GetId(), err)
 	}
 
 	// 订阅topic
@@ -169,10 +169,10 @@ func (d *_DistService) InitSP(ctx service.Context) {
 
 	// 服务节点信息
 	serviceNode := &discovery.Service{
-		Name: d.servCtx.GetName(),
+		Name: d.svcCtx.GetName(),
 		Nodes: []discovery.Node{
 			{
-				Id:      d.servCtx.GetId(),
+				Id:      d.svcCtx.GetId(),
 				Address: d.details.LocalAddr,
 				Version: d.options.Version,
 				Meta:    d.options.Meta,
@@ -181,11 +181,11 @@ func (d *_DistService) InitSP(ctx service.Context) {
 	}
 
 	// 注册服务
-	err = d.registry.Register(d.servCtx, serviceNode, d.options.TTL)
+	err = d.registry.Register(d.svcCtx, serviceNode, d.options.TTL)
 	if err != nil {
-		log.Panicf(d.servCtx, "register service %q node %q failed, %s", d.servCtx.GetName(), d.servCtx.GetId(), err)
+		log.Panicf(d.svcCtx, "register service %q node %q failed, %s", d.svcCtx.GetName(), d.svcCtx.GetId(), err)
 	}
-	log.Debugf(d.servCtx, "register service %q node %q success", d.servCtx.GetName(), d.servCtx.GetId())
+	log.Debugf(d.svcCtx, "register service %q node %q success", d.svcCtx.GetName(), d.svcCtx.GetId())
 
 	// 最少一次交付模式，需要消息去重
 	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
@@ -200,8 +200,8 @@ func (d *_DistService) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (d *_DistService) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (d *_DistService) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	d.terminate()
 	d.wg.Wait()
@@ -232,7 +232,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplicator.Make()
 	}
 
-	mpBuf, err := d.encoder.Encode(d.servCtx.GetName(), d.details.LocalAddr, seq, msg)
+	mpBuf, err := d.encoder.Encode(d.svcCtx.GetName(), d.details.LocalAddr, seq, msg)
 	if err != nil {
 		return err
 	}
@@ -266,8 +266,8 @@ func (d *_DistService) subscribe(topic, queue string) broker.ISubscriber {
 		broker.With.EventHandler(generic.MakeDelegateFunc1(d.handleEvent)),
 		broker.With.Queue(queue))
 	if err != nil {
-		log.Panicf(d.servCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
+		log.Panicf(d.svcCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
 	}
-	log.Debugf(d.servCtx, "subscribe topic %q queue %q success", topic, queue)
+	log.Debugf(d.svcCtx, "subscribe topic %q queue %q success", topic, queue)
 	return sub
 }

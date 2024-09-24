@@ -195,7 +195,7 @@ func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.
 		ctx = context.Background()
 	}
 
-	if _, ok := r.servCtx.GetEntityMgr().GetEntity(entityId); !ok {
+	if _, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId); !ok {
 		return
 	}
 
@@ -214,7 +214,7 @@ func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.A
 		ctx = context.Background()
 	}
 
-	if _, ok := r.servCtx.GetEntityMgr().GetEntity(entityId); !ok {
+	if _, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId); !ok {
 		return
 	}
 
@@ -234,7 +234,7 @@ func (r *_Router) newGroup(groupKey string, leaseId etcdv3.LeaseID, revision int
 		entities: entIds,
 	}
 
-	group.Context, group.terminate = context.WithCancel(r.servCtx)
+	group.Context, group.terminate = context.WithCancel(r.svcCtx)
 
 	if r.options.GroupSendDataChanSize > 0 {
 		group.sendDataChan = make(chan binaryutil.RecycleBytes, r.options.GroupSendDataChanSize)

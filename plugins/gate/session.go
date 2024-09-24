@@ -115,7 +115,7 @@ func (s *_Session) String() string {
 
 // GetContext 获取服务上下文
 func (s *_Session) GetContext() service.Context {
-	return s.gate.servCtx
+	return s.gate.svcCtx
 }
 
 // GetId 获取会话Id
@@ -209,7 +209,7 @@ func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandl
 // SendDataChan 发送数据的channel
 func (s *_Session) SendDataChan() chan<- binaryutil.RecycleBytes {
 	if s.options.SendDataChan == nil {
-		log.Panicf(s.gate.servCtx, "send data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.svcCtx, "send data channel size less equal 0, can't be used")
 	}
 	return s.options.SendDataChan
 }
@@ -217,7 +217,7 @@ func (s *_Session) SendDataChan() chan<- binaryutil.RecycleBytes {
 // RecvDataChan 接收数据的channel
 func (s *_Session) RecvDataChan() <-chan binaryutil.RecycleBytes {
 	if s.options.RecvDataChan == nil {
-		log.Panicf(s.gate.servCtx, "receive data channel size less equal 0, can't be used")
+		log.Panicf(s.gate.svcCtx, "receive data channel size less equal 0, can't be used")
 	}
 	return s.options.RecvDataChan
 }
@@ -225,7 +225,7 @@ func (s *_Session) RecvDataChan() <-chan binaryutil.RecycleBytes {
 // SendEventChan 发送自定义事件的channel
 func (s *_Session) SendEventChan() chan<- transport.IEvent {
 	if s.options.SendEventChan == nil {
-		log.Panicf(s.gate.servCtx, "send event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.svcCtx, "send event channel size less equal 0, can't be used")
 	}
 	return s.options.SendEventChan
 }
@@ -233,7 +233,7 @@ func (s *_Session) SendEventChan() chan<- transport.IEvent {
 // RecvEventChan 接收自定义事件的channel
 func (s *_Session) RecvEventChan() <-chan transport.IEvent {
 	if s.options.RecvEventChan == nil {
-		log.Panicf(s.gate.servCtx, "receive event channel size less equal 0, can't be used")
+		log.Panicf(s.gate.svcCtx, "receive event channel size less equal 0, can't be used")
 	}
 	return s.options.RecvEventChan
 }

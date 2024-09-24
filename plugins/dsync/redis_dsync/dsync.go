@@ -38,17 +38,17 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 }
 
 type _DistSync struct {
-	servCtx service.Context
+	svcCtx  service.Context
 	options DSyncOptions
 	client  *redis.Client
 	redSync *redsync.Redsync
 }
 
 // InitSP 初始化服务插件
-func (s *_DistSync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (s *_DistSync) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	s.servCtx = ctx
+	s.svcCtx = svcCtx
 
 	if s.options.RedisClient == nil {
 		s.client = redis.NewClient(s.configure())
@@ -56,17 +56,17 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 		s.client = s.options.RedisClient
 	}
 
-	_, err := s.client.Ping(ctx).Result()
+	_, err := s.client.Ping(svcCtx).Result()
 	if err != nil {
-		log.Panicf(ctx, "ping redis %q failed, %v", s.client, err)
+		log.Panicf(svcCtx, "ping redis %q failed, %v", s.client, err)
 	}
 
 	s.redSync = redsync.New(goredis.NewPool(s.client))
 }
 
 // ShutSP 关闭服务插件
-func (s *_DistSync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (s *_DistSync) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if s.options.RedisClient == nil {
 		if s.client != nil {
@@ -109,7 +109,7 @@ func (s *_DistSync) configure() *redis.Options {
 	if s.options.RedisURL != "" {
 		conf, err := redis.ParseURL(s.options.RedisURL)
 		if err != nil {
-			log.Panicf(s.servCtx, "parse redis url %q failed, %s", s.options.RedisURL, err)
+			log.Panicf(s.svcCtx, "parse redis url %q failed, %s", s.options.RedisURL, err)
 		}
 		return conf
 	}

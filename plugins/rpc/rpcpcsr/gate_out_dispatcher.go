@@ -48,7 +48,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
 	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
 	if ok {
-		asyncRet := p.servCtx.Call(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
+		asyncRet := p.svcCtx.Call(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
 			session, ok := p.router.LookupSession(entity.GetId())
 			if !ok {
 				return async.MakeRet(nil, ErrSessionNotFound)
@@ -74,7 +74,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	// 目标为广播地址，遍历包含实体的所有分组，向每个分组发送消息
 	entId, ok = gate.CliDetails.DomainBroadcast.Relative(req.Dst)
 	if ok {
-		p.router.EachGroups(p.servCtx, uid.From(entId), func(group router.IGroup) {
+		p.router.EachGroups(p.svcCtx, uid.From(entId), func(group router.IGroup) {
 			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
 			if err != nil {
 				go p.finishOutbound(src, req, err)
@@ -95,7 +95,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 
 	// 目标为组播地址，向分组发送消息
 	if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
-		group, ok := p.router.GetGroupByAddr(p.servCtx, req.Dst)
+		group, ok := p.router.GetGroupByAddr(p.svcCtx, req.Dst)
 		if !ok {
 			go p.finishOutbound(src, req, ErrGroupNotFound)
 			return
@@ -125,16 +125,16 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 func (p *_GateProcessor) finishOutbound(src string, req *gap.MsgForward, err error) {
 	if err == nil {
 		if req.CorrId != 0 {
-			log.Debugf(p.servCtx, "forwarding src:%q rpc request(%d) to remote:%q finish", src, req.CorrId, req.Dst)
+			log.Debugf(p.svcCtx, "forwarding src:%q rpc request(%d) to remote:%q finish", src, req.CorrId, req.Dst)
 		} else {
-			log.Debugf(p.servCtx, "forwarding src:%q rpc notify to remote:%q finish", src, req.Dst)
+			log.Debugf(p.svcCtx, "forwarding src:%q rpc notify to remote:%q finish", src, req.Dst)
 		}
 	} else {
 		if req.CorrId != 0 {
-			log.Errorf(p.servCtx, "forwarding src:%q rpc request(%d) to remote:%q failed, %s", src, req.CorrId, req.Dst, err)
+			log.Errorf(p.svcCtx, "forwarding src:%q rpc request(%d) to remote:%q failed, %s", src, req.CorrId, req.Dst, err)
 			p.replyOutbound(src, req.CorrId, err)
 		} else {
-			log.Errorf(p.servCtx, "forwarding src:%q rpc notify to remote:%q failed, %s", src, req.Dst, err)
+			log.Errorf(p.svcCtx, "forwarding src:%q rpc notify to remote:%q failed, %s", src, req.Dst, err)
 		}
 	}
 }
@@ -151,9 +151,9 @@ func (p *_GateProcessor) replyOutbound(src string, corrId int64, retErr error) {
 
 	err := p.dist.SendMsg(src, msg)
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
 
-	log.Debugf(p.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src)
 }

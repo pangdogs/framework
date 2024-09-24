@@ -45,14 +45,14 @@ type _Logger struct {
 }
 
 // InitSP init service plugin
-func (l *_Logger) InitSP(ctx service.Context) {
-	l.serviceInfo = ctx.String()
+func (l *_Logger) InitSP(svcCtx service.Context) {
+	l.serviceInfo = svcCtx.String()
 }
 
 // InitRP init runtime plugin
-func (l *_Logger) InitRP(ctx runtime.Context) {
-	l.serviceInfo = service.Current(ctx).String()
-	l.runtimeInfo = ctx.String()
+func (l *_Logger) InitRP(rtCtx runtime.Context) {
+	l.serviceInfo = service.Current(rtCtx).String()
+	l.runtimeInfo = rtCtx.String()
 }
 
 // Log writes a log entry, spaces are added between operands when neither is a string and a newline is appended.

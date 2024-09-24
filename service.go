@@ -52,7 +52,7 @@ import (
 )
 
 type iServiceGeneric interface {
-	init(startupConf *viper.Viper, name string, composite any)
+	init(startupConf *viper.Viper, name string, instance any)
 	generate(ctx context.Context, no int) core.Service
 }
 
@@ -75,13 +75,13 @@ func (s *ServiceGenericT[T]) Instantiation() IServiceInstance {
 type ServiceGeneric struct {
 	startupConf *viper.Viper
 	name        string
-	composite   any
+	instance    any
 }
 
-func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, composite any) {
+func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, instance any) {
 	s.startupConf = startupConf
 	s.name = name
-	s.composite = composite
+	s.instance = instance
 }
 
 func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
@@ -102,83 +102,83 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	face := iface.Face[service.Context]{}
 
-	if cb, ok := s.composite.(IServiceInstantiation); ok {
+	if cb, ok := s.instance.(IServiceInstantiation); ok {
 		face = iface.MakeFaceTReflectC[service.Context, IServiceInstance](cb.Instantiation())
 	}
 
-	servCtx := service.NewContext(
+	svcCtx := service.NewContext(
 		service.With.InstanceFace(face),
 		service.With.Context(ctx),
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.With.RunningHandler(generic.MakeDelegateAction2(func(ctx service.Context, state service.RunningState) {
-			inst := reinterpret.Cast[IServiceInstance](ctx)
+		service.With.RunningHandler(generic.MakeDelegateAction2(func(svcCtx service.Context, state service.RunningState) {
+			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
 			switch state {
 			case service.RunningState_Birth:
-				if cb, ok := s.composite.(LifecycleServiceBirth); ok {
-					cb.Birth(inst)
+				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
+					cb.Birth(svcInst)
 				}
-				if cb, ok := inst.(LifecycleServiceBirth); ok {
-					cb.Birth(inst)
+				if cb, ok := svcInst.(LifecycleServiceBirth); ok {
+					cb.Birth(svcInst)
 				}
 			case service.RunningState_Starting:
-				if cb, ok := s.composite.(LifecycleServiceStarting); ok {
-					cb.Starting(inst)
+				if cb, ok := s.instance.(LifecycleServiceStarting); ok {
+					cb.Starting(svcInst)
 				}
-				if cb, ok := inst.(LifecycleServiceStarting); ok {
-					cb.Starting(inst)
+				if cb, ok := svcInst.(LifecycleServiceStarting); ok {
+					cb.Starting(svcInst)
 				}
 			case service.RunningState_Started:
-				if cb, ok := s.composite.(LifecycleServiceStarted); ok {
-					cb.Started(inst)
+				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
+					cb.Started(svcInst)
 				}
-				if cb, ok := inst.(LifecycleServiceStarted); ok {
-					cb.Started(inst)
+				if cb, ok := svcInst.(LifecycleServiceStarted); ok {
+					cb.Started(svcInst)
 				}
 			case service.RunningState_Terminating:
-				if cb, ok := s.composite.(LifecycleServiceTerminating); ok {
-					cb.Terminating(inst)
+				if cb, ok := s.instance.(LifecycleServiceTerminating); ok {
+					cb.Terminating(svcInst)
 				}
-				if cb, ok := inst.(LifecycleServiceTerminating); ok {
-					cb.Terminating(inst)
+				if cb, ok := svcInst.(LifecycleServiceTerminating); ok {
+					cb.Terminating(svcInst)
 				}
 			case service.RunningState_Terminated:
-				if cb, ok := s.composite.(LifecycleServiceTerminated); ok {
-					cb.Terminated(inst)
+				if cb, ok := s.instance.(LifecycleServiceTerminated); ok {
+					cb.Terminated(svcInst)
 				}
-				if cb, ok := inst.(LifecycleServiceTerminated); ok {
-					cb.Terminated(inst)
+				if cb, ok := svcInst.(LifecycleServiceTerminated); ok {
+					cb.Terminated(svcInst)
 				}
 
-				if v, ok := inst.GetMemKV().Load("zap.logger"); ok {
+				if v, ok := svcInst.GetMemKV().Load("zap.logger"); ok {
 					v.(*zap.Logger).Sync()
 				}
 
-				if v, ok := inst.GetMemKV().Load("etcd.client"); ok {
+				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
 			}
 		})),
 	)
 
-	servInst := reinterpret.Cast[IServiceInstance](servCtx)
+	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
 	installed := func(name string) bool {
-		_, ok := servInst.GetPluginBundle().Get(name)
+		_, ok := svcInst.GetPluginBundle().Get(name)
 		return ok
 	}
 
 	// 安装日志插件
 	if !installed(log.Name) {
-		if cb, ok := servInst.(InstallServiceLogger); ok {
-			cb.InstallLogger(servInst)
+		if cb, ok := svcInst.(InstallServiceLogger); ok {
+			cb.InstallLogger(svcInst)
 		}
 	}
 	if !installed(log.Name) {
-		if cb, ok := s.composite.(InstallServiceLogger); ok {
-			cb.InstallLogger(servInst)
+		if cb, ok := s.instance.(InstallServiceLogger); ok {
+			cb.InstallLogger(svcInst)
 		}
 	}
 	if !installed(log.Name) {
@@ -215,7 +215,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		memKV.Store("zap.logger", zapLogger)
 		memKV.Store("zap.atomic_level", zapAtomicLevel)
 
-		zap_log.Install(servInst,
+		zap_log.Install(svcInst,
 			zap_log.With.ZapLogger(zapLogger),
 			zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
 		)
@@ -223,17 +223,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装配置插件
 	if !installed(conf.Name) {
-		if cb, ok := servInst.(InstallServiceConfig); ok {
-			cb.InstallConfig(servInst)
+		if cb, ok := svcInst.(InstallServiceConfig); ok {
+			cb.InstallConfig(svcInst)
 		}
 	}
 	if !installed(conf.Name) {
-		if cb, ok := s.composite.(InstallServiceConfig); ok {
-			cb.InstallConfig(servInst)
+		if cb, ok := s.instance.(InstallServiceConfig); ok {
+			cb.InstallConfig(svcInst)
 		}
 	}
 	if !installed(conf.Name) {
-		conf.Install(servInst,
+		conf.Install(svcInst,
 			conf.With.Format(startupConf.GetString("conf.format")),
 			conf.With.LocalPath(startupConf.GetString("conf.local_path")),
 			conf.With.Remote(
@@ -248,17 +248,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装消息队列中间件插件
 	if !installed(broker.Name) {
-		if cb, ok := servInst.(InstallServiceBroker); ok {
-			cb.InstallBroker(servInst)
+		if cb, ok := svcInst.(InstallServiceBroker); ok {
+			cb.InstallBroker(svcInst)
 		}
 	}
 	if !installed(broker.Name) {
-		if cb, ok := s.composite.(InstallServiceBroker); ok {
-			cb.InstallBroker(servInst)
+		if cb, ok := s.instance.(InstallServiceBroker); ok {
+			cb.InstallBroker(svcInst)
 		}
 	}
 	if !installed(broker.Name) {
-		nats_broker.Install(servInst,
+		nats_broker.Install(svcInst,
 			nats_broker.With.CustomAddresses(startupConf.GetString("nats.address")),
 			nats_broker.With.CustomAuth(
 				startupConf.GetString("nats.username"),
@@ -269,17 +269,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装服务发现插件
 	if !installed(discovery.Name) {
-		if cb, ok := servInst.(InstallServiceRegistry); ok {
-			cb.InstallRegistry(servInst)
+		if cb, ok := svcInst.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(svcInst)
 		}
 	}
 	if !installed(discovery.Name) {
-		if cb, ok := s.composite.(InstallServiceRegistry); ok {
-			cb.InstallRegistry(servInst)
+		if cb, ok := s.instance.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(svcInst)
 		}
 	}
 	if !installed(discovery.Name) {
-		etcd_discovery.Install(servInst,
+		etcd_discovery.Install(svcInst,
 			etcd_discovery.With.TTL(startupConf.GetDuration("service.ttl"), true),
 			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_discovery.With.CustomAuth(
@@ -291,17 +291,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式同步插件
 	if !installed(dsync.Name) {
-		if cb, ok := servInst.(InstallServiceDistSync); ok {
-			cb.InstallDistSync(servInst)
+		if cb, ok := svcInst.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(svcInst)
 		}
 	}
 	if !installed(dsync.Name) {
-		if cb, ok := s.composite.(InstallServiceDistSync); ok {
-			cb.InstallDistSync(servInst)
+		if cb, ok := s.instance.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(svcInst)
 		}
 	}
 	if !installed(dsync.Name) {
-		etcd_dsync.Install(servInst,
+		etcd_dsync.Install(svcInst,
 			etcd_dsync.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			etcd_dsync.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
@@ -312,17 +312,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式服务插件
 	if !installed(dserv.Name) {
-		if cb, ok := servInst.(InstallServiceDistService); ok {
-			cb.InstallDistService(servInst)
+		if cb, ok := svcInst.(InstallServiceDistService); ok {
+			cb.InstallDistService(svcInst)
 		}
 	}
 	if !installed(dserv.Name) {
-		if cb, ok := s.composite.(InstallServiceDistService); ok {
-			cb.InstallDistService(servInst)
+		if cb, ok := s.instance.(InstallServiceDistService); ok {
+			cb.InstallDistService(svcInst)
 		}
 	}
 	if !installed(dserv.Name) {
-		dserv.Install(servInst,
+		dserv.Install(svcInst,
 			dserv.With.Version(startupConf.GetString("service.version")),
 			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
 			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
@@ -331,17 +331,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装分布式实体查询插件
 	if !installed(dentq.Name) {
-		if cb, ok := servInst.(InstallServiceDistEntityQuerier); ok {
-			cb.InstallDistEntityQuerier(servInst)
+		if cb, ok := svcInst.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(svcInst)
 		}
 	}
 	if !installed(dentq.Name) {
-		if cb, ok := s.composite.(InstallServiceDistEntityQuerier); ok {
-			cb.InstallDistEntityQuerier(servInst)
+		if cb, ok := s.instance.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(svcInst)
 		}
 	}
 	if !installed(dentq.Name) {
-		dentq.Install(servInst,
+		dentq.Install(svcInst,
 			dentq.With.CustomAddresses(startupConf.GetString("etcd.address")),
 			dentq.With.CustomAuth(
 				startupConf.GetString("etcd.username"),
@@ -352,17 +352,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 	// 安装RPC支持插件
 	if !installed(rpc.Name) {
-		if cb, ok := servInst.(InstallServiceRPC); ok {
-			cb.InstallRPC(servInst)
+		if cb, ok := svcInst.(InstallServiceRPC); ok {
+			cb.InstallRPC(svcInst)
 		}
 	}
 	if !installed(rpc.Name) {
-		if cb, ok := s.composite.(InstallServiceRPC); ok {
-			cb.InstallRPC(servInst)
+		if cb, ok := s.instance.(InstallServiceRPC); ok {
+			cb.InstallRPC(svcInst)
 		}
 	}
 	if !installed(rpc.Name) {
-		rpc.Install(servInst)
+		rpc.Install(svcInst)
 	}
 
 	// etcd连接初始化函数
@@ -379,28 +379,28 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}))
 
 	// 组装完成回调回调
-	if cb, ok := s.composite.(LifecycleServiceBuilt); ok {
-		cb.Built(servInst)
+	if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
+		cb.Built(svcInst)
 	}
-	if cb, ok := servInst.(LifecycleServiceBuilt); ok {
-		cb.Built(servInst)
+	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
+		cb.Built(svcInst)
 	}
 
 	// 自动恢复时，打印panic信息
-	if servInst.GetAutoRecover() && servInst.GetReportError() != nil {
+	if svcInst.GetAutoRecover() && svcInst.GetReportError() != nil {
 		go func() {
 			for {
 				select {
-				case err := <-servInst.GetReportError():
-					log.Errorf(servInst, "recover:\n%s", err)
-				case <-servInst.Done():
+				case err := <-svcInst.GetReportError():
+					log.Errorf(svcInst, "recover:\n%s", err)
+				case <-svcInst.Done():
 					return
 				}
 			}
 		}()
 	}
 
-	return core.NewService(servInst)
+	return core.NewService(svcInst)
 }
 
 // GetName 获取服务名称

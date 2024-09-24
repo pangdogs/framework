@@ -58,10 +58,10 @@ type _DistEntityRegistry struct {
 }
 
 // InitRP 初始化运行时插件
-func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
-	log.Debugf(ctx, "init plugin %q", self.Name)
+func (d *_DistEntityRegistry) InitRP(rtCtx runtime.Context) {
+	log.Debugf(rtCtx, "init plugin %q", self.Name)
 
-	d.rtCtx = ctx
+	d.rtCtx = rtCtx
 	d.rtCtx.ActivateEvent(&d.distEntityRegistryEventTab, event.EventRecursion_Allow)
 
 	if d.options.EtcdClient == nil {
@@ -101,14 +101,14 @@ func (d *_DistEntityRegistry) InitRP(ctx runtime.Context) {
 
 	// 绑定事件
 	d.rtCtx.ManagedHooks(
-		runtime.BindEventEntityMgrAddEntity(ctx.GetEntityMgr(), d, 1000),
-		runtime.BindEventEntityMgrRemoveEntity(ctx.GetEntityMgr(), d, -1000),
+		runtime.BindEventEntityMgrAddEntity(rtCtx.GetEntityMgr(), d, 1000),
+		runtime.BindEventEntityMgrRemoveEntity(rtCtx.GetEntityMgr(), d, -1000),
 	)
 }
 
 // ShutRP 关闭运行时插件
-func (d *_DistEntityRegistry) ShutRP(ctx runtime.Context) {
-	log.Debugf(ctx, "shut plugin %q", self.Name)
+func (d *_DistEntityRegistry) ShutRP(rtCtx runtime.Context) {
+	log.Debugf(rtCtx, "shut plugin %q", self.Name)
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
@@ -178,11 +178,11 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 }
 
 func (d *_DistEntityRegistry) getEntityPath(entity ec.Entity) string {
-	servCtx := service.Current(d.rtCtx)
-	return path.Join(d.options.KeyPrefix, entity.GetId().String(), servCtx.GetName(), servCtx.GetId().String())
+	svcCtx := service.Current(d.rtCtx)
+	return path.Join(d.options.KeyPrefix, entity.GetId().String(), svcCtx.GetName(), svcCtx.GetId().String())
 }
 
-func (d *_DistEntityRegistry) keepAliveLease(ctx runtime.Context, ret async.Ret, args ...any) {
+func (d *_DistEntityRegistry) keepAliveLease(rtCtx runtime.Context, ret async.Ret, args ...any) {
 	// 刷新租约
 	_, err := d.client.KeepAliveOnce(d.rtCtx, d.leaseId)
 	if err == nil {

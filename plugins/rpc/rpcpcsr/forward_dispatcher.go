@@ -91,7 +91,7 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", src, dst, transit, req.Path, err)
 			return nil
 		}
 	}
@@ -99,11 +99,11 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.svcCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+				log.Errorf(p.svcCtx, "rpc notify service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc notify service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Plugin, cp.Method, src, dst, transit, req.Path)
 				rets.Release()
 			}
 		}()
@@ -111,18 +111,18 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 				ret.Value.(variant.Array).Release()
 			}
 		}()
@@ -130,18 +130,18 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path)
 				ret.Value.(variant.Array).Release()
 			}
 		}()
@@ -171,7 +171,7 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
 			return nil
 		}
@@ -180,11 +180,11 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.svcCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+				log.Errorf(p.svcCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc request(%d) service plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 			}
 			p.reply(src, transit, req.CorrId, rets, err)
 		}()
@@ -192,20 +192,20 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path, ret.Error)
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Entity, cp.Plugin, cp.Method, src, dst, transit, req.Path)
 				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
@@ -213,20 +213,20 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, err)
 			go p.reply(src, transit, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path, ret.Error)
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path)
+				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Entity, cp.Component, cp.Method, src, dst, transit, req.Path)
 				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
@@ -255,7 +255,7 @@ func (p *_ForwardProcessor) reply(src, transit string, corrId int64, rets varian
 
 	bs, err := gap.Marshal(msg)
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
 	defer bs.Release()
@@ -269,11 +269,11 @@ func (p *_ForwardProcessor) reply(src, transit string, corrId int64, rets varian
 
 	err = p.dist.SendMsg(transit, forwardMsg)
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
 
-	log.Debugf(p.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src)
 }
 
 func (p *_ForwardProcessor) resolve(reply *gap.MsgRPCReply) error {

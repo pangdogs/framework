@@ -46,17 +46,17 @@ func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 }
 
 type _RPC struct {
-	servCtx    service.Context
+	svcCtx     service.Context
 	options    RPCOptions
 	terminated atomic.Bool
 	deliverers []rpcpcsr.IDeliverer
 }
 
 // InitSP 初始化服务插件
-func (r *_RPC) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (r *_RPC) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	r.servCtx = ctx
+	r.svcCtx = svcCtx
 
 	for _, p := range r.options.Processors {
 		if deliverer, ok := p.(rpcpcsr.IDeliverer); ok {
@@ -66,20 +66,20 @@ func (r *_RPC) InitSP(ctx service.Context) {
 
 	for _, p := range r.options.Processors {
 		if init, ok := p.(rpcpcsr.LifecycleInit); ok {
-			init.Init(r.servCtx)
+			init.Init(r.svcCtx)
 		}
 	}
 }
 
 // ShutSP 关闭服务插件
-func (r *_RPC) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (r *_RPC) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	r.terminated.Store(true)
 
 	for _, p := range r.options.Processors {
 		if shut, ok := p.(rpcpcsr.LifecycleShut); ok {
-			shut.Shut(r.servCtx)
+			shut.Shut(r.svcCtx)
 		}
 	}
 }
@@ -99,11 +99,11 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, cc, cp, false) {
+		if !deliverer.Match(r.svcCtx, dst, cc, cp, false) {
 			continue
 		}
 
-		return deliverer.Request(r.servCtx, dst, cc, cp, args)
+		return deliverer.Request(r.svcCtx, dst, cc, cp, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
@@ -124,11 +124,11 @@ func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, cc, cp, true) {
+		if !deliverer.Match(r.svcCtx, dst, cc, cp, true) {
 			continue
 		}
 
-		return deliverer.Notify(r.servCtx, dst, cc, cp, args)
+		return deliverer.Notify(r.svcCtx, dst, cc, cp, args)
 	}
 
 	return rpcpcsr.ErrUndeliverable

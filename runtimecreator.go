@@ -29,18 +29,18 @@ import (
 )
 
 // CreateRuntime 创建运行时
-func CreateRuntime(ctx service.Context) RuntimeCreator {
-	if ctx == nil {
-		panic(fmt.Errorf("%w: ctx is nil", core.ErrArgs))
+func CreateRuntime(svcCtx service.Context) RuntimeCreator {
+	if svcCtx == nil {
+		panic(fmt.Errorf("%w: svcCtx is nil", core.ErrArgs))
 	}
 	return RuntimeCreator{
-		servCtx: ctx,
+		svcCtx:  svcCtx,
 		generic: nil,
 		settings: _RuntimeSettings{
 			Name:                 "",
 			PersistId:            uid.Nil,
-			AutoRecover:          ctx.GetAutoRecover(),
-			ReportError:          ctx.GetReportError(),
+			AutoRecover:          svcCtx.GetAutoRecover(),
+			ReportError:          svcCtx.GetReportError(),
 			FPS:                  0,
 			ProcessQueueCapacity: 128,
 		},
@@ -49,15 +49,15 @@ func CreateRuntime(ctx service.Context) RuntimeCreator {
 
 // RuntimeCreator 运行时构建器
 type RuntimeCreator struct {
-	servCtx  service.Context
+	svcCtx   service.Context
 	generic  iRuntimeGeneric
 	settings _RuntimeSettings
 }
 
 // Setup 安装运行时泛化类型
 func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
-	if c.servCtx == nil {
-		panic("setting servCtx is nil")
+	if c.svcCtx == nil {
+		panic("setting svcCtx is nil")
 	}
 
 	if generic == nil {
@@ -106,15 +106,15 @@ func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 
 // Spawn 创建运行时
 func (c RuntimeCreator) Spawn() IRuntimeInstance {
-	if c.servCtx == nil {
-		panic("setting servCtx is nil")
+	if c.svcCtx == nil {
+		panic("setting svcCtx is nil")
 	}
 
 	generic := c.generic
 	if generic == nil {
 		generic = &RuntimeGenericT[RuntimeInstance]{}
 	}
-	generic.init(c.servCtx, generic)
+	generic.init(c.svcCtx, generic)
 
 	return reinterpret.Cast[IRuntimeInstance](runtime.Current(generic.generate(c.settings)))
 }

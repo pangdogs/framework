@@ -34,12 +34,12 @@ import (
 )
 
 // CreateConcurrentEntity 创建实体
-func CreateConcurrentEntity(ctx service.Context, prototype string) ConcurrentEntityCreator {
-	if ctx == nil {
-		panic(fmt.Errorf("%w: ctx is nil", core.ErrArgs))
+func CreateConcurrentEntity(svcCtx service.Context, prototype string) ConcurrentEntityCreator {
+	if svcCtx == nil {
+		panic(fmt.Errorf("%w: svcCtx is nil", core.ErrArgs))
 	}
 	return ConcurrentEntityCreator{
-		ctx:       ctx,
+		ctx:       svcCtx,
 		prototype: prototype,
 	}
 }
@@ -73,8 +73,8 @@ func (c ConcurrentEntityCreator) InstanceFace(face iface.Face[ec.Entity]) Concur
 }
 
 // Instance 实例，用于扩展实体能力
-func (c ConcurrentEntityCreator) Instance(composite ec.Entity) ConcurrentEntityCreator {
-	c.settings = append(c.settings, ec.With.InstanceFace(iface.MakeFaceT(composite)))
+func (c ConcurrentEntityCreator) Instance(instance ec.Entity) ConcurrentEntityCreator {
+	c.settings = append(c.settings, ec.With.InstanceFace(iface.MakeFaceT(instance)))
 	return c
 }
 
@@ -118,20 +118,20 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 
 	rt := c.rt
 	if rt == nil {
-		if c.rtCreator.servCtx != nil {
+		if c.rtCreator.svcCtx != nil {
 			rt = c.rtCreator.Spawn()
 		} else {
 			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
-	err := core.Async(rt, func(ctx runtime.Context, _ ...any) async.Ret {
+	err := core.Async(rt, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
-			if err := ctx.GetEntityMgr().AddEntity(entity); err != nil {
+			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		} else {
-			if err := ctx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
+			if err := rtCtx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		}
@@ -157,20 +157,20 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 
 	rt := c.rt
 	if rt == nil {
-		if c.rtCreator.servCtx != nil {
+		if c.rtCreator.svcCtx != nil {
 			rt = c.rtCreator.Spawn()
 		} else {
 			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
-	asyncRet := core.Async(rt, func(ctx runtime.Context, _ ...any) async.Ret {
+	asyncRet := core.Async(rt, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
-			if err := ctx.GetEntityMgr().AddEntity(entity); err != nil {
+			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		} else {
-			if err := ctx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
+			if err := rtCtx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		}

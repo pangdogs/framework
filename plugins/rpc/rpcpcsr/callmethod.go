@@ -33,7 +33,7 @@ import (
 	"reflect"
 )
 
-func CallService(servCtx service.Context, cc rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -43,9 +43,9 @@ func CallService(servCtx service.Context, cc rpcstack.CallChain, plugin, method 
 	var reflected reflect.Value
 
 	if plugin == "" {
-		reflected = service.UnsafeContext(servCtx).GetReflected()
+		reflected = service.UnsafeContext(svcCtx).GetReflected()
 	} else {
-		pi, ok := servCtx.GetPluginBundle().Get(plugin)
+		pi, ok := svcCtx.GetPluginBundle().Get(plugin)
 		if !ok {
 			return nil, ErrPluginNotFound
 		}
@@ -65,14 +65,14 @@ func CallService(servCtx service.Context, cc rpcstack.CallChain, plugin, method 
 	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
-func CallRuntime(servCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+	return svcCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var reflected reflect.Value
 
 		if plugin == "" {
@@ -103,14 +103,14 @@ func CallRuntime(servCtx service.Context, cc rpcstack.CallChain, entityId uid.Id
 	}), nil
 }
 
-func CallEntity(servCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	return servCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+	return svcCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var reflected reflect.Value
 
 		if component == "" {

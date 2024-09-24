@@ -31,7 +31,7 @@ import (
 )
 
 // Match 是否匹配
-func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
+func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
 	details := p.dist.GetNodeDetails()
 
 	// 只支持服务域通信
@@ -49,7 +49,7 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.C
 }
 
 // Request 请求
-func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet {
+func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -77,12 +77,12 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack
 		return ret.ToAsyncRet()
 	}
 
-	log.Debugf(p.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, cp)
+	log.Debugf(p.svcCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, cp)
 	return ret.ToAsyncRet()
 }
 
 // Notify 通知
-func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
+func (p *_ServiceProcessor) Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
 	vargs, err := variant.MakeReadonlyArray(args)
 	if err != nil {
 		return err
@@ -103,6 +103,6 @@ func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.
 		return err
 	}
 
-	log.Debugf(p.servCtx, "rpc notify to dst:%q, path:%q ok", dst, cp)
+	log.Debugf(p.svcCtx, "rpc notify to dst:%q, path:%q ok", dst, cp)
 	return nil
 }

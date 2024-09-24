@@ -31,9 +31,9 @@ import (
 )
 
 // ProxyService 代理服务
-func ProxyService(ctx service.Context, service ...string) ServiceProxied {
+func ProxyService(svcCtx service.Context, service ...string) ServiceProxied {
 	p := ServiceProxied{
-		servCtx: ctx,
+		svcCtx: svcCtx,
 	}
 
 	if len(service) > 0 {
@@ -45,7 +45,7 @@ func ProxyService(ctx service.Context, service ...string) ServiceProxied {
 
 // ServiceProxied 实体服务，用于向服务发送RPC
 type ServiceProxied struct {
-	servCtx service.Context
+	svcCtx  service.Context
 	service string
 }
 
@@ -56,12 +56,12 @@ func (p ServiceProxied) GetService() string {
 
 // RPC 向分布式服务指定节点发送RPC
 func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.servCtx).GetNodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dserv.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return makeErr(err)
 	}
@@ -73,22 +73,22 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
 func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 目标地址
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBalanceAddr(p.service)
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBalanceAddr
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
 	// 调用路径
@@ -98,17 +98,17 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // OnewayRPC 向分布式服务指定节点发送单向RPC
 func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.servCtx).GetNodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dserv.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return err
 	}
@@ -120,22 +120,22 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
 func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 目标地址
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBalanceAddr(p.service)
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBalanceAddr
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
 	// 调用路径
@@ -145,22 +145,22 @@ func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) err
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
 func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 目标地址
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().MakeBroadcastAddr(p.service)
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBroadcastAddr(p.service)
 	} else {
-		dst = dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
+		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
 	}
 
 	// 调用路径
@@ -171,5 +171,5 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method stri
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }

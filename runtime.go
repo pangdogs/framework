@@ -38,7 +38,7 @@ import (
 )
 
 type iRuntimeGeneric interface {
-	init(ctx service.Context, composite any)
+	init(svcCtx service.Context, instance any)
 	generate(settings _RuntimeSettings) core.Runtime
 }
 
@@ -68,21 +68,21 @@ func (r *RuntimeGenericT[T]) Instantiation() IRuntimeInstance {
 
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
-	serv      IServiceInstance
-	composite any
+	svcInst  IServiceInstance
+	instance any
 }
 
-func (r *RuntimeGeneric) init(ctx service.Context, composite any) {
-	r.serv = reinterpret.Cast[IServiceInstance](ctx)
-	r.composite = composite
+func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
+	r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
+	r.instance = instance
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
-	wholeConf := conf.Using(r.serv).Whole()
+	wholeConf := conf.Using(r.svcInst).Whole()
 
 	face := iface.Face[runtime.Context]{}
 
-	if cb, ok := r.composite.(IRuntimeInstantiation); ok {
+	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
 		face = iface.MakeFaceTReflectC[runtime.Context, IRuntimeInstance](cb.Instantiation())
 	}
 
@@ -95,114 +95,114 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	iRunGCBeginCB, _ := face.Iface.(LifecycleRuntimeRunGCBegin)
 	iRunGCEndCB, _ := face.Iface.(LifecycleRuntimeRunGCEnd)
 
-	frameLoopBeginCB, _ := r.composite.(LifecycleRuntimeFrameLoopBegin)
-	frameUpdateBeginCB, _ := r.composite.(LifecycleRuntimeFrameUpdateBegin)
-	frameUpdateEndCB, _ := r.composite.(LifecycleRuntimeFrameUpdateEnd)
-	frameLoopEndCB, _ := r.composite.(LifecycleRuntimeFrameLoopEnd)
-	runCallBeginCB, _ := r.composite.(LifecycleRuntimeRunCallBegin)
-	runCallEndCB, _ := r.composite.(LifecycleRuntimeRunCallEnd)
-	runGCBeginCB, _ := r.composite.(LifecycleRuntimeRunGCBegin)
-	runGCEndCB, _ := r.composite.(LifecycleRuntimeRunGCEnd)
+	frameLoopBeginCB, _ := r.instance.(LifecycleRuntimeFrameLoopBegin)
+	frameUpdateBeginCB, _ := r.instance.(LifecycleRuntimeFrameUpdateBegin)
+	frameUpdateEndCB, _ := r.instance.(LifecycleRuntimeFrameUpdateEnd)
+	frameLoopEndCB, _ := r.instance.(LifecycleRuntimeFrameLoopEnd)
+	runCallBeginCB, _ := r.instance.(LifecycleRuntimeRunCallBegin)
+	runCallEndCB, _ := r.instance.(LifecycleRuntimeRunCallEnd)
+	runGCBeginCB, _ := r.instance.(LifecycleRuntimeRunGCBegin)
+	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
 
 	rtCtx := runtime.NewContext(r.GetService(),
 		runtime.With.Context.InstanceFace(face),
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.MakeDelegateAction2(func(ctx runtime.Context, state runtime.RunningState) {
-			inst := reinterpret.Cast[IRuntimeInstance](ctx)
+		runtime.With.Context.RunningHandler(generic.MakeDelegateAction2(func(rtCtx runtime.Context, state runtime.RunningState) {
+			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 
 			switch state {
 			case runtime.RunningState_Birth:
-				if cb, ok := r.composite.(LifecycleRuntimeBirth); ok {
-					cb.Birth(inst)
+				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
+					cb.Birth(rtInst)
 				}
-				if cb, ok := inst.(LifecycleRuntimeBirth); ok {
-					cb.Birth(inst)
+				if cb, ok := rtInst.(LifecycleRuntimeBirth); ok {
+					cb.Birth(rtInst)
 				}
 			case runtime.RunningState_Starting:
-				if cb, ok := r.composite.(LifecycleRuntimeStarting); ok {
-					cb.Starting(inst)
+				if cb, ok := r.instance.(LifecycleRuntimeStarting); ok {
+					cb.Starting(rtInst)
 				}
-				if cb, ok := inst.(LifecycleRuntimeStarting); ok {
-					cb.Starting(inst)
+				if cb, ok := rtInst.(LifecycleRuntimeStarting); ok {
+					cb.Starting(rtInst)
 				}
 			case runtime.RunningState_Started:
-				if cb, ok := r.composite.(LifecycleRuntimeStarted); ok {
-					cb.Started(inst)
+				if cb, ok := r.instance.(LifecycleRuntimeStarted); ok {
+					cb.Started(rtInst)
 				}
-				if cb, ok := inst.(LifecycleRuntimeStarted); ok {
-					cb.Started(inst)
+				if cb, ok := rtInst.(LifecycleRuntimeStarted); ok {
+					cb.Started(rtInst)
 				}
 			case runtime.RunningState_FrameLoopBegin:
 				if cb := frameLoopBeginCB; cb != nil {
-					cb.FrameLoopBegin(inst)
+					cb.FrameLoopBegin(rtInst)
 				}
 				if cb := iFrameLoopBeginCB; cb != nil {
-					cb.FrameLoopBegin(inst)
+					cb.FrameLoopBegin(rtInst)
 				}
 			case runtime.RunningState_FrameUpdateBegin:
 				if cb := frameUpdateBeginCB; cb != nil {
-					cb.FrameUpdateBegin(inst)
+					cb.FrameUpdateBegin(rtInst)
 				}
 				if cb := iFrameUpdateBeginCB; cb != nil {
-					cb.FrameUpdateBegin(inst)
+					cb.FrameUpdateBegin(rtInst)
 				}
 			case runtime.RunningState_FrameUpdateEnd:
 				if cb := frameUpdateEndCB; cb != nil {
-					cb.FrameUpdateEnd(inst)
+					cb.FrameUpdateEnd(rtInst)
 				}
 				if cb := iFrameUpdateEndCB; cb != nil {
-					cb.FrameUpdateEnd(inst)
+					cb.FrameUpdateEnd(rtInst)
 				}
 			case runtime.RunningState_FrameLoopEnd:
 				if cb := frameLoopEndCB; cb != nil {
-					cb.FrameLoopEnd(inst)
+					cb.FrameLoopEnd(rtInst)
 				}
 				if cb := iFrameLoopEndCB; cb != nil {
-					cb.FrameLoopEnd(inst)
+					cb.FrameLoopEnd(rtInst)
 				}
 			case runtime.RunningState_RunCallBegin:
 				if cb := runCallBeginCB; cb != nil {
-					cb.RunCallBegin(inst)
+					cb.RunCallBegin(rtInst)
 				}
 				if cb := iRunCallBeginCB; cb != nil {
-					cb.RunCallBegin(inst)
+					cb.RunCallBegin(rtInst)
 				}
 			case runtime.RunningState_RunCallEnd:
 				if cb := runCallEndCB; cb != nil {
-					cb.RunCallEnd(inst)
+					cb.RunCallEnd(rtInst)
 				}
 				if cb := iRunCallEndCB; cb != nil {
-					cb.RunCallEnd(inst)
+					cb.RunCallEnd(rtInst)
 				}
 			case runtime.RunningState_RunGCBegin:
 				if cb := runGCBeginCB; cb != nil {
-					cb.RunGCBegin(inst)
+					cb.RunGCBegin(rtInst)
 				}
 				if cb := iRunGCBeginCB; cb != nil {
-					cb.RunGCBegin(inst)
+					cb.RunGCBegin(rtInst)
 				}
 			case runtime.RunningState_RunGCEnd:
 				if cb := runGCEndCB; cb != nil {
-					cb.RunGCEnd(inst)
+					cb.RunGCEnd(rtInst)
 				}
 				if cb := iRunGCEndCB; cb != nil {
-					cb.RunGCEnd(inst)
+					cb.RunGCEnd(rtInst)
 				}
 			case runtime.RunningState_Terminating:
-				if cb, ok := r.composite.(LifecycleRuntimeTerminating); ok {
-					cb.Terminating(inst)
+				if cb, ok := r.instance.(LifecycleRuntimeTerminating); ok {
+					cb.Terminating(rtInst)
 				}
-				if cb, ok := inst.(LifecycleRuntimeTerminating); ok {
-					cb.Terminating(inst)
+				if cb, ok := rtInst.(LifecycleRuntimeTerminating); ok {
+					cb.Terminating(rtInst)
 				}
 			case runtime.RunningState_Terminated:
-				if cb, ok := r.composite.(LifecycleRuntimeTerminated); ok {
-					cb.Terminated(inst)
+				if cb, ok := r.instance.(LifecycleRuntimeTerminated); ok {
+					cb.Terminated(rtInst)
 				}
-				if cb, ok := inst.(LifecycleRuntimeTerminated); ok {
-					cb.Terminated(inst)
+				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
+					cb.Terminated(rtInst)
 				}
 			}
 		})),
@@ -222,12 +222,12 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(log.Name) {
-		if cb, ok := r.composite.(InstallRuntimeLogger); ok {
+		if cb, ok := r.instance.(InstallRuntimeLogger); ok {
 			cb.InstallLogger(rtInst)
 		}
 	}
 	if !installed(log.Name) {
-		if v, _ := r.serv.GetMemKV().Load("zap.logger"); v != nil {
+		if v, _ := r.svcInst.GetMemKV().Load("zap.logger"); v != nil {
 			zap_log.Install(rtInst,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
 				zap_log.With.ServiceInfo(wholeConf.GetBool("log.service_info")),
@@ -243,7 +243,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(rpcstack.Name) {
-		if cb, ok := r.composite.(InstallRuntimeRPCStack); ok {
+		if cb, ok := r.instance.(InstallRuntimeRPCStack); ok {
 			cb.InstallRPCStack(rtInst)
 		}
 	}
@@ -258,7 +258,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(dentr.Name) {
-		if cb, ok := r.composite.(InstallRuntimeDistEntityRegistry); ok {
+		if cb, ok := r.instance.(InstallRuntimeDistEntityRegistry); ok {
 			cb.InstallDistEntityRegistry(rtInst)
 		}
 	}
@@ -283,7 +283,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	}
 
 	// 组装完成回调回调
-	if cb, ok := r.composite.(LifecycleRuntimeBuilt); ok {
+	if cb, ok := r.instance.(LifecycleRuntimeBuilt); ok {
 		cb.Built(rtInst)
 	}
 	if cb, ok := rtInst.(LifecycleRuntimeBuilt); ok {
@@ -306,5 +306,5 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 // GetService 获取服务
 func (r *RuntimeGeneric) GetService() IServiceInstance {
-	return r.serv
+	return r.svcInst
 }

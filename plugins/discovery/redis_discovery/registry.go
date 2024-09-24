@@ -54,17 +54,17 @@ type _Register struct {
 }
 
 type _Registry struct {
-	servCtx   service.Context
+	svcCtx    service.Context
 	options   RegistryOptions
 	client    *redis.Client
 	registers *concurrent.Cache[string, *_Register]
 }
 
 // InitSP 初始化服务插件
-func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (r *_Registry) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	r.servCtx = ctx
+	r.svcCtx = svcCtx
 
 	if r.options.RedisClient == nil {
 		r.client = redis.NewClient(r.configure())
@@ -72,22 +72,22 @@ func (r *_Registry) InitSP(ctx service.Context) {
 		r.client = r.options.RedisClient
 	}
 
-	_, err := r.client.Ping(r.servCtx).Result()
+	_, err := r.client.Ping(r.svcCtx).Result()
 	if err != nil {
-		log.Panicf(r.servCtx, "ping redis %q failed, %v", r.client, err)
+		log.Panicf(r.svcCtx, "ping redis %q failed, %v", r.client, err)
 	}
 
-	_, err = r.client.ConfigSet(r.servCtx, "notify-keyspace-events", "KEA").Result()
+	_, err = r.client.ConfigSet(r.svcCtx, "notify-keyspace-events", "KEA").Result()
 	if err != nil {
-		log.Panicf(r.servCtx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
+		log.Panicf(r.svcCtx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
 
 	r.registers = concurrent.NewCache[string, *_Register]()
 }
 
 // ShutSP 关闭服务插件
-func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (r *_Registry) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if r.options.RedisClient == nil {
 		if r.client != nil {
@@ -231,12 +231,12 @@ func (r *_Registry) GetService(ctx context.Context, serviceName string) (*discov
 	for _, v := range nodeVals {
 		service, err := decodeService(types.String2Bytes(v.(string)))
 		if err != nil {
-			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
+			log.Errorf(r.svcCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
 		if len(service.Nodes) <= 0 {
-			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", v)
+			log.Errorf(r.svcCtx, "decode service %q failed, nodes is empty", v)
 			continue
 		}
 
@@ -288,12 +288,12 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 	for _, v := range nodeVals {
 		service, err := decodeService(types.String2Bytes(v.(string)))
 		if err != nil {
-			log.Errorf(r.servCtx, "decode service %q failed, %s", v, err)
+			log.Errorf(r.svcCtx, "decode service %q failed, %s", v, err)
 			continue
 		}
 
 		if len(service.Nodes) <= 0 {
-			log.Errorf(r.servCtx, "decode service %q failed, nodes is empty", v)
+			log.Errorf(r.svcCtx, "decode service %q failed, nodes is empty", v)
 			continue
 		}
 
@@ -342,7 +342,7 @@ func (r *_Registry) configure() *redis.Options {
 	if r.options.RedisURL != "" {
 		conf, err := redis.ParseURL(r.options.RedisURL)
 		if err != nil {
-			log.Panicf(r.servCtx, "parse redis url %q failed, %s", r.options.RedisURL, err)
+			log.Panicf(r.svcCtx, "parse redis url %q failed, %s", r.options.RedisURL, err)
 		}
 		return conf
 	}
@@ -382,7 +382,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 
 	register, ok := r.registers.Get(nodePath)
 	if ok && register.hash == hv && keepAlive {
-		log.Debugf(r.servCtx, "service %q node %q unchanged, skipping registration", serviceName, node.Id)
+		log.Debugf(r.svcCtx, "service %q node %q unchanged, skipping registration", serviceName, node.Id)
 		return nil
 	}
 
@@ -409,7 +409,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return nil
 	}
 
-	log.Debugf(r.servCtx, "register service %q node %q success", serviceNode.Name, node.Id)
+	log.Debugf(r.svcCtx, "register service %q node %q success", serviceNode.Name, node.Id)
 	return nil
 }
 
@@ -427,7 +427,7 @@ func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node
 		return err
 	}
 
-	log.Debugf(r.servCtx, "deregister service %q node %q success", serviceName, node.Id)
+	log.Debugf(r.svcCtx, "deregister service %q node %q success", serviceName, node.Id)
 	return nil
 }
 

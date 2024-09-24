@@ -48,7 +48,7 @@ func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidato
 
 // _ForwardProcessor RPC转发处理器，用于S<->G的通信
 type _ForwardProcessor struct {
-	servCtx              service.Context
+	svcCtx               service.Context
 	dist                 dserv.IDistService
 	dentq                dentq.IDistEntityQuerier
 	encoder              codec.Encoder
@@ -60,19 +60,19 @@ type _ForwardProcessor struct {
 }
 
 // Init 初始化
-func (p *_ForwardProcessor) Init(ctx service.Context) {
-	p.servCtx = ctx
-	p.dist = dserv.Using(ctx)
-	p.dentq = dentq.Using(ctx)
+func (p *_ForwardProcessor) Init(svcCtx service.Context) {
+	p.svcCtx = svcCtx
+	p.dist = dserv.Using(svcCtx)
+	p.dentq = dentq.Using(svcCtx)
 	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
-	log.Debugf(p.servCtx, "rpc processor %q started", types.FullName(*p))
+	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
-func (p *_ForwardProcessor) Shut(ctx service.Context) {
+func (p *_ForwardProcessor) Shut(svcCtx service.Context) {
 	<-p.watcher.Terminate()
 
-	log.Debugf(p.servCtx, "rpc processor %q stopped", types.FullName(*p))
+	log.Debugf(p.svcCtx, "rpc processor %q stopped", types.FullName(*p))
 }

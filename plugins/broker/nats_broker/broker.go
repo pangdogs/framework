@@ -39,7 +39,7 @@ func newBroker(settings ...option.Setting[BrokerOptions]) broker.IBroker {
 }
 
 type _Broker struct {
-	servCtx   service.Context
+	svcCtx    service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
 	wg        sync.WaitGroup
@@ -48,16 +48,16 @@ type _Broker struct {
 }
 
 // InitSP 初始化服务插件
-func (b *_Broker) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (b *_Broker) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	b.servCtx = ctx
+	b.svcCtx = svcCtx
 	b.ctx, b.terminate = context.WithCancel(context.Background())
 
 	if b.options.NatsClient == nil {
-		client, err := nats.Connect(strings.Join(b.options.CustomAddresses, ","), nats.UserInfo(b.options.CustomUsername, b.options.CustomPassword), nats.Name(ctx.String()))
+		client, err := nats.Connect(strings.Join(b.options.CustomAddresses, ","), nats.UserInfo(b.options.CustomUsername, b.options.CustomPassword), nats.Name(svcCtx.String()))
 		if err != nil {
-			log.Panicf(ctx, "connect nats %q failed, %s", b.options.CustomAddresses, err)
+			log.Panicf(svcCtx, "connect nats %q failed, %s", b.options.CustomAddresses, err)
 		}
 		b.client = client
 	} else {
@@ -65,13 +65,13 @@ func (b *_Broker) InitSP(ctx service.Context) {
 	}
 
 	if _, err := b.client.RTT(); err != nil {
-		log.Panicf(ctx, "rtt nats %q failed, %s", b.client.Servers(), err)
+		log.Panicf(svcCtx, "rtt nats %q failed, %s", b.client.Servers(), err)
 	}
 }
 
 // ShutSP 关闭服务插件
-func (b *_Broker) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (b *_Broker) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	b.terminate()
 	b.wg.Wait()
@@ -79,7 +79,7 @@ func (b *_Broker) ShutSP(ctx service.Context) {
 	if b.options.NatsClient == nil {
 		if b.client != nil {
 			if err := b.client.Drain(); err != nil {
-				log.Errorf(ctx, "nats drain failed, %s", err)
+				log.Errorf(svcCtx, "nats drain failed, %s", err)
 			}
 		}
 	}

@@ -49,8 +49,8 @@ type _Config struct {
 }
 
 // InitSP 初始化服务插件
-func (c *_Config) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (c *_Config) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	vp := viper.New()
 	vp.SetConfigType(c.options.Format)
@@ -74,24 +74,24 @@ func (c *_Config) InitSP(ctx service.Context) {
 		vp.SetConfigFile(c.options.LocalPath)
 
 		if err := vp.MergeInConfig(); err != nil {
-			log.Panicf(ctx, "read local config %q failed, %s", c.options.LocalPath, err)
+			log.Panicf(svcCtx, "read local config %q failed, %s", c.options.LocalPath, err)
 		}
 
-		log.Infof(ctx, "load local config %q config ok", c.options.LocalPath)
+		log.Infof(svcCtx, "load local config %q config ok", c.options.LocalPath)
 	}
 
 	if remote {
 		if err := vp.AddRemoteProvider(c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath); err != nil {
-			log.Panicf(ctx, "set remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.Panicf(svcCtx, "set remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
 		if err := vp.ReadRemoteConfig(); err != nil {
-			log.Panicf(ctx, "read remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.Panicf(svcCtx, "read remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
 
-		log.Infof(ctx, "load remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+		log.Infof(svcCtx, "load remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 	}
 
-	subVp := vp.Sub(ctx.GetName())
+	subVp := vp.Sub(svcCtx.GetName())
 	if subVp == nil {
 		subVp = viper.New()
 	}
@@ -105,13 +105,13 @@ func (c *_Config) InitSP(ctx service.Context) {
 	if c.options.AutoUpdate {
 		if local {
 			vp.OnConfigChange(func(in fsnotify.Event) {
-				subVp := vp.Sub(ctx.GetName())
+				subVp := vp.Sub(svcCtx.GetName())
 				if subVp == nil {
 					subVp = viper.New()
 				}
 				c._VisitConf.Viper = subVp
 
-				log.Infof(ctx, "reload local config %q ok", c.options.LocalPath)
+				log.Infof(svcCtx, "reload local config %q ok", c.options.LocalPath)
 			})
 			vp.WatchConfig()
 		}
@@ -122,17 +122,17 @@ func (c *_Config) InitSP(ctx service.Context) {
 
 					err := vp.WatchRemoteConfig()
 					if err != nil {
-						log.Errorf(ctx, "watch remote config [%q, %q, %q] changes failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+						log.Errorf(svcCtx, "watch remote config [%q, %q, %q] changes failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 						continue
 					}
 
-					subVp := vp.Sub(ctx.GetName())
+					subVp := vp.Sub(svcCtx.GetName())
 					if subVp == nil {
 						subVp = viper.New()
 					}
 					c._VisitConf.Viper = subVp
 
-					log.Infof(ctx, "reload remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+					log.Infof(svcCtx, "reload remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 				}
 			}()
 		}
@@ -140,18 +140,18 @@ func (c *_Config) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (c *_Config) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (c *_Config) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 }
 
 // InitRP 初始化运行时插件
-func (c *_Config) InitRP(ctx runtime.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (c *_Config) InitRP(rtCtx runtime.Context) {
+	log.Infof(rtCtx, "init plugin %q", self.Name)
 }
 
 // ShutRP 关闭运行时插件
-func (c *_Config) ShutRP(ctx runtime.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (c *_Config) ShutRP(rtCtx runtime.Context) {
+	log.Infof(rtCtx, "shut plugin %q", self.Name)
 }
 
 func (c *_Config) Whole() IVisitConf {

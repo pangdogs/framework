@@ -42,23 +42,23 @@ func newMongoDB(settings ...option.Setting[MongoDBOptions]) IMongoDB {
 }
 
 type _MongoDB struct {
-	servCtx service.Context
+	svcCtx  service.Context
 	options MongoDBOptions
 	dbs     map[string]*mongo.Client
 }
 
-func (m *_MongoDB) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (m *_MongoDB) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	m.servCtx = ctx
+	m.svcCtx = svcCtx
 
 	for _, info := range m.options.DBInfos {
 		m.dbs[info.Tag] = m.connectToDB(info)
 	}
 }
 
-func (m *_MongoDB) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (m *_MongoDB) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	for _, db := range m.dbs {
 		db.Disconnect(context.Background())
@@ -74,17 +74,17 @@ func (m *_MongoDB) connectToDB(info db.DBInfo) *mongo.Client {
 
 	client, err := mongo.NewClient(opt)
 	if err != nil {
-		log.Panicf(m.servCtx, "conn to db %q failed, %s", info.ConnStr, err)
+		log.Panicf(m.svcCtx, "conn to db %q failed, %s", info.ConnStr, err)
 	}
 
 	if err := client.Connect(context.Background()); err != nil {
-		log.Panicf(m.servCtx, "conn to db %q failed, %s", info.ConnStr, err)
+		log.Panicf(m.svcCtx, "conn to db %q failed, %s", info.ConnStr, err)
 	}
 
 	if err := client.Ping(context.Background(), readpref.Primary()); err != nil {
-		log.Panicf(m.servCtx, "ping db %q failed, %s", info.ConnStr, err)
+		log.Panicf(m.svcCtx, "ping db %q failed, %s", info.ConnStr, err)
 	}
 
-	log.Infof(m.servCtx, "conn to db %q ok", info.ConnStr)
+	log.Infof(m.svcCtx, "conn to db %q ok", info.ConnStr)
 	return client
 }

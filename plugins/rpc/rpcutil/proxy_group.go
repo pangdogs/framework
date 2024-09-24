@@ -30,27 +30,27 @@ import (
 )
 
 // ProxyGroup 代理分组
-func ProxyGroup(ctx runtime.CurrentContextProvider, name string) GroupProxied {
+func ProxyGroup(provider runtime.CurrentContextProvider, name string) GroupProxied {
 	return GroupProxied{
-		servCtx: service.Current(ctx),
-		rtCtx:   runtime.Current(ctx),
-		addr:    gate.CliDetails.DomainMulticast.Join(name),
+		svcCtx: service.Current(provider),
+		rtCtx:  runtime.Current(provider),
+		addr:   gate.CliDetails.DomainMulticast.Join(name),
 	}
 }
 
 // ConcurrentProxyGroup 代理分组
-func ConcurrentProxyGroup(ctx service.Context, name string) GroupProxied {
+func ConcurrentProxyGroup(svcCtx service.Context, name string) GroupProxied {
 	return GroupProxied{
-		servCtx: ctx,
-		addr:    gate.CliDetails.DomainMulticast.Join(name),
+		svcCtx: svcCtx,
+		addr:   gate.CliDetails.DomainMulticast.Join(name),
 	}
 }
 
 // GroupProxied 分组代理，用于向分组发送RPC
 type GroupProxied struct {
-	servCtx service.Context
-	rtCtx   runtime.Context
-	addr    string
+	svcCtx service.Context
+	rtCtx  runtime.Context
+	addr   string
 }
 
 // GetName 获取分组名称
@@ -66,8 +66,8 @@ func (p GroupProxied) GetAddr() string {
 
 // CliOnewayRPC 向分组发送单向RPC
 func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 调用链
@@ -83,5 +83,5 @@ func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(p.addr, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)
 }

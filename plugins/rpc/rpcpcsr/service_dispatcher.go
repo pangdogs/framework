@@ -70,7 +70,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify permission verification failed, src:%q, path:%q, %s", src, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, path:%q, %s", src, req.Path, err)
 			return nil
 		}
 	}
@@ -78,11 +78,11 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.svcCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.servCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
+				log.Errorf(p.svcCtx, "rpc notify service plugin:%q, method:%q calls failed, %s", cp.Plugin, cp.Method, err)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
+				log.Debugf(p.svcCtx, "rpc notify service plugin:%q, method:%q calls finished", cp.Plugin, cp.Method)
 				rets.Release()
 			}
 		}()
@@ -90,18 +90,18 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.Entity, cp.Plugin, cp.Method, err)
+			log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.Entity, cp.Plugin, cp.Method, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.Entity, cp.Plugin, cp.Method, ret.Error)
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls failed, %s", cp.Entity, cp.Plugin, cp.Method, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.Entity, cp.Plugin, cp.Method)
+				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime plugin:%q, method:%q calls finished", cp.Entity, cp.Plugin, cp.Method)
 				ret.Value.(variant.Array).Release()
 			}
 		}()
@@ -109,18 +109,18 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Entity, cp.Component, cp.Method, err)
+			log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Entity, cp.Component, cp.Method, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Entity, cp.Component, cp.Method, ret.Error)
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Entity, cp.Component, cp.Method, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.Entity, cp.Component, cp.Method)
+				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.Entity, cp.Component, cp.Method)
 				ret.Value.(variant.Array).Release()
 			}
 		}()
@@ -149,7 +149,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) permission verification failed, src:%q, path:%q, %s", req.CorrId, src, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, path:%q, %s", req.CorrId, src, req.Path, err)
 			go p.reply(src, req.CorrId, nil, err)
 			return nil
 		}
@@ -158,11 +158,11 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 	switch cp.Category {
 	case callpath.Service:
 		go func() {
-			rets, err := CallService(p.servCtx, cc, cp.Plugin, cp.Method, req.Args)
+			rets, err := CallService(p.svcCtx, cc, cp.Plugin, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
+				log.Errorf(p.svcCtx, "rpc request(%d) service plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Plugin, cp.Method, err)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
+				log.Debugf(p.svcCtx, "rpc request(%d) service plugin:%q, method:%q calls finished", req.CorrId, cp.Plugin, cp.Method)
 			}
 			p.reply(src, req.CorrId, rets, err)
 		}()
@@ -170,20 +170,20 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.servCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
+		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Entity, cp.Plugin, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, ret.Error)
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Plugin, cp.Method, ret.Error)
 				p.reply(src, req.CorrId, nil, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Plugin, cp.Method)
+				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime plugin:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Plugin, cp.Method)
 				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
@@ -191,20 +191,20 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.servCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
+		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Entity, cp.Component, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, err)
 			go p.reply(src, req.CorrId, nil, err)
 			return nil
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.servCtx)
+			ret := asyncRet.Wait(p.svcCtx)
 			if !ret.OK() {
-				log.Errorf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, ret.Error)
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Component, cp.Method, ret.Error)
 				p.reply(src, req.CorrId, nil, ret.Error)
 			} else {
-				log.Debugf(p.servCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Component, cp.Method)
+				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Component, cp.Method)
 				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
 			}
 		}()
@@ -233,11 +233,11 @@ func (p *_ServiceProcessor) reply(src string, corrId int64, rets variant.Array, 
 
 	err := p.dist.SendMsg(src, msg)
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
 		return
 	}
 
-	log.Debugf(p.servCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src)
 }
 
 func (p *_ServiceProcessor) resolve(reply *gap.MsgRPCReply) error {

@@ -76,7 +76,7 @@ func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
 }
 
 type _Router struct {
-	servCtx           service.Context
+	svcCtx            service.Context
 	options           RouterOptions
 	gate              gate.IGate
 	client            *etcdv3.Client
@@ -86,16 +86,16 @@ type _Router struct {
 }
 
 // InitSP 初始化服务插件
-func (r *_Router) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (r *_Router) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	r.servCtx = ctx
-	r.gate = gate.Using(r.servCtx)
+	r.svcCtx = svcCtx
+	r.gate = gate.Using(r.svcCtx)
 
 	if r.options.EtcdClient == nil {
 		cli, err := etcdv3.New(r.configure())
 		if err != nil {
-			log.Panicf(ctx, "new etcd client failed, %s", err)
+			log.Panicf(svcCtx, "new etcd client failed, %s", err)
 		}
 		r.client = cli
 	} else {
@@ -104,11 +104,11 @@ func (r *_Router) InitSP(ctx service.Context) {
 
 	for _, ep := range r.client.Endpoints() {
 		func() {
-			ctx, cancel := context.WithTimeout(r.servCtx, 3*time.Second)
+			ctx, cancel := context.WithTimeout(r.svcCtx, 3*time.Second)
 			defer cancel()
 
 			if _, err := r.client.Status(ctx, ep); err != nil {
-				log.Panicf(r.servCtx, "status etcd %q failed, %s", ep, err)
+				log.Panicf(r.svcCtx, "status etcd %q failed, %s", ep, err)
 			}
 		}()
 	}
@@ -117,12 +117,12 @@ func (r *_Router) InitSP(ctx service.Context) {
 	r.groupCache.OnDel(func(name string, group *_Group) { group.terminate() })
 
 	r.entityGroupsCache = concurrent.NewCache[uid.Id, []string]()
-	r.entityGroupsCache.AutoClean(r.servCtx, 30*time.Second, 256)
+	r.entityGroupsCache.AutoClean(r.svcCtx, 30*time.Second, 256)
 }
 
 // ShutSP 关闭服务插件
-func (r *_Router) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (r *_Router) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {
@@ -133,7 +133,7 @@ func (r *_Router) ShutSP(ctx service.Context) {
 
 // Mapping 路由映射
 func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
-	entity, ok := r.servCtx.GetEntityMgr().GetEntity(entityId)
+	entity, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId)
 	if !ok {
 		return nil, ErrEntityNotFound
 	}
@@ -157,7 +157,7 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 			return
 		}
 
-		ctx, cancel := context.WithCancel(r.servCtx)
+		ctx, cancel := context.WithCancel(r.svcCtx)
 
 		mapping := &_Mapping{
 			Context:   ctx,

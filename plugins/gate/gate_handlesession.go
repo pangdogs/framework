@@ -38,7 +38,7 @@ func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
-			log.Errorf(g.servCtx, "listener %q accept remote %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
+			log.Errorf(g.svcCtx, "listener %q accept remote %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)
 			conn.Close()
 		}
 	}()
@@ -54,7 +54,7 @@ func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 		return nil, false
 	}
 
-	log.Infof(g.servCtx, "listener %q accept remote %q, handle session success, id:%q, token:%q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
+	log.Infof(g.svcCtx, "listener %q accept remote %q, handle session success, id:%q, token:%q", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken())
 	return session, true
 }
 

@@ -35,7 +35,7 @@ func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState ga
 			RecvDataHandler(append(session.GetSettings().CurrRecvDataHandler, p.handleRecvData)).
 			Change()
 		if err != nil {
-			log.Errorf(p.servCtx, "change session %q settings failed, %s", session.GetId(), err)
+			log.Errorf(p.svcCtx, "change session %q settings failed, %s", session.GetId(), err)
 			return
 		}
 	}
@@ -103,16 +103,16 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 func (p *_GateProcessor) finishInbound(session gate.ISession, dst string, corrId int64, err error) {
 	if err == nil {
 		if corrId != 0 {
-			log.Debugf(p.servCtx, "forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
+			log.Debugf(p.svcCtx, "forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
 		} else {
-			log.Debugf(p.servCtx, "forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
+			log.Debugf(p.svcCtx, "forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
 		}
 	} else {
 		if corrId != 0 {
-			log.Errorf(p.servCtx, "forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
+			log.Errorf(p.svcCtx, "forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
 			p.replyInbound(session, corrId, err)
 		} else {
-			log.Errorf(p.servCtx, "forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
+			log.Errorf(p.svcCtx, "forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
 		}
 	}
 }
@@ -127,18 +127,18 @@ func (p *_GateProcessor) replyInbound(session gate.ISession, corrId int64, retEr
 		Error:  *variant.MakeError(retErr),
 	}
 
-	bs, err := p.encoder.Encode(p.servCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
+	bs, err := p.encoder.Encode(p.svcCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return
 	}
 	defer bs.Release()
 
 	err = session.SendData(bs.Data())
 	if err != nil {
-		log.Errorf(p.servCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
 		return
 	}
 
-	log.Debugf(p.servCtx, "rpc reply(%d) to session:%q ok", corrId, session.GetId())
+	log.Debugf(p.svcCtx, "rpc reply(%d) to session:%q ok", corrId, session.GetId())
 }

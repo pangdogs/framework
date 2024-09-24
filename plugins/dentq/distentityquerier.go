@@ -68,7 +68,7 @@ func newDistEntityQuerier(settings ...option.Setting[DistEntityQuerierOptions]) 
 }
 
 type _DistEntityQuerier struct {
-	servCtx  service.Context
+	svcCtx   service.Context
 	options  DistEntityQuerierOptions
 	distServ dserv.IDistService
 	client   *etcdv3.Client
@@ -77,16 +77,16 @@ type _DistEntityQuerier struct {
 }
 
 // InitSP 初始化服务插件
-func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (d *_DistEntityQuerier) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	d.servCtx = ctx
-	d.distServ = dserv.Using(d.servCtx)
+	d.svcCtx = svcCtx
+	d.distServ = dserv.Using(d.svcCtx)
 
 	if d.options.EtcdClient == nil {
 		cli, err := etcdv3.New(d.configure())
 		if err != nil {
-			log.Panicf(ctx, "new etcd client failed, %s", err)
+			log.Panicf(svcCtx, "new etcd client failed, %s", err)
 		}
 		d.client = cli
 	} else {
@@ -95,25 +95,25 @@ func (d *_DistEntityQuerier) InitSP(ctx service.Context) {
 
 	for _, ep := range d.client.Endpoints() {
 		func() {
-			ctx, cancel := context.WithTimeout(d.servCtx, 3*time.Second)
+			ctx, cancel := context.WithTimeout(d.svcCtx, 3*time.Second)
 			defer cancel()
 
 			if _, err := d.client.Status(ctx, ep); err != nil {
-				log.Panicf(d.servCtx, "status etcd %q failed, %s", ep, err)
+				log.Panicf(d.svcCtx, "status etcd %q failed, %s", ep, err)
 			}
 		}()
 	}
 
 	d.cache = concurrent.NewCache[uid.Id, *DistEntity]()
-	d.cache.AutoClean(d.servCtx, 30*time.Second, 256)
+	d.cache.AutoClean(d.svcCtx, 30*time.Second, 256)
 
 	d.wg.Add(1)
 	go d.mainLoop()
 }
 
 // ShutSP 关闭服务插件
-func (d *_DistEntityQuerier) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (d *_DistEntityQuerier) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	d.wg.Wait()
 
@@ -131,7 +131,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		return entity, true
 	}
 
-	rsp, err := d.client.Get(d.servCtx, path.Join(d.options.KeyPrefix, id.String()),
+	rsp, err := d.client.Get(d.svcCtx, path.Join(d.options.KeyPrefix, id.String()),
 		etcdv3.WithPrefix(),
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
 		etcdv3.WithIgnoreValue())
@@ -170,28 +170,28 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 func (d *_DistEntityQuerier) mainLoop() {
 	defer d.wg.Done()
 
-	log.Debug(d.servCtx, "watching distributed entities changes started")
+	log.Debug(d.svcCtx, "watching distributed entities changes started")
 
 retry:
 	var watchChan etcdv3.WatchChan
 	retryInterval := 3 * time.Second
 
 	select {
-	case <-d.servCtx.Done():
+	case <-d.svcCtx.Done():
 		goto end
 	default:
 	}
 
-	watchChan = d.client.Watch(d.servCtx, d.options.KeyPrefix, etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
+	watchChan = d.client.Watch(d.svcCtx, d.options.KeyPrefix, etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
 
 	for watchRsp := range watchChan {
 		if watchRsp.Canceled {
-			log.Debugf(d.servCtx, "stop watch %q, retry it", d.options.KeyPrefix)
+			log.Debugf(d.svcCtx, "stop watch %q, retry it", d.options.KeyPrefix)
 			time.Sleep(retryInterval)
 			goto retry
 		}
 		if watchRsp.Err() != nil {
-			log.Errorf(d.servCtx, "interrupt watch %q, %s, retry it", d.options.KeyPrefix, watchRsp.Err())
+			log.Errorf(d.svcCtx, "interrupt watch %q, %s, retry it", d.options.KeyPrefix, watchRsp.Err())
 			time.Sleep(retryInterval)
 			goto retry
 		}
@@ -212,7 +212,7 @@ retry:
 	}
 
 end:
-	log.Debug(d.servCtx, "watching distributed entities changes stopped")
+	log.Debug(d.svcCtx, "watching distributed entities changes stopped")
 }
 
 func (d *_DistEntityQuerier) configure() etcdv3.Config {

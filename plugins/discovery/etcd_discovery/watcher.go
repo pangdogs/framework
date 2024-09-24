@@ -100,15 +100,15 @@ func (w *_Watcher) mainLoop() {
 		close(w.terminated)
 	}()
 
-	log.Debugf(w.registry.servCtx, "start watch %q", w.pattern)
+	log.Debugf(w.registry.svcCtx, "start watch %q", w.pattern)
 
 	for watchRsp := range w.watchChan {
 		if watchRsp.Canceled {
-			log.Debugf(w.registry.servCtx, "stop watch %q", w.pattern)
+			log.Debugf(w.registry.svcCtx, "stop watch %q", w.pattern)
 			return
 		}
 		if watchRsp.Err() != nil {
-			log.Errorf(w.registry.servCtx, "interrupt watch %q, %s", w.pattern, watchRsp.Err())
+			log.Errorf(w.registry.svcCtx, "interrupt watch %q, %s", w.pattern, watchRsp.Err())
 			return
 		}
 
@@ -127,7 +127,7 @@ func (w *_Watcher) mainLoop() {
 				// get service from Kv
 				ret.Service, err = decodeService(event.Kv.Value)
 				if err != nil {
-					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", event.Kv.Value, err)
+					log.Errorf(w.registry.svcCtx, "decode service %q failed, %s", event.Kv.Value, err)
 					continue
 				}
 
@@ -137,17 +137,17 @@ func (w *_Watcher) mainLoop() {
 				// get service from prevKv
 				ret.Service, err = decodeService(event.PrevKv.Value)
 				if err != nil {
-					log.Errorf(w.registry.servCtx, "decode service %q failed, %s", event.PrevKv.Value, err)
+					log.Errorf(w.registry.svcCtx, "decode service %q failed, %s", event.PrevKv.Value, err)
 					continue
 				}
 
 			default:
-				log.Errorf(w.registry.servCtx, "unknown event type %q", event.Type)
+				log.Errorf(w.registry.svcCtx, "unknown event type %q", event.Type)
 				continue
 			}
 
 			if len(ret.Service.Nodes) <= 0 {
-				log.Warnf(w.registry.servCtx, "event service %q node is empty, discard it", ret.Service.Name)
+				log.Warnf(w.registry.svcCtx, "event service %q node is empty, discard it", ret.Service.Name)
 				continue
 			}
 

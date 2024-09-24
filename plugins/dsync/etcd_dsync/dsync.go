@@ -39,21 +39,21 @@ func newDSync(settings ...option.Setting[DSyncOptions]) dsync.IDistSync {
 }
 
 type _DistSync struct {
-	servCtx service.Context
+	svcCtx  service.Context
 	options DSyncOptions
 	client  *etcdv3.Client
 }
 
 // InitSP 初始化服务插件
-func (s *_DistSync) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (s *_DistSync) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	s.servCtx = ctx
+	s.svcCtx = svcCtx
 
 	if s.options.EtcdClient == nil {
 		cli, err := etcdv3.New(s.configure())
 		if err != nil {
-			log.Panicf(ctx, "new etcd client failed, %s", err)
+			log.Panicf(svcCtx, "new etcd client failed, %s", err)
 		}
 		s.client = cli
 	} else {
@@ -62,19 +62,19 @@ func (s *_DistSync) InitSP(ctx service.Context) {
 
 	for _, ep := range s.client.Endpoints() {
 		func() {
-			ctx, cancel := context.WithTimeout(s.servCtx, 3*time.Second)
+			ctx, cancel := context.WithTimeout(s.svcCtx, 3*time.Second)
 			defer cancel()
 
 			if _, err := s.client.Status(ctx, ep); err != nil {
-				log.Panicf(s.servCtx, "status etcd %q failed, %s", ep, err)
+				log.Panicf(s.svcCtx, "status etcd %q failed, %s", ep, err)
 			}
 		}()
 	}
 }
 
 // ShutSP 关闭服务插件
-func (s *_DistSync) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (s *_DistSync) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if s.options.EtcdClient == nil {
 		if s.client != nil {

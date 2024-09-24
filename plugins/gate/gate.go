@@ -67,7 +67,7 @@ func newGate(settings ...option.Setting[GateOptions]) IGate {
 }
 
 type _Gate struct {
-	servCtx         service.Context
+	svcCtx          service.Context
 	ctx             context.Context
 	terminate       context.CancelCauseFunc
 	options         GateOptions
@@ -80,16 +80,16 @@ type _Gate struct {
 }
 
 // InitSP 初始化服务插件
-func (g *_Gate) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init plugin %q", self.Name)
+func (g *_Gate) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init plugin %q", self.Name)
 
-	g.servCtx = ctx
+	g.svcCtx = svcCtx
 	g.ctx, g.terminate = context.WithCancelCause(context.Background())
 
 	if g.options.TCPAddress != "" {
 		listener, err := newListenConfig(&g.options).Listen(context.Background(), "tcp", g.options.TCPAddress)
 		if err != nil {
-			log.Panicf(g.servCtx, "listen tcp %q failed, %s", g.options.TCPAddress, err)
+			log.Panicf(g.svcCtx, "listen tcp %q failed, %s", g.options.TCPAddress, err)
 		}
 
 		if g.options.TCPTLSConfig != nil {
@@ -98,21 +98,21 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		g.tcpListener = listener
 
-		log.Infof(g.servCtx, "listener %q started", g.tcpListener.Addr())
+		log.Infof(g.svcCtx, "listener %q started", g.tcpListener.Addr())
 
 		go func() {
 			for {
 				conn, err := g.tcpListener.Accept()
 				if err != nil {
 					if errors.Is(err, net.ErrClosed) {
-						log.Debugf(g.servCtx, "listener %q closed", g.tcpListener.Addr())
+						log.Debugf(g.svcCtx, "listener %q closed", g.tcpListener.Addr())
 						return
 					}
-					log.Errorf(g.servCtx, "listener %q accept a new connection failed, %s", g.tcpListener.Addr(), err)
+					log.Errorf(g.svcCtx, "listener %q accept a new connection failed, %s", g.tcpListener.Addr(), err)
 					continue
 				}
 
-				log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", g.tcpListener.Addr(), conn.RemoteAddr())
+				log.Debugf(g.svcCtx, "listener %q accept a new connection, remote %q", g.tcpListener.Addr(), conn.RemoteAddr())
 				go g.handleSession(conn)
 			}
 		}()
@@ -129,13 +129,13 @@ func (g *_Gate) InitSP(ctx service.Context) {
 		if strings.EqualFold(g.options.WebSocketURL.Scheme, "https") || strings.EqualFold(g.options.WebSocketURL.Scheme, "wss") {
 			listener.TLSConfig = g.options.WebSocketTLSConfig
 			if listener.TLSConfig == nil {
-				log.Panicf(g.servCtx, "use HTTPS to listen, need to provide a valid TLS configuration")
+				log.Panicf(g.svcCtx, "use HTTPS to listen, need to provide a valid TLS configuration")
 			}
 		}
 
 		mux := http.NewServeMux()
 		mux.Handle(g.options.WebSocketURL.Path, websocket.Handler(func(conn *websocket.Conn) {
-			log.Debugf(g.servCtx, "listener %q accept a new connection, remote %q", conn.LocalAddr(), conn.RemoteAddr())
+			log.Debugf(g.svcCtx, "listener %q accept a new connection, remote %q", conn.LocalAddr(), conn.RemoteAddr())
 			if session, ok := g.handleSession(conn); ok {
 				<-session.Closed()
 			}
@@ -144,23 +144,23 @@ func (g *_Gate) InitSP(ctx service.Context) {
 
 		g.wsListener = listener
 
-		log.Infof(g.servCtx, "listener %q started", g.options.WebSocketURL)
+		log.Infof(g.svcCtx, "listener %q started", g.options.WebSocketURL)
 
 		go func() {
 			if err := g.wsListener.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Panicf(g.servCtx, "listener %q was interrupted, %s", g.options.WebSocketURL, err)
+				log.Panicf(g.svcCtx, "listener %q was interrupted, %s", g.options.WebSocketURL, err)
 			}
 		}()
 	}
 
 	if g.tcpListener == nil && g.wsListener == nil {
-		log.Panic(g.servCtx, "no address need to listen")
+		log.Panic(g.svcCtx, "no address need to listen")
 	}
 }
 
 // ShutSP 关闭服务插件
-func (g *_Gate) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut plugin %q", self.Name)
+func (g *_Gate) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	g.terminate(&transport.RstError{
 		Code:    gtp.Code_Shutdown,

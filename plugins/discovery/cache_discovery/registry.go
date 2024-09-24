@@ -43,7 +43,7 @@ func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistr
 
 type _Registry struct {
 	discovery.IRegistry
-	servCtx   service.Context
+	svcCtx    service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
 	options   RegistryOptions
@@ -53,23 +53,23 @@ type _Registry struct {
 }
 
 // InitSP 初始化服务插件
-func (r *_Registry) InitSP(ctx service.Context) {
-	log.Infof(ctx, "init self %q", self.Name)
+func (r *_Registry) InitSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "init self %q", self.Name)
 
 	if r.options.Registry == nil {
-		log.Panic(ctx, "wrap registry is nil, must be set before init")
+		log.Panic(svcCtx, "wrap registry is nil, must be set before init")
 	}
 	r.IRegistry = r.options.Registry
 
-	r.servCtx = ctx
+	r.svcCtx = svcCtx
 	r.ctx, r.terminate = context.WithCancel(context.Background())
 
 	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
-		init.InitSP(r.servCtx)
+		init.InitSP(r.svcCtx)
 	}
 
 	if err := r.refreshCache(); err != nil {
-		log.Panicf(r.servCtx, "refresh cache failed, %s", err)
+		log.Panicf(r.svcCtx, "refresh cache failed, %s", err)
 	}
 
 	r.cache = concurrent.NewCache[string, *discovery.Service]()
@@ -79,14 +79,14 @@ func (r *_Registry) InitSP(ctx service.Context) {
 }
 
 // ShutSP 关闭服务插件
-func (r *_Registry) ShutSP(ctx service.Context) {
-	log.Infof(ctx, "shut self %q", self.Name)
+func (r *_Registry) ShutSP(svcCtx service.Context) {
+	log.Infof(svcCtx, "shut self %q", self.Name)
 
 	r.terminate()
 	r.wg.Wait()
 
 	if shut, ok := r.IRegistry.(core.LifecycleServicePluginShut); ok {
-		shut.ShutSP(ctx)
+		shut.ShutSP(svcCtx)
 	}
 }
 
@@ -138,7 +138,7 @@ func (r *_Registry) ListServices(ctx context.Context) ([]discovery.Service, erro
 func (r *_Registry) mainLoop() {
 	defer r.wg.Done()
 
-	log.Debug(r.servCtx, "watching service changes started")
+	log.Debug(r.svcCtx, "watching service changes started")
 
 retry:
 	var watcher discovery.IWatcher
@@ -153,7 +153,7 @@ retry:
 
 	watcher, err = r.IRegistry.Watch(r.ctx, "", r.revision)
 	if err != nil {
-		log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
+		log.Errorf(r.svcCtx, "watching service changes failed, %s, retry it", err)
 		time.Sleep(retryInterval)
 		goto retry
 	}
@@ -166,7 +166,7 @@ retry:
 				goto retry
 			}
 
-			log.Errorf(r.servCtx, "watching service changes failed, %s, retry it", err)
+			log.Errorf(r.svcCtx, "watching service changes failed, %s, retry it", err)
 			<-watcher.Terminate()
 			time.Sleep(retryInterval)
 			goto retry
@@ -180,11 +180,11 @@ end:
 		<-watcher.Terminate()
 	}
 
-	log.Debug(r.servCtx, "watching service changes stopped")
+	log.Debug(r.svcCtx, "watching service changes stopped")
 }
 
 func (r *_Registry) refreshCache() error {
-	services, err := r.IRegistry.ListServices(r.servCtx)
+	services, err := r.IRegistry.ListServices(r.svcCtx)
 	if err != nil {
 		return err
 	}

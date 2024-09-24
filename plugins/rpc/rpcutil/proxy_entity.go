@@ -44,27 +44,27 @@ func makeErr(err error) async.AsyncRet {
 }
 
 // ProxyEntity 代理实体
-func ProxyEntity(ctx runtime.CurrentContextProvider, id uid.Id) EntityProxied {
+func ProxyEntity(provider runtime.CurrentContextProvider, id uid.Id) EntityProxied {
 	return EntityProxied{
-		servCtx: service.Current(ctx),
-		rtCtx:   runtime.Current(ctx),
-		id:      id,
+		svcCtx: service.Current(provider),
+		rtCtx:  runtime.Current(provider),
+		id:     id,
 	}
 }
 
 // ConcurrentProxyEntity 代理实体
-func ConcurrentProxyEntity(ctx service.Context, id uid.Id) EntityProxied {
+func ConcurrentProxyEntity(svcCtx service.Context, id uid.Id) EntityProxied {
 	return EntityProxied{
-		servCtx: ctx,
-		id:      id,
+		svcCtx: svcCtx,
+		id:     id,
 	}
 }
 
 // EntityProxied 实体代理，用于向实体发送RPC
 type EntityProxied struct {
-	servCtx service.Context
-	rtCtx   runtime.Context
-	id      uid.Id
+	svcCtx service.Context
+	rtCtx  runtime.Context
+	id     uid.Id
 }
 
 // GetId 获取实体id
@@ -74,12 +74,12 @@ func (p EntityProxied) GetId() uid.Id {
 
 // RPC 向分布式实体目标服务发送RPC
 func (p EntityProxied) RPC(service, comp, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -106,17 +106,17 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
 func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -160,17 +160,17 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
 func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return makeErr(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -183,7 +183,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 			return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 
-		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
+		localAddr := dserv.Using(p.svcCtx).GetNodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -213,17 +213,17 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // OnewayRPC 向分布式实体目标服务发送单向RPC
 func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -250,17 +250,17 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
 func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -304,17 +304,17 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
 func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -327,7 +327,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 			return rpcpcsr.ErrDistEntityNodeNotFound
 		}
 
-		localAddr := dserv.Using(p.servCtx).GetNodeDetails().LocalAddr
+		localAddr := dserv.Using(p.svcCtx).GetNodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -357,17 +357,17 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
 func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.servCtx).GetDistEntity(p.id)
+	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -395,17 +395,17 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
 }
 
 // GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
 func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 全局广播地址
-	dst := dserv.Using(p.servCtx).GetNodeDetails().GlobalBroadcastAddr
+	dst := dserv.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
@@ -422,13 +422,13 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // CliRPC 向客户端发送RPC
 func (p EntityProxied) CliRPC(proc, method string, args ...any) async.AsyncRet {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 客户端地址
@@ -447,13 +447,13 @@ func (p EntityProxied) CliRPC(proc, method string, args ...any) async.AsyncRet {
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // CliOnewayRPC 向客户端发送单向RPC
 func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 客户端地址
@@ -472,13 +472,13 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
 func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) error {
-	if p.servCtx == nil {
-		panic(errors.New("rpc: setting servCtx is nil"))
+	if p.svcCtx == nil {
+		panic(errors.New("rpc: setting svcCtx is nil"))
 	}
 
 	// 客户端地址
@@ -497,5 +497,5 @@ func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) e
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, cc, cp, args...)
+	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }

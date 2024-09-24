@@ -51,13 +51,13 @@ type _RPCStack struct {
 	variables Variables
 }
 
-func (r *_RPCStack) InitRP(ctx runtime.Context) {
-	log.Debugf(ctx, "init plugin %q", self.Name)
-	r.rtCtx = ctx
+func (r *_RPCStack) InitRP(rtCtx runtime.Context) {
+	log.Debugf(rtCtx, "init plugin %q", self.Name)
+	r.rtCtx = rtCtx
 }
 
-func (r *_RPCStack) ShutRP(ctx runtime.Context) {
-	log.Debugf(ctx, "shut plugin %q", self.Name)
+func (r *_RPCStack) ShutRP(rtCtx runtime.Context) {
+	log.Debugf(rtCtx, "shut plugin %q", self.Name)
 }
 
 // CallChain 调用链

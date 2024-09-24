@@ -29,14 +29,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func SQLDB(ctx service.Context, tag string) *gorm.DB {
-	return sqldb.Using(ctx).SQLDB(tag)
+func SQLDB(svcCtx service.Context, tag string) *gorm.DB {
+	return sqldb.Using(svcCtx).SQLDB(tag)
 }
 
-func RedisDB(ctx service.Context, tag string) *redis.Client {
-	return redisdb.Using(ctx).RedisDB(tag)
+func RedisDB(svcCtx service.Context, tag string) *redis.Client {
+	return redisdb.Using(svcCtx).RedisDB(tag)
 }
 
-func MongoDB(ctx service.Context, tag string) *mongo.Client {
-	return mongodb.Using(ctx).MongoDB(tag)
+func MongoDB(svcCtx service.Context, tag string) *mongo.Client {
+	return mongodb.Using(svcCtx).MongoDB(tag)
 }

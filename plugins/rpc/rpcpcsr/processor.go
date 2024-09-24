@@ -48,9 +48,9 @@ var (
 // IDeliverer RPC投递器接口
 type IDeliverer interface {
 	// Match 是否匹配
-	Match(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool
+	Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool
 	// Request 请求
-	Request(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet
+	Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet
 	// Notify 通知
-	Notify(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error
+	Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error
 }

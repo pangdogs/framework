@@ -149,7 +149,7 @@ func (w *_Watcher) mainLoop() {
 		close(w.terminated)
 	}()
 
-	log.Debugf(w.registry.servCtx, "start watch %q", w.pathList)
+	log.Debugf(w.registry.svcCtx, "start watch %q", w.pathList)
 
 	go func() {
 		<-w.ctx.Done()
@@ -161,10 +161,10 @@ loop:
 		msg, err := w.pubSub.ReceiveMessage(context.Background())
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
-				log.Debugf(w.registry.servCtx, "stop watch %q, %s", w.pathList, err)
+				log.Debugf(w.registry.svcCtx, "stop watch %q, %s", w.pathList, err)
 				break loop
 			}
-			log.Errorf(w.registry.servCtx, "interrupt watch %q, %s", w.pathList, err)
+			log.Errorf(w.registry.svcCtx, "interrupt watch %q, %s", w.pathList, err)
 			break loop
 		}
 
@@ -194,7 +194,7 @@ loop:
 				if errors.Is(err, context.Canceled) {
 					continue
 				}
-				log.Errorf(w.registry.servCtx, "get service node %q data failed, %s", key, err)
+				log.Errorf(w.registry.svcCtx, "get service node %q data failed, %s", key, err)
 				continue
 			}
 
@@ -207,7 +207,7 @@ loop:
 
 			event.Service, err = decodeService([]byte(val))
 			if err != nil {
-				log.Errorf(w.registry.servCtx, "decode service %q data failed, %s", val, err)
+				log.Errorf(w.registry.svcCtx, "decode service %q data failed, %s", val, err)
 				continue
 			}
 
@@ -216,7 +216,7 @@ loop:
 		case "del", "expired":
 			v, ok := w.keyCache[key]
 			if !ok {
-				log.Errorf(w.registry.servCtx, "service node %q data not cached", key)
+				log.Errorf(w.registry.svcCtx, "service node %q data not cached", key)
 				continue
 			}
 
@@ -225,7 +225,7 @@ loop:
 			event.Type = discovery.Delete
 			event.Service, err = decodeService([]byte(v))
 			if err != nil {
-				log.Errorf(w.registry.servCtx, "decode service %q data failed, %s", v, err)
+				log.Errorf(w.registry.svcCtx, "decode service %q data failed, %s", v, err)
 				continue
 			}
 
@@ -234,14 +234,14 @@ loop:
 		}
 
 		if len(event.Service.Nodes) <= 0 {
-			log.Warnf(w.registry.servCtx, "event service %q node is empty, discard it", event.Service.Name)
+			log.Warnf(w.registry.svcCtx, "event service %q node is empty, discard it", event.Service.Name)
 			continue
 		}
 
 		select {
 		case w.eventChan <- event:
 		case <-w.ctx.Done():
-			log.Debugf(w.registry.servCtx, "stop watch %q", w.pathList)
+			log.Debugf(w.registry.svcCtx, "stop watch %q", w.pathList)
 			break loop
 		}
 	}

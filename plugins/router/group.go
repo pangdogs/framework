@@ -216,7 +216,7 @@ func (g *_Group) SendData(data []byte) {
 	for i := range g.entities {
 		entId := g.entities[i]
 
-		g.router.servCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
+		g.router.svcCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
 			session, ok := g.router.LookupSession(entity.GetId())
 			if !ok {
 				return
@@ -224,7 +224,7 @@ func (g *_Group) SendData(data []byte) {
 
 			err := session.SendData(data)
 			if err != nil {
-				log.Errorf(g.router.servCtx, "group %q send data(%d) to session %q remote %q failed, %s", g.GetName(), len(data), session.GetId(), session.GetRemoteAddr(), err)
+				log.Errorf(g.router.svcCtx, "group %q send data(%d) to session %q remote %q failed, %s", g.GetName(), len(data), session.GetId(), session.GetRemoteAddr(), err)
 			}
 		})
 	}
@@ -245,7 +245,7 @@ func (g *_Group) SendEvent(event transport.IEvent) {
 	for i := range g.entities {
 		entId := g.entities[i]
 
-		g.router.servCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
+		g.router.svcCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
 			session, ok := g.router.LookupSession(entity.GetId())
 			if !ok {
 				return
@@ -253,7 +253,7 @@ func (g *_Group) SendEvent(event transport.IEvent) {
 
 			err := session.SendEvent(event)
 			if err != nil {
-				log.Errorf(g.router.servCtx, "group %q send event(%d) to session %q remote %q failed, %s", g.GetName(), event.Msg.MsgId(), session.GetId(), session.GetRemoteAddr(), err)
+				log.Errorf(g.router.svcCtx, "group %q send event(%d) to session %q remote %q failed, %s", g.GetName(), event.Msg.MsgId(), session.GetId(), session.GetRemoteAddr(), err)
 			}
 		})
 	}
@@ -262,7 +262,7 @@ func (g *_Group) SendEvent(event transport.IEvent) {
 // SendDataChan 发送数据的channel
 func (g *_Group) SendDataChan() chan<- binaryutil.RecycleBytes {
 	if g.sendDataChan == nil {
-		log.Panicf(g.router.servCtx, "group %q send data channel size less equal 0, can't be used", g.GetName())
+		log.Panicf(g.router.svcCtx, "group %q send data channel size less equal 0, can't be used", g.GetName())
 	}
 	return g.sendDataChan
 }
@@ -270,7 +270,7 @@ func (g *_Group) SendDataChan() chan<- binaryutil.RecycleBytes {
 // SendEventChan 发送自定义事件的channel
 func (g *_Group) SendEventChan() chan<- transport.IEvent {
 	if g.sendEventChan == nil {
-		log.Panicf(g.router.servCtx, "group %q send event channel size less equal 0, can't be used", g.GetName())
+		log.Panicf(g.router.svcCtx, "group %q send event channel size less equal 0, can't be used", g.GetName())
 	}
 	return g.sendEventChan
 }
@@ -281,13 +281,13 @@ func (g *_Group) mainLoop() {
 	if g.router.options.GroupAutoRefreshTTL {
 		rspChan, err := g.router.client.KeepAlive(ctx, g.leaseId)
 		if err != nil {
-			log.Errorf(g.router.servCtx, "keep alive groupKey %q lease %q failed, %s", g.groupKey, g.leaseId, err)
+			log.Errorf(g.router.svcCtx, "keep alive groupKey %q lease %q failed, %s", g.groupKey, g.leaseId, err)
 			goto watch
 		}
 
 		go func() {
 			for range rspChan {
-				log.Debugf(g.router.servCtx, "refresh groupKey %q ttl success", g.groupKey)
+				log.Debugf(g.router.svcCtx, "refresh groupKey %q ttl success", g.groupKey)
 			}
 		}()
 	}
@@ -327,15 +327,15 @@ func (g *_Group) mainLoop() {
 watch:
 	watchChan := g.router.client.Watch(ctx, g.groupKey, etcdv3.WithRev(g.revision), etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
 
-	log.Debugf(g.router.servCtx, "start watch groupKey %q", g.groupKey)
+	log.Debugf(g.router.svcCtx, "start watch groupKey %q", g.groupKey)
 
 	for watchRsp := range watchChan {
 		if watchRsp.Canceled {
-			log.Debugf(g.router.servCtx, "stop watch groupKey %q", g.groupKey)
+			log.Debugf(g.router.svcCtx, "stop watch groupKey %q", g.groupKey)
 			goto end
 		}
 		if watchRsp.Err() != nil {
-			log.Errorf(g.router.servCtx, "interrupt watch groupKey %q, %s", g.groupKey, watchRsp.Err())
+			log.Errorf(g.router.svcCtx, "interrupt watch groupKey %q, %s", g.groupKey, watchRsp.Err())
 			goto end
 		}
 
@@ -373,7 +373,7 @@ watch:
 				g.router.entityGroupsCache.Del(entId, watchRsp.Header.Revision)
 
 			default:
-				log.Errorf(g.router.servCtx, "unknown event type %q", event.Type)
+				log.Errorf(g.router.svcCtx, "unknown event type %q", event.Type)
 				continue
 			}
 		}

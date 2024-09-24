@@ -107,7 +107,7 @@ func (s *_Session) mainLoop() {
 		close(s.terminated)
 	}()
 
-	log.Debugf(s.gate.servCtx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.svcCtx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 
 	// 启动发送数据的线程
 	if s.options.SendDataChan != nil {
@@ -123,7 +123,7 @@ func (s *_Session) mainLoop() {
 					err := s.SendData(bs.Data())
 					bs.Release()
 					if err != nil {
-						log.Errorf(s.gate.servCtx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
+						log.Errorf(s.gate.svcCtx, "session %q fetch data from the send data channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
 					return
@@ -139,7 +139,7 @@ func (s *_Session) mainLoop() {
 				select {
 				case event := <-s.options.SendEventChan:
 					if err := s.SendEvent(event); err != nil {
-						log.Errorf(s.gate.servCtx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
+						log.Errorf(s.gate.svcCtx, "session %q fetch event from the send event channel for sending failed, %s", s.GetId(), err)
 					}
 				case <-s.Done():
 					return
@@ -184,12 +184,12 @@ loop:
 					if errors.Is(err, transport.ErrDeadlineExceeded) {
 						if !pinged {
 							// 尝试ping对端
-							log.Debugf(s.gate.servCtx, "session %q send ping", s.GetId())
+							log.Debugf(s.gate.svcCtx, "session %q send ping", s.GetId())
 							s.ctrl.SendPing()
 							pinged = true
 						} else {
 							// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
-							log.Debugf(s.gate.servCtx, "session %q no pong received", s.GetId())
+							log.Debugf(s.gate.svcCtx, "session %q no pong received", s.GetId())
 							if s.setState(SessionState_Inactive) {
 								timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 							}
@@ -223,12 +223,12 @@ loop:
 						}
 					}()
 
-					log.Debugf(s.gate.servCtx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+					log.Debugf(s.gate.svcCtx, "session %q retry dispatching event, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 					continue
 				}
 
 				// 其他网络传输错误，关闭会话
-				log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s, terminating session", s.GetId(), err)
+				log.Errorf(s.gate.svcCtx, "session %q dispatching event failed, %s, terminating session", s.GetId(), err)
 				s.terminate(&transport.RstError{
 					Code:    gtp.Code_Reject,
 					Message: err.Error(),
@@ -237,7 +237,7 @@ loop:
 			}
 
 			// 非网络传输错误，不处理
-			log.Errorf(s.gate.servCtx, "session %q dispatching event failed, %s, skipping it", s.GetId(), err)
+			log.Errorf(s.gate.svcCtx, "session %q dispatching event failed, %s, skipping it", s.GetId(), err)
 		}
 
 		// 没有错误，或非网络传输错误，重置ping状态
@@ -249,7 +249,7 @@ loop:
 	// 发送关闭原因
 	s.ctrl.SendRst(context.Cause(s))
 
-	log.Debugf(s.gate.servCtx, "session %q terminated, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
+	log.Debugf(s.gate.svcCtx, "session %q terminated, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())
 }
 
 // setState 调整会话状态
@@ -264,11 +264,11 @@ func (s *_Session) setState(state SessionState) bool {
 	s.state = state
 	s.Unlock()
 
-	log.Debugf(s.gate.servCtx, "session %q state %q => %q", s.GetId(), old, state)
+	log.Debugf(s.gate.svcCtx, "session %q state %q => %q", s.GetId(), old, state)
 
 	interrupt := func(panicErr error) bool {
 		if panicErr != nil {
-			log.Errorf(s.gate.servCtx, "handle session %q state changed failed, %s", s.GetId(), panicErr)
+			log.Errorf(s.gate.svcCtx, "handle session %q state changed failed, %s", s.GetId(), panicErr)
 		}
 		return false
 	}
@@ -392,9 +392,9 @@ func (s *_Session) handleRecvPayload(event transport.Event[gtp.MsgPayload]) erro
 // handleRecvHeartbeat 接收Heartbeat消息事件
 func (s *_Session) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
-		log.Debugf(s.gate.servCtx, "session %q receive ping", s.GetId())
+		log.Debugf(s.gate.svcCtx, "session %q receive ping", s.GetId())
 	} else {
-		log.Debugf(s.gate.servCtx, "session %q receive pong", s.GetId())
+		log.Debugf(s.gate.svcCtx, "session %q receive pong", s.GetId())
 	}
 	return nil
 }

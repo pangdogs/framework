@@ -37,24 +37,24 @@ func NewServiceProcessor(permValidator PermissionValidator) any {
 
 // _ServiceProcessor 分布式服务间的RPC处理器
 type _ServiceProcessor struct {
-	servCtx       service.Context
+	svcCtx        service.Context
 	dist          dserv.IDistService
 	watcher       dserv.IWatcher
 	permValidator PermissionValidator
 }
 
 // Init 初始化
-func (p *_ServiceProcessor) Init(ctx service.Context) {
-	p.servCtx = ctx
-	p.dist = dserv.Using(ctx)
+func (p *_ServiceProcessor) Init(svcCtx service.Context) {
+	p.svcCtx = svcCtx
+	p.dist = dserv.Using(svcCtx)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
-	log.Debugf(p.servCtx, "rpc processor %q started", types.FullName(*p))
+	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
-func (p *_ServiceProcessor) Shut(ctx service.Context) {
+func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
 	<-p.watcher.Terminate()
 
-	log.Debugf(p.servCtx, "rpc processor %q stopped", types.FullName(*p))
+	log.Debugf(p.svcCtx, "rpc processor %q stopped", types.FullName(*p))
 }

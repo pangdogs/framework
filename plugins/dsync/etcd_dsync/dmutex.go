@@ -49,7 +49,7 @@ func (s *_DistSync) newMutex(name string, options dsync.DistMutexOptions) *_Dist
 		name = s.options.KeyPrefix + name
 	}
 
-	log.Debugf(s.servCtx, "new dist mutex %q", name)
+	log.Debugf(s.svcCtx, "new dist mutex %q", name)
 
 	return &_DistMutex{
 		dsync:         s,
@@ -129,7 +129,7 @@ func (m *_DistMutex) Lock(ctx context.Context) error {
 	now := time.Now()
 	m.until = now.Add(m.expiry - now.Sub(start) - time.Duration(int64(expirySec*m.driftFactor)))
 
-	log.Debugf(m.dsync.servCtx, "dist mutex %q is locked", m.name)
+	log.Debugf(m.dsync.svcCtx, "dist mutex %q is locked", m.name)
 
 	return nil
 }
@@ -153,7 +153,7 @@ func (m *_DistMutex) Unlock(ctx context.Context) error {
 		return fmt.Errorf("dsync: %w", err)
 	}
 
-	log.Debugf(m.dsync.servCtx, "dist mutex %q is unlocked", m.name)
+	log.Debugf(m.dsync.svcCtx, "dist mutex %q is unlocked", m.name)
 
 	return nil
 }
@@ -175,7 +175,7 @@ func (m *_DistMutex) Extend(ctx context.Context) error {
 		return fmt.Errorf("dsync: %w", err)
 	}
 
-	log.Debugf(m.dsync.servCtx, "dist mutex %q is extended", m.name)
+	log.Debugf(m.dsync.svcCtx, "dist mutex %q is extended", m.name)
 
 	return nil
 }
