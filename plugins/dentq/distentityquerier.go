@@ -26,7 +26,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/utils/concurrent"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -68,12 +68,12 @@ func newDistEntityQuerier(settings ...option.Setting[DistEntityQuerierOptions]) 
 }
 
 type _DistEntityQuerier struct {
-	svcCtx   service.Context
-	options  DistEntityQuerierOptions
-	distServ dserv.IDistService
-	client   *etcdv3.Client
-	wg       sync.WaitGroup
-	cache    *concurrent.Cache[uid.Id, *DistEntity]
+	svcCtx  service.Context
+	options DistEntityQuerierOptions
+	dsvc    dsvc.IDistService
+	client  *etcdv3.Client
+	wg      sync.WaitGroup
+	cache   *concurrent.Cache[uid.Id, *DistEntity]
 }
 
 // InitSP 初始化服务插件
@@ -81,7 +81,7 @@ func (d *_DistEntityQuerier) InitSP(svcCtx service.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	d.svcCtx = svcCtx
-	d.distServ = dserv.Using(d.svcCtx)
+	d.dsvc = dsvc.Using(d.svcCtx)
 
 	if d.options.EtcdClient == nil {
 		cli, err := etcdv3.New(d.configure())
@@ -145,7 +145,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		Revision: rsp.Header.Revision,
 	}
 
-	details := d.distServ.GetNodeDetails()
+	details := d.dsvc.GetNodeDetails()
 
 	for _, kv := range rsp.Kvs {
 		subs := strings.Split(strings.TrimPrefix(string(kv.Key), d.options.KeyPrefix), "/")

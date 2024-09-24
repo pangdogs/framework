@@ -26,7 +26,7 @@ import (
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dentq"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -183,7 +183,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 			return makeErr(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 
-		localAddr := dserv.Using(p.svcCtx).GetNodeDetails().LocalAddr
+		localAddr := dsvc.Using(p.svcCtx).GetNodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -327,7 +327,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 			return rpcpcsr.ErrDistEntityNodeNotFound
 		}
 
-		localAddr := dserv.Using(p.svcCtx).GetNodeDetails().LocalAddr
+		localAddr := dsvc.Using(p.svcCtx).GetNodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -405,7 +405,7 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 	}
 
 	// 全局广播地址
-	dst := dserv.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
+	dst := dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain

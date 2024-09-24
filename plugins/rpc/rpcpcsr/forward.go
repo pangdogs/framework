@@ -27,7 +27,7 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/plugins/dentq"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
@@ -49,20 +49,20 @@ func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidato
 // _ForwardProcessor RPC转发处理器，用于S<->G的通信
 type _ForwardProcessor struct {
 	svcCtx               service.Context
-	dist                 dserv.IDistService
+	dist                 dsvc.IDistService
 	dentq                dentq.IDistEntityQuerier
 	encoder              codec.Encoder
 	decoder              codec.Decoder
 	transitService       string
 	transitBroadcastAddr string
 	permValidator        PermissionValidator
-	watcher              dserv.IWatcher
+	watcher              dsvc.IWatcher
 }
 
 // Init 初始化
 func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
-	p.dist = dserv.Using(svcCtx)
+	p.dist = dsvc.Using(svcCtx)
 	p.dentq = dentq.Using(svcCtx)
 	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))

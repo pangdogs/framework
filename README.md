@@ -22,25 +22,25 @@ The framework supports the development of stateful (`Stateful`) or stateless (`S
 - **Database**: Supports connection to relational databases (based on `GORM`), Redis, MongoDB.
 
 ## Directory
-| Directory | Description |
-| --------- | ----------- |
-| [/](https://github.com/pangdogs/framework) | Common types and functions for application development. |
-| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap) | GAP protocol implementation. |
-| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp) | GTP protocol implementation. |
-| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath) | Service node address structure. |
-| [/plugins/broker](https://github.com/pangdogs/framework/tree/main/plugins/broker) | Message queue middleware. |
-| [/plugins/conf](https://github.com/pangdogs/framework/tree/main/plugins/conf) | Configuration system. |
-| [/plugins/db](https://github.com/pangdogs/framework/tree/main/plugins/db) | Database support. |
-| [/plugins/dentq](https://github.com/pangdogs/framework/tree/main/plugins/dentq) | Distributed entity query support. |
-| [/plugins/dentr](https://github.com/pangdogs/framework/tree/main/plugins/dentr) | Distributed entity registration support. |
+| Directory                                                                               | Description |
+|-----------------------------------------------------------------------------------------| ----------- |
+| [/](https://github.com/pangdogs/framework)                                              | Common types and functions for application development. |
+| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap)                     | GAP protocol implementation. |
+| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp)                     | GTP protocol implementation. |
+| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath)             | Service node address structure. |
+| [/plugins/broker](https://github.com/pangdogs/framework/tree/main/plugins/broker)       | Message queue middleware. |
+| [/plugins/conf](https://github.com/pangdogs/framework/tree/main/plugins/conf)           | Configuration system. |
+| [/plugins/db](https://github.com/pangdogs/framework/tree/main/plugins/db)               | Database support. |
+| [/plugins/dentq](https://github.com/pangdogs/framework/tree/main/plugins/dentq)         | Distributed entity query support. |
+| [/plugins/dentr](https://github.com/pangdogs/framework/tree/main/plugins/dentr)         | Distributed entity registration support. |
 | [/plugins/discovery](https://github.com/pangdogs/framework/tree/main/plugins/discovery) | Service discovery. |
-| [/plugins/dserv](https://github.com/pangdogs/framework/tree/main/plugins/dserv) | Distributed service support. |
-| [/plugins/dsync](https://github.com/pangdogs/framework/tree/main/plugins/dsync) | Distributed locking. |
-| [/plugins/gate](https://github.com/pangdogs/framework/tree/main/plugins/gate) | GTP gateway implementation. |
-| [/plugins/log](https://github.com/pangdogs/framework/tree/main/plugins/log) | Logging system. |
-| [/plugins/router](https://github.com/pangdogs/framework/tree/main/plugins/router) | Client routing system. |
-| [/plugins/rpc](https://github.com/pangdogs/framework/tree/main/plugins/rpc) | RPC system. |
-| [/plugins/rpcstack](https://github.com/pangdogs/framework/tree/main/plugins/rpcstack) | RPC stack support. |
+| [/plugins/dsvc](https://github.com/pangdogs/framework/tree/main/plugins/dsvc)          | Distributed service support. |
+| [/plugins/dsync](https://github.com/pangdogs/framework/tree/main/plugins/dsync)         | Distributed locking. |
+| [/plugins/gate](https://github.com/pangdogs/framework/tree/main/plugins/gate)           | GTP gateway implementation. |
+| [/plugins/log](https://github.com/pangdogs/framework/tree/main/plugins/log)             | Logging system. |
+| [/plugins/router](https://github.com/pangdogs/framework/tree/main/plugins/router)       | Client routing system. |
+| [/plugins/rpc](https://github.com/pangdogs/framework/tree/main/plugins/rpc)             | RPC system. |
+| [/plugins/rpcstack](https://github.com/pangdogs/framework/tree/main/plugins/rpcstack)   | RPC stack support. |
 
 ## Examples
 See: [Examples](https://github.com/pangdogs/examples)

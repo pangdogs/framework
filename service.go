@@ -34,7 +34,7 @@ import (
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/discovery"
 	"git.golaxy.org/framework/plugins/discovery/etcd_discovery"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/dsync/etcd_dsync"
 	"git.golaxy.org/framework/plugins/log"
@@ -311,21 +311,21 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 
 	// 安装分布式服务插件
-	if !installed(dserv.Name) {
+	if !installed(dsvc.Name) {
 		if cb, ok := svcInst.(InstallServiceDistService); ok {
 			cb.InstallDistService(svcInst)
 		}
 	}
-	if !installed(dserv.Name) {
+	if !installed(dsvc.Name) {
 		if cb, ok := s.instance.(InstallServiceDistService); ok {
 			cb.InstallDistService(svcInst)
 		}
 	}
-	if !installed(dserv.Name) {
-		dserv.Install(svcInst,
-			dserv.With.Version(startupConf.GetString("service.version")),
-			dserv.With.Meta(startupConf.GetStringMapString("service.meta")),
-			dserv.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
+	if !installed(dsvc.Name) {
+		dsvc.Install(svcInst,
+			dsvc.With.Version(startupConf.GetString("service.version")),
+			dsvc.With.Meta(startupConf.GetStringMapString("service.meta")),
+			dsvc.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
 		)
 	}
 

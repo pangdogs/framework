@@ -27,7 +27,7 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/plugins/dentq"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/router"
@@ -44,20 +44,20 @@ func NewGateProcessor(mc gap.IMsgCreator) any {
 // _GateProcessor 网关RPC处理器，用于C<->G的通信
 type _GateProcessor struct {
 	svcCtx         service.Context
-	dist           dserv.IDistService
+	dist           dsvc.IDistService
 	dentq          dentq.IDistEntityQuerier
 	gate           gate.IGate
 	router         router.IRouter
 	encoder        codec.Encoder
 	decoder        codec.Decoder
 	sessionWatcher gate.IWatcher
-	msgWatcher     dserv.IWatcher
+	msgWatcher     dsvc.IWatcher
 }
 
 // Init 初始化
 func (p *_GateProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
-	p.dist = dserv.Using(svcCtx)
+	p.dist = dsvc.Using(svcCtx)
 	p.dentq = dentq.Using(svcCtx)
 	p.gate = gate.Using(svcCtx)
 	p.router = router.Using(svcCtx)

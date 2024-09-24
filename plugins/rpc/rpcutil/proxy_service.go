@@ -24,7 +24,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
@@ -61,7 +61,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dsvc.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return makeErr(err)
 	}
@@ -86,9 +86,9 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
 	// 调用路径
@@ -108,7 +108,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...
 	}
 
 	// 目标地址
-	dst, err := dserv.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dsvc.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
 		return err
 	}
@@ -133,9 +133,9 @@ func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) err
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().MakeBalanceAddr(p.service)
 	} else {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
 	// 调用路径
@@ -158,9 +158,9 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method stri
 	var dst string
 
 	if p.service != "" {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().MakeBroadcastAddr(p.service)
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().MakeBroadcastAddr(p.service)
 	} else {
-		dst = dserv.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
+		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
 	}
 
 	// 调用路径

@@ -24,7 +24,7 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/log"
 )
 
@@ -38,15 +38,15 @@ func NewServiceProcessor(permValidator PermissionValidator) any {
 // _ServiceProcessor 分布式服务间的RPC处理器
 type _ServiceProcessor struct {
 	svcCtx        service.Context
-	dist          dserv.IDistService
-	watcher       dserv.IWatcher
+	dist          dsvc.IDistService
+	watcher       dsvc.IWatcher
 	permValidator PermissionValidator
 }
 
 // Init 初始化
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
-	p.dist = dserv.Using(svcCtx)
+	p.dist = dsvc.Using(svcCtx)
 	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))

@@ -28,7 +28,7 @@ import (
 	"git.golaxy.org/framework/plugins/conf"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/discovery"
-	"git.golaxy.org/framework/plugins/dserv"
+	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/dsync"
 	"git.golaxy.org/framework/plugins/rpc"
 	"github.com/spf13/viper"
@@ -57,7 +57,7 @@ type IServiceInstance interface {
 	// GetDistSync 获取分布式同步插件
 	GetDistSync() dsync.IDistSync
 	// GetDistService 获取分布式服务插件
-	GetDistService() dserv.IDistService
+	GetDistService() dsvc.IDistService
 	// GetDistEntityQuerier 获取分布式实体查询插件
 	GetDistEntityQuerier() dentq.IDistEntityQuerier
 	// GetRPC 获取RPC支持插件
@@ -102,8 +102,8 @@ func (inst *ServiceInstance) GetDistSync() dsync.IDistSync {
 }
 
 // GetDistService 获取分布式服务插件
-func (inst *ServiceInstance) GetDistService() dserv.IDistService {
-	return dserv.Using(inst)
+func (inst *ServiceInstance) GetDistService() dsvc.IDistService {
+	return dsvc.Using(inst)
 }
 
 // GetDistEntityQuerier 获取分布式实体查询插件
