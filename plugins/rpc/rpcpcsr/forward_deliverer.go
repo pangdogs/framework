@@ -28,13 +28,14 @@ import (
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/utils/concurrent"
 	"slices"
 )
 
 // Match 是否匹配
-func (p *_ForwardProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, path string, oneway bool) bool {
+func (p *_ForwardProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
 	// 只支持客户端域通信
 	if !gate.CliDetails.DomainRoot.Contains(dst) {
 		return false
@@ -50,7 +51,7 @@ func (p *_ForwardProcessor) Match(ctx service.Context, dst string, cc rpcstack.C
 }
 
 // Request 请求
-func (p *_ForwardProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) async.AsyncRet {
+func (p *_ForwardProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -67,10 +68,16 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, cc rpcstack
 		return ret.ToAsyncRet()
 	}
 
+	cpbs, err := cp.Encode(false)
+	if err != nil {
+		future.Cancel(err)
+		return ret.ToAsyncRet()
+	}
+
 	msg := &gap.MsgRPCRequest{
 		CorrId:    future.Id,
 		CallChain: cc,
-		Path:      path,
+		Path:      cpbs,
 		Args:      vargs,
 	}
 
@@ -93,12 +100,12 @@ func (p *_ForwardProcessor) Request(ctx service.Context, dst string, cc rpcstack
 		return ret.ToAsyncRet()
 	}
 
-	log.Debugf(p.servCtx, "rpc request(%d) forwarding to dst:%q, path:%q ok", future.Id, forwardAddr, path)
+	log.Debugf(p.servCtx, "rpc request(%d) forwarding to dst:%q, path:%q ok", future.Id, forwardAddr, cp)
 	return ret.ToAsyncRet()
 }
 
 // Notify 通知
-func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) error {
+func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
 	forwardAddr, err := p.getForwardAddr(dst)
 	if err != nil {
 		return err
@@ -109,9 +116,14 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, cc rpcstack.
 		return err
 	}
 
+	cpbs, err := cp.Encode(false)
+	if err != nil {
+		return err
+	}
+
 	msg := &gap.MsgOnewayRPC{
 		CallChain: cc,
-		Path:      path,
+		Path:      cpbs,
 		Args:      vargs,
 	}
 
@@ -131,7 +143,7 @@ func (p *_ForwardProcessor) Notify(ctx service.Context, dst string, cc rpcstack.
 		return err
 	}
 
-	log.Debugf(p.servCtx, "rpc notify forwarding to dst:%q, path:%q ok", forwardAddr, path)
+	log.Debugf(p.servCtx, "rpc notify forwarding to dst:%q, path:%q ok", forwardAddr, cp)
 	return nil
 }
 

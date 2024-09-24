@@ -83,5 +83,5 @@ func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 		Method:    method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(p.addr, cc, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(p.addr, cc, cp, args...)
 }

@@ -70,9 +70,15 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 		Method:    method,
 	}
 
+	cpbs, err := cp.Encode(false)
+	if err != nil {
+		future.Cancel(err)
+		return ret.ToAsyncRet()
+	}
+
 	msg := &gap.MsgRPCRequest{
 		CorrId: future.Id,
-		Path:   cp.String(),
+		Path:   cpbs,
 		Args:   vargs,
 	}
 
@@ -118,8 +124,13 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		Method:    method,
 	}
 
+	cpbs, err := cp.Encode(false)
+	if err != nil {
+		return err
+	}
+
 	msg := &gap.MsgOnewayRPC{
-		Path: cp.String(),
+		Path: cpbs,
 		Args: vargs,
 	}
 

@@ -25,12 +25,13 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/utils/concurrent"
 )
 
 // Match 是否匹配
-func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, path string, oneway bool) bool {
+func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
 	details := p.dist.GetNodeDetails()
 
 	// 只支持服务域通信
@@ -48,7 +49,7 @@ func (p *_ServiceProcessor) Match(ctx service.Context, dst string, cc rpcstack.C
 }
 
 // Request 请求
-func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) async.AsyncRet {
+func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
 
@@ -58,10 +59,16 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack
 		return ret.ToAsyncRet()
 	}
 
+	cpbs, err := cp.Encode(false)
+	if err != nil {
+		future.Cancel(err)
+		return ret.ToAsyncRet()
+	}
+
 	msg := &gap.MsgRPCRequest{
 		CorrId:    future.Id,
 		CallChain: cc,
-		Path:      path,
+		Path:      cpbs,
 		Args:      vargs,
 	}
 
@@ -70,20 +77,25 @@ func (p *_ServiceProcessor) Request(ctx service.Context, dst string, cc rpcstack
 		return ret.ToAsyncRet()
 	}
 
-	log.Debugf(p.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, path)
+	log.Debugf(p.servCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, cp)
 	return ret.ToAsyncRet()
 }
 
 // Notify 通知
-func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) error {
+func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
 	vargs, err := variant.MakeReadonlyArray(args)
+	if err != nil {
+		return err
+	}
+
+	cpbs, err := cp.Encode(false)
 	if err != nil {
 		return err
 	}
 
 	msg := &gap.MsgOnewayRPC{
 		CallChain: cc,
-		Path:      path,
+		Path:      cpbs,
 		Args:      vargs,
 	}
 
@@ -91,6 +103,6 @@ func (p *_ServiceProcessor) Notify(ctx service.Context, dst string, cc rpcstack.
 		return err
 	}
 
-	log.Debugf(p.servCtx, "rpc notify to dst:%q, path:%q ok", dst, path)
+	log.Debugf(p.servCtx, "rpc notify to dst:%q, path:%q ok", dst, cp)
 	return nil
 }

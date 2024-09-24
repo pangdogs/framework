@@ -28,7 +28,7 @@ import (
 // MsgOnewayRPC 单程RPC请求
 type MsgOnewayRPC struct {
 	CallChain variant.CallChain // 调用链
-	Path      string            // 调用路径
+	Path      []byte            // 调用路径
 	Args      variant.Array     // 参数列表
 }
 
@@ -38,7 +38,7 @@ func (m MsgOnewayRPC) Read(p []byte) (int, error) {
 	if _, err := binaryutil.ReadTo(&bs, m.CallChain); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.Path); err != nil {
+	if err := bs.WriteBytes(m.Path); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if _, err := binaryutil.ReadTo(&bs, m.Args); err != nil {
@@ -56,7 +56,7 @@ func (m *MsgOnewayRPC) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.Path, err = bs.ReadString()
+	m.Path, err = bs.ReadBytesRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -70,7 +70,7 @@ func (m *MsgOnewayRPC) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgOnewayRPC) Size() int {
-	return m.CallChain.Size() + binaryutil.SizeofString(m.Path) + m.Args.Size()
+	return m.CallChain.Size() + binaryutil.SizeofBytes(m.Path) + m.Args.Size()
 }
 
 // MsgId 消息Id

@@ -73,7 +73,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
@@ -98,7 +98,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // OnewayRPC 向分布式服务指定节点发送单向RPC
@@ -120,7 +120,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
@@ -145,7 +145,7 @@ func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) err
 		Method:   method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
@@ -171,5 +171,5 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method stri
 		Method:     method,
 	}
 
-	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp.String(), args...)
+	return rpc.Using(p.servCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }

@@ -20,25 +20,25 @@
 package callpath
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/core/utils/uid"
-	"strings"
 )
+
+type Category uint8
 
 const (
-	Service = "S"
-	Runtime = "R"
-	Entity  = "E"
-	Client  = "C"
-)
-
-var (
-	Sep = byte('>')
+	Service Category = 'S'
+	Runtime Category = 'R'
+	Entity  Category = 'E'
+	Client  Category = 'C'
 )
 
 type CallPath struct {
-	Category   string
+	Category   Category
 	ExcludeSrc bool
 	Entity     uid.Id
 	Plugin     string
@@ -47,136 +47,248 @@ type CallPath struct {
 	Method     string
 }
 
-func (cp CallPath) Encode() (string, error) {
-	var sb strings.Builder
+func (cp CallPath) Encode(short bool) ([]byte, error) {
+	var sb bytes.Buffer
+
+	sb.WriteByte(byte(cp.Category))
+	sb.WriteByte(types.Bool2Int[uint8](short)<<0 + types.Bool2Int[uint8](cp.ExcludeSrc)<<1)
 
 	switch cp.Category {
 	case Service:
-		sb.WriteString(cp.Category)
-		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 0x30)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Plugin)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Method)
-
-		return sb.String(), nil
+		if short {
+			var buff [4]byte
+			binary.LittleEndian.PutUint32(buff[:], reduce(cp.Plugin, "", "", cp.Method))
+			sb.Write(buff[:])
+		} else {
+			sb.WriteString(cp.Plugin)
+			sb.WriteByte(0)
+			sb.WriteString(cp.Method)
+			sb.WriteByte(0)
+		}
+		return sb.Bytes(), nil
 
 	case Runtime:
-		sb.WriteString(cp.Category)
-		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 0x30)
-		sb.WriteByte(Sep)
 		sb.WriteString(cp.Entity.String())
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Plugin)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Method)
+		sb.WriteByte(0)
 
-		return sb.String(), nil
+		if short {
+			var buff [4]byte
+			binary.LittleEndian.PutUint32(buff[:], reduce(cp.Plugin, "", "", cp.Method))
+			sb.Write(buff[:])
+		} else {
+			sb.WriteString(cp.Plugin)
+			sb.WriteByte(0)
+			sb.WriteString(cp.Method)
+			sb.WriteByte(0)
+		}
+		return sb.Bytes(), nil
 
 	case Entity:
-		sb.WriteString(cp.Category)
-		sb.WriteByte(Sep)
-		sb.WriteByte(types.Bool2Int[byte](cp.ExcludeSrc) + 0x30)
-		sb.WriteByte(Sep)
 		sb.WriteString(cp.Entity.String())
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Component)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Method)
+		sb.WriteByte(0)
 
-		return sb.String(), nil
+		if short {
+			var buff [4]byte
+			binary.LittleEndian.PutUint32(buff[:], reduce("", cp.Component, "", cp.Method))
+			sb.Write(buff[:])
+		} else {
+			sb.WriteString(cp.Component)
+			sb.WriteByte(0)
+			sb.WriteString(cp.Method)
+			sb.WriteByte(0)
+		}
+		return sb.Bytes(), nil
 
 	case Client:
-		sb.WriteString(cp.Category)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Procedure)
-		sb.WriteByte(Sep)
-		sb.WriteString(cp.Method)
-
-		return sb.String(), nil
+		if short {
+			var buff [4]byte
+			binary.LittleEndian.PutUint32(buff[:], reduce("", "", cp.Procedure, cp.Method))
+			sb.Write(buff[:])
+		} else {
+			sb.WriteString(cp.Procedure)
+			sb.WriteByte(0)
+			sb.WriteString(cp.Method)
+			sb.WriteByte(0)
+		}
+		return sb.Bytes(), nil
 
 	default:
-		return "", errors.New("rpc: invalid action")
+		return nil, errors.New("rpc: invalid call path category")
 	}
 }
 
 func (cp CallPath) String() string {
-	str, _ := cp.Encode()
-	return str
+	switch cp.Category {
+	case Service:
+		return fmt.Sprintf("%c[%d]>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Plugin, cp.Method)
+	case Runtime:
+		return fmt.Sprintf("%c[%d]>%s>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Entity, cp.Plugin, cp.Method)
+	case Entity:
+		return fmt.Sprintf("%c[%d]>%s>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Entity, cp.Component, cp.Method)
+	case Client:
+		return fmt.Sprintf("%c>%s>%s", cp.Category, cp.Procedure, cp.Method)
+	}
+	return ""
 }
 
-func Parse(path string) (CallPath, error) {
-	var cp CallPath
-
-loop:
-	for i := 0; ; i++ {
-		idx := strings.IndexByte(path, Sep)
-		if idx < 0 {
-			if path == "" {
-				break
-			}
-			idx = len(path)
-		}
-		field := path[:idx]
-
-		switch i {
-		case 0:
-			cp.Category = field
-
-			switch cp.Category {
-			case Service, Runtime, Entity, Client:
-			default:
-				return CallPath{}, errors.New("rpc: invalid Category")
-			}
-
-		case 1:
-			switch cp.Category {
-			case Service, Runtime, Entity:
-				if len(field) <= 0 {
-					return CallPath{}, errors.New("rpc: invalid ExcludeSrc")
-				}
-				cp.ExcludeSrc = types.Int2Bool[byte](field[0] - 0x30)
-			case Client:
-				cp.Procedure = field
-			}
-
-		case 2:
-			switch cp.Category {
-			case Service, Runtime, Entity:
-				cp.Entity = uid.From(field)
-			case Client:
-				cp.Method = field
-			}
-
-		case 3:
-			switch cp.Category {
-			case Service:
-				cp.Method = field
-			case Runtime:
-				cp.Plugin = field
-			case Entity:
-				cp.Component = field
-			}
-
-		case 4:
-			switch cp.Category {
-			case Runtime, Entity:
-				cp.Method = field
-			}
-
-		default:
-			break loop
-		}
-
-		if idx < len(path) {
-			path = path[idx+1:]
-			continue
-		}
-
-		break
+func Parse(data []byte) (CallPath, error) {
+	if len(data) < 2 {
+		return CallPath{}, errors.New("rpc: invalid call path data format")
 	}
+
+	var cp CallPath
+	offset := 0
+
+	cp.Category = Category(data[offset])
+	offset++
+
+	cp.ExcludeSrc = (uint8(data[offset]>>1) & 0x1) != 0
+	short := (uint8(data[offset]>>0) & 0x1) != 0
+	offset++
+
+	readStr := func() (string, error) {
+		if len(data) < offset+1 {
+			return "", errors.New("rpc: invalid call path data format")
+		}
+
+		l := bytes.IndexByte(data[offset:], 0)
+		if l < 0 {
+			return "", errors.New("rpc: invalid call path data format")
+		}
+		end := offset + l
+
+		s := string(data[offset:end])
+		offset += l + 1
+
+		return s, nil
+	}
+
+	switch cp.Category {
+	case Service:
+		if short {
+			break
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Plugin = str
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Method = str
+		}
+
+		return cp, nil
+
+	case Runtime:
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Entity = uid.Id(str)
+		}
+
+		if short {
+			break
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Plugin = str
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Method = str
+		}
+
+		return cp, nil
+
+	case Entity:
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Entity = uid.Id(str)
+		}
+
+		if short {
+			break
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Component = str
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Method = str
+		}
+
+		return cp, nil
+
+	case Client:
+		if short {
+			break
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Procedure = str
+		}
+
+		{
+			str, err := readStr()
+			if err != nil {
+				return CallPath{}, err
+			}
+			cp.Method = str
+		}
+
+		return cp, nil
+
+	default:
+		return CallPath{}, errors.New("rpc: invalid call path category")
+	}
+
+	if len(data[offset:]) < 4 {
+		return CallPath{}, errors.New("rpc: invalid call path data format")
+	}
+
+	cached := inflate(binary.LittleEndian.Uint32(data[offset:]))
+	if cached == nil {
+		return CallPath{}, errors.New("rpc: inflate cached index failed")
+	}
+
+	cp.Plugin = cached.Plugin
+	cp.Component = cached.Component
+	cp.Procedure = cached.Procedure
+	cp.Method = cached.Method
 
 	return cp, nil
 }

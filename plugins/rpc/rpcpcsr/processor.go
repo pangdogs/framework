@@ -23,6 +23,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpcstack"
 )
 
@@ -47,9 +48,9 @@ var (
 // IDeliverer RPC投递器接口
 type IDeliverer interface {
 	// Match 是否匹配
-	Match(ctx service.Context, dst string, cc rpcstack.CallChain, path string, oneway bool) bool
+	Match(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool
 	// Request 请求
-	Request(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) async.AsyncRet
+	Request(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet
 	// Notify 通知
-	Notify(ctx service.Context, dst string, cc rpcstack.CallChain, path string, args []any) error
+	Notify(ctx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error
 }

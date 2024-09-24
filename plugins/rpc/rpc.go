@@ -24,6 +24,7 @@ import (
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/log"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"git.golaxy.org/framework/plugins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/plugins/rpcstack"
 	"git.golaxy.org/framework/utils/concurrent"
@@ -33,9 +34,9 @@ import (
 // IRPC RPC支持
 type IRPC interface {
 	// RPC RPC调用
-	RPC(dst string, cc rpcstack.CallChain, path string, args ...any) async.AsyncRet
+	RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.AsyncRet
 	// OnewayRPC 单向RPC调用
-	OnewayRPC(dst string, cc rpcstack.CallChain, path string, args ...any) error
+	OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error
 }
 
 func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
@@ -84,7 +85,7 @@ func (r *_RPC) ShutSP(ctx service.Context) {
 }
 
 // RPC RPC调用
-func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, path string, args ...any) async.AsyncRet {
+func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.AsyncRet {
 	if r.terminated.Load() {
 		ret := concurrent.MakeRespAsyncRet()
 		ret.Push(async.MakeRet(nil, rpcpcsr.ErrTerminated))
@@ -98,11 +99,11 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, path string, args ...any) 
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, cc, path, false) {
+		if !deliverer.Match(r.servCtx, dst, cc, cp, false) {
 			continue
 		}
 
-		return deliverer.Request(r.servCtx, dst, cc, path, args)
+		return deliverer.Request(r.servCtx, dst, cc, cp, args)
 	}
 
 	ret := concurrent.MakeRespAsyncRet()
@@ -111,7 +112,7 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, path string, args ...any) 
 }
 
 // OnewayRPC 单向RPC调用
-func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, path string, args ...any) error {
+func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error {
 	if r.terminated.Load() {
 		return rpcpcsr.ErrTerminated
 	}
@@ -123,11 +124,11 @@ func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, path string, args ..
 	for i := range r.deliverers {
 		deliverer := r.deliverers[i]
 
-		if !deliverer.Match(r.servCtx, dst, cc, path, true) {
+		if !deliverer.Match(r.servCtx, dst, cc, cp, true) {
 			continue
 		}
 
-		return deliverer.Notify(r.servCtx, dst, cc, path, args)
+		return deliverer.Notify(r.servCtx, dst, cc, cp, args)
 	}
 
 	return rpcpcsr.ErrUndeliverable
