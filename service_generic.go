@@ -40,6 +40,7 @@ import (
 	"git.golaxy.org/framework/plugins/log"
 	"git.golaxy.org/framework/plugins/log/zap_log"
 	"git.golaxy.org/framework/plugins/rpc"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -57,9 +58,10 @@ type iServiceGeneric interface {
 
 // ServiceGeneric 服务泛化类型
 type ServiceGeneric struct {
-	startupConf *viper.Viper
-	name        string
-	instance    any
+	startupConf               *viper.Viper
+	name                      string
+	instance                  any
+	initEtcdCli, initCallPath sync.Once
 }
 
 func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, instance any) {
@@ -349,8 +351,16 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		rpc.Install(svcInst)
 	}
 
-	// etcd连接初始化函数
-	memKV.Store("etcd.init_client", sync.OnceFunc(func() {
+	// 组装完成回调回调
+	if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
+		cb.Built(svcInst)
+	}
+	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
+		cb.Built(svcInst)
+	}
+
+	// 初始化etcd连接
+	s.initEtcdCli.Do(func() {
 		cli, err := etcdv3.New(etcdv3.Config{
 			Endpoints: []string{startupConf.GetString("etcd.address")},
 			Username:  startupConf.GetString("etcd.username"),
@@ -360,15 +370,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			panic(fmt.Errorf("new etcd client failed, %s", err))
 		}
 		memKV.Store("etcd.client", cli)
-	}))
+	})
 
-	// 组装完成回调回调
-	if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
-		cb.Built(svcInst)
-	}
-	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
-		cb.Built(svcInst)
-	}
+	// 初始化调用路径
+	s.initCallPath.Do(func() {
+		svcInstRT := svcInst.GetReflected().Type()
+
+		for i := 0; i < svcInstRT.NumMethod(); i++ {
+			m := svcInstRT.Method(i)
+			callpath.Cache("", "", "", m.Name)
+		}
+	})
 
 	// 自动恢复时，打印panic信息
 	if svcInst.GetAutoRecover() && svcInst.GetReportError() != nil {

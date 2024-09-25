@@ -247,14 +247,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(dentr.Name) {
-		v, _ := r.GetService().GetMemKV().Load("etcd.init_client")
-		fun, _ := v.(func())
-		if fun == nil {
-			panic("service memory kv etcd.init_client not existed")
-		}
-		fun()
-
-		v, _ = r.GetService().GetMemKV().Load("etcd.client")
+		v, _ := r.GetService().GetMemKV().Load("etcd.client")
 		cli, _ := v.(*etcdv3.Client)
 		if cli == nil {
 			panic("service memory kv etcd.client not existed")
