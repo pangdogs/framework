@@ -247,11 +247,12 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(dentr.Name) {
-		v, _ := r.GetService().GetMemKV().Load("etcd.client")
-		cli, _ := v.(*etcdv3.Client)
-		if cli == nil {
-			panic("service memory kv etcd.client not existed")
+		v, _ := r.GetService().GetMemKV().Load("etcd.lazy_conn")
+		fun, _ := v.(func() *etcdv3.Client)
+		if fun == nil {
+			panic("service memory kv etcd.lazy_conn not existed")
 		}
+		cli := fun()
 
 		dentr.Install(rtInst,
 			dentr.With.EtcdClient(cli),
@@ -259,7 +260,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		)
 	}
 
-	// 组装完成回调回调
+	// 组装完成回调
 	if cb, ok := r.instance.(LifecycleRuntimeBuilt); ok {
 		cb.Built(rtInst)
 	}
