@@ -17,45 +17,15 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package rpcli
+package framework
 
 import (
-	"errors"
-	"fmt"
-	"git.golaxy.org/core"
+	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"reflect"
 )
 
-// AddProcedure 添加过程
-func (c *RPCli) AddProcedure(name string, proc any) error {
-	_proc, ok := proc.(IProcedure)
-	if !ok {
-		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
+func cacheCP(script string, rt reflect.Type) {
+	for i := rt.NumMethod() - 1; i >= 0; i-- {
+		callpath.Cache(script, rt.Method(i).Name)
 	}
-
-	_proc.init(c, name, proc)
-	cacheCP(name, _proc.GetReflected().Type())
-
-	if !c.procs.TryAdd(name, _proc) {
-		return ErrProcedureExists
-	}
-
-	return nil
-}
-
-// RemoveProcedure 删除过程
-func (c *RPCli) RemoveProcedure(name string) error {
-	if name == "" {
-		return errors.New("rpc: the main procedure can't be removed")
-	}
-
-	if !c.procs.Delete(name) {
-		return ErrProcedureNotFound
-	}
-
-	return nil
-}
-
-// GetProcedure 查询过程
-func (c *RPCli) GetProcedure(name string) (IProcedure, bool) {
-	return c.procs.Get(name)
 }

@@ -100,10 +100,10 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
@@ -154,10 +154,10 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
@@ -207,10 +207,10 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
@@ -244,10 +244,10 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
@@ -298,10 +298,10 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
@@ -351,10 +351,10 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Entity:    p.id,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Id:       p.id,
+		Script:   comp,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
@@ -390,8 +390,8 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 	cp := callpath.CallPath{
 		Category:   callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		Entity:     p.id,
-		Component:  comp,
+		Id:         p.id,
+		Script:     comp,
 		Method:     method,
 	}
 
@@ -417,8 +417,8 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 	cp := callpath.CallPath{
 		Category:   callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		Entity:     p.id,
-		Component:  comp,
+		Id:         p.id,
+		Script:     comp,
 		Method:     method,
 	}
 
@@ -442,9 +442,9 @@ func (p EntityProxied) CliRPC(proc, method string, args ...any) async.AsyncRet {
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Client,
-		Procedure: proc,
-		Method:    method,
+		Category: callpath.Client,
+		Script:   proc,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
@@ -467,9 +467,9 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Client,
-		Procedure: proc,
-		Method:    method,
+		Category: callpath.Client,
+		Script:   proc,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
@@ -492,9 +492,9 @@ func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) e
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Client,
-		Procedure: proc,
-		Method:    method,
+		Category: callpath.Client,
+		Script:   proc,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)

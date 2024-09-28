@@ -25,6 +25,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"github.com/elliotchance/pie/v2"
 )
 
 type (
@@ -37,10 +38,7 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
 	}
 
-	var _errorHandler ErrorHandler
-	if len(errorHandler) > 0 {
-		_errorHandler = errorHandler[0]
-	}
+	_errorHandler := pie.First(errorHandler)
 
 	ch := make(chan binaryutil.RecycleBytes, size)
 

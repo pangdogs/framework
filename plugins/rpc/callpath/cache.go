@@ -27,10 +27,8 @@ import (
 )
 
 type _Cached struct {
-	Plugin    string
-	Component string
-	Procedure string
-	Method    string
+	Script string
+	Method string
 }
 
 var (
@@ -39,51 +37,53 @@ var (
 )
 
 // Cache using Hash-based Transmission to reduce network transmission overhead
-func Cache(plugin, component, procedure, method string) uint32 {
+func Cache(script, method string) uint32 {
 	hash := fnv.New32a()
 
 	sep := [1]byte{0}
-	hash.Write(types.String2Bytes(plugin))
-	hash.Write(sep[:])
-	hash.Write(types.String2Bytes(component))
-	hash.Write(sep[:])
-	hash.Write(types.String2Bytes(procedure))
+	hash.Write(types.String2Bytes(script))
 	hash.Write(sep[:])
 	hash.Write(types.String2Bytes(method))
 
 	idx := hash.Sum32()
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutex.RLock()
+	if exists, ok := cache[idx]; ok {
+		if exists.Script == script && exists.Method == method {
+			mutex.RUnlock()
+			return idx
+		}
+		mutex.RUnlock()
+		panic(fmt.Errorf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method}))
+	}
+	mutex.RUnlock()
 
+	mutex.Lock()
 	cached := &_Cached{
-		Plugin:    plugin,
-		Component: component,
-		Procedure: procedure,
-		Method:    method,
+		Script: method,
+		Method: method,
 	}
 
 	if exists, ok := cache[idx]; ok {
 		if *exists == *cached {
+			mutex.Unlock()
 			return idx
 		}
+		mutex.Unlock()
 		panic(fmt.Errorf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached))
 	}
 
 	cache[idx] = cached
+	mutex.Unlock()
 
 	return idx
 }
 
-func reduce(plugin, component, procedure, method string) uint32 {
+func reduce(script, method string) uint32 {
 	hash := fnv.New32a()
 
 	sep := [1]byte{0}
-	hash.Write(types.String2Bytes(plugin))
-	hash.Write(sep[:])
-	hash.Write(types.String2Bytes(component))
-	hash.Write(sep[:])
-	hash.Write(types.String2Bytes(procedure))
+	hash.Write(types.String2Bytes(script))
 	hash.Write(sep[:])
 	hash.Write(types.String2Bytes(method))
 

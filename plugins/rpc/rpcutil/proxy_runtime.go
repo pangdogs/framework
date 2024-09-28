@@ -93,8 +93,8 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -147,8 +147,8 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -200,8 +200,8 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -237,8 +237,8 @@ func (p RuntimeProxied) OnewayRPC(service, plugin, method string, args ...any) e
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -291,8 +291,8 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, plugin, method string, args ..
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -344,8 +344,8 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, plugin, method 
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Runtime,
-		Entity:   p.entityId,
-		Plugin:   plugin,
+		Id:       p.entityId,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -382,8 +382,8 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, plugin, me
 	cp := callpath.CallPath{
 		Category:   callpath.Runtime,
 		ExcludeSrc: excludeSelf,
-		Entity:     p.entityId,
-		Plugin:     plugin,
+		Id:         p.entityId,
+		Script:     plugin,
 		Method:     method,
 	}
 
@@ -409,8 +409,8 @@ func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, plugin, metho
 	cp := callpath.CallPath{
 		Category:   callpath.Runtime,
 		ExcludeSrc: excludeSelf,
-		Entity:     p.entityId,
-		Plugin:     plugin,
+		Id:         p.entityId,
+		Script:     plugin,
 		Method:     method,
 	}
 

@@ -65,9 +65,9 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	}
 
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Script:   comp,
+		Method:   method,
 	}
 
 	cpbs, err := cp.Encode(false)
@@ -119,9 +119,9 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 	}
 
 	cp := callpath.CallPath{
-		Category:  callpath.Entity,
-		Component: comp,
-		Method:    method,
+		Category: callpath.Entity,
+		Script:   comp,
+		Method:   method,
 	}
 
 	cpbs, err := cp.Encode(false)

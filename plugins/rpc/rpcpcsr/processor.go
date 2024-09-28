@@ -38,6 +38,7 @@ var (
 	ErrDistEntityNodeNotFound       = errors.New("rpc: distributed entity node not found") // 找不到分布式实体的服务节点
 	ErrIncorrectDestAddress         = errors.New("rpc: incorrect destination Address")     // 错误的目的地址
 	ErrPluginNotFound               = errors.New("rpc: plugin not found")                  // 找不到插件
+	ErrPluginInactive               = errors.New("rpc: plugin is inactive")                // 插件未激活
 	ErrMethodNotFound               = errors.New("rpc: method not found")                  // 找不到方法
 	ErrComponentNotFound            = errors.New("rpc: component not found")               // 找不到组件
 	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")   // 方法参数数量不匹配

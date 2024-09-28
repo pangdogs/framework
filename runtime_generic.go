@@ -21,6 +21,8 @@ package framework
 
 import (
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
@@ -64,20 +66,20 @@ func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	wholeConf := conf.Using(r.svcInst).Whole()
 
-	face := iface.Face[runtime.Context]{}
+	rtInstFace := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
-		face = iface.MakeFaceTReflectC[runtime.Context, IRuntimeInstance](cb.Instantiation())
+		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntimeInstance](cb.Instantiation())
 	}
 
-	iFrameLoopBeginCB, _ := face.Iface.(LifecycleRuntimeFrameLoopBegin)
-	iFrameUpdateBeginCB, _ := face.Iface.(LifecycleRuntimeFrameUpdateBegin)
-	iFrameUpdateEndCB, _ := face.Iface.(LifecycleRuntimeFrameUpdateEnd)
-	iFrameLoopEndCB, _ := face.Iface.(LifecycleRuntimeFrameLoopEnd)
-	iRunCallBeginCB, _ := face.Iface.(LifecycleRuntimeRunCallBegin)
-	iRunCallEndCB, _ := face.Iface.(LifecycleRuntimeRunCallEnd)
-	iRunGCBeginCB, _ := face.Iface.(LifecycleRuntimeRunGCBegin)
-	iRunGCEndCB, _ := face.Iface.(LifecycleRuntimeRunGCEnd)
+	rtInstFrameLoopBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameLoopBegin)
+	rtInstFrameUpdateBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameUpdateBegin)
+	rtInstFrameUpdateEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameUpdateEnd)
+	rtInstFrameLoopEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameLoopEnd)
+	rtInstRunCallBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunCallBegin)
+	rtInstRunCallEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunCallEnd)
+	rtInstRunGCBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCBegin)
+	rtInstRunGCEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCEnd)
 
 	frameLoopBeginCB, _ := r.instance.(LifecycleRuntimeFrameLoopBegin)
 	frameUpdateBeginCB, _ := r.instance.(LifecycleRuntimeFrameUpdateBegin)
@@ -89,11 +91,11 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
 
 	rtCtx := runtime.NewContext(r.GetService(),
-		runtime.With.Context.InstanceFace(face),
+		runtime.With.Context.InstanceFace(rtInstFace),
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.MakeDelegateAction2(func(rtCtx runtime.Context, state runtime.RunningState) {
+		runtime.With.Context.RunningHandler(generic.MakeDelegateActionVar2(func(rtCtx runtime.Context, state runtime.RunningState, args ...any) {
 			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 
 			switch state {
@@ -122,56 +124,56 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb := frameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
-				if cb := iFrameLoopBeginCB; cb != nil {
+				if cb := rtInstFrameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
 			case runtime.RunningState_FrameUpdateBegin:
 				if cb := frameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
-				if cb := iFrameUpdateBeginCB; cb != nil {
+				if cb := rtInstFrameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
 			case runtime.RunningState_FrameUpdateEnd:
 				if cb := frameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
-				if cb := iFrameUpdateEndCB; cb != nil {
+				if cb := rtInstFrameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
 			case runtime.RunningState_FrameLoopEnd:
 				if cb := frameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
-				if cb := iFrameLoopEndCB; cb != nil {
+				if cb := rtInstFrameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
 			case runtime.RunningState_RunCallBegin:
 				if cb := runCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
-				if cb := iRunCallBeginCB; cb != nil {
+				if cb := rtInstRunCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
 			case runtime.RunningState_RunCallEnd:
 				if cb := runCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
-				if cb := iRunCallEndCB; cb != nil {
+				if cb := rtInstRunCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
 			case runtime.RunningState_RunGCBegin:
 				if cb := runGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
-				if cb := iRunGCBeginCB; cb != nil {
+				if cb := rtInstRunGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
 			case runtime.RunningState_RunGCEnd:
 				if cb := runGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
-				if cb := iRunGCEndCB; cb != nil {
+				if cb := rtInstRunGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
 			case runtime.RunningState_Terminating:
@@ -188,11 +190,15 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
+			case runtime.RunningState_PluginActivating:
+				pluginStatus := args[0].(plugin.PluginStatus)
+				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
 			}
 		})),
 	)
 
 	rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
+	cacheCP("", rtInst.GetReflected().Type())
 
 	installed := func(name string) bool {
 		_, ok := rtInst.GetPluginBundle().Get(name)
@@ -268,6 +274,9 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
+	runtime.BindEventEntityMgrAddEntity(rtInst.GetEntityMgr(), r, -10)
+	runtime.BindEventEntityMgrEntityAddComponents(rtInst.GetEntityMgr(), r, -10)
+
 	return core.NewRuntime(rtInst,
 		core.With.Runtime.Frame(func() runtime.Frame {
 			if settings.FPS <= 0 {
@@ -285,4 +294,29 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 // GetService 获取服务
 func (r *RuntimeGeneric) GetService() IServiceInstance {
 	return r.svcInst
+}
+
+// OnEntityMgrAddEntity 事件处理器：实体管理器添加实体
+func (r *RuntimeGeneric) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+	if entity.GetScope() != ec.Scope_Global {
+		return
+	}
+
+	cacheCP("", entity.GetReflected().Type())
+
+	entity.RangeComponents(func(comp ec.Component) bool {
+		cacheCP(comp.GetName(), comp.GetReflected().Type())
+		return true
+	})
+}
+
+// OnEntityMgrEntityAddComponents 事件处理器：实体管理器中的实体添加组件
+func (r *RuntimeGeneric) OnEntityMgrEntityAddComponents(entityMgr runtime.EntityMgr, entity ec.Entity, components []ec.Component) {
+	if entity.GetScope() != ec.Scope_Global {
+		return
+	}
+
+	for i := range components {
+		cacheCP(components[i].GetName(), components[i].GetReflected().Type())
+	}
 }

@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"git.golaxy.org/core/utils/generic"
+	"github.com/elliotchance/pie/v2"
 )
 
 type (
@@ -76,10 +77,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 		ctx = context.Background()
 	}
 
-	var _errorHandler ErrorHandler
-	if len(errorHandler) > 0 {
-		_errorHandler = errorHandler[0]
-	}
+	_errorHandler := pie.First(errorHandler)
 
 	if d.Transceiver == nil {
 		_errorHandler.Invoke(nil, errors.New("setting Transceiver is nil"))

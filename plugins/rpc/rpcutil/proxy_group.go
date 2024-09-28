@@ -78,9 +78,9 @@ func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:  callpath.Client,
-		Procedure: proc,
-		Method:    method,
+		Category: callpath.Client,
+		Script:   proc,
+		Method:   method,
 	}
 
 	return rpc.Using(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)

@@ -79,6 +79,7 @@ type IServiceInstance interface {
 // ServiceInstance 服务实例
 type ServiceInstance struct {
 	service.ContextBehavior
+	RuntimeGenericT[RuntimeInstance]
 }
 
 // GetConf 获取配置插件

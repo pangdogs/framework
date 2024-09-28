@@ -56,10 +56,10 @@ func (c *RPCli) acceptNotify(req *gap.MsgOnewayRPC) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		if rets, err := c.callProc(cp.Procedure, cp.Method, req.Args); err != nil {
-			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.Entity, cp.Method, err)
+		if rets, err := c.callProc(cp.Script, cp.Method, req.Args); err != nil {
+			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.Id, cp.Method, err)
 		} else {
-			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.Entity, cp.Method)
+			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.Id, cp.Method)
 			rets.Release()
 		}
 		return nil
@@ -78,11 +78,11 @@ func (c *RPCli) acceptRequest(src string, req *gap.MsgRPCRequest) error {
 
 	switch cp.Category {
 	case callpath.Client:
-		rets, err := c.callProc(cp.Procedure, cp.Method, req.Args)
+		rets, err := c.callProc(cp.Script, cp.Method, req.Args)
 		if err != nil {
-			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.Entity, cp.Method, err)
+			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Method, err)
 		} else {
-			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.Entity, cp.Method)
+			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Method)
 		}
 		go c.reply(src, req.CorrId, rets, err)
 		return nil

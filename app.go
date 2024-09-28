@@ -73,13 +73,15 @@ func (app *App) Setup(name string, generic any) *App {
 		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	g, ok := generic.(iServiceGeneric)
+	svcGeneric, ok := generic.(iServiceGeneric)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
 
+	svcGeneric.init(app.startupConf, name, svcGeneric)
+
 	app.servicePTs[name] = &_ServPT{
-		generic: g,
+		generic: svcGeneric,
 		num:     1,
 	}
 
@@ -250,16 +252,15 @@ func (app *App) mainLoop() {
 	serviceNum := app.startupConf.GetStringMapString("startup.services")
 
 	for name, pt := range app.servicePTs {
-		pt.generic.init(app.startupConf, name, pt.generic)
 		pt.num, _ = strconv.Atoi(serviceNum[name])
 	}
 
 	for _, pt := range app.servicePTs {
 		for i := 0; i < pt.num; i++ {
 			wg.Add(1)
-			go func(generic iServiceGeneric, no int) {
+			go func(svcGeneric iServiceGeneric, no int) {
 				defer wg.Done()
-				<-generic.generate(ctx, no).Run()
+				<-svcGeneric.generate(ctx, no).Run()
 			}(pt.generic, i)
 		}
 	}

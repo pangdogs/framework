@@ -22,6 +22,7 @@ package concurrent
 import (
 	"context"
 	"git.golaxy.org/core/utils/async"
+	"github.com/elliotchance/pie/v2"
 	"time"
 )
 
@@ -31,9 +32,9 @@ func MakeFuture[T Resp](fs *Futures, ctx context.Context, resp T, timeout ...tim
 		ctx = context.Background()
 	}
 
-	_timeout := fs.timeout
-	if len(timeout) > 0 {
-		_timeout = timeout[0]
+	_timeout := pie.First(timeout)
+	if _timeout <= 0 {
+		_timeout = fs.timeout
 	}
 
 	task := newTask(fs, resp)

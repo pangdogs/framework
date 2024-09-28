@@ -33,9 +33,9 @@ func CreateRuntime(svcCtx service.Context) RuntimeCreator {
 	if svcCtx == nil {
 		panic(fmt.Errorf("%w: svcCtx is nil", core.ErrArgs))
 	}
-	return RuntimeCreator{
-		svcCtx:  svcCtx,
-		generic: nil,
+
+	c := RuntimeCreator{
+		svcCtx: svcCtx,
 		settings: _RuntimeSettings{
 			Name:                 "",
 			PersistId:            uid.Nil,
@@ -45,6 +45,9 @@ func CreateRuntime(svcCtx service.Context) RuntimeCreator {
 			ProcessQueueCapacity: 128,
 		},
 	}
+	c.generic, _ = svcCtx.(iRuntimeGeneric)
+
+	return c
 }
 
 // RuntimeCreator 运行时构建器
@@ -64,12 +67,14 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
 	}
 
-	_generic, ok := generic.(iRuntimeGeneric)
+	rtGeneric, ok := generic.(iRuntimeGeneric)
 	if !ok {
 		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
 	}
 
-	c.generic = _generic
+	rtGeneric.init(c.svcCtx, rtGeneric)
+	c.generic = rtGeneric
+
 	return c
 }
 
@@ -110,11 +115,12 @@ func (c RuntimeCreator) Spawn() IRuntimeInstance {
 		panic("setting svcCtx is nil")
 	}
 
-	generic := c.generic
-	if generic == nil {
-		generic = &RuntimeGenericT[RuntimeInstance]{}
-	}
-	generic.init(c.svcCtx, generic)
+	rtGeneric := c.generic
 
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(generic.generate(c.settings)))
+	if rtGeneric == nil {
+		rtGeneric = &RuntimeGenericT[RuntimeInstance]{}
+		rtGeneric.init(c.svcCtx, rtGeneric)
+	}
+
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(rtGeneric.generate(c.settings)))
 }

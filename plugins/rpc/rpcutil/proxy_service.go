@@ -69,7 +69,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
-		Plugin:   plugin,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -94,7 +94,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
-		Plugin:   plugin,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -116,7 +116,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
-		Plugin:   plugin,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -141,7 +141,7 @@ func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) err
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
-		Plugin:   plugin,
+		Script:   plugin,
 		Method:   method,
 	}
 
@@ -167,7 +167,7 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method stri
 	cp := callpath.CallPath{
 		Category:   callpath.Service,
 		ExcludeSrc: excludeSelf,
-		Plugin:     plugin,
+		Script:     plugin,
 		Method:     method,
 	}
 

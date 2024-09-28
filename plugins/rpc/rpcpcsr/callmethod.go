@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
@@ -33,26 +34,31 @@ import (
 	"reflect"
 )
 
-func CallService(svcCtx service.Context, cc rpcstack.CallChain, plugin, method string, args variant.Array) (rets variant.Array, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, method string, args variant.Array) (rets variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
-	var reflected reflect.Value
+	var scriptRV reflect.Value
 
-	if plugin == "" {
-		reflected = service.UnsafeContext(svcCtx).GetReflected()
+	if pluginName == "" {
+		scriptRV = service.UnsafeContext(svcCtx).GetReflected()
 	} else {
-		pi, ok := svcCtx.GetPluginBundle().Get(plugin)
+		ps, ok := svcCtx.GetPluginBundle().Get(pluginName)
 		if !ok {
 			return nil, ErrPluginNotFound
 		}
-		reflected = pi.Reflected
+
+		if ps.State() != plugin.PluginState_Active {
+			return nil, ErrPluginInactive
+		}
+
+		scriptRV = ps.Reflected()
 	}
 
-	methodRV := reflected.MethodByName(method)
+	methodRV := scriptRV.MethodByName(method)
 	if !methodRV.IsValid() {
 		return nil, ErrMethodNotFound
 	}
@@ -65,7 +71,7 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, plugin, method s
 	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
-func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, plugin, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, pluginName, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -73,19 +79,24 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 	}()
 
 	return svcCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
-		var reflected reflect.Value
+		var scriptRV reflect.Value
 
-		if plugin == "" {
-			reflected = runtime.UnsafeContext(runtime.Current(entity)).GetReflected()
+		if pluginName == "" {
+			scriptRV = runtime.UnsafeContext(runtime.Current(entity)).GetReflected()
 		} else {
-			pi, ok := runtime.Current(entity).GetPluginBundle().Get(plugin)
+			ps, ok := runtime.Current(entity).GetPluginBundle().Get(pluginName)
 			if !ok {
 				return async.MakeRet(nil, ErrPluginNotFound)
 			}
-			reflected = pi.Reflected
+
+			if ps.State() != plugin.PluginState_Active {
+				return async.MakeRet(nil, ErrPluginInactive)
+			}
+
+			scriptRV = ps.Reflected()
 		}
 
-		methodRV := reflected.MethodByName(method)
+		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
 			return async.MakeRet(nil, ErrMethodNotFound)
 		}

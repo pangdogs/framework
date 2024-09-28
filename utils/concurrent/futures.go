@@ -24,6 +24,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
+	"github.com/elliotchance/pie/v2"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -68,9 +69,9 @@ func (fs *Futures) Make(ctx context.Context, resp Resp, timeout ...time.Duration
 		ctx = context.Background()
 	}
 
-	_timeout := fs.timeout
-	if len(timeout) > 0 {
-		_timeout = timeout[0]
+	_timeout := pie.First(timeout)
+	if _timeout <= 0 {
+		_timeout = fs.timeout
 	}
 
 	task := newTask(fs, resp)

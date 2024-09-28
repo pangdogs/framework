@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
@@ -84,19 +85,19 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		reportError = make(chan error, 128)
 	}
 
-	face := iface.Face[service.Context]{}
+	svcInstFace := iface.Face[service.Context]{}
 
 	if cb, ok := s.instance.(IServiceInstantiation); ok {
-		face = iface.MakeFaceTReflectC[service.Context, IServiceInstance](cb.Instantiation())
+		svcInstFace = iface.MakeFaceTReflectC[service.Context, IServiceInstance](cb.Instantiation())
 	}
 
 	svcCtx := service.NewContext(
-		service.With.InstanceFace(face),
+		service.With.InstanceFace(svcInstFace),
 		service.With.Context(ctx),
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.With.RunningHandler(generic.MakeDelegateAction2(func(svcCtx service.Context, state service.RunningState) {
+		service.With.RunningHandler(generic.MakeDelegateActionVar2(func(svcCtx service.Context, state service.RunningState, args ...any) {
 			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
 			switch state {
@@ -143,11 +144,15 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
+			case service.RunningState_PluginActivating:
+				pluginStatus := args[0].(plugin.PluginStatus)
+				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
 			}
 		})),
 	)
 
 	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
+	cacheCP("", svcInst.GetReflected().Type())
 
 	installed := func(name string) bool {
 		_, ok := svcInst.GetPluginBundle().Get(name)
@@ -355,6 +360,11 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
 		cb.Built(svcInst)
+	}
+
+	// 初始化运行时泛化类型
+	if rtGeneric, ok := svcInst.(iRuntimeGeneric); ok {
+		rtGeneric.init(svcInst, svcInst)
 	}
 
 	// 延迟连接etcd
