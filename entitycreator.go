@@ -48,15 +48,15 @@ func CreateConcurrentEntity(svcCtx service.Context, prototype string) Concurrent
 type ConcurrentEntityCreator struct {
 	ctx       service.Context
 	prototype string
-	rt        IRuntimeInstance
+	rtInst    IRuntimeInstance
 	rtCreator RuntimeCreator
 	parentId  uid.Id
 	settings  []option.Setting[ec.EntityOptions]
 }
 
 // Runtime 设置运行时（优先使用）
-func (c ConcurrentEntityCreator) Runtime(rt IRuntimeInstance) ConcurrentEntityCreator {
-	c.rt = rt
+func (c ConcurrentEntityCreator) Runtime(rtInst IRuntimeInstance) ConcurrentEntityCreator {
+	c.rtInst = rtInst
 	return c
 }
 
@@ -116,16 +116,16 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 
 	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
 
-	rt := c.rt
-	if rt == nil {
+	rtInst := c.rtInst
+	if rtInst == nil {
 		if c.rtCreator.svcCtx != nil {
-			rt = c.rtCreator.Spawn()
+			rtInst = c.rtCreator.Spawn()
 		} else {
-			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
+			rtInst = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
-	err := core.Async(rt, func(rtCtx runtime.Context, _ ...any) async.Ret {
+	err := core.Async(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
 			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
@@ -138,8 +138,8 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 		return async.VoidRet
 	}).Wait(c.ctx).Error
 	if err != nil {
-		if c.rt == nil {
-			rt.Terminate()
+		if c.rtInst == nil {
+			rtInst.Terminate()
 		}
 		return nil, err
 	}
@@ -155,16 +155,16 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 
 	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
 
-	rt := c.rt
-	if rt == nil {
+	rtInst := c.rtInst
+	if rtInst == nil {
 		if c.rtCreator.svcCtx != nil {
-			rt = c.rtCreator.Spawn()
+			rtInst = c.rtCreator.Spawn()
 		} else {
-			rt = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
+			rtInst = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
 		}
 	}
 
-	asyncRet := core.Async(rt, func(rtCtx runtime.Context, _ ...any) async.Ret {
+	asyncRet := core.Async(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
 			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
@@ -183,8 +183,8 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 		if ret.OK() {
 			ch <- async.MakeRetT[ec.ConcurrentEntity](entity, nil)
 		} else {
-			if c.rt == nil {
-				rt.Terminate()
+			if c.rtInst == nil {
+				rtInst.Terminate()
 			}
 			ch <- async.MakeRetT[ec.ConcurrentEntity](nil, ret.Error)
 		}
