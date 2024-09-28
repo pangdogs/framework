@@ -60,7 +60,7 @@ func Cache(script, method string) uint32 {
 
 	mutex.Lock()
 	cached := &_Cached{
-		Script: method,
+		Script: script,
 		Method: method,
 	}
 
