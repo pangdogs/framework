@@ -37,7 +37,11 @@ import (
 
 // CreateRPCli 创建RPC客户端
 func CreateRPCli() RPCliCreator {
-	return RPCliCreator{}
+	return RPCliCreator{
+		rttSampling: 3,
+		msgCreator:  gap.DefaultMsgCreator(),
+		reduceCP:    true,
+	}
 }
 
 // RPCliCreator RPC客户端构建器
@@ -45,6 +49,7 @@ type RPCliCreator struct {
 	settings    []option.Setting[cli.ClientOptions]
 	rttSampling int
 	msgCreator  gap.IMsgCreator
+	reduceCP    bool
 	mainProc    IProcedure
 }
 
@@ -226,8 +231,8 @@ func (ctor RPCliCreator) AuthExtensions(extensions []byte) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) ZapLogger(logger *zap.Logger) RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.ZapLogger(logger))
+func (ctor RPCliCreator) ReduceCP(b bool) RPCliCreator {
+	ctor.reduceCP = b
 	return ctor
 }
 
@@ -240,6 +245,11 @@ func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
 	return ctor
 }
 
+func (ctor RPCliCreator) ZapLogger(logger *zap.Logger) RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.ZapLogger(logger))
+	return ctor
+}
+
 func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, error) {
 	client, err := cli.Connect(ctx, endpoint, ctor.settings...)
 	if err != nil {
@@ -248,7 +258,7 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 
 	var remoteTime *cli.ResponseTime
 
-	for range max(3, ctor.rttSampling) {
+	for range ctor.rttSampling {
 		respTime := <-client.RequestTime(ctx)
 		if !respTime.OK() {
 			return nil, respTime.Error
@@ -265,19 +275,14 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 
 	rpcli := &RPCli{
 		Client:     client,
-		remoteTime: *remoteTime,
 		encoder:    codec.MakeEncoder(),
-	}
-
-	if ctor.msgCreator != nil {
-		rpcli.decoder = codec.MakeDecoder(ctor.msgCreator)
-	} else {
-		rpcli.decoder = codec.MakeDecoder(gap.DefaultMsgCreator())
+		decoder:    codec.MakeDecoder(ctor.msgCreator),
+		remoteTime: *remoteTime,
+		reduceCP:   ctor.reduceCP,
 	}
 
 	if ctor.mainProc != nil {
-		ctor.mainProc.init(rpcli, Main, ctor.mainProc)
-		rpcli.procs.Add(Main, ctor.mainProc)
+		rpcli.AddProcedure(Main, ctor.mainProc)
 	}
 
 	rpcli.WatchData(context.Background(), generic.MakeDelegateFunc1(rpcli.handleRecvData))

@@ -37,12 +37,13 @@ import (
 type PermissionValidator = generic.DelegateFunc2[rpcstack.CallChain, callpath.CallPath, bool]
 
 // NewForwardProcessor RPC转发处理器，用于S<->G的通信
-func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator) any {
+func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator, reduceCP bool) any {
 	return &_ForwardProcessor{
 		encoder:        codec.MakeEncoder(),
 		decoder:        codec.MakeDecoder(mc),
 		transitService: transitService,
 		permValidator:  permValidator,
+		reduceCP:       reduceCP,
 	}
 }
 
@@ -56,6 +57,7 @@ type _ForwardProcessor struct {
 	transitService       string
 	transitBroadcastAddr string
 	permValidator        PermissionValidator
+	reduceCP             bool
 	watcher              dsvc.IWatcher
 }
 

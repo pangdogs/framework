@@ -34,7 +34,7 @@ type _Option struct{}
 
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
-		With.Processors(rpcpcsr.NewServiceProcessor(nil))(options)
+		With.Processors(rpcpcsr.NewServiceProcessor(nil, true))(options)
 	}
 }
 

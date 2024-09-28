@@ -45,6 +45,7 @@ type RPCli struct {
 	encoder    codec.Encoder
 	decoder    codec.Decoder
 	remoteTime cli.ResponseTime
+	reduceCP   bool
 	procs      generic.SliceMap[string, IProcedure]
 }
 
@@ -70,7 +71,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 		Method:   method,
 	}
 
-	cpbs, err := cp.Encode(false)
+	cpbs, err := cp.Encode(c.reduceCP)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -124,7 +125,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		Method:   method,
 	}
 
-	cpbs, err := cp.Encode(false)
+	cpbs, err := cp.Encode(c.reduceCP)
 	if err != nil {
 		return err
 	}
