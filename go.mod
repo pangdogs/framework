@@ -17,6 +17,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
+	github.com/yuin/gopher-lua v1.1.1
 	go.etcd.io/etcd/api/v3 v3.5.13
 	go.etcd.io/etcd/client/v3 v3.5.13
 	go.mongodb.org/mongo-driver v1.15.0
