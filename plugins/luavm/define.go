@@ -22,7 +22,7 @@ package luavm
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServicePlugin(newLuaVM)
+	self      = define.RuntimePlugin(newLuaVM)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install
