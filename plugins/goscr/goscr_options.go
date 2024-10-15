@@ -27,7 +27,7 @@ import (
 
 type (
 	// LoadedCB loaded callback method.
-	LoadedCB = generic.DelegateAction2[IGoScr, bool]
+	LoadedCB = generic.DelegateAction2[IGoScr, int]
 )
 
 // GoScrOptions 所有选项

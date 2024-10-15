@@ -61,8 +61,9 @@ func (s *_GoScr) InitSP(svcCtx service.Context) {
 	if err != nil {
 		log.Panicln(s.svcCtx, err)
 	}
-
 	s.intp = intp
+
+	s.options.LoadedCB.Exec(nil, s, 0)
 
 	if s.options.AutoHotFix {
 		s.hotFix()
@@ -126,6 +127,7 @@ func (s *_GoScr) hotFix() {
 
 	go func() {
 		var reloading atomic.Bool
+		times := 1
 
 		for {
 			select {
@@ -151,6 +153,12 @@ func (s *_GoScr) hotFix() {
 						return
 					}
 					s.intp = intp
+
+					s.options.LoadedCB.Invoke(func(err error) bool {
+						log.Errorf(s.svcCtx, "hotfix script reload %+v callback failed, %s", s.options.PathList, err)
+						return false
+					}, s, times)
+					times++
 
 					log.Infof(s.svcCtx, "hotfix script reload %+v ok", s.options.PathList)
 				}()
