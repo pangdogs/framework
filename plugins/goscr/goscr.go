@@ -74,6 +74,10 @@ func (s *_GoScr) load() (*interp.Interpreter, error) {
 	intp.Use(stdlib.Symbols)
 	intp.Use(fwlib.Symbols)
 
+	for _, symbols := range s.options.SymbolsList {
+		intp.Use(symbols)
+	}
+
 	for _, path := range s.options.PathList {
 		if _, err := intp.EvalPath(path); err != nil {
 			return nil, fmt.Errorf("load script path %q failed, %s", path, err)
