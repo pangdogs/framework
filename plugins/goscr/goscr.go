@@ -28,12 +28,15 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
+	"reflect"
 	"sync/atomic"
 	"time"
 )
 
 // IGoScr golang脚本支持
 type IGoScr interface {
+	// Eval 执行脚本
+	Eval(src string) (reflect.Value, error)
 }
 
 func newGoScr(setting ...option.Setting[GoScrOptions]) IGoScr {
@@ -67,6 +70,11 @@ func (s *_GoScr) InitSP(svcCtx service.Context) {
 // ShutSP 关闭服务插件
 func (s *_GoScr) ShutSP(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
+}
+
+// Eval 执行脚本
+func (s *_GoScr) Eval(src string) (reflect.Value, error) {
+	return s.intp.Eval(src)
 }
 
 func (s *_GoScr) load() (*interp.Interpreter, error) {
@@ -125,18 +133,19 @@ func (s *_GoScr) hotFix() {
 
 					intp, err := s.load()
 					if err != nil {
-						log.Errorf(s.svcCtx, "hotfix script reload %q failed, %s", e, err)
+						log.Errorf(s.svcCtx, "hotfix script reload %+v failed, %s", s.options.PathList, err)
 						return
 					}
-
 					s.intp = intp
+
+					log.Infof(s.svcCtx, "hotfix script reload %+v ok", s.options.PathList)
 				}()
 
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				log.Errorf(s.svcCtx, "hotfix script watch failed, %s", err)
+				log.Errorf(s.svcCtx, "hotfix script watch %+v failed, %s", s.options.PathList, err)
 			}
 		}
 	}()

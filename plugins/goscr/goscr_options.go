@@ -38,19 +38,19 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[GoScrOptions] {
 	return func(options *GoScrOptions) {
-		With.PathList(nil)(options)
-		With.SymbolsList(nil)(options)
+		With.PathList()(options)
+		With.SymbolsList()(options)
 		With.AutoHotFix(true)(options)
 	}
 }
 
-func (_Option) PathList(l []string) option.Setting[GoScrOptions] {
+func (_Option) PathList(l ...string) option.Setting[GoScrOptions] {
 	return func(options *GoScrOptions) {
 		options.PathList = l
 	}
 }
 
-func (_Option) SymbolsList(l []map[string]map[string]reflect.Value) option.Setting[GoScrOptions] {
+func (_Option) SymbolsList(l ...map[string]map[string]reflect.Value) option.Setting[GoScrOptions] {
 	return func(options *GoScrOptions) {
 		options.SymbolsList = l
 	}
