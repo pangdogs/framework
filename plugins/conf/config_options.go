@@ -31,7 +31,7 @@ type ConfigOptions struct {
 	RemoteProvider string         // 远端配置类型（etcd3,consul...）
 	RemoteEndpoint string         // 远端地址
 	RemotePath     string         // 远端路径
-	AutoUpdate     bool           // 是否热更新
+	AutoHotFix     bool           // 自动热更新
 	DefaultKVs     map[string]any // 默认配置
 	MergeEnv       bool           // 合并环境变量
 	MergeConf      *viper.Viper   // 合并配置
@@ -47,7 +47,7 @@ func (_Option) Default() option.Setting[ConfigOptions] {
 		With.Format("json").Apply(options)
 		With.LocalPath("").Apply(options)
 		With.Remote("", "", "").Apply(options)
-		With.AutoUpdate(false).Apply(options)
+		With.AutoHotFix(false).Apply(options)
 		With.DefaultKVs(nil).Apply(options)
 		With.MergeEnv(false).Apply(options)
 		With.MergeConf(nil).Apply(options)
@@ -77,10 +77,10 @@ func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOpti
 	}
 }
 
-// AutoUpdate 远端配置类型（etcd3,consul...）
-func (_Option) AutoUpdate(b bool) option.Setting[ConfigOptions] {
+// AutoHotFix 是否热更新
+func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
 	return func(o *ConfigOptions) {
-		o.AutoUpdate = b
+		o.AutoHotFix = b
 	}
 }
 

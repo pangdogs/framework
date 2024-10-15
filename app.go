@@ -181,7 +181,7 @@ func (app *App) initFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
 	cmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
 	cmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
-	cmd.PersistentFlags().Bool("conf.auto_update", true, "auto update config")
+	cmd.PersistentFlags().Bool("conf.auto_hotfix", true, "auto hotfix config")
 
 	// nats参数
 	cmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")

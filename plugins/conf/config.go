@@ -102,7 +102,7 @@ func (c *_Config) InitSP(svcCtx service.Context) {
 		Viper: vp,
 	}
 
-	if c.options.AutoUpdate {
+	if c.options.AutoHotFix {
 		if local {
 			vp.OnConfigChange(func(in fsnotify.Event) {
 				subVp := vp.Sub(svcCtx.GetName())

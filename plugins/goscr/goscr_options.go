@@ -17,48 +17,47 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package luavm
+package goscr
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/utils/option"
-	"github.com/yuin/gopher-lua"
+	"reflect"
 )
 
-// ILuaVM lua虚拟机接口
-type ILuaVM interface {
-	GetLState() *lua.LState
+// GoScrOptions 所有选项
+type GoScrOptions struct {
+	PathList    []string
+	SymbolsList []map[string]map[string]reflect.Value
+	AutoHotFix  bool
 }
 
-func newLuaVM(setting ...option.Setting[LuaVMOptions]) ILuaVM {
-	return &_LuaVM{
-		options: option.Make(With.Default(), setting...),
+var With _Option
+
+type _Option struct{}
+
+// Default 默认值
+func (_Option) Default() option.Setting[GoScrOptions] {
+	return func(options *GoScrOptions) {
+		With.PathList(nil)(options)
+		With.SymbolsList(nil)(options)
+		With.AutoHotFix(true)(options)
 	}
 }
 
-type _LuaVM struct {
-	rtCtx   runtime.Context
-	options LuaVMOptions
-	ls      *lua.LState
-}
-
-// InitRP 初始化运行时插件
-func (l *_LuaVM) InitRP(rtCtx runtime.Context) {
-	l.rtCtx = rtCtx
-
-	l.ls = lua.NewState(lua.Options{
-		SkipOpenLibs:        !l.options.BuiltInLibraries,
-		IncludeGoStackTrace: l.options.ShowGoStackTrace,
-	})
-}
-
-// ShutRP 关闭运行时插件
-func (l *_LuaVM) ShutRP(rtCtx runtime.Context) {
-	if l.ls != nil {
-		l.ls.Close()
+func (_Option) PathList(l []string) option.Setting[GoScrOptions] {
+	return func(options *GoScrOptions) {
+		options.PathList = l
 	}
 }
 
-func (l *_LuaVM) GetLState() *lua.LState {
-	return l.ls
+func (_Option) SymbolsList(l []map[string]map[string]reflect.Value) option.Setting[GoScrOptions] {
+	return func(options *GoScrOptions) {
+		options.SymbolsList = l
+	}
+}
+
+func (_Option) AutoHotFix(b bool) option.Setting[GoScrOptions] {
+	return func(options *GoScrOptions) {
+		options.AutoHotFix = b
+	}
 }

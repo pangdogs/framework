@@ -230,7 +230,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				startupConf.GetString("conf.remote_endpoint"),
 				startupConf.GetString("conf.remote_path"),
 			),
-			conf.With.AutoUpdate(startupConf.GetBool("conf.auto_update")),
+			conf.With.AutoHotFix(startupConf.GetBool("conf.auto_update")),
 			conf.With.MergeConf(startupConf),
 		)
 	}

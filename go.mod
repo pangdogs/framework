@@ -3,7 +3,7 @@ module git.golaxy.org/framework
 go 1.23
 
 require (
-	git.golaxy.org/core v0.3.40
+	git.golaxy.org/core v0.3.41
 	github.com/andybalholm/brotli v1.1.0
 	github.com/elliotchance/pie/v2 v2.9.0
 	github.com/fsnotify/fsnotify v1.7.0
@@ -17,7 +17,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/yuin/gopher-lua v1.1.1
+	github.com/traefik/yaegi v0.16.1
 	go.etcd.io/etcd/api/v3 v3.5.13
 	go.etcd.io/etcd/client/v3 v3.5.13
 	go.mongodb.org/mongo-driver v1.15.0

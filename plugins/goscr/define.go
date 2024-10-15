@@ -17,40 +17,14 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package luavm
+package goscr
 
-import (
-	"git.golaxy.org/core/utils/option"
+import "git.golaxy.org/core/define"
+
+var (
+	self      = define.ServicePlugin(newGoScr)
+	Name      = self.Name
+	Using     = self.Using
+	Install   = self.Install
+	Uninstall = self.Uninstall
 )
-
-// LuaVMOptions 所有选项
-type LuaVMOptions struct {
-	BuiltInLibraries bool
-	ShowGoStackTrace bool
-}
-
-var With _Option
-
-type _Option struct{}
-
-// Default 默认值
-func (_Option) Default() option.Setting[LuaVMOptions] {
-	return func(options *LuaVMOptions) {
-		With.BuiltInLibraries(true).Apply(options)
-		With.ShowGoStackTrace(true).Apply(options)
-	}
-}
-
-// BuiltInLibraries 使用lua内置库
-func (_Option) BuiltInLibraries(b bool) option.Setting[LuaVMOptions] {
-	return func(o *LuaVMOptions) {
-		o.BuiltInLibraries = b
-	}
-}
-
-// ShowGoStackTrace 当panic时显示golang的堆栈
-func (_Option) ShowGoStackTrace(b bool) option.Setting[LuaVMOptions] {
-	return func(o *LuaVMOptions) {
-		o.ShowGoStackTrace = b
-	}
-}
