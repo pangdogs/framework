@@ -127,7 +127,7 @@ func (s *_GoScr) hotFix() {
 
 	go func() {
 		var reloading atomic.Bool
-		times := 1
+		ver := 1
 
 		for {
 			select {
@@ -157,8 +157,8 @@ func (s *_GoScr) hotFix() {
 					s.options.LoadedCB.Invoke(func(err error) bool {
 						log.Errorf(s.svcCtx, "hotfix script reload %+v callback failed, %s", s.options.PathList, err)
 						return false
-					}, s, times)
-					times++
+					}, s, ver)
+					ver++
 
 					log.Infof(s.svcCtx, "hotfix script reload %+v ok", s.options.PathList)
 				}()
