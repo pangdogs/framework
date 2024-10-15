@@ -28,6 +28,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
+	"io/fs"
+	"path/filepath"
 	"reflect"
 	"sync/atomic"
 	"time"
@@ -87,11 +89,23 @@ func (s *_GoScr) load() (*interp.Interpreter, error) {
 	}
 
 	for _, path := range s.options.PathList {
-		if _, err := intp.EvalPath(path); err != nil {
-			return nil, fmt.Errorf("load script path %q failed, %s", path, err)
-		}
-		if _, err := intp.Eval(fmt.Sprintf(`import "%s"`, path)); err != nil {
-			return nil, fmt.Errorf("import script path %q failed, %s", path, err)
+		err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+			if !d.IsDir() {
+				return nil
+			}
+
+			if _, err := intp.EvalPath(path); err != nil {
+				return fmt.Errorf("load script path %q failed, %s", path, err)
+			}
+
+			if _, err := intp.Eval(fmt.Sprintf(`import "%s"`, path)); err != nil {
+				return fmt.Errorf("import script path %q failed, %s", path, err)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
 	}
 

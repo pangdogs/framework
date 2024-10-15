@@ -20,8 +20,14 @@
 package goscr
 
 import (
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"reflect"
+)
+
+type (
+	// LoadedCB loaded callback method.
+	LoadedCB = generic.DelegateAction2[IGoScr, bool]
 )
 
 // GoScrOptions 所有选项
@@ -29,6 +35,7 @@ type GoScrOptions struct {
 	PathList    []string
 	SymbolsList []map[string]map[string]reflect.Value
 	AutoHotFix  bool
+	LoadedCB    LoadedCB
 }
 
 var With _Option
@@ -41,6 +48,7 @@ func (_Option) Default() option.Setting[GoScrOptions] {
 		With.PathList()(options)
 		With.SymbolsList()(options)
 		With.AutoHotFix(true)(options)
+		With.LoadedCB(nil)(options)
 	}
 }
 
@@ -59,5 +67,11 @@ func (_Option) SymbolsList(l ...map[string]map[string]reflect.Value) option.Sett
 func (_Option) AutoHotFix(b bool) option.Setting[GoScrOptions] {
 	return func(options *GoScrOptions) {
 		options.AutoHotFix = b
+	}
+}
+
+func (_Option) LoadedCB(cb LoadedCB) option.Setting[GoScrOptions] {
+	return func(options *GoScrOptions) {
+		options.LoadedCB = cb
 	}
 }
