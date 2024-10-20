@@ -20,13 +20,13 @@
 package framework
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/meta"
 	"git.golaxy.org/core/utils/option"
@@ -36,7 +36,7 @@ import (
 // CreateConcurrentEntity 创建实体
 func CreateConcurrentEntity(svcCtx service.Context, prototype string) ConcurrentEntityCreator {
 	if svcCtx == nil {
-		panic(fmt.Errorf("%w: svcCtx is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
 	}
 	return ConcurrentEntityCreator{
 		ctx:       svcCtx,
@@ -111,7 +111,7 @@ func (c ConcurrentEntityCreator) ParentId(id uid.Id) ConcurrentEntityCreator {
 // Spawn 创建实体
 func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 	if c.ctx == nil {
-		panic(" setting ctx is nil")
+		exception.Panicf("%w: ctx is nil", ErrFramework)
 	}
 
 	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
@@ -150,7 +150,7 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 // SpawnAsync 创建实体
 func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntity] {
 	if c.ctx == nil {
-		panic(" setting ctx is nil")
+		exception.Panicf("%w: ctx is nil", ErrFramework)
 	}
 
 	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)

@@ -25,6 +25,7 @@ import (
 	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
@@ -256,7 +257,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		v, _ := r.GetService().GetMemKV().Load("etcd.lazy_conn")
 		fun, _ := v.(func() *etcdv3.Client)
 		if fun == nil {
-			panic("service memory kv etcd.lazy_conn not existed")
+			exception.Panicf("%w: service memory kv etcd.lazy_conn not existed", ErrFramework)
 		}
 		cli := fun()
 

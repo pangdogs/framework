@@ -22,8 +22,8 @@ package framework
 import (
 	"context"
 	"errors"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -70,12 +70,12 @@ func (app *App) Setup(name string, generic any) *App {
 	app.lazyInit()
 
 	if generic == nil {
-		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: generic is nil", ErrFramework, core.ErrArgs)
 	}
 
 	svcGeneric, ok := generic.(iServiceGeneric)
 	if !ok {
-		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
+		exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
 	}
 
 	svcGeneric.init(app.startupConf, name, svcGeneric)
@@ -123,7 +123,7 @@ func (app *App) Run() {
 
 			if startupConf.ConfigFileUsed() != "" {
 				if err := startupConf.ReadInConfig(); err != nil {
-					panic(fmt.Errorf("load startup config [--conf.local_path] = %q failed, %s", startupConf.GetString("conf.local_path"), err))
+					exception.Panicf("%w: load startup config [--conf.local_path] = %q failed, %s", ErrFramework, startupConf.GetString("conf.local_path"), err)
 				}
 			}
 
@@ -155,7 +155,7 @@ func (app *App) Run() {
 
 	// 开始运行
 	if err := cmd.Execute(); err != nil {
-		panic(err)
+		exception.Panicf("%w: %w", ErrFramework, err)
 	}
 }
 
@@ -224,12 +224,12 @@ func (app *App) initPProf() {
 
 	_, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
-		panic(fmt.Errorf("startup config [--pprof.address] = %q is invalid, %s", addr, err))
+		exception.Panicf("%w: startup config [--pprof.address] = %q is invalid, %s", ErrFramework, addr, err)
 	}
 
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			panic(fmt.Errorf("interrupt listening %q, %s", addr, err))
+			exception.Panicf("%w: interrupt listening %q, %s", ErrFramework, addr, err)
 		}
 	}()
 }

@@ -20,10 +20,10 @@
 package framework
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
 )
@@ -31,7 +31,7 @@ import (
 // CreateRuntime 创建运行时
 func CreateRuntime(svcCtx service.Context) RuntimeCreator {
 	if svcCtx == nil {
-		panic(fmt.Errorf("%w: svcCtx is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
 	}
 
 	c := RuntimeCreator{
@@ -60,16 +60,16 @@ type RuntimeCreator struct {
 // Setup 安装运行时泛化类型
 func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 	if c.svcCtx == nil {
-		panic("setting svcCtx is nil")
+		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
 
 	if generic == nil {
-		panic(fmt.Errorf("%w: generic is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: generic is nil", ErrFramework, core.ErrArgs)
 	}
 
 	rtGeneric, ok := generic.(iRuntimeGeneric)
 	if !ok {
-		panic(fmt.Errorf("%w: incorrect generic type", core.ErrArgs))
+		exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
 	}
 
 	rtGeneric.init(c.svcCtx, rtGeneric)
@@ -112,7 +112,7 @@ func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
 // Spawn 创建运行时
 func (c RuntimeCreator) Spawn() IRuntimeInstance {
 	if c.svcCtx == nil {
-		panic("setting svcCtx is nil")
+		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
 
 	rtGeneric := c.generic

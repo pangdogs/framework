@@ -23,6 +23,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/framework/plugins/broker"
 	"git.golaxy.org/framework/plugins/conf"
@@ -121,7 +122,7 @@ func (inst *ServiceInstance) GetRPC() rpc.IRPC {
 func (inst *ServiceInstance) GetStartupNo() int {
 	v, _ := inst.GetMemKV().Load("startup.no")
 	if v == nil {
-		panic("service memory kv startup.no not existed")
+		exception.Panicf("%w: service memory kv startup.no not existed", ErrFramework)
 	}
 	return v.(int)
 }
@@ -130,7 +131,7 @@ func (inst *ServiceInstance) GetStartupNo() int {
 func (inst *ServiceInstance) GetStartupConf() *viper.Viper {
 	v, _ := inst.GetMemKV().Load("startup.conf")
 	if v == nil {
-		panic("service memory kv startup.conf not existed")
+		exception.Panicf("%w: service memory kv startup.conf not existed", ErrFramework)
 	}
 	return v.(*viper.Viper)
 }
@@ -139,7 +140,7 @@ func (inst *ServiceInstance) GetStartupConf() *viper.Viper {
 func (inst *ServiceInstance) GetMemKV() *sync.Map {
 	memKV, _ := inst.Value("mem_kv").(*sync.Map)
 	if memKV == nil {
-		panic("service memory not existed")
+		exception.Panicf("%w: service memory not existed", ErrFramework)
 	}
 	return memKV
 }

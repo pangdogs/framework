@@ -20,6 +20,7 @@
 package binaryutil
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"github.com/fufuok/bytespool"
 	"math"
 	"reflect"
@@ -84,7 +85,7 @@ func (b RecycleBytes) Data() []byte {
 // Slice 切片
 func (b RecycleBytes) Slice(low, high int) RecycleBytes {
 	if low < 0 || high < 0 {
-		panic("negative index")
+		exception.Panic("negative index")
 	}
 	if high == 0 {
 		high = len(b.data) - b.low

@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"io"
 	"math"
@@ -42,7 +43,7 @@ func (*noCopy) Unlock() {}
 
 func NewByteStream(p []byte, endian binary.ByteOrder) ByteStream {
 	if endian == nil {
-		panic(fmt.Errorf("%w: endian is nil", core.ErrArgs))
+		exception.Panicf("%w: endian is nil", core.ErrArgs)
 	}
 	return ByteStream{
 		sp:     p,

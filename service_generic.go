@@ -26,6 +26,7 @@ import (
 	"git.golaxy.org/core/plugin"
 	"git.golaxy.org/core/pt"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
@@ -173,7 +174,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	if !installed(log.Name) {
 		level, err := zapcore.ParseLevel(startupConf.GetString("log.level"))
 		if err != nil {
-			panic(fmt.Errorf("parse startup config [--log.level] = %q failed, %s", startupConf.GetString("log.level"), err))
+			exception.Panicf("%w: parse startup config [--log.level] = %q failed, %s", ErrFramework, startupConf.GetString("log.level"), err)
 		}
 
 		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
@@ -375,7 +376,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			Password:  startupConf.GetString("etcd.password"),
 		})
 		if err != nil {
-			panic(fmt.Errorf("new etcd client failed, %s", err))
+			exception.Panicf("%w: new etcd client failed, %s", ErrFramework, err)
 		}
 		memKV.Store("etcd.client", cli)
 		return cli
