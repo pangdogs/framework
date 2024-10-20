@@ -20,10 +20,11 @@
 package rpcutil
 
 import (
-	"errors"
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dentq"
 	"git.golaxy.org/framework/plugins/dsvc"
@@ -37,6 +38,9 @@ import (
 
 // ProxyRuntime 代理运行时
 func ProxyRuntime(provider runtime.CurrentContextProvider, entityId uid.Id) RuntimeProxied {
+	if provider == nil {
+		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
+	}
 	return RuntimeProxied{
 		svcCtx:   service.Current(provider),
 		rtCtx:    runtime.Current(provider),
@@ -67,7 +71,7 @@ func (p RuntimeProxied) GetEntityId() uid.Id {
 // RPC 向分布式实体目标服务的运行时发送RPC
 func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.AsyncRet {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -104,7 +108,7 @@ func (p RuntimeProxied) RPC(service, plugin, method string, args ...any) async.A
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送RPC
 func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) async.AsyncRet {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -158,7 +162,7 @@ func (p RuntimeProxied) BalanceRPC(service, plugin, method string, args ...any) 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送RPC
 func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string, args ...any) async.AsyncRet {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -211,7 +215,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, plugin, method string
 // OnewayRPC 向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) OnewayRPC(service, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -248,7 +252,7 @@ func (p RuntimeProxied) OnewayRPC(service, plugin, method string, args ...any) e
 // BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) BalanceOnewayRPC(service, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -302,7 +306,7 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, plugin, method string, args ..
 // GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送单向RPC
 func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -355,7 +359,7 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, plugin, method 
 // BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务的运行时发送单向RPC
 func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
@@ -393,7 +397,7 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, plugin, me
 // GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务的运行时发送单向RPC
 func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 全局广播地址

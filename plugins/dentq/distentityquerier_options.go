@@ -21,8 +21,8 @@ package dentq
 
 import (
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
@@ -103,7 +103,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityQuerier
 	return func(options *DistEntityQuerierOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

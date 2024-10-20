@@ -20,8 +20,8 @@
 package redis_discovery
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"github.com/redis/go-redis/v9"
 	"net"
@@ -97,7 +97,7 @@ func (_Option) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
 func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	return func(o *RegistryOptions) {
 		if size < 0 {
-			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs))
+			exception.Panicf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs)
 		}
 		o.WatchChanSize = size
 	}
@@ -107,7 +107,7 @@ func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 func (_Option) TTL(ttl time.Duration) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
+			exception.Panicf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.TTL = ttl
 	}
@@ -125,7 +125,7 @@ func (_Option) CustomAuth(username, password string) option.Setting[RegistryOpti
 func (_Option) CustomAddress(addr string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
-			panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+			exception.Panicf("%w: %w", core.ErrArgs, err)
 		}
 		options.CustomAddress = addr
 	}

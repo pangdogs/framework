@@ -21,8 +21,8 @@ package router
 
 import (
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
@@ -95,7 +95,7 @@ func (_Option) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
 func (_Option) GroupTTL(ttl time.Duration, auto bool) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option GroupTTL can't be set to a value less than 3 second", core.ErrArgs))
+			exception.Panicf("%w: option GroupTTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.GroupTTL = ttl
 		options.GroupAutoRefreshTTL = auto
@@ -130,7 +130,7 @@ func (_Option) EntityGroupsKeyPrefix(prefix string) option.Setting[RouterOptions
 func (_Option) EntityGroupCacheTTL(ttl time.Duration) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs))
+			exception.Panicf("%w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.EntityGroupsCacheTTL = ttl
 	}
@@ -149,7 +149,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

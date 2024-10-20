@@ -21,6 +21,7 @@ package gate
 
 import (
 	"errors"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 )
 
@@ -83,7 +84,7 @@ func (s SessionSettings) RecvEventHandler(handler SessionRecvEventHandler) Sessi
 // Change 执行修改
 func (s SessionSettings) Change() error {
 	if s.session == nil {
-		panic(errors.New("setting session is nil"))
+		exception.Panic("session is nil")
 	}
 
 	s.session.Lock()

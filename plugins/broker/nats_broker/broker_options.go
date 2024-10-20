@@ -20,8 +20,8 @@
 package nats_broker
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"github.com/nats-io/nats.go"
 	"net"
@@ -93,7 +93,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

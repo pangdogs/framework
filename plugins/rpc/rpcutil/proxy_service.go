@@ -20,9 +20,10 @@
 package rpcutil
 
 import (
-	"errors"
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/plugins/dsvc"
 	"git.golaxy.org/framework/plugins/rpc"
@@ -32,6 +33,10 @@ import (
 
 // ProxyService 代理服务
 func ProxyService(svcCtx service.Context, service ...string) ServiceProxied {
+	if svcCtx == nil {
+		exception.Panicf("rpc: %w: svcCtx is nil", core.ErrArgs)
+	}
+
 	p := ServiceProxied{
 		svcCtx: svcCtx,
 	}
@@ -57,7 +62,7 @@ func (p ServiceProxied) GetService() string {
 // RPC 向分布式服务指定节点发送RPC
 func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) async.AsyncRet {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
@@ -79,7 +84,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, plugin, method string, args ...any) a
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
 func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.AsyncRet {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
@@ -104,7 +109,7 @@ func (p ServiceProxied) BalanceRPC(plugin, method string, args ...any) async.Asy
 // OnewayRPC 向分布式服务指定节点发送单向RPC
 func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
@@ -126,7 +131,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, plugin, method string, args ...
 // BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
 func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
@@ -151,7 +156,7 @@ func (p ServiceProxied) BalanceOnewayRPC(plugin, method string, args ...any) err
 // BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
 func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, plugin, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址

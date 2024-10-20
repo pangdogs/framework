@@ -23,8 +23,8 @@ import (
 	"context"
 	"crypto"
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gap"
@@ -200,7 +200,7 @@ func (ctor RPCliCreator) GTPRecvEventHandler(handler cli.RecvEventHandler) RPCli
 
 func (ctor RPCliCreator) GTPRTTSampling(n int) RPCliCreator {
 	if n < 3 {
-		panic(fmt.Errorf("%w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs))
+		exception.Panicf("%w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs)
 	}
 	ctor.rttSampling = n
 	return ctor
@@ -239,7 +239,7 @@ func (ctor RPCliCreator) ReduceCP(b bool) RPCliCreator {
 func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
 	_proc, ok := proc.(IProcedure)
 	if !ok {
-		panic(fmt.Errorf("%w: incorrect proc type", core.ErrArgs))
+		exception.Panicf("%w: incorrect proc type", core.ErrArgs)
 	}
 	ctor.mainProc = _proc
 	return ctor

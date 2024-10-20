@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"github.com/elliotchance/pie/v2"
@@ -35,7 +36,7 @@ type (
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
 func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...ErrorHandler) chan<- binaryutil.RecycleBytes {
 	if broker == nil {
-		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
+		exception.Panicf("%w: broker is nil", core.ErrArgs)
 	}
 
 	_errorHandler := pie.First(errorHandler)
@@ -63,7 +64,7 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 // MakeReadChan creates a new channel for receiving data from a specific pattern.
 func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int) (<-chan binaryutil.RecycleBytes, error) {
 	if broker == nil {
-		panic(fmt.Errorf("%w: broker is nil", core.ErrArgs))
+		exception.Panicf("%w: broker is nil", core.ErrArgs)
 	}
 
 	if ctx == nil {

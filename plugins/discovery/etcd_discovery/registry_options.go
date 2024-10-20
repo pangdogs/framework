@@ -21,8 +21,8 @@ package etcd_discovery
 
 import (
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
@@ -90,7 +90,7 @@ func (_Option) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
 func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if size < 0 {
-			panic(fmt.Errorf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs))
+			exception.Panicf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs)
 		}
 		options.WatchChanSize = size
 	}
@@ -100,7 +100,7 @@ func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 func (_Option) TTL(ttl time.Duration, auto bool) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
+			exception.Panicf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.TTL = ttl
 		options.AutoRefreshTTL = auto
@@ -120,7 +120,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RegistryOptions] 
 	return func(options *RegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

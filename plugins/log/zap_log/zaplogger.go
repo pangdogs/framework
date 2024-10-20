@@ -20,6 +20,7 @@
 package zap_log
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -47,7 +48,7 @@ func NewConsoleZapLogger(level zapcore.Level, separator, fileName string, maxSiz
 	}
 
 	if write == nil {
-		panic("require at least one logger writer")
+		exception.Panic("require at least one logger writer")
 	}
 
 	// 日志级别设置器
@@ -107,7 +108,7 @@ func NewJsonZapLogger(level zapcore.Level, fileName string, maxSize int, stdout,
 	}
 
 	if write == nil {
-		panic("require at least one logger writer")
+		exception.Panic("require at least one logger writer")
 	}
 
 	// 日志级别设置器

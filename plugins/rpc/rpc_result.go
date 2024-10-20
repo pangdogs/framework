@@ -22,6 +22,7 @@ package rpc
 import (
 	"errors"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap/variant"
 	"reflect"
@@ -62,8 +63,12 @@ func (rvs ResultValues) Extract() ([]any, error) {
 }
 
 func (rvs ResultValues) Ensure() []any {
+	return rvs.ensure(2)
+}
+
+func (rvs ResultValues) ensure(skip int) []any {
 	if rvs.Error != nil {
-		panic(rvs.Error)
+		exception.PanicSkip(skip, rvs.Error)
 	}
 	return rvs.Values
 }
@@ -102,8 +107,12 @@ func (rtp ResultTuple0) Extract() error {
 }
 
 func (rtp ResultTuple0) Ensure() {
+	rtp.ensure(2)
+}
+
+func (rtp ResultTuple0) ensure(skip int) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 }
 
@@ -125,8 +134,12 @@ func (rtp ResultTuple1[T1]) Extract() (T1, error) {
 }
 
 func (rtp ResultTuple1[T1]) Ensure() T1 {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple1[T1]) ensure(skip int) T1 {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1
 }
@@ -169,8 +182,12 @@ func (rtp ResultTuple2[T1, T2]) Extract() (T1, T2, error) {
 }
 
 func (rtp ResultTuple2[T1, T2]) Ensure() (T1, T2) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple2[T1, T2]) ensure(skip int) (T1, T2) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2
 }
@@ -209,10 +226,6 @@ func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
 	return
 }
 
-func AssertRet2[T1, T2 any](ret async.Ret) (T1, T2) {
-	return Result2[T1, T2](ret).Ensure()
-}
-
 type ResultTuple3[T1, T2, T3 any] struct {
 	R1    T1
 	R2    T2
@@ -225,8 +238,12 @@ func (rtp ResultTuple3[T1, T2, T3]) Extract() (T1, T2, T3, error) {
 }
 
 func (rtp ResultTuple3[T1, T2, T3]) Ensure() (T1, T2, T3) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple3[T1, T2, T3]) ensure(skip int) (T1, T2, T3) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3
 }
@@ -285,8 +302,12 @@ func (rtp ResultTuple4[T1, T2, T3, T4]) Extract() (T1, T2, T3, T4, error) {
 }
 
 func (rtp ResultTuple4[T1, T2, T3, T4]) Ensure() (T1, T2, T3, T4) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple4[T1, T2, T3, T4]) ensure(skip int) (T1, T2, T3, T4) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4
 }
@@ -353,8 +374,12 @@ func (rtp ResultTuple5[T1, T2, T3, T4, T5]) Extract() (T1, T2, T3, T4, T5, error
 }
 
 func (rtp ResultTuple5[T1, T2, T3, T4, T5]) Ensure() (T1, T2, T3, T4, T5) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple5[T1, T2, T3, T4, T5]) ensure(skip int) (T1, T2, T3, T4, T5) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5
 }
@@ -429,8 +454,12 @@ func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) Extract() (T1, T2, T3, T4, T5, T
 }
 
 func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) Ensure() (T1, T2, T3, T4, T5, T6) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) ensure(skip int) (T1, T2, T3, T4, T5, T6) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6
 }
@@ -513,8 +542,12 @@ func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) Extract() (T1, T2, T3, T4, T
 }
 
 func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) Ensure() (T1, T2, T3, T4, T5, T6, T7) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7
 }
@@ -605,8 +638,12 @@ func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) Extract() (T1, T2, T3, T
 }
 
 func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8
 }
@@ -705,8 +742,12 @@ func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) Extract() (T1, T2, T
 }
 
 func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9
 }
@@ -813,8 +854,12 @@ func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) Extract() (T1,
 }
 
 func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10
 }
@@ -929,8 +974,12 @@ func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) Extract()
 }
 
 func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11
 }
@@ -1053,8 +1102,12 @@ func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) Extr
 }
 
 func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12
 }
@@ -1180,8 +1233,12 @@ func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13])
 }
 
 func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13
 }
@@ -1315,8 +1372,12 @@ func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 }
 
 func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14
 }
@@ -1458,8 +1519,12 @@ func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 }
 
 func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15
 }
@@ -1609,8 +1674,12 @@ func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 }
 
 func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) Ensure() (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
+	return rtp.ensure(2)
+}
+
+func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) ensure(skip int) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
 	if rtp.Error != nil {
-		panic(rtp.Error)
+		exception.PanicSkip(skip, rtp.Error)
 	}
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.R16
 }

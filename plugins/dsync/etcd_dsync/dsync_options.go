@@ -21,6 +21,8 @@ package etcd_dsync
 
 import (
 	"crypto/tls"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
@@ -92,7 +94,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(err)
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

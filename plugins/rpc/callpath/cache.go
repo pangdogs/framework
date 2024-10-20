@@ -20,7 +20,7 @@
 package callpath
 
 import (
-	"fmt"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"hash/fnv"
 	"sync"
@@ -54,7 +54,7 @@ func Cache(script, method string) uint32 {
 			return idx
 		}
 		mutex.RUnlock()
-		panic(fmt.Errorf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method}))
+		exception.Panicf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method})
 	}
 	mutex.RUnlock()
 
@@ -70,7 +70,7 @@ func Cache(script, method string) uint32 {
 			return idx
 		}
 		mutex.Unlock()
-		panic(fmt.Errorf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached))
+		exception.Panicf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached)
 	}
 
 	cache[idx] = cached

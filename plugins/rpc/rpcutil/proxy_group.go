@@ -20,9 +20,10 @@
 package rpcutil
 
 import (
-	"errors"
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/plugins/gate"
 	"git.golaxy.org/framework/plugins/rpc"
 	"git.golaxy.org/framework/plugins/rpc/callpath"
@@ -31,6 +32,9 @@ import (
 
 // ProxyGroup 代理分组
 func ProxyGroup(provider runtime.CurrentContextProvider, name string) GroupProxied {
+	if provider == nil {
+		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
+	}
 	return GroupProxied{
 		svcCtx: service.Current(provider),
 		rtCtx:  runtime.Current(provider),
@@ -67,7 +71,7 @@ func (p GroupProxied) GetAddr() string {
 // CliOnewayRPC 向分组发送单向RPC
 func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 	if p.svcCtx == nil {
-		panic(errors.New("rpc: setting svcCtx is nil"))
+		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 调用链

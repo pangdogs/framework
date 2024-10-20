@@ -20,6 +20,7 @@
 package redis_dsync
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"github.com/redis/go-redis/v9"
 	"net"
@@ -98,7 +99,7 @@ func (_Option) CustomAuth(username, password string) option.Setting[DSyncOptions
 func (_Option) CustomAddress(addr string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
-			panic(err)
+			exception.Panicf("%w: %w", core.ErrArgs, err)
 		}
 		options.CustomAddress = addr
 	}

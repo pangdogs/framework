@@ -20,8 +20,8 @@
 package dbutil
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -37,7 +37,7 @@ type DBService[T DB] struct {
 
 func (s *DBService[T]) bindDB(db T) {
 	if db == nil {
-		panic(fmt.Errorf("%s: db is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db is nil", core.ErrArgs)
 	}
 	s.db = db
 }
@@ -86,10 +86,10 @@ type DBService2[T0, T1 DB] struct {
 
 func (s *DBService2[T0, T1]) bindDB(db0 T0, db1 T1) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -120,13 +120,13 @@ type DBService3[T0, T1, T2 DB] struct {
 
 func (s *DBService3[T0, T1, T2]) bindDB(db0 T0, db1 T1, db2 T2) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -163,16 +163,16 @@ type DBService4[T0, T1, T2, T3 DB] struct {
 
 func (s *DBService4[T0, T1, T2, T3]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -215,19 +215,19 @@ type DBService5[T0, T1, T2, T3, T4 DB] struct {
 
 func (s *DBService5[T0, T1, T2, T3, T4]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -276,22 +276,22 @@ type DBService6[T0, T1, T2, T3, T4, T5 DB] struct {
 
 func (s *DBService6[T0, T1, T2, T3, T4, T5]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -346,25 +346,25 @@ type DBService7[T0, T1, T2, T3, T4, T5, T6 DB] struct {
 
 func (s *DBService7[T0, T1, T2, T3, T4, T5, T6]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -425,28 +425,28 @@ type DBService8[T0, T1, T2, T3, T4, T5, T6, T7 DB] struct {
 
 func (s *DBService8[T0, T1, T2, T3, T4, T5, T6, T7]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -513,31 +513,31 @@ type DBService9[T0, T1, T2, T3, T4, T5, T6, T7, T8 DB] struct {
 
 func (s *DBService9[T0, T1, T2, T3, T4, T5, T6, T7, T8]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -610,34 +610,34 @@ type DBService10[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9 DB] struct {
 
 func (s *DBService10[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -716,37 +716,37 @@ type DBService11[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 DB] struct {
 
 func (s *DBService11[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -831,40 +831,40 @@ type DBService12[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 DB] struct {
 
 func (s *DBService12[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10, db11 T11) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	if db11 == nil {
-		panic(fmt.Errorf("%s: db11 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db11 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -955,43 +955,43 @@ type DBService13[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 DB] struc
 
 func (s *DBService13[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10, db11 T11, db12 T12) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	if db11 == nil {
-		panic(fmt.Errorf("%s: db11 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db11 is nil", core.ErrArgs)
 	}
 	if db12 == nil {
-		panic(fmt.Errorf("%s: db12 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db12 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -1088,46 +1088,46 @@ type DBService14[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 DB] 
 
 func (s *DBService14[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10, db11 T11, db12 T12, db13 T13) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	if db11 == nil {
-		panic(fmt.Errorf("%s: db11 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db11 is nil", core.ErrArgs)
 	}
 	if db12 == nil {
-		panic(fmt.Errorf("%s: db12 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db12 is nil", core.ErrArgs)
 	}
 	if db13 == nil {
-		panic(fmt.Errorf("%s: db13 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db13 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -1230,49 +1230,49 @@ type DBService15[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14
 
 func (s *DBService15[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10, db11 T11, db12 T12, db13 T13, db14 T14) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	if db11 == nil {
-		panic(fmt.Errorf("%s: db11 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db11 is nil", core.ErrArgs)
 	}
 	if db12 == nil {
-		panic(fmt.Errorf("%s: db12 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db12 is nil", core.ErrArgs)
 	}
 	if db13 == nil {
-		panic(fmt.Errorf("%s: db13 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db13 is nil", core.ErrArgs)
 	}
 	if db14 == nil {
-		panic(fmt.Errorf("%s: db14 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db14 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1
@@ -1381,52 +1381,52 @@ type DBService16[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14
 
 func (s *DBService16[T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) bindDB(db0 T0, db1 T1, db2 T2, db3 T3, db4 T4, db5 T5, db6 T6, db7 T7, db8 T8, db9 T9, db10 T10, db11 T11, db12 T12, db13 T13, db14 T14, db15 T15) {
 	if db0 == nil {
-		panic(fmt.Errorf("%s: db0 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db0 is nil", core.ErrArgs)
 	}
 	if db1 == nil {
-		panic(fmt.Errorf("%s: db1 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db1 is nil", core.ErrArgs)
 	}
 	if db2 == nil {
-		panic(fmt.Errorf("%s: db2 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db2 is nil", core.ErrArgs)
 	}
 	if db3 == nil {
-		panic(fmt.Errorf("%s: db3 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db3 is nil", core.ErrArgs)
 	}
 	if db4 == nil {
-		panic(fmt.Errorf("%s: db4 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db4 is nil", core.ErrArgs)
 	}
 	if db5 == nil {
-		panic(fmt.Errorf("%s: db5 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db5 is nil", core.ErrArgs)
 	}
 	if db6 == nil {
-		panic(fmt.Errorf("%s: db6 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db6 is nil", core.ErrArgs)
 	}
 	if db7 == nil {
-		panic(fmt.Errorf("%s: db7 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db7 is nil", core.ErrArgs)
 	}
 	if db8 == nil {
-		panic(fmt.Errorf("%s: db8 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db8 is nil", core.ErrArgs)
 	}
 	if db9 == nil {
-		panic(fmt.Errorf("%s: db9 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db9 is nil", core.ErrArgs)
 	}
 	if db10 == nil {
-		panic(fmt.Errorf("%s: db10 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db10 is nil", core.ErrArgs)
 	}
 	if db11 == nil {
-		panic(fmt.Errorf("%s: db11 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db11 is nil", core.ErrArgs)
 	}
 	if db12 == nil {
-		panic(fmt.Errorf("%s: db12 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db12 is nil", core.ErrArgs)
 	}
 	if db13 == nil {
-		panic(fmt.Errorf("%s: db13 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db13 is nil", core.ErrArgs)
 	}
 	if db14 == nil {
-		panic(fmt.Errorf("%s: db14 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db14 is nil", core.ErrArgs)
 	}
 	if db15 == nil {
-		panic(fmt.Errorf("%s: db15 is nil", core.ErrArgs))
+		exception.PanicfSkip(3, "%w: db15 is nil", core.ErrArgs)
 	}
 	s.db0 = db0
 	s.db1 = db1

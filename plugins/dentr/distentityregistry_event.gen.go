@@ -22,9 +22,7 @@
 package dentr
 
 import (
-	"fmt"
 	event "git.golaxy.org/core/event"
-	iface "git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/ec"
 )
 
@@ -34,32 +32,32 @@ type iAutoEventDistEntityOnline interface {
 
 func BindEventDistEntityOnline(auto iAutoEventDistEntityOnline, subscriber EventDistEntityOnline, priority ...int32) event.Hook {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
 	return event.Bind[EventDistEntityOnline](auto.EventDistEntityOnline(), subscriber, priority...)
 }
 
 func _EmitEventDistEntityOnline(auto iAutoEventDistEntityOnline, entity ec.Entity) {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
-	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber iface.Cache) bool {
-		iface.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
+	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber event.Cache) bool {
+		event.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
 		return true
 	})
 }
 
 func _EmitEventDistEntityOnlineWithInterrupt(auto iAutoEventDistEntityOnline, interrupt func(entity ec.Entity) bool, entity ec.Entity) {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
-	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber iface.Cache) bool {
+	event.UnsafeEvent(auto.EventDistEntityOnline()).Emit(func(subscriber event.Cache) bool {
 		if interrupt != nil {
 			if interrupt(entity) {
 				return false
 			}
 		}
-		iface.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
+		event.Cache2Iface[EventDistEntityOnline](subscriber).OnDistEntityOnline(entity)
 		return true
 	})
 }
@@ -80,32 +78,32 @@ type iAutoEventDistEntityOffline interface {
 
 func BindEventDistEntityOffline(auto iAutoEventDistEntityOffline, subscriber EventDistEntityOffline, priority ...int32) event.Hook {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
 	return event.Bind[EventDistEntityOffline](auto.EventDistEntityOffline(), subscriber, priority...)
 }
 
 func _EmitEventDistEntityOffline(auto iAutoEventDistEntityOffline, entity ec.Entity) {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
-	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber iface.Cache) bool {
-		iface.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
+	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber event.Cache) bool {
+		event.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
 		return true
 	})
 }
 
 func _EmitEventDistEntityOfflineWithInterrupt(auto iAutoEventDistEntityOffline, interrupt func(entity ec.Entity) bool, entity ec.Entity) {
 	if auto == nil {
-		panic(fmt.Errorf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs))
+		event.Panicf("%w: %w: auto is nil", event.ErrEvent, event.ErrArgs)
 	}
-	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber iface.Cache) bool {
+	event.UnsafeEvent(auto.EventDistEntityOffline()).Emit(func(subscriber event.Cache) bool {
 		if interrupt != nil {
 			if interrupt(entity) {
 				return false
 			}
 		}
-		iface.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
+		event.Cache2Iface[EventDistEntityOffline](subscriber).OnDistEntityOffline(entity)
 		return true
 	})
 }

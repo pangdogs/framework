@@ -20,8 +20,8 @@
 package dsvc
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gap"
@@ -94,7 +94,7 @@ func (_Option) TTL(ttl time.Duration, refresh bool) option.Setting[DistServiceOp
 func (_Option) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if d <= 0 {
-			panic(fmt.Errorf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs))
+			exception.Panicf("%w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs)
 		}
 		options.FutureTimeout = d
 	}
@@ -104,7 +104,7 @@ func (_Option) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions]
 func (_Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if mc == nil {
-			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
+			exception.Panicf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
 		}
 		options.DecoderMsgCreator = mc
 	}

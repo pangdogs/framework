@@ -21,8 +21,8 @@ package dentr
 
 import (
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
@@ -87,7 +87,7 @@ func (_Option) KeyPrefix(prefix string) option.Setting[DistEntityRegistryOptions
 func (_Option) TTL(ttl time.Duration) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		if ttl < 3*time.Second {
-			panic(fmt.Errorf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs))
+			exception.Panicf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.TTL = ttl
 	}
@@ -106,7 +106,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityRegistr
 	return func(options *DistEntityRegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				panic(fmt.Errorf("%w: %w", core.ErrArgs, err))
+				exception.Panicf("%w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

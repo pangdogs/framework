@@ -20,8 +20,8 @@
 package zap_log
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"go.uber.org/zap"
 )
@@ -52,7 +52,7 @@ func (_Option) Default() option.Setting[LoggerOptions] {
 func (_Option) ZapLogger(logger *zap.Logger) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		if logger == nil {
-			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs))
+			exception.Panicf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs)
 		}
 		options.ZapLogger = logger
 	}
@@ -76,7 +76,7 @@ func (_Option) RuntimeInfo(b bool) option.Setting[LoggerOptions] {
 func (_Option) CallerSkip(skip int) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		if skip < 0 {
-			panic(fmt.Errorf("%w: option CallerSkip can't be set to a value less than 0", core.ErrArgs))
+			exception.Panicf("%w: option CallerSkip can't be set to a value less than 0", core.ErrArgs)
 		}
 		options.CallerSkip = skip
 	}

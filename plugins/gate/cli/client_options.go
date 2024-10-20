@@ -22,8 +22,8 @@ package cli
 import (
 	"crypto"
 	"crypto/tls"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
@@ -205,7 +205,7 @@ func (_Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
 func (_Option) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
-			panic(fmt.Errorf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs))
+			exception.Panicf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
 		}
 		options.DecoderMsgCreator = mc
 	}
@@ -357,7 +357,7 @@ func (_Option) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
 func (_Option) ZapLogger(logger *zap.Logger) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if logger == nil {
-			panic(fmt.Errorf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs))
+			exception.Panicf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs)
 		}
 		options.ZapLogger = logger
 	}
