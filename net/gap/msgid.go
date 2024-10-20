@@ -34,7 +34,7 @@ func MakeMsgId(msg Msg) MsgId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(msg).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
-		exception.Panic("gap: unsupported type")
+		exception.Panicf("%w: unsupported type", ErrGAP)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())
@@ -45,7 +45,7 @@ func MakeMsgIdT[T any]() MsgId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Msg]()) {
-		exception.Panic("gap: unsupported type")
+		exception.Panicf("%w: unsupported type", ErrGAP)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())

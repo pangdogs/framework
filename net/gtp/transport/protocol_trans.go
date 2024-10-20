@@ -21,6 +21,7 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
 )
@@ -39,11 +40,17 @@ type TransProtocol struct {
 // SendData 发送数据
 func (t *TransProtocol) SendData(data []byte) error {
 	if t.Transceiver == nil {
-		return errors.New("setting Transceiver is nil")
+		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
-	return t.retrySend(t.Transceiver.Send(Event[gtp.MsgPayload]{
+
+	err := t.retrySend(t.Transceiver.Send(Event[gtp.MsgPayload]{
 		Msg: gtp.MsgPayload{Data: data},
 	}.Interface()))
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrProtocol, err)
+	}
+
+	return nil
 }
 
 func (t *TransProtocol) retrySend(err error) error {

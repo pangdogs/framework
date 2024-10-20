@@ -20,8 +20,13 @@
 package variant
 
 import (
+	"fmt"
 	"git.golaxy.org/core/utils/generic"
 	"reflect"
+)
+
+var (
+	ErrInvalidCast = fmt.Errorf("%w: invalid cast", ErrVariant) // 类型转换错误
 )
 
 var (

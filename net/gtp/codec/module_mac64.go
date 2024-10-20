@@ -20,9 +20,9 @@
 package codec
 
 import (
-	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"hash"
@@ -31,11 +31,11 @@ import (
 // NewMAC64Module 创建MAC64模块
 func NewMAC64Module(h hash.Hash64, pk []byte) IMACModule {
 	if h == nil {
-		panic(fmt.Errorf("%w: h is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: h is nil", ErrMAC, core.ErrArgs)
 	}
 
 	if len(pk) <= 0 {
-		panic(fmt.Errorf("%w: len(pk) <= 0", core.ErrArgs))
+		exception.Panicf("%w: %w: len(pk) <= 0", ErrMAC, core.ErrArgs)
 	}
 
 	return &MAC64Module{
@@ -53,7 +53,7 @@ type MAC64Module struct {
 // PatchMAC 补充MAC
 func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
-		return binaryutil.NilRecycleBytes, errors.New("setting Hash is nil")
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
 
 	m.Hash.Reset()
@@ -75,7 +75,7 @@ func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 	}()
 
 	if _, err = binaryutil.ReadToBuff(buf.Data(), msgMAC); err != nil {
-		return binaryutil.NilRecycleBytes, err
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrMAC, err)
 	}
 
 	return buf, nil
@@ -84,13 +84,13 @@ func (m *MAC64Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 // VerifyMAC 验证MAC
 func (m *MAC64Module) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
-		return nil, errors.New("setting Hash is nil")
+		return nil, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
 
 	msgMAC := gtp.MsgMAC64{}
 
 	if _, err = msgMAC.Write(msgBuf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrMAC, err)
 	}
 
 	m.Hash.Reset()

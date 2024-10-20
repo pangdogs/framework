@@ -295,7 +295,7 @@ func (s _AEADEncryptor) Transforming(dst, src, nonce []byte) (size int, err erro
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {
-		return 0, errors.New("dst too small")
+		return 0, errors.New("crypto/aead: dst too small")
 	}
 	out := s.Seal(dst[:0], nonce, src, nil)
 	return len(out), nil
@@ -333,7 +333,7 @@ func (s _AEADDecrypter) Transforming(dst, src, nonce []byte) (size int, err erro
 		}
 	}()
 	if len(dst) < s.OutputSize(len(src)) {
-		return 0, errors.New("dst too small")
+		return 0, errors.New("crypto/aead: dst too small")
 	}
 	var out []byte
 	out, err = s.Open(dst[:0], nonce, src, nil)

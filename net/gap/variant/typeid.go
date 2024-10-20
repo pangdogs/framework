@@ -73,7 +73,7 @@ func MakeTypeId(v any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
-		exception.Panic("gap-var: unsupported type")
+		exception.Panicf("%w: unsupported type", ErrVariant)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())
@@ -84,7 +84,7 @@ func MakeTypeIdT[T any]() TypeId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {
-		exception.Panic("gap-var: unsupported type")
+		exception.Panicf("%w: unsupported type", ErrVariant)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())

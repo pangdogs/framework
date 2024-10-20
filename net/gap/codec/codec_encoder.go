@@ -20,10 +20,15 @@
 package codec
 
 import (
+	"errors"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/utils/binaryutil"
+)
+
+var (
+	ErrEncode = errors.New("gap-encode") // 编码错误
 )
 
 var encoder = MakeEncoder()
@@ -44,7 +49,7 @@ type Encoder struct{}
 // Encode 编码消息包
 func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("gap-enc: %w: msg is nil", core.ErrArgs)
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}
 
 	mp := gap.MsgPacket{
@@ -66,7 +71,7 @@ func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binary
 	}()
 
 	if _, err := binaryutil.ReadToBuff(mpBuf.Data(), mp); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("gap-enc: write msg failed, %w", err)
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
 	}
 
 	return mpBuf, nil

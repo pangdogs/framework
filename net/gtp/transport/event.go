@@ -20,7 +20,15 @@
 package transport
 
 import (
+	"errors"
+	"fmt"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
+)
+
+var (
+	ErrEvent        = errors.New("gtp-event")                        // 消息事件错误
+	ErrIncorrectMsg = fmt.Errorf("%w: incorrect msg type", ErrEvent) // 错误的消息类型
 )
 
 // IEvent 消息事件接口
@@ -68,5 +76,6 @@ func EventT[T gtp.MsgReader](e IEvent) Event[T] {
 		return ret
 	}
 
-	panic("gtp: incorrect msg type")
+	exception.Panic(ErrIncorrectMsg)
+	panic("unreachable")
 }

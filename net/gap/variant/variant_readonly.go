@@ -27,7 +27,7 @@ import (
 // MakeReadonlyVariant 创建只读可变类型
 func MakeReadonlyVariant(v ValueReader) (Variant, error) {
 	if v == nil {
-		return Variant{}, fmt.Errorf("gap-var: %w: v is nil", core.ErrArgs)
+		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
 	return Variant{
 		TypeId:        v.TypeId(),

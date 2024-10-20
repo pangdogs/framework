@@ -22,6 +22,7 @@ package transport
 import (
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
@@ -80,7 +81,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 	head := gtp.MsgHead{}
 	if _, err = head.Write(data); err != nil {
 		binaryutil.BytesPool.Put(data)
-		return 0, err
+		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}
 
 	// 填充序号
@@ -89,7 +90,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 
 	if _, err = binaryutil.ReadToBuff(data, head); err != nil {
 		binaryutil.BytesPool.Put(data)
-		return 0, err
+		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}
 
 	// 写入帧队列
@@ -105,7 +106,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 // WriteTo implements io.WriteTo
 func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
-		return 0, fmt.Errorf("%w: w is nil", core.ErrArgs)
+		return 0, fmt.Errorf("%w: %w: w is nil", ErrSynchronizer, core.ErrArgs)
 	}
 
 	var wn int64
@@ -121,7 +122,7 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 				wn += int64(n)
 			}
 			if err != nil {
-				return wn, err
+				return wn, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 			}
 		}
 
@@ -168,7 +169,7 @@ func (s *SequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
 		return nil
 	}
 
-	return fmt.Errorf("frame %d not found", remoteRecvSeq)
+	return fmt.Errorf("%w: frame %d not found", ErrSynchronizer, remoteRecvSeq)
 }
 
 // Ack 确认消息序号
@@ -244,7 +245,7 @@ func (s *SequencedSynchronizer) ack(seq uint32) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				panic("sequenced buffer cached less 0 invalid")
+				exception.Panicf("%w: sequenced buffer cached less 0 invalid", ErrSynchronizer)
 			}
 
 			break
@@ -271,7 +272,7 @@ func (s *SequencedSynchronizer) reduce(size int) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				panic("sequenced buffer cached less 0 invalid")
+				exception.Panicf("%w: sequenced buffer cached less 0 invalid", ErrSynchronizer)
 			}
 
 			break

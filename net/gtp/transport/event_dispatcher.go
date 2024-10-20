@@ -22,6 +22,8 @@ package transport
 import (
 	"context"
 	"errors"
+	"fmt"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"github.com/elliotchance/pie/v2"
 )
@@ -40,19 +42,19 @@ type EventDispatcher struct {
 
 // Dispatching 分发事件
 func (d *EventDispatcher) Dispatching(ctx context.Context) error {
-	if ctx == nil {
-		ctx = context.Background()
+	if d.Transceiver == nil {
+		return fmt.Errorf("%w: Transceiver is nil", ErrEvent)
 	}
 
-	if d.Transceiver == nil {
-		return errors.New("setting Transceiver is nil")
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	defer d.Transceiver.GC()
 
 	e, err := d.retryRecv(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrEvent, err)
 	}
 
 	var errs []error
@@ -65,7 +67,7 @@ func (d *EventDispatcher) Dispatching(ctx context.Context) error {
 	}, e)
 
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("%w: %w", ErrEvent, errors.Join(errs...))
 	}
 
 	return nil
@@ -73,16 +75,15 @@ func (d *EventDispatcher) Dispatching(ctx context.Context) error {
 
 // Run 运行
 func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler) {
+	if d.Transceiver == nil {
+		exception.Panicf("%w: Transceiver is nil", ErrEvent)
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	_errorHandler := pie.First(errorHandler)
-
-	if d.Transceiver == nil {
-		_errorHandler.Invoke(nil, errors.New("setting Transceiver is nil"))
-		return
-	}
 
 	defer d.Transceiver.Clean()
 

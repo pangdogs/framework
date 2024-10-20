@@ -24,13 +24,15 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"hash"
 )
 
 var (
-	ErrIncorrectMAC = errors.New("gtp: incorrect MAC") // MAC值不正确
+	ErrMAC          = errors.New("gtp-mac")                   // MAC错误
+	ErrIncorrectMAC = fmt.Errorf("%w: incorrect MAC", ErrMAC) // MAC值不正确
 )
 
 // IMACModule MAC模块接口
@@ -46,11 +48,11 @@ type IMACModule interface {
 // NewMACModule 创建MAC模块
 func NewMACModule(h hash.Hash, pk []byte) IMACModule {
 	if h == nil {
-		panic(fmt.Errorf("%w: h is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: h is nil", ErrMAC, core.ErrArgs)
 	}
 
 	if len(pk) <= 0 {
-		panic(fmt.Errorf("%w: len(pk) <= 0", core.ErrArgs))
+		exception.Panicf("%w: %w: len(pk) <= 0", ErrMAC, core.ErrArgs)
 	}
 
 	return &MACModule{
@@ -68,7 +70,7 @@ type MACModule struct {
 // PatchMAC 补充MAC
 func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
-		return binaryutil.NilRecycleBytes, errors.New("setting Hash is nil")
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
 
 	m.Hash.Reset()
@@ -90,7 +92,7 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 	}()
 
 	if _, err = binaryutil.ReadToBuff(buf.Data(), msgMAC); err != nil {
-		return binaryutil.NilRecycleBytes, err
+		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrMAC, err)
 	}
 
 	return buf, nil
@@ -99,13 +101,13 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 // VerifyMAC 验证MAC
 func (m *MACModule) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
-		return nil, errors.New("setting Hash is nil")
+		return nil, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
 
 	msgMAC := gtp.MsgMAC{}
 
 	if _, err = msgMAC.Write(msgBuf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrMAC, err)
 	}
 
 	m.Hash.Reset()

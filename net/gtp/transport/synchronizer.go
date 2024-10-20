@@ -21,13 +21,15 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"io"
 )
 
 var (
-	ErrUnexpectedSeq = errors.New("gtp: unexpected sequence") // 收到非预期的消息序号，表示序号不连续
-	ErrDiscardSeq    = errors.New("gtp: discard sequence")    // 收到已过期的消息序号，表示次消息已收到过
+	ErrSynchronizer  = errors.New("gtp-synchronizer")                         // 同步器错误
+	ErrUnexpectedSeq = fmt.Errorf("%w: unexpected sequence", ErrSynchronizer) // 收到非预期的消息序号，表示序号不连续
+	ErrDiscardSeq    = fmt.Errorf("%w: discard sequence", ErrSynchronizer)    // 收到已过期的消息序号，表示次消息已收到过
 )
 
 // ISynchronizer 同步器

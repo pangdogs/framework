@@ -21,6 +21,7 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
 	"time"
@@ -44,18 +45,25 @@ type CtrlProtocol struct {
 // SendRst 发送Rst消息事件
 func (c *CtrlProtocol) SendRst(err error) error {
 	if c.Transceiver == nil {
-		return errors.New("setting Transceiver is nil")
+		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
+
 	// rst消息不重试
-	return c.Transceiver.SendRst(err)
+	retErr := c.Transceiver.SendRst(err)
+	if retErr != nil {
+		return fmt.Errorf("%w: %w", ErrProtocol, retErr)
+	}
+
+	return nil
 }
 
 // RequestTime 请求同步时间
 func (c *CtrlProtocol) RequestTime(corrId int64) error {
 	if c.Transceiver == nil {
-		return errors.New("setting Transceiver is nil")
+		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
-	return c.retrySend(c.Transceiver.Send(
+
+	err := c.retrySend(c.Transceiver.Send(
 		Event[gtp.MsgSyncTime]{
 			Flags: gtp.Flags(gtp.Flag_ReqTime),
 			Msg: gtp.MsgSyncTime{
@@ -64,18 +72,29 @@ func (c *CtrlProtocol) RequestTime(corrId int64) error {
 			},
 		}.Interface(),
 	))
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrProtocol, err)
+	}
+
+	return nil
 }
 
 // SendPing 发送ping
 func (c *CtrlProtocol) SendPing() error {
 	if c.Transceiver == nil {
-		return errors.New("setting Transceiver is nil")
+		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
-	return c.retrySend(c.Transceiver.Send(
+
+	err := c.retrySend(c.Transceiver.Send(
 		Event[gtp.MsgHeartbeat]{
 			Flags: gtp.Flags(gtp.Flag_Ping),
 		}.Interface(),
 	))
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrProtocol, err)
+	}
+
+	return nil
 }
 
 func (c *CtrlProtocol) retrySend(err error) error {
@@ -105,7 +124,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 
 		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
 			if c.Transceiver == nil {
-				return errors.New("setting Transceiver is nil")
+				return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 			}
 			err := c.retrySend(c.Transceiver.Send(
 				Event[gtp.MsgSyncTime]{
@@ -129,7 +148,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 
 		if heartbeat.Flags.Is(gtp.Flag_Ping) {
 			if c.Transceiver == nil {
-				return errors.New("setting Transceiver is nil")
+				return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 			}
 			err := c.retrySend(c.Transceiver.Send(
 				Event[gtp.MsgHeartbeat]{

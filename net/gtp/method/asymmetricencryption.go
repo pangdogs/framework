@@ -47,7 +47,7 @@ func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Ha
 		case gtp.PaddingMode_Pkcs1v15, gtp.PaddingMode_PSS:
 			break
 		default:
-			return nil, errors.New("invalid padding mode")
+			return nil, errors.New("crypto/rsa: invalid padding mode")
 		}
 
 		var cryptoHash crypto.Hash
@@ -55,7 +55,7 @@ func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Ha
 		case gtp.Hash_SHA256:
 			cryptoHash = crypto.SHA256
 		default:
-			return nil, errors.New("invalid hash method")
+			return nil, errors.New("crypto/rsa: invalid hash method")
 		}
 
 		return _RSA256Signer{padding: padding, hash: cryptoHash}, nil
@@ -79,11 +79,11 @@ func (s _RSA256Signer) GenerateKey() (crypto.PrivateKey, error) {
 func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
 	rsaPriv, ok := priv.(*rsa.PrivateKey)
 	if !ok {
-		return nil, errors.New("invalid private key")
+		return nil, errors.New("crypto/rsa: invalid private key")
 	}
 
 	if !s.hash.Available() {
-		return nil, errors.New("invalid hash method")
+		return nil, errors.New("crypto/rsa: invalid hash method")
 	}
 
 	hash := s.hash.New()
@@ -97,14 +97,14 @@ func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 	case gtp.PaddingMode_PSS:
 		return rsa.SignPSS(rand.Reader, rsaPriv, s.hash, hashed, nil)
 	default:
-		return nil, errors.New("invalid padding mode")
+		return nil, errors.New("crypto/rsa: invalid padding mode")
 	}
 }
 
 func (s _RSA256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	rsaPub, ok := pub.(*rsa.PublicKey)
 	if !ok {
-		return errors.New("invalid public key")
+		return errors.New("crypto/rsa: invalid public key")
 	}
 
 	hash := s.hash.New()
@@ -118,7 +118,7 @@ func (s _RSA256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	case gtp.PaddingMode_PSS:
 		return rsa.VerifyPSS(rsaPub, s.hash, hashed, sig, nil)
 	default:
-		return errors.New("invalid padding mode")
+		return errors.New("crypto/rsa: invalid padding mode")
 	}
 }
 
@@ -133,7 +133,7 @@ func (s _ECDSAP256Signer) GenerateKey() (crypto.PrivateKey, error) {
 func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
 	ecdsaPriv, ok := priv.(*ecdsa.PrivateKey)
 	if !ok {
-		return nil, errors.New("invalid private key")
+		return nil, errors.New("crypto/ecdsa: invalid private key")
 	}
 
 	hash := s.hash.New()

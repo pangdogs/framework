@@ -34,15 +34,15 @@ import (
 )
 
 var (
-	ErrTrans            = errors.New("gtp: trans")      // 传输错误
-	ErrNetIO            = errors.New("gtp: net i/o")    // 网络io错误
-	ErrRenew            = errors.New("gtp: renew conn") // 刷新链路错误
-	ErrDeadlineExceeded = os.ErrDeadlineExceeded        // 网络io超时
-	ErrClosed           = os.ErrClosed                  // 网络链路已关闭
-	ErrShortBuffer      = io.ErrShortBuffer             // 缓冲区不足
-	ErrShortWrite       = io.ErrShortWrite              // 短写
-	ErrUnexpectedEOF    = io.ErrUnexpectedEOF           // 非预期的io结束
-	EOF                 = io.EOF                        // io结束
+	ErrTrans            = errors.New("gtp-trans")                // 传输错误
+	ErrNetIO            = fmt.Errorf("%w: net i/o", ErrTrans)    // 网络io错误
+	ErrRenew            = fmt.Errorf("%w: renew conn", ErrTrans) // 刷新链路错误
+	ErrDeadlineExceeded = os.ErrDeadlineExceeded                 // 网络io超时
+	ErrClosed           = os.ErrClosed                           // 网络链路已关闭
+	ErrShortBuffer      = io.ErrShortBuffer                      // 缓冲区不足
+	ErrShortWrite       = io.ErrShortWrite                       // 短写
+	ErrUnexpectedEOF    = io.ErrUnexpectedEOF                    // 非预期的io结束
+	EOF                 = io.EOF                                 // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全
@@ -58,20 +58,20 @@ type Transceiver struct {
 
 // Send 发送消息
 func (t *Transceiver) Send(e IEvent) error {
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
-
 	if t.Conn == nil {
-		return fmt.Errorf("%w, setting Conn is nil", ErrTrans)
+		return fmt.Errorf("%w: Conn is nil", ErrTrans)
 	}
 
 	if t.Encoder == nil {
-		return fmt.Errorf("%w, setting Encoder is nil", ErrTrans)
+		return fmt.Errorf("%w: Encoder is nil", ErrTrans)
 	}
 
 	if t.Synchronizer == nil {
-		return fmt.Errorf("%w, setting Synchronizer is nil", ErrTrans)
+		return fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
+
+	t.sendMutex.Lock()
+	defer t.sendMutex.Unlock()
 
 	// 写入同步器
 	if err := t.writeToSynchronizer(e); err != nil {
@@ -81,13 +81,13 @@ func (t *Transceiver) Send(e IEvent) error {
 	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("%w, set conn send timeout failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("%w: set conn send timeout failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("%w, send msg-packet failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("%w: send msg-packet failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -108,31 +108,31 @@ func (t *Transceiver) SendRst(err error) error {
 
 // Resend 重新发送未完整发送的消息事件
 func (t *Transceiver) Resend() error {
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
-
 	if t.Conn == nil {
-		return fmt.Errorf("%w, setting Conn is nil", ErrTrans)
+		return fmt.Errorf("%w: Conn is nil", ErrTrans)
 	}
 
 	if t.Encoder == nil {
-		return fmt.Errorf("%w, setting Encoder is nil", ErrTrans)
+		return fmt.Errorf("%w: Encoder is nil", ErrTrans)
 	}
 
 	if t.Synchronizer == nil {
-		return fmt.Errorf("%w, setting Synchronizer is nil", ErrTrans)
+		return fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
+
+	t.sendMutex.Lock()
+	defer t.sendMutex.Unlock()
 
 	// 设置链路超时时间
 	if t.Timeout > 0 {
 		if err := t.Conn.SetWriteDeadline(time.Now().Add(t.Timeout)); err != nil {
-			return fmt.Errorf("%w, set conn resend timeout failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
+			return fmt.Errorf("%w: set conn resend timeout failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
 		}
 	}
 
 	// 数据写入链路
 	if _, err := t.Synchronizer.WriteTo(t.Conn); err != nil {
-		return fmt.Errorf("%w, resend msg-packet failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
+		return fmt.Errorf("%w: resend msg-packet failed, cached: %d, %w: %w", ErrTrans, t.Synchronizer.Cached(), ErrNetIO, err)
 	}
 
 	return nil
@@ -140,24 +140,24 @@ func (t *Transceiver) Resend() error {
 
 // Recv 接收消息事件
 func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
-	t.recvMutex.Lock()
-	defer t.recvMutex.Unlock()
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if t.Conn == nil {
-		return IEvent{}, fmt.Errorf("%w, setting Conn is nil", ErrTrans)
+		return IEvent{}, fmt.Errorf("%w: Conn is nil", ErrTrans)
 	}
 
 	if t.Decoder == nil {
-		return IEvent{}, fmt.Errorf("%w, setting Decoder is nil", ErrTrans)
+		return IEvent{}, fmt.Errorf("%w: Decoder is nil", ErrTrans)
 	}
 
 	if t.Synchronizer == nil {
-		return IEvent{}, fmt.Errorf("%w, setting Synchronizer is nil", ErrTrans)
+		return IEvent{}, fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
+
+	t.recvMutex.Lock()
+	defer t.recvMutex.Unlock()
 
 	var mpLen int
 	var mpCache [bytes.MinRead]byte
@@ -165,7 +165,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 	for {
 		select {
 		case <-ctx.Done():
-			return IEvent{}, fmt.Errorf("%w, %w", ErrTrans, context.Canceled)
+			return IEvent{}, fmt.Errorf("%w: %w", ErrTrans, context.Canceled)
 		default:
 		}
 
@@ -190,7 +190,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 
 			if !errors.Is(err, ErrShortBuffer) {
 				t.buffer.Next(l)
-				return IEvent{}, fmt.Errorf("%w, decode msg-packet failed, %w", ErrTrans, err)
+				return IEvent{}, fmt.Errorf("%w: decode msg-packet failed, %w", ErrTrans, err)
 			}
 
 			// 消息长度
@@ -200,7 +200,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 		// 设置链路超时时间
 		if t.Timeout > 0 {
 			if err := t.Conn.SetReadDeadline(time.Now().Add(t.Timeout)); err != nil {
-				return IEvent{}, fmt.Errorf("%w, set conn recv timeout failed, %w: %w", ErrTrans, ErrNetIO, err)
+				return IEvent{}, fmt.Errorf("%w: set conn recv timeout failed, %w: %w", ErrTrans, ErrNetIO, err)
 			}
 		}
 
@@ -208,7 +208,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 			// 从链路读取消息
 			n, err := t.Conn.Read(mpCache[:])
 			if err != nil {
-				return IEvent{}, fmt.Errorf("%w, recv msg-packet failed, %w: %w", ErrTrans, ErrNetIO, err)
+				return IEvent{}, fmt.Errorf("%w: recv msg-packet failed, %w: %w", ErrTrans, ErrNetIO, err)
 			}
 
 			// 写入消息缓存
@@ -226,16 +226,16 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 // Renew 刷新链路
 func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
 	if conn == nil {
-		return 0, 0, fmt.Errorf("%w, conn is nil", ErrRenew)
+		return 0, 0, fmt.Errorf("%w: conn is nil", ErrRenew)
 	}
 
 	if t.Synchronizer == nil {
-		return 0, 0, fmt.Errorf("%w, setting Synchronizer is nil", ErrRenew)
+		return 0, 0, fmt.Errorf("%w: Synchronizer is nil", ErrRenew)
 	}
 
 	// 同步对端时序
 	if err = t.Synchronizer.Synchronization(remoteRecvSeq); err != nil {
-		return 0, 0, fmt.Errorf("%w, synchronize sequence failed, %s", ErrRenew, err)
+		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrRenew, err)
 	}
 
 	// 切换连接
@@ -284,13 +284,13 @@ func (t *Transceiver) writeToSynchronizer(e IEvent) error {
 	// 编码消息
 	buf, err := t.Encoder.Encode(e.Flags, e.Msg)
 	if err != nil {
-		return fmt.Errorf("%w, encode msg failed, %w", ErrTrans, err)
+		return fmt.Errorf("%w: encode msg failed, %w", ErrTrans, err)
 	}
 	defer buf.Release()
 
 	// 写入同步器
 	if _, err = t.Synchronizer.Write(buf.Data()); err != nil {
-		return fmt.Errorf("%w, write msg to synchronizer failed, %w", ErrTrans, err)
+		return fmt.Errorf("%w: write msg to synchronizer failed, %w", ErrTrans, err)
 	}
 
 	return nil

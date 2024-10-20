@@ -17,39 +17,14 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package gtp
+package transport
 
 import (
 	"errors"
-	"io"
+	"fmt"
 )
 
 var (
-	ErrGTP = errors.New("gtp") // 消息协议错误
+	ErrProtocol      = errors.New("gtp-protocol")                    // 消息协议错误
+	ErrUnexpectedMsg = fmt.Errorf("%w: unexpected msg", ErrProtocol) // 收到非预期的消息
 )
-
-// Msg 消息接口
-type Msg interface {
-	MsgReader
-	MsgWriter
-}
-
-// MsgReader 读取消息
-type MsgReader interface {
-	io.Reader
-	// Size 大小
-	Size() int
-	// MsgId 消息Id
-	MsgId() MsgId
-	// Clone 克隆消息对象
-	Clone() MsgReader
-}
-
-// MsgWriter 写入消息
-type MsgWriter interface {
-	io.Writer
-	// Size 大小
-	Size() int
-	// MsgId 消息Id
-	MsgId() MsgId
-}

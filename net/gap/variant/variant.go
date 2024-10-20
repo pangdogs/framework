@@ -21,9 +21,14 @@ package variant
 
 import (
 	"errors"
+	"fmt"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"reflect"
+)
+
+var (
+	ErrVariant = errors.New("gap-variant") // 可变类型错误
 )
 
 // Variant 可变类型
@@ -38,7 +43,7 @@ type Variant struct {
 // Read implements io.Reader
 func (v Variant) Read(p []byte) (int, error) {
 	if !v.Valid() {
-		return 0, errors.New("gap-var: variant is invalid")
+		return 0, fmt.Errorf("%w: variant is invalid", ErrVariant)
 	}
 
 	bs := binaryutil.NewBigEndianStream(p)

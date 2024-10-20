@@ -20,7 +20,7 @@
 package gap
 
 import (
-	"errors"
+	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	ErrNotDeclared = errors.New("gap: msg not declared") // 消息未注册
+	ErrNotDeclared = fmt.Errorf("%w: msg not declared", ErrGAP) // 消息未注册
 )
 
 // IMsgCreator 消息对象构建器接口
@@ -71,12 +71,12 @@ type _MsgCreator struct {
 // Declare 注册消息
 func (c *_MsgCreator) Declare(msg Msg) {
 	if msg == nil {
-		exception.Panicf("gap: %w: msg is nil", core.ErrArgs)
+		exception.Panicf("%w: %w: msg is nil", ErrGAP, core.ErrArgs)
 	}
 
 	c.msgTypeMap.AutoLock(func(m *map[MsgId]reflect.Type) {
 		if rtype, ok := (*m)[msg.MsgId()]; ok {
-			exception.Panicf("gap: msg(%d) has already been declared by %q", msg.MsgId(), types.FullNameRT(rtype))
+			exception.Panicf("%w: msg(%d) has already been declared by %q", ErrGAP, msg.MsgId(), types.FullNameRT(rtype))
 		}
 		(*m)[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 	})
@@ -93,6 +93,5 @@ func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
 	if !ok {
 		return nil, ErrNotDeclared
 	}
-
 	return reflect.New(rtype).Interface().(Msg), nil
 }

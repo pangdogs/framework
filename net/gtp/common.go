@@ -21,7 +21,7 @@ package gtp
 
 import (
 	"crypto/aes"
-	"errors"
+	"fmt"
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
 	"strings"
@@ -50,7 +50,7 @@ func ParseSecretKeyExchange(str string) (SecretKeyExchange, error) {
 	case "ecdhe":
 		return SecretKeyExchange_ECDHE, nil
 	default:
-		return SecretKeyExchange_None, errors.New("invalid SecretKeyExchange")
+		return SecretKeyExchange_None, fmt.Errorf("%w: invalid SecretKeyExchange", ErrGTP)
 	}
 }
 
@@ -83,7 +83,7 @@ func ParseAsymmetricEncryption(str string) (AsymmetricEncryption, error) {
 	case "ecdsa_p256":
 		return AsymmetricEncryption_ECDSA_P256, nil
 	default:
-		return AsymmetricEncryption_None, errors.New("invalid AsymmetricEncryption")
+		return AsymmetricEncryption_None, fmt.Errorf("%w: invalid AsymmetricEncryption", ErrGTP)
 	}
 }
 
@@ -127,7 +127,7 @@ func ParseSymmetricEncryption(str string) (SymmetricEncryption, error) {
 	case "xchacha20_poly1305":
 		return SymmetricEncryption_XChaCha20_Poly1305, nil
 	default:
-		return SymmetricEncryption_None, errors.New("invalid SymmetricEncryption")
+		return SymmetricEncryption_None, fmt.Errorf("%w: invalid SymmetricEncryption", ErrGTP)
 	}
 }
 
@@ -218,7 +218,7 @@ func ParsePaddingMode(str string) (PaddingMode, error) {
 	case "pss":
 		return PaddingMode_PSS, nil
 	default:
-		return PaddingMode_None, errors.New("invalid PaddingMode")
+		return PaddingMode_None, fmt.Errorf("%w: invalid PaddingMode", ErrGTP)
 	}
 }
 
@@ -266,7 +266,7 @@ func ParseBlockCipherMode(str string) (BlockCipherMode, error) {
 	case "gcm":
 		return BlockCipherMode_GCM, nil
 	default:
-		return BlockCipherMode_None, errors.New("invalid BlockCipherMode")
+		return BlockCipherMode_None, fmt.Errorf("%w: invalid BlockCipherMode", ErrGTP)
 	}
 }
 
@@ -343,7 +343,7 @@ func ParseHash(str string) (Hash, error) {
 	case "sha256":
 		return Hash_SHA256, nil
 	default:
-		return Hash_None, errors.New("invalid Hash")
+		return Hash_None, fmt.Errorf("%w: invalid Hash", ErrGTP)
 	}
 }
 
@@ -398,7 +398,7 @@ func ParseNamedCurve(str string) (NamedCurve, error) {
 	case "p256":
 		return NamedCurve_P256, nil
 	default:
-		return NamedCurve_None, errors.New("invalid NamedCurve")
+		return NamedCurve_None, fmt.Errorf("%w: invalid NamedCurve", ErrGTP)
 	}
 }
 
@@ -442,7 +442,7 @@ func ParseCompression(str string) (Compression, error) {
 	case "snappy":
 		return Compression_Snappy, nil
 	default:
-		return Compression_None, errors.New("invalid Compression")
+		return Compression_None, fmt.Errorf("%w: invalid Compression", ErrGTP)
 	}
 }
 

@@ -21,7 +21,6 @@ package transport
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gtp"
@@ -41,7 +40,7 @@ type UnsequencedSynchronizer struct {
 // WriteTo implements io.WriteTo
 func (s *UnsequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
-		return 0, fmt.Errorf("%w: w is nil", core.ErrArgs)
+		return 0, fmt.Errorf("%w: %w: w is nil", ErrSynchronizer, core.ErrArgs)
 	}
 	return s.Buffer.WriteTo(w)
 }
@@ -53,7 +52,7 @@ func (s *UnsequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) e
 
 // Synchronization 同步对端时序，对齐缓存序号
 func (s *UnsequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
-	return errors.New("not support")
+	return fmt.Errorf("%w: not support", ErrSynchronizer)
 }
 
 // Ack 确认消息序号

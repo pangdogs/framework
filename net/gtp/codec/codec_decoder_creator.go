@@ -20,15 +20,15 @@
 package codec
 
 import (
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 )
 
 // CreateDecoder 创建消息包解码器
 func CreateDecoder(msgCreator gtp.IMsgCreator) DecoderCreator {
 	if msgCreator == nil {
-		panic(fmt.Errorf("%w: msgCreator is nil", core.ErrArgs))
+		exception.Panicf("%w: %w: msgCreator is nil", ErrDecode, core.ErrArgs)
 	}
 
 	return DecoderCreator{
@@ -46,7 +46,7 @@ type DecoderCreator struct {
 // SetupEncryptionModule 安装加密模块
 func (dc DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("gtp: must invoke CreateDecoder() first")
+		exception.Panicf("%w: must invoke CreateDecoder() first", ErrDecode)
 	}
 	dc.decoder.EncryptionModule = encryptionModule
 	return dc
@@ -55,7 +55,7 @@ func (dc DecoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModul
 // SetupMACModule 安装MAC模块
 func (dc DecoderCreator) SetupMACModule(macModule IMACModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("gtp: must invoke CreateDecoder() first")
+		exception.Panicf("%w: must invoke CreateDecoder() first", ErrDecode)
 	}
 	dc.decoder.MACModule = macModule
 	return dc
@@ -64,7 +64,7 @@ func (dc DecoderCreator) SetupMACModule(macModule IMACModule) DecoderCreator {
 // SetupCompressionModule 安装压缩模块
 func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionModule) DecoderCreator {
 	if dc.decoder == nil {
-		panic("gtp: must invoke CreateDecoder() first")
+		exception.Panicf("%w: must invoke CreateDecoder() first", ErrDecode)
 	}
 	dc.decoder.CompressionModule = compressionModule
 	return dc
@@ -73,7 +73,7 @@ func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 // Spawn 获取消息包解码器
 func (dc DecoderCreator) Spawn() IDecoder {
 	if dc.decoder == nil {
-		panic("gtp: must invoke CreateDecoder() first")
+		exception.Panicf("%w: must invoke CreateDecoder() first", ErrDecode)
 	}
 	return dc.decoder
 }

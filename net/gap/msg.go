@@ -19,7 +19,14 @@
 
 package gap
 
-import "io"
+import (
+	"errors"
+	"io"
+)
+
+var (
+	ErrGAP = errors.New("gap") // 消息协议错误
+)
 
 // Msg 消息接口
 type Msg interface {

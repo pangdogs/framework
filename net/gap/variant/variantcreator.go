@@ -20,7 +20,7 @@
 package variant
 
 import (
-	"errors"
+	"fmt"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/utils/concurrent"
@@ -28,8 +28,7 @@ import (
 )
 
 var (
-	ErrInvalidCast = errors.New("gap-var: invalid cast")         // 类型转换错误
-	ErrNotDeclared = errors.New("gap-var: variant not declared") // 类型未注册
+	ErrNotDeclared = fmt.Errorf("%w: variant not declared", ErrVariant) // 类型未注册
 )
 
 // IVariantCreator 可变类型对象构建器接口
@@ -91,7 +90,7 @@ type _VariantCreator struct {
 func (c *_VariantCreator) Declare(v Value) {
 	c.variantTypeMap.AutoLock(func(m *map[TypeId]reflect.Type) {
 		if rtype, ok := (*m)[v.TypeId()]; ok {
-			exception.Panicf("gap-var: variant type(%d) has already been declared by %q", v.TypeId(), types.FullNameRT(rtype))
+			exception.Panicf("%w: variant type(%d) has already been declared by %q", ErrVariant, v.TypeId(), types.FullNameRT(rtype))
 		}
 		(*m)[v.TypeId()] = reflect.TypeOf(v).Elem()
 	})
