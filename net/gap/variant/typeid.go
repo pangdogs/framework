@@ -20,6 +20,7 @@
 package variant
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"hash/fnv"
@@ -72,7 +73,7 @@ func MakeTypeId(v any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
-		panic("unsupported type")
+		exception.Panic("gap-var: unsupported type")
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())
@@ -83,7 +84,7 @@ func MakeTypeIdT[T any]() TypeId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {
-		panic("unsupported type")
+		exception.Panic("gap-var: unsupported type")
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return TypeId(TypeId_Customize + hash.Sum32())

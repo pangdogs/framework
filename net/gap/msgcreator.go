@@ -21,8 +21,8 @@ package gap
 
 import (
 	"errors"
-	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/utils/concurrent"
 	"reflect"
@@ -71,12 +71,12 @@ type _MsgCreator struct {
 // Declare 注册消息
 func (c *_MsgCreator) Declare(msg Msg) {
 	if msg == nil {
-		panic(fmt.Errorf("%w: msg is nil", core.ErrArgs))
+		exception.Panicf("gap: %w: msg is nil", core.ErrArgs)
 	}
 
 	c.msgTypeMap.AutoLock(func(m *map[MsgId]reflect.Type) {
 		if rtype, ok := (*m)[msg.MsgId()]; ok {
-			panic(fmt.Errorf("msg(%d) has already been declared by %q", msg.MsgId(), types.FullNameRT(rtype)))
+			exception.Panicf("gap: msg(%d) has already been declared by %q", msg.MsgId(), types.FullNameRT(rtype))
 		}
 		(*m)[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 	})

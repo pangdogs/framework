@@ -20,6 +20,7 @@
 package gap
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"hash/fnv"
 	"reflect"
@@ -33,7 +34,7 @@ func MakeMsgId(msg Msg) MsgId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(msg).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
-		panic("unsupported type")
+		exception.Panic("gap: unsupported type")
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())
@@ -44,7 +45,7 @@ func MakeMsgIdT[T any]() MsgId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Msg]()) {
-		panic("unsupported type")
+		exception.Panic("gap: unsupported type")
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
 	return MsgId(MsgId_Customize + hash.Sum32())

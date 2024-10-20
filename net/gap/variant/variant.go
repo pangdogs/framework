@@ -38,7 +38,7 @@ type Variant struct {
 // Read implements io.Reader
 func (v Variant) Read(p []byte) (int, error) {
 	if !v.Valid() {
-		return 0, errors.New("variant is invalid")
+		return 0, errors.New("gap-var: variant is invalid")
 	}
 
 	bs := binaryutil.NewBigEndianStream(p)

@@ -27,7 +27,7 @@ import (
 // MakeSerializedVariant 创建已序列化可变类型
 func MakeSerializedVariant(v ValueReader) (Variant, error) {
 	if v == nil {
-		return Variant{}, fmt.Errorf("%w: v is nil", core.ErrArgs)
+		return Variant{}, fmt.Errorf("gap-var: %w: v is nil", core.ErrArgs)
 	}
 
 	sv, err := MakeSerializedValue(v)
