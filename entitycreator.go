@@ -90,9 +90,15 @@ func (c ConcurrentEntityCreator) PersistId(id uid.Id) ConcurrentEntityCreator {
 	return c
 }
 
-// AwakeOnFirstAccess 设置开启组件被首次访问时，检测并调用Awake()
-func (c ConcurrentEntityCreator) AwakeOnFirstAccess(b bool) ConcurrentEntityCreator {
-	c.settings = append(c.settings, ec.With.AwakeOnFirstAccess(b))
+// ComponentAwakeOnFirstTouch 设置开启组件被首次访问时，检测并调用Awake()
+func (c ConcurrentEntityCreator) ComponentAwakeOnFirstTouch(b bool) ConcurrentEntityCreator {
+	c.settings = append(c.settings, ec.With.ComponentAwakeOnFirstTouch(b))
+	return c
+}
+
+// ComponentUniqueID 设置开启组件唯一Id
+func (c ConcurrentEntityCreator) ComponentUniqueID(b bool) ConcurrentEntityCreator {
+	c.settings = append(c.settings, ec.With.ComponentUniqueID(b))
 	return c
 }
 
