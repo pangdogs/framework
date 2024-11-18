@@ -22,7 +22,7 @@ package framework
 import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/pt"
+	"git.golaxy.org/core/ec/pt"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
