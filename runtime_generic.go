@@ -22,7 +22,7 @@ package framework
 import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/plugin"
+	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
@@ -192,7 +192,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 					cb.Terminated(rtInst)
 				}
 			case runtime.RunningState_PluginActivating:
-				pluginStatus := args[0].(plugin.PluginStatus)
+				pluginStatus := args[0].(extension.PluginStatus)
 				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
 			}
 		})),

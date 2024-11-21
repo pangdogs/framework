@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/plugin"
+	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
@@ -51,7 +51,7 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, meth
 			return nil, ErrPluginNotFound
 		}
 
-		if ps.State() != plugin.PluginState_Active {
+		if ps.State() != extension.PluginState_Active {
 			return nil, ErrPluginInactive
 		}
 
@@ -89,7 +89,7 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 				return async.MakeRet(nil, ErrPluginNotFound)
 			}
 
-			if ps.State() != plugin.PluginState_Active {
+			if ps.State() != extension.PluginState_Active {
 				return async.MakeRet(nil, ErrPluginInactive)
 			}
 

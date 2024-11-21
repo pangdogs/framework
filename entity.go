@@ -21,7 +21,7 @@ package framework
 
 import (
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/plugin"
+	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
@@ -43,7 +43,7 @@ func (e *EntityBehavior) GetService() IServiceInstance {
 }
 
 // GetPluginBundle 获取插件包
-func (e *EntityBehavior) GetPluginBundle() plugin.PluginBundle {
+func (e *EntityBehavior) GetPluginBundle() extension.PluginBundle {
 	return runtime.Current(e).GetPluginBundle()
 }
 
