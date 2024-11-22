@@ -22,7 +22,7 @@ package conf
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.Plugin(newConfig)
+	self      = define.ServicePlugin(newConfig)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install
