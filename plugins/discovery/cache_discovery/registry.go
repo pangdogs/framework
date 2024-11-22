@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -52,8 +53,8 @@ type _Registry struct {
 	revision  int64
 }
 
-// InitSP 初始化服务插件
-func (r *_Registry) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (r *_Registry) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init self %q", self.Name)
 
 	if r.options.Registry == nil {
@@ -64,8 +65,8 @@ func (r *_Registry) InitSP(svcCtx service.Context) {
 	r.svcCtx = svcCtx
 	r.ctx, r.terminate = context.WithCancel(context.Background())
 
-	if init, ok := r.IRegistry.(core.LifecycleServicePluginInit); ok {
-		init.InitSP(r.svcCtx)
+	if init, ok := r.IRegistry.(core.LifecyclePluginInit); ok {
+		init.Init(r.svcCtx, nil)
 	}
 
 	if err := r.refreshCache(); err != nil {
@@ -78,15 +79,15 @@ func (r *_Registry) InitSP(svcCtx service.Context) {
 	go r.mainLoop()
 }
 
-// ShutSP 关闭服务插件
-func (r *_Registry) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (r *_Registry) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut self %q", self.Name)
 
 	r.terminate()
 	r.wg.Wait()
 
-	if shut, ok := r.IRegistry.(core.LifecycleServicePluginShut); ok {
-		shut.ShutSP(svcCtx)
+	if shut, ok := r.IRegistry.(core.LifecyclePluginShut); ok {
+		shut.Shut(svcCtx, nil)
 	}
 }
 

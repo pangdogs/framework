@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/types"
@@ -60,8 +61,8 @@ type _Registry struct {
 	registers *concurrent.Cache[string, *_Register]
 }
 
-// InitSP 初始化服务插件
-func (r *_Registry) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (r *_Registry) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -85,8 +86,8 @@ func (r *_Registry) InitSP(svcCtx service.Context) {
 	r.registers = concurrent.NewCache[string, *_Register]()
 }
 
-// ShutSP 关闭服务插件
-func (r *_Registry) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (r *_Registry) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if r.options.RedisClient == nil {

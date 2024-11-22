@@ -23,6 +23,7 @@ package dentq
 import (
 	"context"
 	"crypto/tls"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -76,8 +77,8 @@ type _DistEntityQuerier struct {
 	cache   *concurrent.Cache[uid.Id, *DistEntity]
 }
 
-// InitSP 初始化服务插件
-func (d *_DistEntityQuerier) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (d *_DistEntityQuerier) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	d.svcCtx = svcCtx
@@ -111,8 +112,8 @@ func (d *_DistEntityQuerier) InitSP(svcCtx service.Context) {
 	go d.mainLoop()
 }
 
-// ShutSP 关闭服务插件
-func (d *_DistEntityQuerier) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (d *_DistEntityQuerier) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	d.wg.Wait()

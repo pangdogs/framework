@@ -23,6 +23,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
@@ -79,8 +80,8 @@ type _Gate struct {
 	sessionWatchers concurrent.LockedSlice[*_SessionWatcher]
 }
 
-// InitSP 初始化服务插件
-func (g *_Gate) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (g *_Gate) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	g.svcCtx = svcCtx
@@ -158,8 +159,8 @@ func (g *_Gate) InitSP(svcCtx service.Context) {
 	}
 }
 
-// ShutSP 关闭服务插件
-func (g *_Gate) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (g *_Gate) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	g.terminate(&transport.RstError{

@@ -57,8 +57,8 @@ type _DistEntityRegistry struct {
 	leaseId etcdv3.LeaseID
 }
 
-// InitRP 初始化运行时插件
-func (d *_DistEntityRegistry) InitRP(rtCtx runtime.Context) {
+// Init 初始化插件
+func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "init plugin %q", self.Name)
 
 	d.rtCtx = rtCtx
@@ -106,8 +106,8 @@ func (d *_DistEntityRegistry) InitRP(rtCtx runtime.Context) {
 	)
 }
 
-// ShutRP 关闭运行时插件
-func (d *_DistEntityRegistry) ShutRP(rtCtx runtime.Context) {
+// Shut 关闭插件
+func (d *_DistEntityRegistry) Shut(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut plugin %q", self.Name)
 
 	// 废除租约

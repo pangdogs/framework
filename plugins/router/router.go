@@ -24,6 +24,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
@@ -85,8 +86,8 @@ type _Router struct {
 	entityGroupsCache *concurrent.Cache[uid.Id, []string]
 }
 
-// InitSP 初始化服务插件
-func (r *_Router) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (r *_Router) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -120,8 +121,8 @@ func (r *_Router) InitSP(svcCtx service.Context) {
 	r.entityGroupsCache.AutoClean(r.svcCtx, 30*time.Second, 256)
 }
 
-// ShutSP 关闭服务插件
-func (r *_Router) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (r *_Router) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if r.options.EtcdClient == nil {

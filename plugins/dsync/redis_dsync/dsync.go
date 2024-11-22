@@ -21,6 +21,7 @@ package redis_dsync
 
 import (
 	"fmt"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/netpath"
@@ -44,8 +45,8 @@ type _DistSync struct {
 	redSync *redsync.Redsync
 }
 
-// InitSP 初始化服务插件
-func (s *_DistSync) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (s *_DistSync) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	s.svcCtx = svcCtx
@@ -64,8 +65,8 @@ func (s *_DistSync) InitSP(svcCtx service.Context) {
 	s.redSync = redsync.New(goredis.NewPool(s.client))
 }
 
-// ShutSP 关闭服务插件
-func (s *_DistSync) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (s *_DistSync) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	if s.options.RedisClient == nil {

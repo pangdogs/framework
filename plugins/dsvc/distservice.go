@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
@@ -84,8 +85,8 @@ type _DistService struct {
 	sendMutex    sync.Mutex
 }
 
-// InitSP 初始化服务插件
-func (d *_DistService) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (d *_DistService) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	d.svcCtx = svcCtx
@@ -199,8 +200,8 @@ func (d *_DistService) InitSP(svcCtx service.Context) {
 	go d.mainLoop(serviceNode, subs)
 }
 
-// ShutSP 关闭服务插件
-func (d *_DistService) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (d *_DistService) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	d.terminate()

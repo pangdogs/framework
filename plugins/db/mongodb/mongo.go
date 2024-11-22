@@ -21,6 +21,7 @@ package mongodb
 
 import (
 	"context"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/db"
@@ -47,7 +48,7 @@ type _MongoDB struct {
 	dbs     map[string]*mongo.Client
 }
 
-func (m *_MongoDB) InitSP(svcCtx service.Context) {
+func (m *_MongoDB) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	m.svcCtx = svcCtx
@@ -57,7 +58,7 @@ func (m *_MongoDB) InitSP(svcCtx service.Context) {
 	}
 }
 
-func (m *_MongoDB) ShutSP(svcCtx service.Context) {
+func (m *_MongoDB) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	for _, db := range m.dbs {

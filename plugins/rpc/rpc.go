@@ -20,6 +20,7 @@
 package rpc
 
 import (
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
@@ -52,8 +53,8 @@ type _RPC struct {
 	deliverers []rpcpcsr.IDeliverer
 }
 
-// InitSP 初始化服务插件
-func (r *_RPC) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (r *_RPC) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -71,8 +72,8 @@ func (r *_RPC) InitSP(svcCtx service.Context) {
 	}
 }
 
-// ShutSP 关闭服务插件
-func (r *_RPC) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (r *_RPC) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	r.terminated.Store(true)

@@ -21,6 +21,7 @@ package rpcstack
 
 import (
 	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
 	"git.golaxy.org/framework/plugins/log"
 )
 
@@ -51,12 +52,12 @@ type _RPCStack struct {
 	variables Variables
 }
 
-func (r *_RPCStack) InitRP(rtCtx runtime.Context) {
+func (r *_RPCStack) Init(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "init plugin %q", self.Name)
 	r.rtCtx = rtCtx
 }
 
-func (r *_RPCStack) ShutRP(rtCtx runtime.Context) {
+func (r *_RPCStack) Shut(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut plugin %q", self.Name)
 }
 

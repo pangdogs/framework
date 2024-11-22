@@ -48,8 +48,8 @@ type _Config struct {
 	whole *_VisitConf
 }
 
-// InitSP 初始化服务插件
-func (c *_Config) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (c *_Config) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	vp := viper.New()
@@ -139,19 +139,9 @@ func (c *_Config) InitSP(svcCtx service.Context) {
 	}
 }
 
-// ShutSP 关闭服务插件
-func (c *_Config) ShutSP(svcCtx service.Context) {
+// Shut 关闭插件
+func (c *_Config) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
-}
-
-// InitRP 初始化运行时插件
-func (c *_Config) InitRP(rtCtx runtime.Context) {
-	log.Infof(rtCtx, "init plugin %q", self.Name)
-}
-
-// ShutRP 关闭运行时插件
-func (c *_Config) ShutRP(rtCtx runtime.Context) {
-	log.Infof(rtCtx, "shut plugin %q", self.Name)
 }
 
 func (c *_Config) Whole() IVisitConf {

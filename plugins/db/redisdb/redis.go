@@ -21,6 +21,7 @@ package redisdb
 
 import (
 	"context"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/plugins/db"
@@ -45,7 +46,7 @@ type _RedisDB struct {
 	dbs     map[string]*redis.Client
 }
 
-func (r *_RedisDB) InitSP(svcCtx service.Context) {
+func (r *_RedisDB) Init(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "init plugin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -55,7 +56,7 @@ func (r *_RedisDB) InitSP(svcCtx service.Context) {
 	}
 }
 
-func (r *_RedisDB) ShutSP(svcCtx service.Context) {
+func (r *_RedisDB) Shut(svcCtx service.Context, _ runtime.Context) {
 	log.Infof(svcCtx, "shut plugin %q", self.Name)
 
 	for _, db := range r.dbs {

@@ -38,24 +38,19 @@ type _Logger struct {
 	sugaredLogger *zap.SugaredLogger
 }
 
-// InitSP 初始化服务插件
-func (l *_Logger) InitSP(svcCtx service.Context) {
+// Init 初始化插件
+func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 	options := []zap.Option{zap.AddCallerSkip(l.options.CallerSkip)}
 	if l.options.ServiceInfo {
 		options = append(options, zap.Fields(zap.String("service", svcCtx.String())))
 	}
-	l.sugaredLogger = l.options.ZapLogger.WithOptions(options...).Sugar()
-}
 
-// InitRP 初始化运行时插件
-func (l *_Logger) InitRP(rtCtx runtime.Context) {
-	options := []zap.Option{zap.AddCallerSkip(l.options.CallerSkip)}
-	if l.options.ServiceInfo {
-		options = append(options, zap.Fields(zap.String("service", service.Current(rtCtx).String())))
+	if rtCtx != nil {
+		if l.options.RuntimeInfo {
+			options = append(options, zap.Fields(zap.String("runtime", rtCtx.String())))
+		}
 	}
-	if l.options.RuntimeInfo {
-		options = append(options, zap.Fields(zap.String("runtime", rtCtx.String())))
-	}
+
 	l.sugaredLogger = l.options.ZapLogger.WithOptions(options...).Sugar()
 }
 
