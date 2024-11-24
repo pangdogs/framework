@@ -43,17 +43,6 @@ func (eventTab *distEntityRegistryEventTab) Init(autoRecover bool, reportError c
 	(*eventTab)[1].Init(autoRecover, reportError, recursion)
 }
 
-func (eventTab *distEntityRegistryEventTab) Get(id uint64) event.IEvent {
-	if _distEntityRegistryEventTabId != id & 0xFFFFFFFF00000000 {
-		return nil
-	}
-	pos := id & 0xFFFFFFFF
-	if pos >= uint64(len(*eventTab)) {
-		return nil
-	}
-	return &(*eventTab)[pos]
-}
-
 func (eventTab *distEntityRegistryEventTab) Open() {
 	for i := range *eventTab {
 		(*eventTab)[i].Open()
@@ -70,6 +59,21 @@ func (eventTab *distEntityRegistryEventTab) Clean() {
 	for i := range *eventTab {
 		(*eventTab)[i].Clean()
 	}
+}
+
+func (eventTab *distEntityRegistryEventTab) Ctrl() event.IEventCtrl {
+	return eventTab
+}
+
+func (eventTab *distEntityRegistryEventTab) Event(id uint64) event.IEvent {
+	if _distEntityRegistryEventTabId != id & 0xFFFFFFFF00000000 {
+		return nil
+	}
+	pos := id & 0xFFFFFFFF
+	if pos >= uint64(len(*eventTab)) {
+		return nil
+	}
+	return &(*eventTab)[pos]
 }
 
 func (eventTab *distEntityRegistryEventTab) EventDistEntityOnline() event.IEvent {
