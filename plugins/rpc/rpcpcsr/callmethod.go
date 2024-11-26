@@ -125,13 +125,13 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 		var scriptRV reflect.Value
 
 		if component == "" {
-			scriptRV = ec.UnsafeEntity(entity).GetReflected()
+			scriptRV = entity.GetReflected()
 		} else {
 			comp := entity.GetComponent(component)
 			if comp == nil {
 				return async.MakeRet(nil, ErrComponentNotFound)
 			}
-			scriptRV = ec.UnsafeComponent(comp).GetReflected()
+			scriptRV = comp.GetReflected()
 		}
 
 		methodRV := scriptRV.MethodByName(method)
