@@ -34,6 +34,15 @@ import (
 	"reflect"
 )
 
+type ICallee interface {
+	CallMethod(in []reflect.Value) (ret []reflect.Value)
+}
+
+var (
+	iCalleeRT   = reflect.TypeFor[ICallee]()
+	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
+)
+
 func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, method string, args variant.Array) (rets variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
@@ -60,7 +69,10 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, meth
 
 	methodRV := scriptRV.MethodByName(method)
 	if !methodRV.IsValid() {
-		return nil, ErrMethodNotFound
+		if !scriptRV.Type().Implements(iCalleeRT) {
+			return nil, ErrMethodNotFound
+		}
+		methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
@@ -98,7 +110,10 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
-			return async.MakeRet(nil, ErrMethodNotFound)
+			if !scriptRV.Type().Implements(iCalleeRT) {
+				return async.MakeRet(nil, ErrMethodNotFound)
+			}
+			methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
@@ -136,7 +151,10 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
-			return async.MakeRet(nil, ErrMethodNotFound)
+			if !scriptRV.Type().Implements(iCalleeRT) {
+				return async.MakeRet(nil, ErrMethodNotFound)
+			}
+			methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
@@ -151,10 +169,6 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
 	}), nil
 }
-
-var (
-	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
-)
 
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
