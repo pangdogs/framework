@@ -35,11 +35,10 @@ import (
 )
 
 type ICallee interface {
-	CallMethod(in []reflect.Value) (ret []reflect.Value)
+	Callee(method string) reflect.Value
 }
 
 var (
-	iCalleeRT   = reflect.TypeFor[ICallee]()
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
@@ -69,10 +68,15 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, meth
 
 	methodRV := scriptRV.MethodByName(method)
 	if !methodRV.IsValid() {
-		if !scriptRV.Type().Implements(iCalleeRT) {
+		callee, ok := scriptRV.Interface().(ICallee)
+		if !ok {
 			return nil, ErrMethodNotFound
 		}
-		methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
+
+		methodRV = callee.Callee(method)
+		if !methodRV.IsValid() {
+			return nil, ErrMethodNotFound
+		}
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
@@ -110,10 +114,15 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
-			if !scriptRV.Type().Implements(iCalleeRT) {
+			callee, ok := scriptRV.Interface().(ICallee)
+			if !ok {
 				return async.MakeRet(nil, ErrMethodNotFound)
 			}
-			methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
+
+			methodRV = callee.Callee(method)
+			if !methodRV.IsValid() {
+				return async.MakeRet(nil, ErrMethodNotFound)
+			}
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
@@ -151,10 +160,15 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
-			if !scriptRV.Type().Implements(iCalleeRT) {
+			callee, ok := scriptRV.Interface().(ICallee)
+			if !ok {
 				return async.MakeRet(nil, ErrMethodNotFound)
 			}
-			methodRV = scriptRV.Convert(iCalleeRT).MethodByName("CallMethod")
+
+			methodRV = callee.Callee(method)
+			if !methodRV.IsValid() {
+				return async.MakeRet(nil, ErrMethodNotFound)
+			}
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
