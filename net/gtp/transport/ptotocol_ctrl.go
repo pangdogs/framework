@@ -28,9 +28,9 @@ import (
 )
 
 type (
-	RstHandler       = generic.DelegateFunc1[Event[gtp.MsgRst], error]       // Rst消息事件处理器
-	SyncTimeHandler  = generic.DelegateFunc1[Event[gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
-	HeartbeatHandler = generic.DelegateFunc1[Event[gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
+	RstHandler       = generic.Delegate1[Event[gtp.MsgRst], error]       // Rst消息事件处理器
+	SyncTimeHandler  = generic.Delegate1[Event[gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
+	HeartbeatHandler = generic.Delegate1[Event[gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
 )
 
 // CtrlProtocol 控制协议

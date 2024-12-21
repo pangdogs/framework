@@ -61,8 +61,8 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 	p.dentq = dentq.Using(svcCtx)
 	p.gate = gate.Using(svcCtx)
 	p.router = router.Using(svcCtx)
-	p.sessionWatcher = p.gate.Watch(context.Background(), generic.MakeDelegateAction3(p.handleSessionChanged))
-	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
+	p.sessionWatcher = p.gate.Watch(context.Background(), generic.CastDelegateVoid3(p.handleSessionChanged))
+	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }

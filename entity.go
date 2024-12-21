@@ -42,9 +42,9 @@ func (e *EntityBehavior) GetService() IServiceInstance {
 	return reinterpret.Cast[IServiceInstance](service.Current(e))
 }
 
-// GetPluginBundle 获取插件包
-func (e *EntityBehavior) GetPluginBundle() extension.PluginBundle {
-	return runtime.Current(e).GetPluginBundle()
+// GetAddInManager 获取插件包
+func (e *EntityBehavior) GetAddInManager() extension.AddInManager {
+	return runtime.Current(e).GetAddInManager()
 }
 
 // IsAlive 是否活跃

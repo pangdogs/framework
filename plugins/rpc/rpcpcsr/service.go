@@ -49,7 +49,7 @@ type _ServiceProcessor struct {
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dist = dsvc.Using(svcCtx)
-	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
+	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }

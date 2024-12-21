@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.ServicePlugin(newDistService)
+	self      = define.ServiceAddIn(newDistService)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

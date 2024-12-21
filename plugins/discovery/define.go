@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self  = define.ServicePluginInterface[IRegistry]()
+	self  = define.ServiceAddInInterface[IRegistry]()
 	Name  = self.Name
 	Using = self.Using
 )

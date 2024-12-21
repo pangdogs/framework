@@ -54,12 +54,12 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, pluginName, meth
 	if pluginName == "" {
 		scriptRV = service.UnsafeContext(svcCtx).GetReflected()
 	} else {
-		ps, ok := svcCtx.GetPluginBundle().Get(pluginName)
+		ps, ok := svcCtx.GetAddInManager().Get(pluginName)
 		if !ok {
 			return nil, ErrPluginNotFound
 		}
 
-		if ps.State() != extension.PluginState_Active {
+		if ps.State() != extension.AddInState_Active {
 			return nil, ErrPluginInactive
 		}
 
@@ -100,12 +100,12 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 		if pluginName == "" {
 			scriptRV = runtime.UnsafeContext(runtime.Current(entity)).GetReflected()
 		} else {
-			ps, ok := runtime.Current(entity).GetPluginBundle().Get(pluginName)
+			ps, ok := runtime.Current(entity).GetAddInManager().Get(pluginName)
 			if !ok {
 				return async.MakeRet(nil, ErrPluginNotFound)
 			}
 
-			if ps.State() != extension.PluginState_Active {
+			if ps.State() != extension.AddInState_Active {
 				return async.MakeRet(nil, ErrPluginInactive)
 			}
 

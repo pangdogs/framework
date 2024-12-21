@@ -96,7 +96,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.MakeDelegateActionVar2(func(rtCtx runtime.Context, state runtime.RunningState, args ...any) {
+		runtime.With.Context.RunningHandler(generic.CastDelegateVoidVar2(func(rtCtx runtime.Context, state runtime.RunningState, args ...any) {
 			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 
 			switch state {
@@ -191,8 +191,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
-			case runtime.RunningState_PluginActivating:
-				pluginStatus := args[0].(extension.PluginStatus)
+			case runtime.RunningState_AddInActivating:
+				pluginStatus := args[0].(extension.AddInStatus)
 				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
 			}
 		})),
@@ -202,7 +202,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	cacheCP("", rtInst.GetReflected().Type())
 
 	installed := func(name string) bool {
-		_, ok := rtInst.GetPluginBundle().Get(name)
+		_, ok := rtInst.GetAddInManager().Get(name)
 		return ok
 	}
 
@@ -275,8 +275,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
-	runtime.BindEventEntityMgrAddEntity(rtInst.GetEntityMgr(), r, -10)
-	runtime.BindEventEntityMgrEntityAddComponents(rtInst.GetEntityMgr(), r, -10)
+	runtime.BindEventEntityManagerAddEntity(rtInst.GetEntityManager(), r, -10)
+	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r, -10)
 
 	return core.NewRuntime(rtInst,
 		core.With.Runtime.Frame(func() runtime.Frame {
@@ -297,8 +297,8 @@ func (r *RuntimeGeneric) GetService() IServiceInstance {
 	return r.svcInst
 }
 
-// OnEntityMgrAddEntity 事件处理器：实体管理器添加实体
-func (r *RuntimeGeneric) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+// OnEntityManagerAddEntity 事件处理器：实体管理器添加实体
+func (r *RuntimeGeneric) OnEntityManagerAddEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
 	if entity.GetScope() != ec.Scope_Global {
 		return
 	}
@@ -311,8 +311,8 @@ func (r *RuntimeGeneric) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entit
 	})
 }
 
-// OnEntityMgrEntityAddComponents 事件处理器：实体管理器中的实体添加组件
-func (r *RuntimeGeneric) OnEntityMgrEntityAddComponents(entityMgr runtime.EntityMgr, entity ec.Entity, components []ec.Component) {
+// OnEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
+func (r *RuntimeGeneric) OnEntityManagerEntityAddComponents(entityMgr runtime.EntityManager, entity ec.Entity, components []ec.Component) {
 	if entity.GetScope() != ec.Scope_Global {
 		return
 	}

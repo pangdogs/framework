@@ -22,7 +22,7 @@ package dsync
 import "git.golaxy.org/core/define"
 
 var (
-	self  = define.ServicePluginInterface[IDistSync]()
+	self  = define.ServiceAddInInterface[IDistSync]()
 	Name  = self.Name
 	Using = self.Using
 )

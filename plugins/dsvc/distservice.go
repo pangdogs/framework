@@ -264,7 +264,7 @@ func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWa
 
 func (d *_DistService) subscribe(topic, queue string) broker.ISubscriber {
 	sub, err := d.broker.Subscribe(d.ctx, topic,
-		broker.With.EventHandler(generic.MakeDelegateFunc1(d.handleEvent)),
+		broker.With.EventHandler(generic.CastDelegate1(d.handleEvent)),
 		broker.With.Queue(queue))
 	if err != nil {
 		log.Panicf(d.svcCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)

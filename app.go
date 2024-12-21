@@ -52,8 +52,8 @@ type _ServPT struct {
 type App struct {
 	servicePTs               map[string]*_ServPT
 	startupConf              *viper.Viper
-	initCB                   generic.DelegateAction1[*cobra.Command]
-	startingCB, terminatedCB generic.DelegateAction1[*App]
+	initCB                   generic.DelegateVoid1[*cobra.Command]
+	startingCB, terminatedCB generic.DelegateVoid1[*App]
 }
 
 func (app *App) lazyInit() {
@@ -89,19 +89,19 @@ func (app *App) Setup(name string, generic any) *App {
 }
 
 // InitCB 初始化回调
-func (app *App) InitCB(cb generic.DelegateAction1[*cobra.Command]) *App {
+func (app *App) InitCB(cb generic.DelegateVoid1[*cobra.Command]) *App {
 	app.initCB = cb
 	return app
 }
 
 // StartingCB 启动回调
-func (app *App) StartingCB(cb generic.DelegateAction1[*App]) *App {
+func (app *App) StartingCB(cb generic.DelegateVoid1[*App]) *App {
 	app.startingCB = cb
 	return app
 }
 
 // TerminateCB 终止回调
-func (app *App) TerminateCB(cb generic.DelegateAction1[*App]) *App {
+func (app *App) TerminateCB(cb generic.DelegateVoid1[*App]) *App {
 	app.terminatedCB = cb
 	return app
 }

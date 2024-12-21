@@ -134,7 +134,7 @@ func (r *_Router) Shut(svcCtx service.Context, _ runtime.Context) {
 
 // Mapping 路由映射
 func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
-	entity, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId)
+	entity, ok := r.svcCtx.GetEntityManager().GetEntity(entityId)
 	if !ok {
 		return nil, ErrEntityNotFound
 	}

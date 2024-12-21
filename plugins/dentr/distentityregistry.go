@@ -94,15 +94,15 @@ func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(d.rtCtx, "grant lease %d", d.leaseId)
 
 	// 刷新实体信息
-	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
+	d.rtCtx.GetEntityManager().RangeEntities(d.register)
 
 	// 租约心跳
 	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(nil, d.keepAliveLease)
 
 	// 绑定事件
 	d.rtCtx.ManagedHooks(
-		runtime.BindEventEntityMgrAddEntity(rtCtx.GetEntityMgr(), d, 1000),
-		runtime.BindEventEntityMgrRemoveEntity(rtCtx.GetEntityMgr(), d, -1000),
+		runtime.BindEventEntityManagerAddEntity(rtCtx.GetEntityManager(), d, 1000),
+		runtime.BindEventEntityManagerRemoveEntity(rtCtx.GetEntityManager(), d, -1000),
 	)
 }
 
@@ -125,13 +125,13 @@ func (d *_DistEntityRegistry) Shut(_ service.Context, rtCtx runtime.Context) {
 	d.distEntityRegistryEventTab.Close()
 }
 
-// OnEntityMgrAddEntity 实体管理器添加实体
-func (d *_DistEntityRegistry) OnEntityMgrAddEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+// OnEntityManagerAddEntity 实体管理器添加实体
+func (d *_DistEntityRegistry) OnEntityManagerAddEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
 	d.register(entity)
 }
 
-// OnEntityMgrRemoveEntity 实体管理器删除实体
-func (d *_DistEntityRegistry) OnEntityMgrRemoveEntity(entityMgr runtime.EntityMgr, entity ec.Entity) {
+// OnEntityManagerRemoveEntity 实体管理器删除实体
+func (d *_DistEntityRegistry) OnEntityManagerRemoveEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
 	d.deregister(entity)
 }
 
@@ -196,7 +196,7 @@ func (d *_DistEntityRegistry) keepAliveLease(rtCtx runtime.Context, ret async.Re
 	}
 
 	// 通知所有分布式实体下线
-	d.rtCtx.GetEntityMgr().RangeEntities(func(entity ec.Entity) bool {
+	d.rtCtx.GetEntityManager().RangeEntities(func(entity ec.Entity) bool {
 		if entity.GetScope() == ec.Scope_Global {
 			_EmitEventDistEntityOffline(d, entity)
 		}
@@ -215,7 +215,7 @@ func (d *_DistEntityRegistry) keepAliveLease(rtCtx runtime.Context, ret async.Re
 	log.Debugf(d.rtCtx, "grant new lease %d", d.leaseId)
 
 	// 刷新实体信息
-	d.rtCtx.GetEntityMgr().RangeEntities(d.register)
+	d.rtCtx.GetEntityManager().RangeEntities(d.register)
 }
 
 func (d *_DistEntityRegistry) grantLease() (etcdv3.LeaseID, error) {

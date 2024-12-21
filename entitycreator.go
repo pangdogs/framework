@@ -133,7 +133,7 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 
 	err := core.Async(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
-			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
+			if err := rtCtx.GetEntityManager().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		} else {
@@ -172,7 +172,7 @@ func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntit
 
 	asyncRet := core.Async(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
 		if c.parentId.IsNil() {
-			if err := rtCtx.GetEntityMgr().AddEntity(entity); err != nil {
+			if err := rtCtx.GetEntityManager().AddEntity(entity); err != nil {
 				return async.MakeRet(nil, err)
 			}
 		} else {

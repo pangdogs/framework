@@ -285,7 +285,7 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 		rpcli.AddProcedure(Main, ctor.mainProc)
 	}
 
-	rpcli.WatchData(context.Background(), generic.MakeDelegateFunc1(rpcli.handleRecvData))
+	rpcli.WatchData(context.Background(), generic.CastDelegate1(rpcli.handleRecvData))
 
 	return rpcli, nil
 }

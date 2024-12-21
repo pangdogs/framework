@@ -22,7 +22,7 @@ package dentr
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.RuntimePlugin(newDistEntityRegistry)
+	self      = define.RuntimeAddIn(newDistEntityRegistry)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

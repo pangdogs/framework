@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.ServicePlugin(newRegistry)
+	self      = define.ServiceAddIn(newRegistry)
 	Install   = self.Install
 	Uninstall = self.Uninstall
 )

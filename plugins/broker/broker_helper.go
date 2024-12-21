@@ -30,7 +30,7 @@ import (
 )
 
 type (
-	ErrorHandler = generic.DelegateAction1[error] // handling errors
+	ErrorHandler = generic.DelegateVoid1[error] // handling errors
 )
 
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
@@ -75,7 +75,7 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 
 	_, err := broker.Subscribe(ctx, pattern,
 		With.Queue(queue),
-		With.EventHandler(generic.MakeDelegateFunc1(func(e IEvent) error {
+		With.EventHandler(generic.CastDelegate1(func(e IEvent) error {
 			bs := binaryutil.MakeNonRecycleBytes(e.Message())
 
 			select {
@@ -89,7 +89,7 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 				return fmt.Errorf("read chan is full, nak: %v", nakErr)
 			}
 		})),
-		With.UnsubscribedCB(generic.MakeDelegateAction1(func(sub ISubscriber) {
+		With.UnsubscribedCB(generic.CastDelegateVoid1(func(sub ISubscriber) {
 			close(ch)
 		})))
 	if err != nil {

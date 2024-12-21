@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.Plugin(newLogger)
+	self      = define.AddIn(newLogger)
 	Install   = self.Install
 	Uninstall = self.Uninstall
 )

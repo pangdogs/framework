@@ -195,7 +195,7 @@ func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.
 		ctx = context.Background()
 	}
 
-	if _, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId); !ok {
+	if _, ok := r.svcCtx.GetEntityManager().GetEntity(entityId); !ok {
 		return
 	}
 
@@ -214,7 +214,7 @@ func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.A
 		ctx = context.Background()
 	}
 
-	if _, ok := r.svcCtx.GetEntityMgr().GetEntity(entityId); !ok {
+	if _, ok := r.svcCtx.GetEntityManager().GetEntity(entityId); !ok {
 		return
 	}
 

@@ -22,7 +22,7 @@ package sqldb
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServicePlugin(newSQLDB)
+	self      = define.ServiceAddIn(newSQLDB)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

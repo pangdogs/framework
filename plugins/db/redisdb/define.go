@@ -22,7 +22,7 @@ package redisdb
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServicePlugin(newRedisDB)
+	self      = define.ServiceAddIn(newRedisDB)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

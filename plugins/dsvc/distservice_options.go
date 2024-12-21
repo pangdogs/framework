@@ -29,7 +29,7 @@ import (
 )
 
 type (
-	RecvMsgHandler = generic.DelegateFunc2[string, gap.MsgPacket, error] // 接收消息的处理器
+	RecvMsgHandler = generic.Delegate2[string, gap.MsgPacket, error] // 接收消息的处理器
 )
 
 // DistServiceOptions 所有选项

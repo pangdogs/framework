@@ -22,7 +22,7 @@ package broker
 import "git.golaxy.org/core/define"
 
 var (
-	self  = define.ServicePluginInterface[IBroker]()
+	self  = define.ServiceAddInInterface[IBroker]()
 	Name  = self.Name
 	Using = self.Using
 )

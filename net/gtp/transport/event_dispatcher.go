@@ -29,8 +29,8 @@ import (
 )
 
 type (
-	EventHandler = generic.DelegateFunc1[IEvent, error] // 消息事件处理器
-	ErrorHandler = generic.DelegateAction1[error]       // 错误处理器
+	EventHandler = generic.Delegate1[IEvent, error] // 消息事件处理器
+	ErrorHandler = generic.DelegateVoid1[error]     // 错误处理器
 )
 
 // EventDispatcher 消息事件分发器

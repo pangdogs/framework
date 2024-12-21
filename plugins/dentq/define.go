@@ -22,7 +22,7 @@ package dentq
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServicePlugin(newDistEntityQuerier)
+	self      = define.ServiceAddIn(newDistEntityQuerier)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

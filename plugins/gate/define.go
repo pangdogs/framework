@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.ServicePlugin(newGate)
+	self      = define.ServiceAddIn(newGate)
 	Name      = self.Name
 	Using     = self.Using
 	Install   = self.Install

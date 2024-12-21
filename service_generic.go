@@ -98,7 +98,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.With.RunningHandler(generic.MakeDelegateActionVar2(func(svcCtx service.Context, state service.RunningState, args ...any) {
+		service.With.RunningHandler(generic.CastDelegateVoidVar2(func(svcCtx service.Context, state service.RunningState, args ...any) {
 			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
 			switch state {
@@ -145,8 +145,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
-			case service.RunningState_PluginActivating:
-				pluginStatus := args[0].(extension.PluginStatus)
+			case service.RunningState_AddInActivating:
+				pluginStatus := args[0].(extension.AddInStatus)
 				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
 			}
 		})),
@@ -156,7 +156,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	cacheCP("", svcInst.GetReflected().Type())
 
 	installed := func(name string) bool {
-		_, ok := svcInst.GetPluginBundle().Get(name)
+		_, ok := svcInst.GetAddInManager().Get(name)
 		return ok
 	}
 

@@ -33,7 +33,7 @@ type (
 	// A DelayFunc is used to decide the amount of time to wait between retries.
 	DelayFunc = generic.Func1[int, time.Duration]
 	// GenValueFunc is used to generate a random value.
-	GenValueFunc = generic.PairFunc0[string, error]
+	GenValueFunc = generic.FuncPair0[string, error]
 )
 
 // DistMutexOptions represents the options for acquiring a distributed mutex.

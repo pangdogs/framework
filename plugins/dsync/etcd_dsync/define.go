@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.ServicePlugin(newDSync)
+	self      = define.ServiceAddIn(newDSync)
 	Install   = self.Install
 	Uninstall = self.Uninstall
 )

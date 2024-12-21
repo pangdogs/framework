@@ -34,7 +34,7 @@ import (
 )
 
 // PermissionValidator 权限验证器
-type PermissionValidator = generic.DelegateFunc2[rpcstack.CallChain, callpath.CallPath, bool]
+type PermissionValidator = generic.Delegate2[rpcstack.CallChain, callpath.CallPath, bool]
 
 // NewForwardProcessor RPC转发处理器，用于S<->G的通信
 func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator, reduceCP bool) any {
@@ -67,7 +67,7 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.dist = dsvc.Using(svcCtx)
 	p.dentq = dentq.Using(svcCtx)
 	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
-	p.watcher = p.dist.WatchMsg(context.Background(), generic.MakeDelegateFunc2(p.handleMsg))
+	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }

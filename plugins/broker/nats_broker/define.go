@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	self      = define.ServicePlugin(newBroker)
+	self      = define.ServiceAddIn(newBroker)
 	Install   = self.Install
 	Uninstall = self.Uninstall
 )

@@ -34,7 +34,7 @@ import (
 )
 
 type (
-	RecvDataHandler  = generic.DelegateFunc1[[]byte, error]
+	RecvDataHandler  = generic.Delegate1[[]byte, error]
 	RecvEventHandler = transport.EventHandler
 )
 

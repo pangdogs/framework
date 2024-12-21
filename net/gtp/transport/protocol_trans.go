@@ -27,7 +27,7 @@ import (
 )
 
 type (
-	PayloadHandler = generic.DelegateFunc1[Event[gtp.MsgPayload], error] // Payload消息事件处理器
+	PayloadHandler = generic.Delegate1[Event[gtp.MsgPayload], error] // Payload消息事件处理器
 )
 
 // TransProtocol 传输协议

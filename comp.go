@@ -42,9 +42,9 @@ func (c *ComponentBehavior) GetService() IServiceInstance {
 	return reinterpret.Cast[IServiceInstance](service.Current(c))
 }
 
-// GetPluginBundle 获取插件包
-func (c *ComponentBehavior) GetPluginBundle() extension.PluginBundle {
-	return runtime.Current(c).GetPluginBundle()
+// GetAddInManager 获取插件包
+func (c *ComponentBehavior) GetAddInManager() extension.AddInManager {
+	return runtime.Current(c).GetAddInManager()
 }
 
 // IsAlive 是否活跃

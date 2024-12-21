@@ -42,7 +42,7 @@ type IEncryptionModule interface {
 }
 
 type (
-	FetchNonce = generic.PairFunc0[[]byte, error] // 获取nonce值
+	FetchNonce = generic.FuncPair0[[]byte, error] // 获取nonce值
 )
 
 // NewEncryptionModule 创建加密模块
@@ -125,7 +125,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 		if m.FetchNonce == nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: FetchNonce is nil", ErrEncrypt)
 		}
-		nonce, err = generic.PairFuncError(m.FetchNonce.Invoke())
+		nonce, err = generic.FuncPairError(m.FetchNonce.Invoke())
 		if err != nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
