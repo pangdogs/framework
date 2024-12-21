@@ -17,37 +17,32 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package framework
+package cache_discovery
 
 import (
-	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/framework/addins/discovery"
 )
 
-// ComponentBehavior 组件行为，在开发新组件时，匿名嵌入至组件结构体中
-type ComponentBehavior struct {
-	ec.ComponentBehavior
+// RegistryOptions 所有选项
+type RegistryOptions struct {
+	Registry discovery.IRegistry // 包装的其他registry插件
 }
 
-// GetRuntime 获取运行时
-func (c *ComponentBehavior) GetRuntime() IRuntimeInstance {
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c))
+var With _Option
+
+type _Option struct{}
+
+// Default 默认值
+func (_Option) Default() option.Setting[RegistryOptions] {
+	return func(options *RegistryOptions) {
+		With.Wrap(nil)(options)
+	}
 }
 
-// GetService 获取服务
-func (c *ComponentBehavior) GetService() IServiceInstance {
-	return reinterpret.Cast[IServiceInstance](service.Current(c))
-}
-
-// GetAddInManager 获取插件管理器
-func (c *ComponentBehavior) GetAddInManager() extension.AddInManager {
-	return runtime.Current(c).GetAddInManager()
-}
-
-// IsAlive 是否活跃
-func (c *ComponentBehavior) IsAlive() bool {
-	return c.GetState() <= ec.ComponentState_Alive
+// Wrap 包装的其他registry插件
+func (_Option) Wrap(r discovery.IRegistry) option.Setting[RegistryOptions] {
+	return func(o *RegistryOptions) {
+		o.Registry = r
+	}
 }

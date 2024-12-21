@@ -30,18 +30,18 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
-	"git.golaxy.org/framework/plugins/broker"
-	"git.golaxy.org/framework/plugins/broker/nats_broker"
-	"git.golaxy.org/framework/plugins/conf"
-	"git.golaxy.org/framework/plugins/dentq"
-	"git.golaxy.org/framework/plugins/discovery"
-	"git.golaxy.org/framework/plugins/discovery/etcd_discovery"
-	"git.golaxy.org/framework/plugins/dsvc"
-	"git.golaxy.org/framework/plugins/dsync"
-	"git.golaxy.org/framework/plugins/dsync/etcd_dsync"
-	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/log/zap_log"
-	"git.golaxy.org/framework/plugins/rpc"
+	"git.golaxy.org/framework/addins/broker"
+	"git.golaxy.org/framework/addins/broker/nats_broker"
+	"git.golaxy.org/framework/addins/conf"
+	"git.golaxy.org/framework/addins/dentq"
+	"git.golaxy.org/framework/addins/discovery"
+	"git.golaxy.org/framework/addins/discovery/etcd_discovery"
+	"git.golaxy.org/framework/addins/dsvc"
+	"git.golaxy.org/framework/addins/dsync"
+	"git.golaxy.org/framework/addins/dsync/etcd_dsync"
+	"git.golaxy.org/framework/addins/log"
+	"git.golaxy.org/framework/addins/log/zap_log"
+	"git.golaxy.org/framework/addins/rpc"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -146,8 +146,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 					v.(*etcdv3.Client).Close()
 				}
 			case service.RunningState_AddInActivating:
-				pluginStatus := args[0].(extension.AddInStatus)
-				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
+				addInStatus := args[0].(extension.AddInStatus)
+				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
 			}
 		})),
 	)

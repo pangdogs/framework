@@ -21,7 +21,7 @@ package framework
 
 import (
 	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/framework/plugins/rpc/rpcutil"
+	"git.golaxy.org/framework/addins/rpc/rpcutil"
 )
 
 // RPC 向分布式实体目标服务发送RPC

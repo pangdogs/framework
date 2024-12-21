@@ -17,37 +17,24 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package framework
+package rpcutil
 
 import (
-	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/addins/gate"
+	"git.golaxy.org/framework/addins/rpc/callpath"
+	"git.golaxy.org/framework/addins/rpcstack"
+	"strings"
 )
 
-// EntityBehavior 实体行为，在需要扩展实体能力时，匿名嵌入至实体结构体中
-type EntityBehavior struct {
-	ec.EntityBehavior
-}
+const (
+	NoAddIn = "" // 不使用插件
+	NoComp  = "" // 不使用组件
+)
 
-// GetRuntime 获取运行时
-func (e *EntityBehavior) GetRuntime() IRuntimeInstance {
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(e))
-}
-
-// GetService 获取服务
-func (e *EntityBehavior) GetService() IServiceInstance {
-	return reinterpret.Cast[IServiceInstance](service.Current(e))
-}
-
-// GetAddInManager 获取插件管理器
-func (e *EntityBehavior) GetAddInManager() extension.AddInManager {
-	return runtime.Current(e).GetAddInManager()
-}
-
-// IsAlive 是否活跃
-func (e *EntityBehavior) IsAlive() bool {
-	return e.GetState() <= ec.EntityState_Alive
+// CliRPCPermValidator 默认的客户端RPC请求权限验证器，强制客户端只能RPC调用前缀为C_的函数
+func CliRPCPermValidator(cc rpcstack.CallChain, cp callpath.CallPath) bool {
+	if !gate.CliDetails.DomainRoot.Contains(cc.First().Addr) {
+		return true
+	}
+	return strings.HasPrefix(cp.Method, "C_")
 }

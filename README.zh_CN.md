@@ -22,25 +22,26 @@
 - 数据库（`DB`）：支持连接关系型数据库（基于`GORM`）、Redis、MongoDB。
 
 ## 目录
-| Directory | Description |
-| --------- | ----------- |
-| [/](https://github.com/pangdogs/framework) | 开发应用时常用的类型与函数。|
-| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap) | GAP协议实现。|
-| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp) | GTP协议实现。|
-| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath) | 服务节点地址结构。|
-| [/plugins/broker](https://github.com/pangdogs/framework/tree/main/plugins/broker) | 消息队列中间件。|
-| [/plugins/conf](https://github.com/pangdogs/framework/tree/main/plugins/conf) | 配置系统。|
-| [/plugins/db](https://github.com/pangdogs/framework/tree/main/plugins/db) | 支持数据库。|
-| [/plugins/dentq](https://github.com/pangdogs/framework/tree/main/plugins/dentq) | 支持分布式实体查询。|
-| [/plugins/dentr](https://github.com/pangdogs/framework/tree/main/plugins/dentr) | 支持分布式实体注册。|
-| [/plugins/discovery](https://github.com/pangdogs/framework/tree/main/plugins/discovery) | 服务发现。|
-| [/plugins/dsvc](https://github.com/pangdogs/framework/tree/main/plugins/dsvc) | 支持分布式服务。|
-| [/plugins/dsync](https://github.com/pangdogs/framework/tree/main/plugins/dsync) | 分布式锁。|
-| [/plugins/gate](https://github.com/pangdogs/framework/tree/main/plugins/gate) | 实现GTP网关。|
-| [/plugins/log](https://github.com/pangdogs/framework/tree/main/plugins/log) | 日志系统。|
-| [/plugins/router](https://github.com/pangdogs/framework/tree/main/plugins/router) | 客户端路由系统。|
-| [/plugins/rpc](https://github.com/pangdogs/framework/tree/main/plugins/rpc) | RPC系统。|
-| [/plugins/rpcstack](https://github.com/pangdogs/framework/tree/main/plugins/rpcstack) | 支持RPC堆栈。|
+| Directory                                                                             | Description |
+|---------------------------------------------------------------------------------------| ----------- |
+| [/](https://github.com/pangdogs/framework)                                            | 开发应用时常用的类型与函数。|
+| [/addins/broker](https://github.com/pangdogs/framework/tree/main/addins/broker)       | 消息队列中间件。|
+| [/addins/conf](https://github.com/pangdogs/framework/tree/main/addins/conf)           | 配置系统。|
+| [/addins/db](https://github.com/pangdogs/framework/tree/main/addins/db)               | 支持数据库。|
+| [/addins/dentq](https://github.com/pangdogs/framework/tree/main/addins/dentq)         | 支持分布式实体查询。|
+| [/addins/dentr](https://github.com/pangdogs/framework/tree/main/addins/dentr)         | 支持分布式实体注册。|
+| [/addins/discovery](https://github.com/pangdogs/framework/tree/main/addins/discovery) | 服务发现。|
+| [/addins/dsvc](https://github.com/pangdogs/framework/tree/main/addins/dsvc)           | 支持分布式服务。|
+| [/addins/dsync](https://github.com/pangdogs/framework/tree/main/addins/dsync)         | 分布式锁。|
+| [/addins/gate](https://github.com/pangdogs/framework/tree/main/addins/gate)           | 实现GTP网关。|
+| [/addins/log](https://github.com/pangdogs/framework/tree/main/addins/log)             | 日志系统。|
+| [/addins/router](https://github.com/pangdogs/framework/tree/main/addins/router)       | 客户端路由系统。|
+| [/addins/rpc](https://github.com/pangdogs/framework/tree/main/addins/rpc)             | RPC系统。|
+| [/addins/rpcstack](https://github.com/pangdogs/framework/tree/main/addins/rpcstack)   | 支持RPC堆栈。|
+| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap)                   | GAP协议实现。|
+| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp)                   | GTP协议实现。|
+| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath)           | 服务节点地址结构。|
+| [/utils](https://github.com/pangdogs/framework/tree/main/utils)                       | 一些工具类与函数。 |
 
 ## 示例
 

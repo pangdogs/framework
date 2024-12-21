@@ -30,11 +30,11 @@ import (
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/plugins/conf"
-	"git.golaxy.org/framework/plugins/dentr"
-	"git.golaxy.org/framework/plugins/log"
-	"git.golaxy.org/framework/plugins/log/zap_log"
-	"git.golaxy.org/framework/plugins/rpcstack"
+	"git.golaxy.org/framework/addins/conf"
+	"git.golaxy.org/framework/addins/dentr"
+	"git.golaxy.org/framework/addins/log"
+	"git.golaxy.org/framework/addins/log/zap_log"
+	"git.golaxy.org/framework/addins/rpcstack"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
@@ -192,8 +192,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 					cb.Terminated(rtInst)
 				}
 			case runtime.RunningState_AddInActivating:
-				pluginStatus := args[0].(extension.AddInStatus)
-				cacheCP(pluginStatus.Name(), pluginStatus.Reflected().Type())
+				addInStatus := args[0].(extension.AddInStatus)
+				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
 			}
 		})),
 	)

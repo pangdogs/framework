@@ -20,7 +20,7 @@
 package framework
 
 import (
-	"git.golaxy.org/framework/plugins/rpc/callpath"
+	"git.golaxy.org/framework/addins/rpc/callpath"
 	"reflect"
 )
 

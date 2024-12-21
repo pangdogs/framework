@@ -17,37 +17,36 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package framework
+package mongodb
 
 import (
-	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/framework/addins/db"
+	"github.com/elliotchance/pie/v2"
 )
 
-// ComponentBehavior 组件行为，在开发新组件时，匿名嵌入至组件结构体中
-type ComponentBehavior struct {
-	ec.ComponentBehavior
+type MongoDBOptions struct {
+	DBInfos []db.DBInfo
 }
 
-// GetRuntime 获取运行时
-func (c *ComponentBehavior) GetRuntime() IRuntimeInstance {
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c))
+var With _Option
+
+type _Option struct{}
+
+func (_Option) Default() option.Setting[MongoDBOptions] {
+	return func(options *MongoDBOptions) {
+		With.DBInfos().Apply(options)
+	}
 }
 
-// GetService 获取服务
-func (c *ComponentBehavior) GetService() IServiceInstance {
-	return reinterpret.Cast[IServiceInstance](service.Current(c))
-}
-
-// GetAddInManager 获取插件管理器
-func (c *ComponentBehavior) GetAddInManager() extension.AddInManager {
-	return runtime.Current(c).GetAddInManager()
-}
-
-// IsAlive 是否活跃
-func (c *ComponentBehavior) IsAlive() bool {
-	return c.GetState() <= ec.ComponentState_Alive
+func (_Option) DBInfos(infos ...db.DBInfo) option.Setting[MongoDBOptions] {
+	return func(options *MongoDBOptions) {
+		options.DBInfos = pie.Filter(infos, func(info db.DBInfo) bool {
+			switch info.Type {
+			case db.MongoDB:
+				return true
+			}
+			return false
+		})
+	}
 }

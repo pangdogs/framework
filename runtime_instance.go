@@ -24,8 +24,8 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
-	"git.golaxy.org/framework/plugins/dentr"
-	"git.golaxy.org/framework/plugins/rpcstack"
+	"git.golaxy.org/framework/addins/dentr"
+	"git.golaxy.org/framework/addins/rpcstack"
 )
 
 // IRuntimeInstantiation 运行时实例化接口
