@@ -90,22 +90,22 @@ func TestProtocol(t *testing.T) {
 
 				ctrl := &CtrlProtocol{
 					Transceiver: transceiver,
-					HeartbeatHandler: generic.CastFunc1(func(e Event[gtp.MsgHeartbeat]) error {
+					HeartbeatHandler: generic.CastDelegate1(func(e Event[gtp.MsgHeartbeat]) error {
 						text := "ping"
 						if e.Flags.Is(gtp.Flag_Pong) {
 							text = "pong"
 						}
 						fmt.Printf("%s server <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 						return nil
-					}).ToDelegate(),
+					}),
 				}
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
-					PayloadHandler: generic.CastFunc1(func(e Event[gtp.MsgPayload]) error {
+					PayloadHandler: generic.CastDelegate1(func(e Event[gtp.MsgPayload]) error {
 						fmt.Printf("%s server <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
-					}).ToDelegate(),
+					}),
 				}
 
 				dispatcher := EventDispatcher{
@@ -143,9 +143,9 @@ func TestProtocol(t *testing.T) {
 					}
 				}()
 
-				dispatcher.Run(context.Background(), generic.CastAction1(func(err error) {
+				dispatcher.Run(context.Background(), generic.CastDelegateVoid1(func(err error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= err:", err)
-				}).ToDelegate())
+				}))
 			}()
 		}
 	}()
@@ -190,26 +190,26 @@ func TestProtocol(t *testing.T) {
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,
-			HeartbeatHandler: generic.CastFunc1(func(e Event[gtp.MsgHeartbeat]) error {
+			HeartbeatHandler: generic.CastDelegate1(func(e Event[gtp.MsgHeartbeat]) error {
 				text := "ping"
 				if e.Flags.Is(gtp.Flag_Pong) {
 					text = "pong"
 				}
 				fmt.Printf("%s client <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 				return nil
-			}).ToDelegate(),
-			SyncTimeHandler: generic.CastFunc1(func(e Event[gtp.MsgSyncTime]) error {
+			}),
+			SyncTimeHandler: generic.CastDelegate1(func(e Event[gtp.MsgSyncTime]) error {
 				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalUnixMilli, e.Msg.RemoteUnixMilli)
 				return nil
-			}).ToDelegate(),
+			}),
 		}
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
-			PayloadHandler: generic.CastFunc1(func(e Event[gtp.MsgPayload]) error {
+			PayloadHandler: generic.CastDelegate1(func(e Event[gtp.MsgPayload]) error {
 				fmt.Printf("%s client <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
-			}).ToDelegate(),
+			}),
 		}
 
 		dispatcher := EventDispatcher{
@@ -262,9 +262,9 @@ func TestProtocol(t *testing.T) {
 			}
 		}()
 
-		dispatcher.Run(context.Background(), generic.CastAction1(func(err error) {
+		dispatcher.Run(context.Background(), generic.CastDelegateVoid1(func(err error) {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= err:", err)
-		}).ToDelegate())
+		}))
 	}()
 
 	wg.Wait()
