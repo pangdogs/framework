@@ -55,7 +55,7 @@ type _Registry struct {
 
 // Init 初始化插件
 func (r *_Registry) Init(svcCtx service.Context, _ runtime.Context) {
-	log.Infof(svcCtx, "init self %q", self.Name)
+	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	if r.options.Registry == nil {
 		log.Panic(svcCtx, "wrap registry is nil, must be set before init")
@@ -81,7 +81,7 @@ func (r *_Registry) Init(svcCtx service.Context, _ runtime.Context) {
 
 // Shut 关闭插件
 func (r *_Registry) Shut(svcCtx service.Context, _ runtime.Context) {
-	log.Infof(svcCtx, "shut self %q", self.Name)
+	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	r.terminate()
 	r.wg.Wait()
