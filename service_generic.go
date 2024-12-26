@@ -179,6 +179,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTDeclared:
 				entityPT := args[0].(ec.EntityPT)
+				cacheCP("", entityPT.InstanceRT())
 				for i := range entityPT.CountComponents() {
 					comp := entityPT.Component(i)
 					cacheCP(comp.Name, comp.PT.InstanceRT())
@@ -191,6 +192,11 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTRedeclared:
 				entityPT := args[0].(ec.EntityPT)
+				cacheCP("", entityPT.InstanceRT())
+				for i := range entityPT.CountComponents() {
+					comp := entityPT.Component(i)
+					cacheCP(comp.Name, comp.PT.InstanceRT())
+				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTRedeclared); ok {
 					cb.EntityPTRedeclared(svcInst, entityPT)
 				}
