@@ -48,7 +48,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -180,10 +179,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTDeclared:
 				entityPT := args[0].(ec.EntityPT)
-				cacheCP("", reflect.PointerTo(entityPT.InstanceRT()))
+				cacheCP("", entityPT.InstanceRT())
 				for i := range entityPT.CountComponents() {
 					comp := entityPT.Component(i)
-					cacheCP(comp.Name, reflect.PointerTo(comp.PT.InstanceRT()))
+					cacheCP(comp.Name, comp.PT.InstanceRT())
 				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTDeclared); ok {
 					cb.EntityPTDeclared(svcInst, entityPT)
@@ -193,10 +192,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTRedeclared:
 				entityPT := args[0].(ec.EntityPT)
-				cacheCP("", reflect.PointerTo(entityPT.InstanceRT()))
+				cacheCP("", entityPT.InstanceRT())
 				for i := range entityPT.CountComponents() {
 					comp := entityPT.Component(i)
-					cacheCP(comp.Name, reflect.PointerTo(comp.PT.InstanceRT()))
+					cacheCP(comp.Name, comp.PT.InstanceRT())
 				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTRedeclared); ok {
 					cb.EntityPTRedeclared(svcInst, entityPT)
