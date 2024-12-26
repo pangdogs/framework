@@ -25,7 +25,7 @@ import (
 )
 
 func cacheCP(script string, rt reflect.Type) {
-	for i := rt.NumMethod() - 1; i >= 0; i-- {
+	for i := range rt.NumMethod() {
 		callpath.Cache(script, rt.Method(i).Name)
 	}
 }
