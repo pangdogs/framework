@@ -19,6 +19,11 @@
 
 package framework
 
+import (
+	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/extension"
+)
+
 type LifecycleServiceBuilt interface {
 	Built(inst IServiceInstance)
 }
@@ -41,4 +46,32 @@ type LifecycleServiceTerminating interface {
 
 type LifecycleServiceTerminated interface {
 	Terminated(inst IServiceInstance)
+}
+
+type LifecycleServiceAddInActivating interface {
+	AddInActivating(inst IServiceInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleServiceAddInActivated interface {
+	AddInActivated(inst IServiceInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleServiceAddInDeactivating interface {
+	AddInDeactivating(inst IServiceInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleServiceAddInDeactivated interface {
+	AddInDeactivated(inst IServiceInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleServiceEntityPTDeclared interface {
+	EntityPTDeclared(inst IServiceInstance, entityPT ec.EntityPT)
+}
+
+type LifecycleServiceEntityPTRedeclared interface {
+	EntityPTRedeclared(inst IServiceInstance, entityPT ec.EntityPT)
+}
+
+type LifecycleServiceEntityPTUndeclared interface {
+	EntityPTUndeclared(inst IServiceInstance, entityPT ec.EntityPT)
 }

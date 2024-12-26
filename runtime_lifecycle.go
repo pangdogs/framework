@@ -19,6 +19,8 @@
 
 package framework
 
+import "git.golaxy.org/core/extension"
+
 type LifecycleRuntimeBuilt interface {
 	Built(inst IRuntimeInstance)
 }
@@ -73,4 +75,20 @@ type LifecycleRuntimeTerminating interface {
 
 type LifecycleRuntimeTerminated interface {
 	Terminated(inst IRuntimeInstance)
+}
+
+type LifecycleRuntimeAddInActivating interface {
+	AddInActivating(inst IRuntimeInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleRuntimeAddInActivated interface {
+	AddInActivated(inst IRuntimeInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleRuntimeAddInDeactivating interface {
+	AddInDeactivating(inst IRuntimeInstance, addIn extension.AddInStatus)
+}
+
+type LifecycleRuntimeAddInDeactivated interface {
+	AddInDeactivated(inst IRuntimeInstance, addIn extension.AddInStatus)
 }

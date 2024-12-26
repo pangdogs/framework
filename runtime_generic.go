@@ -96,104 +96,134 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.CastDelegateVoidVar2(func(rtCtx runtime.Context, state runtime.RunningState, args ...any) {
+		runtime.With.Context.RunningHandler(generic.CastDelegateVoidVar2(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
 			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 
-			switch state {
-			case runtime.RunningState_Birth:
+			switch status {
+			case runtime.RunningStatus_Birth:
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
 					cb.Birth(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeBirth); ok {
 					cb.Birth(rtInst)
 				}
-			case runtime.RunningState_Starting:
+			case runtime.RunningStatus_Starting:
 				if cb, ok := r.instance.(LifecycleRuntimeStarting); ok {
 					cb.Starting(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarting); ok {
 					cb.Starting(rtInst)
 				}
-			case runtime.RunningState_Started:
+			case runtime.RunningStatus_Started:
 				if cb, ok := r.instance.(LifecycleRuntimeStarted); ok {
 					cb.Started(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarted); ok {
 					cb.Started(rtInst)
 				}
-			case runtime.RunningState_FrameLoopBegin:
+			case runtime.RunningStatus_FrameLoopBegin:
 				if cb := frameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
 				if cb := rtInstFrameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
-			case runtime.RunningState_FrameUpdateBegin:
+			case runtime.RunningStatus_FrameUpdateBegin:
 				if cb := frameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
 				if cb := rtInstFrameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
-			case runtime.RunningState_FrameUpdateEnd:
+			case runtime.RunningStatus_FrameUpdateEnd:
 				if cb := frameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
 				if cb := rtInstFrameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
-			case runtime.RunningState_FrameLoopEnd:
+			case runtime.RunningStatus_FrameLoopEnd:
 				if cb := frameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
 				if cb := rtInstFrameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
-			case runtime.RunningState_RunCallBegin:
+			case runtime.RunningStatus_RunCallBegin:
 				if cb := runCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
 				if cb := rtInstRunCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
-			case runtime.RunningState_RunCallEnd:
+			case runtime.RunningStatus_RunCallEnd:
 				if cb := runCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
 				if cb := rtInstRunCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
-			case runtime.RunningState_RunGCBegin:
+			case runtime.RunningStatus_RunGCBegin:
 				if cb := runGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
 				if cb := rtInstRunGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
-			case runtime.RunningState_RunGCEnd:
+			case runtime.RunningStatus_RunGCEnd:
 				if cb := runGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
 				if cb := rtInstRunGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
-			case runtime.RunningState_Terminating:
+			case runtime.RunningStatus_Terminating:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminating); ok {
 					cb.Terminating(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminating); ok {
 					cb.Terminating(rtInst)
 				}
-			case runtime.RunningState_Terminated:
+			case runtime.RunningStatus_Terminated:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
-			case runtime.RunningState_AddInActivating:
+			case runtime.RunningStatus_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
+				if cb, ok := r.instance.(LifecycleRuntimeAddInActivating); ok {
+					cb.AddInActivating(rtInst, addInStatus)
+				}
+				if cb, ok := rtInst.(LifecycleRuntimeAddInActivating); ok {
+					cb.AddInActivating(rtInst, addInStatus)
+				}
+			case runtime.RunningStatus_AddInActivated:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := r.instance.(LifecycleRuntimeAddInActivated); ok {
+					cb.AddInActivated(rtInst, addInStatus)
+				}
+				if cb, ok := rtInst.(LifecycleRuntimeAddInActivated); ok {
+					cb.AddInActivated(rtInst, addInStatus)
+				}
+			case runtime.RunningStatus_AddInDeactivating:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivating); ok {
+					cb.AddInDeactivating(rtInst, addInStatus)
+				}
+				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivating); ok {
+					cb.AddInDeactivating(rtInst, addInStatus)
+				}
+			case runtime.RunningStatus_AddInDeactivated:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivated); ok {
+					cb.AddInDeactivated(rtInst, addInStatus)
+				}
+				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivated); ok {
+					cb.AddInDeactivated(rtInst, addInStatus)
+				}
 			}
 		})),
 	)
@@ -275,7 +305,6 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
-	runtime.BindEventEntityManagerAddEntity(rtInst.GetEntityManager(), r, -10)
 	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r, -10)
 
 	return core.NewRuntime(rtInst,
@@ -295,20 +324,6 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 // GetService 获取服务
 func (r *RuntimeGeneric) GetService() IServiceInstance {
 	return r.svcInst
-}
-
-// OnEntityManagerAddEntity 事件处理器：实体管理器添加实体
-func (r *RuntimeGeneric) OnEntityManagerAddEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
-	if entity.GetScope() != ec.Scope_Global {
-		return
-	}
-
-	cacheCP("", entity.GetReflected().Type())
-
-	entity.RangeComponents(func(comp ec.Component) bool {
-		cacheCP(comp.GetName(), comp.GetReflected().Type())
-		return true
-	})
 }
 
 // OnEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件

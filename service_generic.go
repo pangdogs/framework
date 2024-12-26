@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/ec/pt"
+	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
@@ -97,40 +97,39 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		service.With.Context(ctx),
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
-		service.With.EntityLib(pt.NewEntityLib(pt.DefaultComponentLib())),
-		service.With.RunningHandler(generic.CastDelegateVoidVar2(func(svcCtx service.Context, state service.RunningState, args ...any) {
+		service.With.RunningHandler(generic.CastDelegateVoidVar2(func(svcCtx service.Context, status service.RunningStatus, args ...any) {
 			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
-			switch state {
-			case service.RunningState_Birth:
+			switch status {
+			case service.RunningStatus_Birth:
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
 					cb.Birth(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceBirth); ok {
 					cb.Birth(svcInst)
 				}
-			case service.RunningState_Starting:
+			case service.RunningStatus_Starting:
 				if cb, ok := s.instance.(LifecycleServiceStarting); ok {
 					cb.Starting(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceStarting); ok {
 					cb.Starting(svcInst)
 				}
-			case service.RunningState_Started:
+			case service.RunningStatus_Started:
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
 					cb.Started(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceStarted); ok {
 					cb.Started(svcInst)
 				}
-			case service.RunningState_Terminating:
+			case service.RunningStatus_Terminating:
 				if cb, ok := s.instance.(LifecycleServiceTerminating); ok {
 					cb.Terminating(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceTerminating); ok {
 					cb.Terminating(svcInst)
 				}
-			case service.RunningState_Terminated:
+			case service.RunningStatus_Terminated:
 				if cb, ok := s.instance.(LifecycleServiceTerminated); ok {
 					cb.Terminated(svcInst)
 				}
@@ -145,9 +144,67 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
-			case service.RunningState_AddInActivating:
+			case service.RunningStatus_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
+				if cb, ok := s.instance.(LifecycleServiceAddInActivating); ok {
+					cb.AddInActivating(svcInst, addInStatus)
+				}
+				if cb, ok := svcInst.(LifecycleServiceAddInActivating); ok {
+					cb.AddInActivating(svcInst, addInStatus)
+				}
+			case service.RunningStatus_AddInActivated:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := s.instance.(LifecycleServiceAddInActivated); ok {
+					cb.AddInActivated(svcInst, addInStatus)
+				}
+				if cb, ok := svcInst.(LifecycleServiceAddInActivated); ok {
+					cb.AddInActivated(svcInst, addInStatus)
+				}
+			case service.RunningStatus_AddInDeactivating:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := s.instance.(LifecycleServiceAddInDeactivating); ok {
+					cb.AddInDeactivating(svcInst, addInStatus)
+				}
+				if cb, ok := svcInst.(LifecycleServiceAddInDeactivating); ok {
+					cb.AddInDeactivating(svcInst, addInStatus)
+				}
+			case service.RunningStatus_AddInDeactivated:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb, ok := s.instance.(LifecycleServiceAddInDeactivated); ok {
+					cb.AddInDeactivated(svcInst, addInStatus)
+				}
+				if cb, ok := svcInst.(LifecycleServiceAddInDeactivated); ok {
+					cb.AddInDeactivated(svcInst, addInStatus)
+				}
+			case service.RunningStatus_EntityPTDeclared:
+				entityPT := args[0].(ec.EntityPT)
+				for i := range entityPT.CountComponents() {
+					comp := entityPT.Component(i)
+					cacheCP(comp.Name, comp.PT.InstanceRT())
+				}
+				if cb, ok := s.instance.(LifecycleServiceEntityPTDeclared); ok {
+					cb.EntityPTDeclared(svcInst, entityPT)
+				}
+				if cb, ok := svcInst.(LifecycleServiceEntityPTDeclared); ok {
+					cb.EntityPTDeclared(svcInst, entityPT)
+				}
+			case service.RunningStatus_EntityPTRedeclared:
+				entityPT := args[0].(ec.EntityPT)
+				if cb, ok := s.instance.(LifecycleServiceEntityPTRedeclared); ok {
+					cb.EntityPTRedeclared(svcInst, entityPT)
+				}
+				if cb, ok := svcInst.(LifecycleServiceEntityPTRedeclared); ok {
+					cb.EntityPTRedeclared(svcInst, entityPT)
+				}
+			case service.RunningStatus_EntityPTUndeclared:
+				entityPT := args[0].(ec.EntityPT)
+				if cb, ok := s.instance.(LifecycleServiceEntityPTUndeclared); ok {
+					cb.EntityPTUndeclared(svcInst, entityPT)
+				}
+				if cb, ok := svcInst.(LifecycleServiceEntityPTUndeclared); ok {
+					cb.EntityPTUndeclared(svcInst, entityPT)
+				}
 			}
 		})),
 	)
