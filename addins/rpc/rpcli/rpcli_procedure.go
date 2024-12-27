@@ -33,7 +33,7 @@ func (c *RPCli) AddProcedure(name string, proc any) error {
 	}
 
 	_proc.init(c, name, proc)
-	cacheCP(name, _proc.GetReflected().Type())
+	cacheCallPath(name, _proc.GetReflected().Type())
 
 	if !c.procs.TryAdd(name, _proc) {
 		return ErrProcedureExists

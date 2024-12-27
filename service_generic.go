@@ -146,7 +146,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
-				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
+				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := s.instance.(LifecycleServiceAddInActivating); ok {
 					cb.AddInActivating(svcInst, addInStatus)
 				}
@@ -179,10 +179,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTDeclared:
 				entityPT := args[0].(ec.EntityPT)
-				cacheCP("", entityPT.InstanceRT())
+				cacheCallPath("", entityPT.InstanceRT())
 				for i := range entityPT.CountComponents() {
 					comp := entityPT.Component(i)
-					cacheCP(comp.Name, comp.PT.InstanceRT())
+					cacheCallPath(comp.Name, comp.PT.InstanceRT())
 				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTDeclared); ok {
 					cb.EntityPTDeclared(svcInst, entityPT)
@@ -192,10 +192,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				}
 			case service.RunningStatus_EntityPTRedeclared:
 				entityPT := args[0].(ec.EntityPT)
-				cacheCP("", entityPT.InstanceRT())
+				cacheCallPath("", entityPT.InstanceRT())
 				for i := range entityPT.CountComponents() {
 					comp := entityPT.Component(i)
-					cacheCP(comp.Name, comp.PT.InstanceRT())
+					cacheCallPath(comp.Name, comp.PT.InstanceRT())
 				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTRedeclared); ok {
 					cb.EntityPTRedeclared(svcInst, entityPT)
@@ -216,7 +216,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	)
 
 	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
-	cacheCP("", svcInst.GetReflected().Type())
+	cacheCallPath("", svcInst.GetReflected().Type())
 
 	installed := func(name string) bool {
 		_, ok := svcInst.GetAddInManager().Get(name)
@@ -459,6 +459,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}()
 	}
 
+	// 创建服务
 	return core.NewService(svcInst)
 }
 

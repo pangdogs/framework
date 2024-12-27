@@ -24,7 +24,7 @@ import (
 	"reflect"
 )
 
-func cacheCP(script string, rt reflect.Type) {
+func cacheCallPath(script string, rt reflect.Type) {
 	for i := range rt.NumMethod() {
 		callpath.Cache(script, rt.Method(i).Name)
 	}

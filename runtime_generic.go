@@ -55,13 +55,15 @@ type iRuntimeGeneric interface {
 
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
-	svcInst  IServiceInstance
-	instance any
+	svcInst                                IServiceInstance
+	instance                               any
+	handleEntityManagerEntityAddComponents runtime.EventEntityManagerEntityAddComponentsHandler
 }
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 	r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
 	r.instance = instance
+	r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
@@ -193,7 +195,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				}
 			case runtime.RunningStatus_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
-				cacheCP(addInStatus.Name(), addInStatus.Reflected().Type())
+				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivating); ok {
 					cb.AddInActivating(rtInst, addInStatus)
 				}
@@ -229,7 +231,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	)
 
 	rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
-	cacheCP("", rtInst.GetReflected().Type())
+	cacheCallPath("", rtInst.GetReflected().Type())
 
 	installed := func(name string) bool {
 		_, ok := rtInst.GetAddInManager().Get(name)
@@ -305,8 +307,10 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
-	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r, -10)
+	// 订阅实体管理器中的实体添加组件事件，用于缓存实体动态添加的组件的调用路径
+	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r.handleEntityManagerEntityAddComponents, -10)
 
+	// 创建运行时
 	return core.NewRuntime(rtInst,
 		core.With.Runtime.Frame(func() runtime.Frame {
 			if settings.FPS <= 0 {
@@ -326,13 +330,10 @@ func (r *RuntimeGeneric) GetService() IServiceInstance {
 	return r.svcInst
 }
 
-// OnEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
-func (r *RuntimeGeneric) OnEntityManagerEntityAddComponents(entityMgr runtime.EntityManager, entity ec.Entity, components []ec.Component) {
-	if entity.GetScope() != ec.Scope_Global {
-		return
-	}
-
+// onEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
+func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityMgr runtime.EntityManager, entity ec.Entity, components []ec.Component) {
 	for i := range components {
-		cacheCP(components[i].GetName(), components[i].GetReflected().Type())
+		comp := components[i]
+		cacheCallPath(comp.GetName(), comp.GetReflected().Type())
 	}
 }
