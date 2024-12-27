@@ -57,12 +57,14 @@ type iRuntimeGeneric interface {
 type RuntimeGeneric struct {
 	svcInst                                IServiceInstance
 	instance                               any
+	handleEntityManagerAddEntity           runtime.EventEntityManagerAddEntityHandler
 	handleEntityManagerEntityAddComponents runtime.EventEntityManagerEntityAddComponentsHandler
 }
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 	r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
 	r.instance = instance
+	r.handleEntityManagerAddEntity = runtime.HandleEventEntityManagerAddEntity(r.onEntityManagerAddEntity)
 	r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
 }
 
@@ -307,7 +309,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
-	// 订阅实体管理器中的实体添加组件事件，用于缓存实体动态添加的组件的调用路径
+	// 订阅实体管理器的相关事件，用于缓存实体动态添加的组件的调用路径
+	runtime.BindEventEntityManagerAddEntity(rtInst.GetEntityManager(), r.handleEntityManagerAddEntity, -10)
 	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r.handleEntityManagerEntityAddComponents, -10)
 
 	// 创建运行时
@@ -328,6 +331,14 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 // GetService 获取服务
 func (r *RuntimeGeneric) GetService() IServiceInstance {
 	return r.svcInst
+}
+
+// onEntityManagerAddEntity 事件处理器: 实体管理器添加实体
+func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityManager, entity ec.Entity) {
+	if entity.GetPT().Prototype() == "" {
+		return
+	}
+	cacheCallPath("", entity.GetReflected().Type())
 }
 
 // onEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
