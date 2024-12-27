@@ -38,19 +38,19 @@ import (
 // CreateRPCli 创建RPC客户端
 func CreateRPCli() RPCliCreator {
 	return RPCliCreator{
-		rttSampling: 3,
-		msgCreator:  gap.DefaultMsgCreator(),
-		reduceCP:    true,
+		rttSampling:    3,
+		msgCreator:     gap.DefaultMsgCreator(),
+		reduceCallPath: true,
 	}
 }
 
 // RPCliCreator RPC客户端构建器
 type RPCliCreator struct {
-	settings    []option.Setting[cli.ClientOptions]
-	rttSampling int
-	msgCreator  gap.IMsgCreator
-	reduceCP    bool
-	mainProc    IProcedure
+	settings       []option.Setting[cli.ClientOptions]
+	rttSampling    int
+	msgCreator     gap.IMsgCreator
+	reduceCallPath bool
+	mainProc       IProcedure
 }
 
 func (ctor RPCliCreator) NetProtocol(p cli.NetProtocol) RPCliCreator {
@@ -231,8 +231,8 @@ func (ctor RPCliCreator) AuthExtensions(extensions []byte) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) ReduceCP(b bool) RPCliCreator {
-	ctor.reduceCP = b
+func (ctor RPCliCreator) ReduceCallPath(b bool) RPCliCreator {
+	ctor.reduceCallPath = b
 	return ctor
 }
 
@@ -274,11 +274,11 @@ func (ctor RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli, 
 	}
 
 	rpcli := &RPCli{
-		Client:     client,
-		encoder:    codec.MakeEncoder(),
-		decoder:    codec.MakeDecoder(ctor.msgCreator),
-		remoteTime: *remoteTime,
-		reduceCP:   ctor.reduceCP,
+		Client:         client,
+		encoder:        codec.MakeEncoder(),
+		decoder:        codec.MakeDecoder(ctor.msgCreator),
+		remoteTime:     *remoteTime,
+		reduceCallPath: ctor.reduceCallPath,
 	}
 
 	if ctor.mainProc != nil {

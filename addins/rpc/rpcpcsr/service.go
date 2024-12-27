@@ -29,20 +29,20 @@ import (
 )
 
 // NewServiceProcessor 创建分布式服务间的RPC处理器
-func NewServiceProcessor(permValidator PermissionValidator, reduceCP bool) any {
+func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool) any {
 	return &_ServiceProcessor{
-		permValidator: permValidator,
-		reduceCP:      reduceCP,
+		permValidator:  permValidator,
+		reduceCallPath: reduceCallPath,
 	}
 }
 
 // _ServiceProcessor 分布式服务间的RPC处理器
 type _ServiceProcessor struct {
-	svcCtx        service.Context
-	dist          dsvc.IDistService
-	watcher       dsvc.IWatcher
-	permValidator PermissionValidator
-	reduceCP      bool
+	svcCtx         service.Context
+	dist           dsvc.IDistService
+	watcher        dsvc.IWatcher
+	permValidator  PermissionValidator
+	reduceCallPath bool
 }
 
 // Init 初始化

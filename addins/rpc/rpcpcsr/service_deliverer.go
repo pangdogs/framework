@@ -59,7 +59,7 @@ func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 		return ret.ToAsyncRet()
 	}
 
-	cpbs, err := cp.Encode(p.reduceCP)
+	cpbs, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -88,7 +88,7 @@ func (p *_ServiceProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 		return err
 	}
 
-	cpbs, err := cp.Encode(p.reduceCP)
+	cpbs, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
 		return err
 	}
