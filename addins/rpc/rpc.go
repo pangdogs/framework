@@ -66,8 +66,8 @@ func (r *_RPC) Init(svcCtx service.Context, _ runtime.Context) {
 	}
 
 	for _, p := range r.options.Processors {
-		if init, ok := p.(rpcpcsr.LifecycleInit); ok {
-			init.Init(r.svcCtx)
+		if cb, ok := p.(rpcpcsr.LifecycleInit); ok {
+			cb.Init(r.svcCtx)
 		}
 	}
 }
@@ -79,8 +79,8 @@ func (r *_RPC) Shut(svcCtx service.Context, _ runtime.Context) {
 	r.terminated.Store(true)
 
 	for _, p := range r.options.Processors {
-		if shut, ok := p.(rpcpcsr.LifecycleShut); ok {
-			shut.Shut(r.svcCtx)
+		if cb, ok := p.(rpcpcsr.LifecycleShut); ok {
+			cb.Shut(r.svcCtx)
 		}
 	}
 }

@@ -65,8 +65,8 @@ func (r *_Registry) Init(svcCtx service.Context, _ runtime.Context) {
 	r.svcCtx = svcCtx
 	r.ctx, r.terminate = context.WithCancel(context.Background())
 
-	if init, ok := r.IRegistry.(core.LifecycleAddInInit); ok {
-		init.Init(r.svcCtx, nil)
+	if cb, ok := r.IRegistry.(core.LifecycleAddInInit); ok {
+		cb.Init(r.svcCtx, nil)
 	}
 
 	if err := r.refreshCache(); err != nil {
@@ -86,8 +86,8 @@ func (r *_Registry) Shut(svcCtx service.Context, _ runtime.Context) {
 	r.terminate()
 	r.wg.Wait()
 
-	if shut, ok := r.IRegistry.(core.LifecycleAddInShut); ok {
-		shut.Shut(svcCtx, nil)
+	if cb, ok := r.IRegistry.(core.LifecycleAddInShut); ok {
+		cb.Shut(svcCtx, nil)
 	}
 }
 
