@@ -49,6 +49,10 @@ func newDistEntityRegistry(settings ...option.Setting[DistEntityRegistryOptions]
 	}
 }
 
+const (
+	tagForDistEntityRegistry = "dist_entity_registry"
+)
+
 type _DistEntityRegistry struct {
 	distEntityRegistryEventTab
 	rtCtx   runtime.Context
@@ -100,7 +104,7 @@ func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(nil, d.keepAliveLease)
 
 	// 绑定事件
-	d.rtCtx.ManagedHooks(
+	d.rtCtx.ManagedAddTagHooks(tagForDistEntityRegistry,
 		runtime.BindEventEntityManagerAddEntity(rtCtx.GetEntityManager(), d, 1000),
 		runtime.BindEventEntityManagerRemoveEntity(rtCtx.GetEntityManager(), d, -1000),
 	)
@@ -109,6 +113,9 @@ func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 // Shut 关闭插件
 func (d *_DistEntityRegistry) Shut(_ service.Context, rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut addin %q", self.Name)
+
+	// 清理事件钩子
+	d.rtCtx.ManagedCleanTagHooks(tagForDistEntityRegistry)
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
