@@ -73,8 +73,8 @@ type IServiceInstance interface {
 	CreateRuntime() RuntimeCreator
 	// CreateEntityPT 创建实体原型
 	CreateEntityPT(prototype string) core.EntityPTCreator
-	// CreateConcurrentEntity 创建实体
-	CreateConcurrentEntity(prototype string) ConcurrentEntityCreator
+	// CreateEntityAsync 创建实体
+	CreateEntityAsync(prototype string) EntityCreatorAsync
 }
 
 // ServiceInstance 服务实例
@@ -155,7 +155,7 @@ func (inst *ServiceInstance) CreateEntityPT(prototype string) core.EntityPTCreat
 	return core.CreateEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }
 
-// CreateConcurrentEntity 创建实体
-func (inst *ServiceInstance) CreateConcurrentEntity(prototype string) ConcurrentEntityCreator {
-	return CreateConcurrentEntity(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
+// CreateEntityAsync 创建实体
+func (inst *ServiceInstance) CreateEntityAsync(prototype string) EntityCreatorAsync {
+	return CreateEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }

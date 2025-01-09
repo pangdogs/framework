@@ -33,19 +33,19 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// CreateConcurrentEntity 创建实体
-func CreateConcurrentEntity(svcCtx service.Context, prototype string) ConcurrentEntityCreator {
+// CreateEntityAsync 创建实体
+func CreateEntityAsync(svcCtx service.Context, prototype string) EntityCreatorAsync {
 	if svcCtx == nil {
 		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
 	}
-	return ConcurrentEntityCreator{
+	return EntityCreatorAsync{
 		ctx:       svcCtx,
 		prototype: prototype,
 	}
 }
 
-// ConcurrentEntityCreator 实体构建器
-type ConcurrentEntityCreator struct {
+// EntityCreatorAsync 实体构建器
+type EntityCreatorAsync struct {
 	ctx       service.Context
 	prototype string
 	rtInst    IRuntimeInstance
@@ -55,67 +55,73 @@ type ConcurrentEntityCreator struct {
 }
 
 // Runtime 设置运行时（优先使用）
-func (c ConcurrentEntityCreator) Runtime(rtInst IRuntimeInstance) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) Runtime(rtInst IRuntimeInstance) EntityCreatorAsync {
 	c.rtInst = rtInst
 	return c
 }
 
 // RuntimeCreator 设置运行时构建器
-func (c ConcurrentEntityCreator) RuntimeCreator(rtCreator RuntimeCreator) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) RuntimeCreator(rtCreator RuntimeCreator) EntityCreatorAsync {
 	c.rtCreator = rtCreator
 	return c
 }
 
 // InstanceFace 实例，用于扩展实体能力
-func (c ConcurrentEntityCreator) InstanceFace(face iface.Face[ec.Entity]) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) InstanceFace(face iface.Face[ec.Entity]) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.InstanceFace(face))
 	return c
 }
 
 // Instance 实例，用于扩展实体能力
-func (c ConcurrentEntityCreator) Instance(instance ec.Entity) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) Instance(instance ec.Entity) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.InstanceFace(iface.MakeFaceT(instance)))
 	return c
 }
 
 // Scope 设置实体的可访问作用域
-func (c ConcurrentEntityCreator) Scope(scope ec.Scope) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) Scope(scope ec.Scope) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.Scope(scope))
 	return c
 }
 
 // PersistId 设置实体持久化Id
-func (c ConcurrentEntityCreator) PersistId(id uid.Id) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) PersistId(id uid.Id) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.PersistId(id))
 	return c
 }
 
+// ComponentNameIndexing 是否开启组件名称索引
+func (c EntityCreatorAsync) ComponentNameIndexing(b bool) EntityCreatorAsync {
+	c.settings = append(c.settings, ec.With.ComponentNameIndexing(b))
+	return c
+}
+
 // ComponentAwakeOnFirstTouch 设置开启组件被首次访问时，检测并调用Awake()
-func (c ConcurrentEntityCreator) ComponentAwakeOnFirstTouch(b bool) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) ComponentAwakeOnFirstTouch(b bool) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.ComponentAwakeOnFirstTouch(b))
 	return c
 }
 
 // ComponentUniqueID 设置开启组件唯一Id
-func (c ConcurrentEntityCreator) ComponentUniqueID(b bool) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) ComponentUniqueID(b bool) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.ComponentUniqueID(b))
 	return c
 }
 
 // Meta 设置Meta信息
-func (c ConcurrentEntityCreator) Meta(m meta.Meta) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) Meta(m meta.Meta) EntityCreatorAsync {
 	c.settings = append(c.settings, ec.With.Meta(m))
 	return c
 }
 
 // ParentId 设置父实体Id
-func (c ConcurrentEntityCreator) ParentId(id uid.Id) ConcurrentEntityCreator {
+func (c EntityCreatorAsync) ParentId(id uid.Id) EntityCreatorAsync {
 	c.parentId = id
 	return c
 }
 
 // Spawn 创建实体
-func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
+func (c EntityCreatorAsync) Spawn() (ec.ConcurrentEntity, error) {
 	if c.ctx == nil {
 		exception.Panicf("%w: ctx is nil", ErrFramework)
 	}
@@ -154,7 +160,7 @@ func (c ConcurrentEntityCreator) Spawn() (ec.ConcurrentEntity, error) {
 }
 
 // SpawnAsync 创建实体
-func (c ConcurrentEntityCreator) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntity] {
+func (c EntityCreatorAsync) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntity] {
 	if c.ctx == nil {
 		exception.Panicf("%w: ctx is nil", ErrFramework)
 	}
