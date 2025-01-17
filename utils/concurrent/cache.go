@@ -68,7 +68,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 		if item.ttl > 0 && now < item.expireNano.Load() {
 			return item.value
 		}
-		c.onDel.Exec(k, item.value)
+		c.onDel.UnsafeCall(k, item.value)
 	}
 
 	item = &_CacheItem[K, V]{
@@ -82,7 +82,7 @@ func (c *Cache[K, V]) Set(k K, v V, revision int64, ttl time.Duration) V {
 	}
 
 	c.items[k] = item
-	c.onAdd.Exec(k, v)
+	c.onAdd.UnsafeCall(k, v)
 	return v
 }
 
@@ -145,7 +145,7 @@ func (c *Cache[K, V]) Del(k K, revision int64) {
 	}
 
 	delete(c.items, k)
-	c.onDel.Exec(k, item.value)
+	c.onDel.UnsafeCall(k, item.value)
 }
 
 func (c *Cache[K, V]) RefreshTTL(k K) {
@@ -192,7 +192,7 @@ func (c *Cache[K, V]) Clean(num int) {
 			existed, _ := c.items[item.key]
 			if existed == item {
 				delete(c.items, item.key)
-				c.onDel.Exec(item.key, item.value)
+				c.onDel.UnsafeCall(item.key, item.value)
 			}
 		}()
 	}

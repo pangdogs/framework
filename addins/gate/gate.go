@@ -186,14 +186,14 @@ func (g *_Gate) GetSession(sessionId uid.Id) (ISession, bool) {
 // RangeSessions 遍历所有会话
 func (g *_Gate) RangeSessions(fun generic.Func1[ISession, bool]) {
 	g.sessionMap.Range(func(k, v any) bool {
-		return fun.Exec(v.(ISession))
+		return fun.UnsafeCall(v.(ISession))
 	})
 }
 
 // EachSessions 遍历所有会话
 func (g *_Gate) EachSessions(fun generic.Action1[ISession]) {
 	g.sessionMap.Range(func(k, v any) bool {
-		fun.Exec(v.(ISession))
+		fun.UnsafeCall(v.(ISession))
 		return true
 	})
 }

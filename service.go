@@ -19,19 +19,55 @@
 
 package framework
 
-import "reflect"
+import (
+	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/types"
+	"reflect"
+)
 
-// NewServiceGenericT 创建服务泛化类型
-func NewServiceGenericT[T any]() *ServiceGenericT[T] {
-	return &ServiceGenericT[T]{}
+// IServiceInstantiation 服务实例化接口
+type IServiceInstantiation interface {
+	Instantiation() IServiceInstance
 }
 
-// ServiceGenericT 服务泛化类型实例化
-type ServiceGenericT[T any] struct {
+// NewServiceInstantiation 创建服务类型实例化
+func NewServiceInstantiation(svcInst any) *ServiceInstantiation {
+	if svcInst == nil {
+		exception.Panicf("%w: %w: svcInst is nil", ErrFramework)
+	}
+
+	svcInstRT, ok := svcInst.(reflect.Type)
+	if !ok {
+		svcInstRT = reflect.ValueOf(svcInst).Type()
+	}
+
+	for svcInstRT.Kind() == reflect.Pointer {
+		svcInstRT = svcInstRT.Elem()
+	}
+
+	if svcInstRT.PkgPath() == "" || svcInstRT.Name() == "" || !reflect.PointerTo(svcInstRT).Implements(reflect.TypeFor[IServiceInstance]()) {
+		exception.Panicf("%w: unsupported type", ErrFramework)
+	}
+
+	return &ServiceInstantiation{
+		serviceInstanceRT: svcInstRT,
+	}
+}
+
+// NewServiceInstantiationT 创建服务类型实例化
+func NewServiceInstantiationT[T any]() *ServiceInstantiation {
+	return NewServiceInstantiation(types.ZeroT[T]())
+}
+
+// ServiceInstantiation 服务类型实例化
+type ServiceInstantiation struct {
 	ServiceGeneric
+	serviceInstanceRT reflect.Type
 }
 
-// Instantiation 实例化
-func (s *ServiceGenericT[T]) Instantiation() IServiceInstance {
-	return reflect.New(reflect.TypeFor[T]()).Interface().(IServiceInstance)
+func (s *ServiceInstantiation) Instantiation() IServiceInstance {
+	if s.serviceInstanceRT == nil {
+		return &ServiceInstance{}
+	}
+	return reflect.New(s.serviceInstanceRT).Interface().(IServiceInstance)
 }

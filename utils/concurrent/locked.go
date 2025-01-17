@@ -45,5 +45,5 @@ func (l *Locked[T]) AutoLock(fun generic.Action1[*T]) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	fun.Exec(&l.object)
+	fun.UnsafeCall(&l.object)
 }

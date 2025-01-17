@@ -36,11 +36,6 @@ import (
 	"sync"
 )
 
-// IServiceInstantiation 服务实例化接口
-type IServiceInstantiation interface {
-	Instantiation() IServiceInstance
-}
-
 // GetServiceInstance 获取服务实例
 func GetServiceInstance(provider runtime.ConcurrentContextProvider) IServiceInstance {
 	return reinterpret.Cast[IServiceInstance](service.Current(provider))
@@ -80,7 +75,7 @@ type IServiceInstance interface {
 // ServiceInstance 服务实例
 type ServiceInstance struct {
 	service.ContextBehavior
-	RuntimeGenericT[RuntimeInstance]
+	RuntimeInstantiation
 }
 
 // GetConf 获取配置插件

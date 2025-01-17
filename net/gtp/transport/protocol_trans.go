@@ -66,7 +66,7 @@ func (t *TransProtocol) HandleEvent(e IEvent) error {
 	case gtp.MsgId_Payload:
 		var errs []error
 
-		t.PayloadHandler.Exec(func(err, _ error) bool {
+		t.PayloadHandler.UnsafeCall(func(err, _ error) bool {
 			if err != nil {
 				errs = append(errs, err)
 			}

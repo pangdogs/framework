@@ -125,7 +125,7 @@ func (m *EncryptionModule) Transforming(dst, src []byte) (ret binaryutil.Recycle
 		if m.FetchNonce == nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: FetchNonce is nil", ErrEncrypt)
 		}
-		nonce, err = generic.FuncPairError(m.FetchNonce.Invoke())
+		nonce, err = generic.FuncPairError(m.FetchNonce.SafeCall())
 		if err != nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}

@@ -89,7 +89,7 @@ func (lm *LockedMap[K, V]) Len() (l int) {
 func (lm *LockedMap[K, V]) Range(fun generic.Func2[K, V, bool]) {
 	lm.AutoRLock(func(m *map[K]V) {
 		for k, v := range *m {
-			if !fun.Exec(k, v) {
+			if !fun.UnsafeCall(k, v) {
 				return
 			}
 		}
@@ -99,7 +99,7 @@ func (lm *LockedMap[K, V]) Range(fun generic.Func2[K, V, bool]) {
 func (lm *LockedMap[K, V]) Each(fun generic.Action2[K, V]) {
 	lm.AutoRLock(func(m *map[K]V) {
 		for k, v := range *m {
-			fun.Exec(k, v)
+			fun.UnsafeCall(k, v)
 		}
 	})
 }

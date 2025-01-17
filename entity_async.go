@@ -33,51 +33,51 @@ var (
 	ErrEntityNotAlive = errors.New("async/await: entity not alive")
 )
 
-// Async 异步执行代码，有返回值
-func (e *EntityBehavior) Async(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.Async(e, func(runtime.Context, ...any) async.Ret {
+// CallAsync 异步执行代码，有返回值
+func (e *EntityBehavior) CallAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
+	return core.CallAsync(e, func(runtime.Context, ...any) async.Ret {
 		if !e.IsAlive() {
 			return async.MakeRet(nil, ErrEntityNotAlive)
 		}
-		return fun.Exec(args...)
+		return fun.UnsafeCall(args...)
 	})
 }
 
-// AsyncVoid 异步执行代码，无返回值
-func (e *EntityBehavior) AsyncVoid(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.AsyncVoid(e, func(runtime.Context, ...any) {
+// CallVoidAsync 异步执行代码，无返回值
+func (e *EntityBehavior) CallVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
+	return core.CallVoidAsync(e, func(runtime.Context, ...any) {
 		if !e.IsAlive() {
 			return
 		}
-		fun.Exec(args...)
+		fun.UnsafeCall(args...)
 	})
 }
 
-// Go 使用新线程执行代码，有返回值（注意线程安全）
-func (e *EntityBehavior) Go(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.Go(e, func(context.Context, ...any) async.Ret {
-		return fun.Exec(args...)
+// GoAsync 使用新线程执行代码，有返回值（注意线程安全）
+func (e *EntityBehavior) GoAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
+	return core.GoAsync(e, func(context.Context, ...any) async.Ret {
+		return fun.UnsafeCall(args...)
 	})
 }
 
-// GoVoid 使用新线程执行代码，无返回值（注意线程安全）
-func (e *EntityBehavior) GoVoid(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.GoVoid(e, func(context.Context, ...any) {
-		fun.Exec(args...)
+// GoVoidAsync 使用新线程执行代码，无返回值（注意线程安全）
+func (e *EntityBehavior) GoVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
+	return core.GoVoidAsync(e, func(context.Context, ...any) {
+		fun.UnsafeCall(args...)
 	})
 }
 
-// TimeAfter 定时器，指定时长
-func (e *EntityBehavior) TimeAfter(dur time.Duration) async.AsyncRet {
-	return core.TimeAfter(e, dur)
+// TimeAfterAsync 定时器，指定时长
+func (e *EntityBehavior) TimeAfterAsync(dur time.Duration) async.AsyncRet {
+	return core.TimeAfterAsync(e, dur)
 }
 
-// TimeAt 定时器，指定时间点
-func (e *EntityBehavior) TimeAt(at time.Time) async.AsyncRet {
-	return core.TimeAt(e, at)
+// TimeAtAsync 定时器，指定时间点
+func (e *EntityBehavior) TimeAtAsync(at time.Time) async.AsyncRet {
+	return core.TimeAtAsync(e, at)
 }
 
-// TimeTick 心跳器
-func (e *EntityBehavior) TimeTick(dur time.Duration) async.AsyncRet {
-	return core.TimeTick(e, dur)
+// TimeTickAsync 心跳器
+func (e *EntityBehavior) TimeTickAsync(dur time.Duration) async.AsyncRet {
+	return core.TimeTickAsync(e, dur)
 }

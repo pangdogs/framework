@@ -28,11 +28,6 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// IRuntimeInstantiation 运行时实例化接口
-type IRuntimeInstantiation interface {
-	Instantiation() IRuntimeInstance
-}
-
 // GetRuntimeInstance 获取运行时实例
 func GetRuntimeInstance(provider runtime.CurrentContextProvider) IRuntimeInstance {
 	return reinterpret.Cast[IRuntimeInstance](runtime.Current(provider))

@@ -84,7 +84,7 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
 	if len(p.permValidator) > 0 {
-		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
+		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
 		if !passed && err == nil {
@@ -164,7 +164,7 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 	cc := rpcstack.CallChain{{Svc: svc, Addr: src, Transit: transit, Time: time.Now().UnixMilli()}}
 
 	if len(p.permValidator) > 0 {
-		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
+		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
 		if !passed && err == nil {

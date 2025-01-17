@@ -192,7 +192,7 @@ func (s *_Subscriber) mainLoop() {
 		close(s.eventChan)
 	}
 
-	s.unsubscribedCB.Invoke(func(panicErr error) bool {
+	s.unsubscribedCB.SafeCall(func(panicErr error) bool {
 		log.Errorf(s.broker.svcCtx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
 		return false
 	}, s)
@@ -221,7 +221,7 @@ func (s *_Subscriber) handleEventProcess(msg *nats.Msg) {
 		ns:  s,
 	}
 
-	s.eventHandler.Invoke(func(err error, panicErr error) bool {
+	s.eventHandler.SafeCall(func(err error, panicErr error) bool {
 		if err := generic.FuncError(err, panicErr); err != nil {
 			log.Errorf(s.broker.svcCtx, "handle msg from topic %q queue %q failed, %s", e.Topic(), e.Queue(), err)
 		}

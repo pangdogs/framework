@@ -48,7 +48,7 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
 	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
 	if ok {
-		asyncRet := p.svcCtx.Call(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
+		asyncRet := p.svcCtx.CallAsync(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
 			session, ok := p.router.LookupSession(entity.GetId())
 			if !ok {
 				return async.MakeRet(nil, ErrSessionNotFound)

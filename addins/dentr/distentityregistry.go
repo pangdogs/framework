@@ -101,7 +101,7 @@ func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 	d.rtCtx.GetEntityManager().RangeEntities(d.register)
 
 	// 租约心跳
-	core.Await(d.rtCtx, core.TimeTick(d.rtCtx, d.options.TTL/2)).Pipe(nil, d.keepAliveLease)
+	core.Await(d.rtCtx, core.TimeTickAsync(d.rtCtx, d.options.TTL/2)).Pipe(nil, d.keepAliveLease)
 
 	// 绑定事件
 	d.rtCtx.ManagedAddTagHooks(tagForDistEntityRegistry,

@@ -152,12 +152,12 @@ func (d *_DistService) handleEvent(e broker.IEvent) error {
 	// 回调监控器
 	d.msgWatchers.AutoRLock(func(watchers *[]*_MsgWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, e.Topic(), mp)
+			(*watchers)[i].handler.UnsafeCall(interrupt, e.Topic(), mp)
 		}
 	})
 
 	// 回调处理器
-	d.options.RecvMsgHandler.Exec(interrupt, e.Topic(), mp)
+	d.options.RecvMsgHandler.UnsafeCall(interrupt, e.Topic(), mp)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)

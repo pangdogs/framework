@@ -274,17 +274,17 @@ func (s *_Session) setState(state SessionState) bool {
 	}
 
 	// 回调会话状态变化
-	s.options.StateChangedHandler.Invoke(interrupt, s, state, old)
+	s.options.StateChangedHandler.SafeCall(interrupt, s, state, old)
 
 	// 回调监控器
 	s.gate.sessionWatchers.AutoRLock(func(watchers *[]*_SessionWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Invoke(interrupt, s, state, old)
+			(*watchers)[i].handler.SafeCall(interrupt, s, state, old)
 		}
 	})
 
 	// 回调网关会话状态变化
-	s.gate.options.SessionStateChangedHandler.Invoke(interrupt, s, state, old)
+	s.gate.options.SessionStateChangedHandler.SafeCall(interrupt, s, state, old)
 
 	return true
 }
@@ -319,15 +319,15 @@ func (s *_Session) handleRecvEvent(event transport.IEvent) error {
 	// 回调监控器
 	s.eventWatchers.AutoRLock(func(watchers *[]*_EventWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, s, event)
+			(*watchers)[i].handler.UnsafeCall(interrupt, s, event)
 		}
 	})
 
 	// 回调会话处理器
-	s.options.RecvEventHandler.Exec(interrupt, s, event)
+	s.options.RecvEventHandler.UnsafeCall(interrupt, s, event)
 
 	// 回调网关处理器
-	s.gate.options.SessionRecvEventHandler.Exec(interrupt, s, event)
+	s.gate.options.SessionRecvEventHandler.UnsafeCall(interrupt, s, event)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
@@ -372,15 +372,15 @@ func (s *_Session) handleRecvPayload(event transport.Event[gtp.MsgPayload]) erro
 	// 回调监控器
 	s.dataWatchers.AutoRLock(func(watchers *[]*_DataWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, s, event.Msg.Data)
+			(*watchers)[i].handler.UnsafeCall(interrupt, s, event.Msg.Data)
 		}
 	})
 
 	// 回调会话处理器
-	s.options.RecvDataHandler.Invoke(interrupt, s, event.Msg.Data)
+	s.options.RecvDataHandler.SafeCall(interrupt, s, event.Msg.Data)
 
 	// 回调网关处理器
-	s.gate.options.SessionRecvDataHandler.Invoke(interrupt, s, event.Msg.Data)
+	s.gate.options.SessionRecvDataHandler.SafeCall(interrupt, s, event.Msg.Data)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)

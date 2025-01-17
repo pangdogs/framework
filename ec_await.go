@@ -39,7 +39,7 @@ func (ad AwaitDirector) Any(fun generic.ActionVar1[async.Ret, any], args ...any)
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, args...)
+		fun.UnsafeCall(ret, args...)
 	})
 }
 
@@ -49,7 +49,7 @@ func (ad AwaitDirector) AnyOK(fun generic.ActionVar1[async.Ret, any], args ...an
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, args...)
+		fun.UnsafeCall(ret, args...)
 	})
 }
 
@@ -59,7 +59,7 @@ func (ad AwaitDirector) All(fun generic.ActionVar1[[]async.Ret, any], args ...an
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(rets, args...)
+		fun.UnsafeCall(rets, args...)
 	})
 }
 
@@ -69,6 +69,6 @@ func (ad AwaitDirector) Pipe(ctx context.Context, fun generic.ActionVar1[async.R
 		if !ad.iec.IsAlive() {
 			return
 		}
-		fun.Exec(ret, args...)
+		fun.UnsafeCall(ret, args...)
 	})
 }

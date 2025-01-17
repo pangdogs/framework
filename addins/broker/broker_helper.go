@@ -53,7 +53,7 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 			err := broker.Publish(context.Background(), topic, bs.Data())
 			bs.Release()
 			if err != nil {
-				_errorHandler.Invoke(nil, err)
+				_errorHandler.SafeCall(nil, err)
 			}
 		}
 	}()

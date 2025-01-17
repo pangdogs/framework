@@ -75,7 +75,11 @@ func (app *App) Setup(name string, generic any) *App {
 
 	svcGeneric, ok := generic.(iServiceGeneric)
 	if !ok {
-		exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
+		svcInst, ok := generic.(IServiceInstance)
+		if !ok {
+			exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
+		}
+		svcGeneric = NewServiceInstantiation(svcInst)
 	}
 
 	svcGeneric.init(app.startupConf, name, svcGeneric)
@@ -131,14 +135,14 @@ func (app *App) Run() {
 			app.initPProf()
 
 			// 启动回调
-			app.startingCB.Exec(nil, app)
+			app.startingCB.UnsafeCall(nil, app)
 
 			// 主循环
 			app.mainLoop()
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			// 结束回调
-			app.terminatedCB.Exec(nil, app)
+			app.terminatedCB.UnsafeCall(nil, app)
 		},
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd:   true,
@@ -151,7 +155,7 @@ func (app *App) Run() {
 	app.initFlags(cmd)
 
 	// 初始化回调
-	app.initCB.Exec(nil, cmd)
+	app.initCB.UnsafeCall(nil, cmd)
 
 	// 开始运行
 	if err := cmd.Execute(); err != nil {

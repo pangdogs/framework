@@ -45,12 +45,12 @@ func (l *RWLocked[T]) AutoLock(fun generic.Action1[*T]) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	fun.Exec(&l.object)
+	fun.UnsafeCall(&l.object)
 }
 
 func (l *RWLocked[T]) AutoRLock(fun generic.Action1[*T]) {
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()
 
-	fun.Exec(&l.object)
+	fun.UnsafeCall(&l.object)
 }

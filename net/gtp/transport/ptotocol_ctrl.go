@@ -117,7 +117,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:
-		c.RstHandler.Exec(interrupt, EventT[gtp.MsgRst](e))
+		c.RstHandler.UnsafeCall(interrupt, EventT[gtp.MsgRst](e))
 
 	case gtp.MsgId_SyncTime:
 		syncTime := EventT[gtp.MsgSyncTime](e)
@@ -141,7 +141,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 			}
 		}
 
-		c.SyncTimeHandler.Exec(interrupt, syncTime)
+		c.SyncTimeHandler.UnsafeCall(interrupt, syncTime)
 
 	case gtp.MsgId_Heartbeat:
 		heartbeat := EventT[gtp.MsgHeartbeat](e)
@@ -160,7 +160,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 			}
 		}
 
-		c.HeartbeatHandler.Exec(interrupt, heartbeat)
+		c.HeartbeatHandler.UnsafeCall(interrupt, heartbeat)
 
 	default:
 		return nil

@@ -339,12 +339,12 @@ func (c *Client) handleRecvEvent(event transport.IEvent) error {
 	// 回调监控器
 	c.eventWatchers.AutoRLock(func(watchers *[]*_EventWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, event)
+			(*watchers)[i].handler.UnsafeCall(interrupt, event)
 		}
 	})
 
 	// 回调处理器
-	c.options.RecvEventHandler.Exec(interrupt, event)
+	c.options.RecvEventHandler.UnsafeCall(interrupt, event)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
@@ -389,12 +389,12 @@ func (c *Client) handleRecvPayload(event transport.Event[gtp.MsgPayload]) error 
 	// 回调监控器
 	c.dataWatchers.AutoRLock(func(watchers *[]*_DataWatcher) {
 		for i := range *watchers {
-			(*watchers)[i].handler.Exec(interrupt, event.Msg.Data)
+			(*watchers)[i].handler.UnsafeCall(interrupt, event.Msg.Data)
 		}
 	})
 
 	// 回调处理器
-	c.options.RecvDataHandler.Exec(interrupt, event.Msg.Data)
+	c.options.RecvDataHandler.UnsafeCall(interrupt, event.Msg.Data)
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)

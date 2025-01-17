@@ -94,7 +94,7 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 		}
 	}()
 
-	return svcCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var scriptRV reflect.Value
 
 		if addInName == "" {
@@ -145,7 +145,7 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 		}
 	}()
 
-	return svcCtx.Call(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Ret {
 		var scriptRV reflect.Value
 
 		if component == "" {

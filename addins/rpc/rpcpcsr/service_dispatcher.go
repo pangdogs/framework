@@ -63,7 +63,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
 
 	if len(p.permValidator) > 0 {
-		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
+		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
 		if !passed && err == nil {
@@ -142,7 +142,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
 
 	if len(p.permValidator) > 0 {
-		passed, err := p.permValidator.Invoke(func(passed bool, err error) bool {
+		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
 		if !passed && err == nil {

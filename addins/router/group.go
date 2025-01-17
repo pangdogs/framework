@@ -160,7 +160,7 @@ func (g *_Group) Range(fun generic.Func1[uid.Id, bool]) {
 	g.RUnlock()
 
 	for i := range copied {
-		if !fun.Exec(copied[i]) {
+		if !fun.UnsafeCall(copied[i]) {
 			return
 		}
 	}
@@ -173,7 +173,7 @@ func (g *_Group) Each(fun generic.Action1[uid.Id]) {
 	g.RUnlock()
 
 	for i := range copied {
-		fun.Exec(copied[i])
+		fun.UnsafeCall(copied[i])
 	}
 }
 
@@ -216,7 +216,7 @@ func (g *_Group) SendData(data []byte) {
 	for i := range g.entities {
 		entId := g.entities[i]
 
-		g.router.svcCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
+		g.router.svcCtx.CallVoidAsync(entId, func(entity ec.Entity, _ ...any) {
 			session, ok := g.router.LookupSession(entity.GetId())
 			if !ok {
 				return
@@ -245,7 +245,7 @@ func (g *_Group) SendEvent(event transport.IEvent) {
 	for i := range g.entities {
 		entId := g.entities[i]
 
-		g.router.svcCtx.CallVoid(entId, func(entity ec.Entity, _ ...any) {
+		g.router.svcCtx.CallVoidAsync(entId, func(entity ec.Entity, _ ...any) {
 			session, ok := g.router.LookupSession(entity.GetId())
 			if !ok {
 				return

@@ -87,7 +87,7 @@ func (fs *Futures) Request(ctx context.Context, handler RequestHandler, timeout 
 	}
 
 	future, resp := MakeFutureRespAsyncRet(fs, ctx, timeout...)
-	handler.Exec(future)
+	handler.UnsafeCall(future)
 
 	return resp.ToAsyncRet()
 }

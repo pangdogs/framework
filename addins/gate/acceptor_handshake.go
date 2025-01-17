@@ -232,7 +232,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
-			err := acc.gate.options.Authenticator.Exec(func(err, _ error) bool {
+			err := acc.gate.options.Authenticator.UnsafeCall(func(err, _ error) bool {
 				return err != nil
 			}, acc.gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {

@@ -59,7 +59,7 @@ func (d *EventDispatcher) Dispatching(ctx context.Context) error {
 
 	var errs []error
 
-	d.EventHandler.Invoke(func(err, panicErr error) bool {
+	d.EventHandler.SafeCall(func(err, panicErr error) bool {
 		if err := generic.FuncError(err, panicErr); err != nil {
 			errs = append(errs, err)
 		}
@@ -96,7 +96,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 
 		err := d.Dispatching(ctx)
 		if err != nil {
-			_errorHandler.Invoke(nil, err)
+			_errorHandler.SafeCall(nil, err)
 		}
 	}
 }

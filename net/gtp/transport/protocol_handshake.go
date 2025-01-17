@@ -87,7 +87,7 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[gtp.Msg
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = helloFin.Exec(EventT[gtp.MsgHello](recv))
+	err = helloFin.UnsafeCall(EventT[gtp.MsgHello](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -132,7 +132,7 @@ func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAc
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	reply, err := helloAccept.Exec(EventT[gtp.MsgHello](recv))
+	reply, err := helloAccept.UnsafeCall(EventT[gtp.MsgHello](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -185,7 +185,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	secretKeyExchangeReply, err := secretKeyExchangeAccept.Exec(recv)
+	secretKeyExchangeReply, err := secretKeyExchangeAccept.UnsafeCall(recv)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -209,7 +209,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecReply, err := changeCipherSpecAccept.Exec(EventT[gtp.MsgChangeCipherSpec](recv))
+	changeCipherSpecReply, err := changeCipherSpecAccept.UnsafeCall(EventT[gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -268,7 +268,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecMsg, err := secretKeyExchangeFin.Exec(EventT[gtp.MsgECDHESecretKeyExchange](recv))
+	changeCipherSpecMsg, err := secretKeyExchangeFin.UnsafeCall(EventT[gtp.MsgECDHESecretKeyExchange](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -290,7 +290,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = changeCipherSpecFin.Exec(EventT[gtp.MsgChangeCipherSpec](recv))
+	err = changeCipherSpecFin.UnsafeCall(EventT[gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -356,7 +356,7 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = authAccept.Exec(EventT[gtp.MsgAuth](recv))
+	err = authAccept.UnsafeCall(EventT[gtp.MsgAuth](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -418,7 +418,7 @@ func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept C
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = continueAccept.Exec(EventT[gtp.MsgContinue](recv))
+	err = continueAccept.UnsafeCall(EventT[gtp.MsgContinue](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -458,7 +458,7 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = finishedAccept.Exec(EventT[gtp.MsgFinished](recv))
+	err = finishedAccept.UnsafeCall(EventT[gtp.MsgFinished](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}

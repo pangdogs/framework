@@ -201,7 +201,7 @@ func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.
 
 	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
 		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
-			if !fun.Exec(group) {
+			if !fun.UnsafeCall(group) {
 				return
 			}
 		}
@@ -220,7 +220,7 @@ func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.A
 
 	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
 		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
-			fun.Exec(group)
+			fun.UnsafeCall(group)
 		}
 	}
 }

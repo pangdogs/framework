@@ -19,19 +19,55 @@
 
 package framework
 
-import "reflect"
+import (
+	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/types"
+	"reflect"
+)
 
-// NewRuntimeGenericT 创建运行时泛化类型
-func NewRuntimeGenericT[T any]() *RuntimeGenericT[T] {
-	return &RuntimeGenericT[T]{}
+// IRuntimeInstantiation 运行时实例化接口
+type IRuntimeInstantiation interface {
+	Instantiation() IRuntimeInstance
 }
 
-// RuntimeGenericT 运行时泛化类型实例化
-type RuntimeGenericT[T any] struct {
+// NewRuntimeInstantiation 创建运行时类型实例化
+func NewRuntimeInstantiation(rtInst any) *RuntimeInstantiation {
+	if rtInst == nil {
+		exception.Panicf("%w: %w: rtInst is nil", ErrFramework)
+	}
+
+	rtInstRT, ok := rtInst.(reflect.Type)
+	if !ok {
+		rtInstRT = reflect.ValueOf(rtInst).Type()
+	}
+
+	for rtInstRT.Kind() == reflect.Pointer {
+		rtInstRT = rtInstRT.Elem()
+	}
+
+	if rtInstRT.PkgPath() == "" || rtInstRT.Name() == "" || !reflect.PointerTo(rtInstRT).Implements(reflect.TypeFor[IRuntimeInstance]()) {
+		exception.Panicf("%w: unsupported type", ErrFramework)
+	}
+
+	return &RuntimeInstantiation{
+		runtimeInstanceRT: rtInstRT,
+	}
+}
+
+// NewRuntimeInstantiationT 创建运行时类型实例化
+func NewRuntimeInstantiationT[T any]() *RuntimeInstantiation {
+	return NewRuntimeInstantiation(types.ZeroT[T]())
+}
+
+// RuntimeInstantiation 运行时类型实例化
+type RuntimeInstantiation struct {
 	RuntimeGeneric
+	runtimeInstanceRT reflect.Type
 }
 
-// Instantiation 实例化
-func (r *RuntimeGenericT[T]) Instantiation() IRuntimeInstance {
-	return reflect.New(reflect.TypeFor[T]()).Interface().(IRuntimeInstance)
+func (r *RuntimeInstantiation) Instantiation() IRuntimeInstance {
+	if r.runtimeInstanceRT == nil {
+		return &RuntimeInstance{}
+	}
+	return reflect.New(r.runtimeInstanceRT).Interface().(IRuntimeInstance)
 }

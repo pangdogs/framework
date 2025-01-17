@@ -31,17 +31,17 @@ type RespFunc[T any] generic.Action1[async.RetT[T]]
 // Push 填入返回结果
 func (fun RespFunc[T]) Push(ret async.RetT[any]) error {
 	if !ret.OK() {
-		generic.CastAction1(fun).Exec(async.MakeRetT[T](types.ZeroT[T](), ret.Error))
+		generic.CastAction1(fun).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
 	resp, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.CastAction1(fun).Exec(async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.CastAction1(fun).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.CastAction1(fun).Exec(resp)
+	generic.CastAction1(fun).UnsafeCall(resp)
 	return nil
 }
 
@@ -51,16 +51,16 @@ type RespDelegate[T any] generic.DelegateVoid1[async.RetT[T]]
 // Push 填入返回结果
 func (dlg RespDelegate[T]) Push(ret async.RetT[any]) error {
 	if !ret.OK() {
-		generic.DelegateVoid1[async.RetT[T]](dlg).Exec(nil, async.MakeRetT[T](types.ZeroT[T](), ret.Error))
+		generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
 	resp, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.DelegateVoid1[async.RetT[T]](dlg).Exec(nil, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.DelegateVoid1[async.RetT[T]](dlg).Exec(nil, resp)
+	generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, resp)
 	return nil
 }
