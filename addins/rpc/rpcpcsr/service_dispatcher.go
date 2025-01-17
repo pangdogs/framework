@@ -178,7 +178,19 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
+			var ret async.Ret
+
+			for {
+				ret = asyncRet.Wait(p.svcCtx)
+				if !ret.OK() {
+					break
+				}
+				asyncRet, _ = ret.Value.(async.AsyncRet)
+				if asyncRet == nil {
+					break
+				}
+			}
+			
 			if !ret.OK() {
 				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, ret.Error)
 				p.reply(src, req.CorrId, nil, ret.Error)
@@ -199,7 +211,19 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
+			var ret async.Ret
+
+			for {
+				ret = asyncRet.Wait(p.svcCtx)
+				if !ret.OK() {
+					break
+				}
+				asyncRet, _ = ret.Value.(async.AsyncRet)
+				if asyncRet == nil {
+					break
+				}
+			}
+
 			if !ret.OK() {
 				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, ret.Error)
 				p.reply(src, req.CorrId, nil, ret.Error)

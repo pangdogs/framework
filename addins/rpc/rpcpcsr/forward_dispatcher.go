@@ -200,7 +200,19 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
+			var ret async.Ret
+
+			for {
+				ret = asyncRet.Wait(p.svcCtx)
+				if !ret.OK() {
+					break
+				}
+				asyncRet, _ = ret.Value.(async.AsyncRet)
+				if asyncRet == nil {
+					break
+				}
+			}
+			
 			if !ret.OK() {
 				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
@@ -221,7 +233,19 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
+			var ret async.Ret
+
+			for {
+				ret = asyncRet.Wait(p.svcCtx)
+				if !ret.OK() {
+					break
+				}
+				asyncRet, _ = ret.Value.(async.AsyncRet)
+				if asyncRet == nil {
+					break
+				}
+			}
+
 			if !ret.OK() {
 				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
 				p.reply(src, transit, req.CorrId, nil, ret.Error)
