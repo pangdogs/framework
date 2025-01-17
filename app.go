@@ -75,11 +75,7 @@ func (app *App) Setup(name string, generic any) *App {
 
 	svcGeneric, ok := generic.(iServiceGeneric)
 	if !ok {
-		svcInst, ok := generic.(IServiceInstance)
-		if !ok {
-			exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
-		}
-		svcGeneric = NewServiceInstantiation(svcInst)
+		svcGeneric = newServiceInstantiation(generic)
 	}
 
 	svcGeneric.init(app.startupConf, name, svcGeneric)
