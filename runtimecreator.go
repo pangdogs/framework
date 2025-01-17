@@ -69,7 +69,7 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 
 	rtGeneric, ok := generic.(iRuntimeGeneric)
 	if !ok {
-		rtInst, ok := rtGeneric.(IRuntimeInstance)
+		rtInst, ok := generic.(IRuntimeInstance)
 		if !ok {
 			exception.Panicf("%w: %w: incorrect generic type", ErrFramework, core.ErrArgs)
 		}
