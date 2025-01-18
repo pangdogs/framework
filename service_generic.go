@@ -220,6 +220,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 	cacheCallPath("", svcInst.GetReflected().Type())
 
+	if rtGeneric, ok := svcInst.(iRuntimeGeneric); ok {
+		rtGeneric.init(svcInst, rtGeneric)
+	}
+
 	installed := func(name string) bool {
 		_, ok := svcInst.GetAddInManager().Get(name)
 		return ok
@@ -426,11 +430,6 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
 		cb.Built(svcInst)
-	}
-
-	// 初始化运行时泛化类型
-	if rtGeneric, ok := svcInst.(iRuntimeGeneric); ok {
-		rtGeneric.init(svcInst, svcInst)
 	}
 
 	// 延迟连接etcd
