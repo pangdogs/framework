@@ -75,6 +75,7 @@ type IServiceInstance interface {
 // ServiceInstance 服务实例
 type ServiceInstance struct {
 	service.ContextBehavior
+	runtimeGeneric RuntimeGeneric
 }
 
 // GetConf 获取配置插件
@@ -141,7 +142,7 @@ func (inst *ServiceInstance) GetMemKV() *sync.Map {
 
 // CreateRuntime 创建运行时
 func (inst *ServiceInstance) CreateRuntime() RuntimeCreator {
-	return CreateRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface)
+	return CreateRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface).Setup(&inst.runtimeGeneric)
 }
 
 // CreateEntityPT 创建实体原型

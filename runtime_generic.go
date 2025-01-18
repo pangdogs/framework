@@ -37,6 +37,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"sync"
 )
 
 type _RuntimeSettings struct {
@@ -55,6 +56,7 @@ type iRuntimeGeneric interface {
 
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
+	once                                   sync.Once
 	svcInst                                IServiceInstance
 	instance                               any
 	handleEntityManagerAddEntity           runtime.EventEntityManagerAddEntityHandler
@@ -62,10 +64,12 @@ type RuntimeGeneric struct {
 }
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
-	r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
-	r.instance = instance
-	r.handleEntityManagerAddEntity = runtime.HandleEventEntityManagerAddEntity(r.onEntityManagerAddEntity)
-	r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
+	r.once.Do(func() {
+		r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
+		r.instance = instance
+		r.handleEntityManagerAddEntity = runtime.HandleEventEntityManagerAddEntity(r.onEntityManagerAddEntity)
+		r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
+	})
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {

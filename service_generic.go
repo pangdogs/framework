@@ -59,15 +59,18 @@ type iServiceGeneric interface {
 
 // ServiceGeneric 服务泛化类型
 type ServiceGeneric struct {
+	once        sync.Once
 	startupConf *viper.Viper
 	name        string
 	instance    any
 }
 
 func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, instance any) {
-	s.startupConf = startupConf
-	s.name = name
-	s.instance = instance
+	s.once.Do(func() {
+		s.startupConf = startupConf
+		s.name = name
+		s.instance = instance
+	})
 }
 
 func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
