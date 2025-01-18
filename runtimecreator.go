@@ -45,7 +45,6 @@ func CreateRuntime(svcCtx service.Context) RuntimeCreator {
 			ProcessQueueCapacity: 128,
 		},
 	}
-	c.generic, _ = svcCtx.(iRuntimeGeneric)
 
 	return c
 }
@@ -115,12 +114,9 @@ func (c RuntimeCreator) Spawn() IRuntimeInstance {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
 
-	rtGeneric := c.generic
-
-	if rtGeneric == nil {
-		rtGeneric = &RuntimeGeneric{}
-		rtGeneric.init(c.svcCtx, rtGeneric)
+	if c.generic == nil {
+		c.Setup(&RuntimeGeneric{})
 	}
 
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(rtGeneric.generate(c.settings)))
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c.generic.generate(c.settings)))
 }

@@ -220,10 +220,6 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 	cacheCallPath("", svcInst.GetReflected().Type())
 
-	if rtGeneric, ok := svcInst.(iRuntimeGeneric); ok {
-		rtGeneric.init(svcInst, rtGeneric)
-	}
-
 	installed := func(name string) bool {
 		_, ok := svcInst.GetAddInManager().Get(name)
 		return ok
