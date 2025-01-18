@@ -152,5 +152,5 @@ func (inst *ServiceInstance) CreateEntityPT(prototype string) core.EntityPTCreat
 
 // CreateEntityAsync 创建实体
 func (inst *ServiceInstance) CreateEntityAsync(prototype string) EntityCreatorAsync {
-	return CreateEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
+	return CreateEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype).RuntimeCreator(inst.CreateRuntime())
 }

@@ -114,9 +114,10 @@ func (c RuntimeCreator) Spawn() IRuntimeInstance {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
 
-	if c.generic == nil {
-		c.Setup(&RuntimeGeneric{})
+	generic := c.generic
+	if generic == nil {
+		generic = c.Setup(&RuntimeGeneric{}).generic
 	}
 
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c.generic.generate(c.settings)))
+	return reinterpret.Cast[IRuntimeInstance](runtime.Current(generic.generate(c.settings)))
 }

@@ -130,11 +130,11 @@ func (c EntityCreatorAsync) Spawn() (ec.ConcurrentEntity, error) {
 
 	rtInst := c.rtInst
 	if rtInst == nil {
-		if c.rtCreator.svcCtx != nil {
-			rtInst = c.rtCreator.Spawn()
-		} else {
-			rtInst = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
+		rtCreator := c.rtCreator
+		if rtCreator.svcCtx == nil {
+			rtCreator = CreateRuntime(c.ctx)
 		}
+		rtInst = rtCreator.PersistId(entity.GetId()).Spawn()
 	}
 
 	err := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
@@ -169,11 +169,11 @@ func (c EntityCreatorAsync) SpawnAsync() async.AsyncRetT[ec.ConcurrentEntity] {
 
 	rtInst := c.rtInst
 	if rtInst == nil {
-		if c.rtCreator.svcCtx != nil {
-			rtInst = c.rtCreator.Spawn()
-		} else {
-			rtInst = CreateRuntime(c.ctx).PersistId(entity.GetId()).Spawn()
+		rtCreator := c.rtCreator
+		if rtCreator.svcCtx == nil {
+			rtCreator = CreateRuntime(c.ctx)
 		}
+		rtInst = rtCreator.PersistId(entity.GetId()).Spawn()
 	}
 
 	asyncRet := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
