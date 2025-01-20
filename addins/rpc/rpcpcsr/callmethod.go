@@ -20,6 +20,7 @@
 package rpcpcsr
 
 import (
+	"context"
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
@@ -42,7 +43,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, method string, args variant.Array) (rets variant.Array, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, method string, args variant.Array) (_ variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -87,7 +88,7 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, metho
 	return variant.MakeSerializedArray(methodRV.Call(argsRV))
 }
 
-func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addInName, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addInName, method string, args variant.Array) (_ async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -134,11 +135,18 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
+		retsRV := methodRV.Call(argsRV)
+		if len(retsRV) == 1 {
+			if asyncRet, ok := retsRV[0].Interface().(async.AsyncRet); ok {
+				return async.MakeRet(asyncRet, nil)
+			}
+		}
+
+		return async.MakeRet(variant.MakeSerializedArray(retsRV))
 	}), nil
 }
 
-func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (asyncRet async.AsyncRet, err error) {
+func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
@@ -180,7 +188,14 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
-		return async.MakeRet(variant.MakeSerializedArray(methodRV.Call(argsRV)))
+		retsRV := methodRV.Call(argsRV)
+		if len(retsRV) == 1 {
+			if asyncRet, ok := retsRV[0].Interface().(async.AsyncRet); ok {
+				return async.MakeRet(asyncRet, nil)
+			}
+		}
+
+		return async.MakeRet(variant.MakeSerializedArray(retsRV))
 	}), nil
 }
 
@@ -214,4 +229,30 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	}
 
 	return argsRV, nil
+}
+
+func waitAsyncRet(ctx context.Context, asyncRet async.AsyncRet) (variant.Array, error) {
+	for {
+		ret := asyncRet.Wait(ctx)
+		if !ret.OK() {
+			return nil, ret.Error
+		}
+
+		var ok bool
+		asyncRet, ok = ret.Value.(async.AsyncRet)
+		if ok {
+			continue
+		}
+
+		if rets, ok := ret.Value.(variant.Array); ok {
+			return rets, nil
+		}
+
+		rets, err := variant.MakeSerializedArray([]any{ret.Value})
+		if err != nil {
+			return nil, err
+		}
+
+		return rets, nil
+	}
 }

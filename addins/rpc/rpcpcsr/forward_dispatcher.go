@@ -118,12 +118,12 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path)
-				ret.Value.(variant.Array).Release()
+				rets.Release()
 			}
 		}()
 
@@ -137,12 +137,12 @@ func (p *_ForwardProcessor) acceptNotify(svc, src, dst, transit string, req *gap
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path)
-				ret.Value.(variant.Array).Release()
+				rets.Release()
 			}
 		}()
 
@@ -200,25 +200,13 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		}
 
 		go func() {
-			var ret async.Ret
-
-			for {
-				ret = asyncRet.Wait(p.svcCtx)
-				if !ret.OK() {
-					break
-				}
-				asyncRet, _ = ret.Value.(async.AsyncRet)
-				if asyncRet == nil {
-					break
-				}
-			}
-			
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
-				p.reply(src, transit, req.CorrId, nil, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, err)
+				p.reply(src, transit, req.CorrId, nil, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path)
-				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
+				p.reply(src, transit, req.CorrId, rets, nil)
 			}
 		}()
 
@@ -233,25 +221,13 @@ func (p *_ForwardProcessor) acceptRequest(svc, src, dst, transit string, req *ga
 		}
 
 		go func() {
-			var ret async.Ret
-
-			for {
-				ret = asyncRet.Wait(p.svcCtx)
-				if !ret.OK() {
-					break
-				}
-				asyncRet, _ = ret.Value.(async.AsyncRet)
-				if asyncRet == nil {
-					break
-				}
-			}
-
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, ret.Error)
-				p.reply(src, transit, req.CorrId, nil, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path, err)
+				p.reply(src, transit, req.CorrId, nil, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Id, cp.Script, cp.Method, src, dst, transit, req.Path)
-				p.reply(src, transit, req.CorrId, ret.Value.(variant.Array), nil)
+				p.reply(src, transit, req.CorrId, rets, nil)
 			}
 		}()
 

@@ -97,12 +97,12 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls finished", cp.Id, cp.Script, cp.Method)
-				ret.Value.(variant.Array).Release()
+				rets.Release()
 			}
 		}()
 
@@ -116,12 +116,12 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 		}
 
 		go func() {
-			ret := asyncRet.Wait(p.svcCtx)
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.Id, cp.Script, cp.Method)
-				ret.Value.(variant.Array).Release()
+				rets.Release()
 			}
 		}()
 
@@ -178,25 +178,13 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		}
 
 		go func() {
-			var ret async.Ret
-
-			for {
-				ret = asyncRet.Wait(p.svcCtx)
-				if !ret.OK() {
-					break
-				}
-				asyncRet, _ = ret.Value.(async.AsyncRet)
-				if asyncRet == nil {
-					break
-				}
-			}
-			
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, ret.Error)
-				p.reply(src, req.CorrId, nil, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
+				p.reply(src, req.CorrId, nil, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Script, cp.Method)
-				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
+				p.reply(src, req.CorrId, rets, nil)
 			}
 		}()
 
@@ -211,25 +199,13 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		}
 
 		go func() {
-			var ret async.Ret
-
-			for {
-				ret = asyncRet.Wait(p.svcCtx)
-				if !ret.OK() {
-					break
-				}
-				asyncRet, _ = ret.Value.(async.AsyncRet)
-				if asyncRet == nil {
-					break
-				}
-			}
-
-			if !ret.OK() {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, ret.Error)
-				p.reply(src, req.CorrId, nil, ret.Error)
+			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			if err != nil {
+				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
+				p.reply(src, req.CorrId, nil, err)
 			} else {
 				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Script, cp.Method)
-				p.reply(src, req.CorrId, ret.Value.(variant.Array), nil)
+				p.reply(src, req.CorrId, rets, nil)
 			}
 		}()
 
