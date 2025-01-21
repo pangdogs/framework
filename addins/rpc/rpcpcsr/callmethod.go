@@ -241,6 +241,9 @@ func waitAsyncRet(ctx context.Context, asyncRet async.AsyncRet) (variant.Array, 
 		var ok bool
 		asyncRet, ok = ret.Value.(async.AsyncRet)
 		if ok {
+			if asyncRet == nil {
+				return nil, ErrMethodAsyncResultIsNil
+			}
 			continue
 		}
 
