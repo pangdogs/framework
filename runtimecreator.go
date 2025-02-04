@@ -28,8 +28,8 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// CreateRuntime 创建运行时
-func CreateRuntime(svcCtx service.Context) RuntimeCreator {
+// BuildRuntime 创建运行时
+func BuildRuntime(svcCtx service.Context) RuntimeCreator {
 	if svcCtx == nil {
 		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
 	}
@@ -77,39 +77,39 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 	return c
 }
 
-// Name 名称
-func (c RuntimeCreator) Name(name string) RuntimeCreator {
+// SetName 设置名称
+func (c RuntimeCreator) SetName(name string) RuntimeCreator {
 	c.settings.Name = name
 	return c
 }
 
-// PersistId 持久化Id
-func (c RuntimeCreator) PersistId(id uid.Id) RuntimeCreator {
+// SetPersistId 设置持久化Id
+func (c RuntimeCreator) SetPersistId(id uid.Id) RuntimeCreator {
 	c.settings.PersistId = id
 	return c
 }
 
-// PanicHandling panic时的处理方式
-func (c RuntimeCreator) PanicHandling(autoRecover bool, reportError chan error) RuntimeCreator {
+// SetPanicHandling 设置panic时的处理方式
+func (c RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan error) RuntimeCreator {
 	c.settings.AutoRecover = autoRecover
 	c.settings.ReportError = reportError
 	return c
 }
 
-// FPS 帧率
-func (c RuntimeCreator) FPS(fps float32) RuntimeCreator {
+// SetFPS 设置帧率
+func (c RuntimeCreator) SetFPS(fps float32) RuntimeCreator {
 	c.settings.FPS = fps
 	return c
 }
 
-// ProcessQueueCapacity 任务处理流水线大小
-func (c RuntimeCreator) ProcessQueueCapacity(cap int) RuntimeCreator {
+// SetProcessQueueCapacity 设置任务处理流水线大小
+func (c RuntimeCreator) SetProcessQueueCapacity(cap int) RuntimeCreator {
 	c.settings.ProcessQueueCapacity = cap
 	return c
 }
 
-// Spawn 创建运行时
-func (c RuntimeCreator) Spawn() IRuntimeInstance {
+// New 创建运行时
+func (c RuntimeCreator) New() IRuntimeInstance {
 	if c.svcCtx == nil {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}

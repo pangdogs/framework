@@ -47,7 +47,7 @@ func (c *ComponentBehavior) GetAddInManager() extension.AddInManager {
 	return runtime.Current(c).GetAddInManager()
 }
 
-// IsAlive 是否活跃
-func (c *ComponentBehavior) IsAlive() bool {
+// GetLiving 是否活跃可用
+func (c *ComponentBehavior) GetLiving() bool {
 	return c.GetState() <= ec.ComponentState_Alive
 }

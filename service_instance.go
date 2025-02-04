@@ -64,12 +64,12 @@ type IServiceInstance interface {
 	GetStartupConf() *viper.Viper
 	// GetMemKV 获取服务内存KV数据库
 	GetMemKV() *sync.Map
-	// CreateRuntime 创建运行时
-	CreateRuntime() RuntimeCreator
-	// CreateEntityPT 创建实体原型
-	CreateEntityPT(prototype string) core.EntityPTCreator
-	// CreateEntityAsync 创建实体
-	CreateEntityAsync(prototype string) EntityCreatorAsync
+	// BuildRuntime 创建运行时
+	BuildRuntime() RuntimeCreator
+	// BuildEntityPT 创建实体原型
+	BuildEntityPT(prototype string) core.EntityPTCreator
+	// BuildEntityAsync 创建实体
+	BuildEntityAsync(prototype string) EntityCreatorAsync
 }
 
 // ServiceInstance 服务实例
@@ -140,17 +140,17 @@ func (inst *ServiceInstance) GetMemKV() *sync.Map {
 	return memKV
 }
 
-// CreateRuntime 创建运行时
-func (inst *ServiceInstance) CreateRuntime() RuntimeCreator {
-	return CreateRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface).Setup(&inst.runtimeGeneric)
+// BuildRuntime 创建运行时
+func (inst *ServiceInstance) BuildRuntime() RuntimeCreator {
+	return BuildRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface).Setup(&inst.runtimeGeneric)
 }
 
-// CreateEntityPT 创建实体原型
-func (inst *ServiceInstance) CreateEntityPT(prototype string) core.EntityPTCreator {
-	return core.CreateEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
+// BuildEntityPT 创建实体原型
+func (inst *ServiceInstance) BuildEntityPT(prototype string) core.EntityPTCreator {
+	return core.BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }
 
-// CreateEntityAsync 创建实体
-func (inst *ServiceInstance) CreateEntityAsync(prototype string) EntityCreatorAsync {
-	return CreateEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype).RuntimeCreator(inst.CreateRuntime())
+// BuildEntityAsync 创建实体
+func (inst *ServiceInstance) BuildEntityAsync(prototype string) EntityCreatorAsync {
+	return BuildEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(inst.BuildRuntime())
 }

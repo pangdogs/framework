@@ -21,7 +21,6 @@ package framework
 
 import (
 	"context"
-	"errors"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/utils/async"
@@ -29,42 +28,39 @@ import (
 	"time"
 )
 
-var (
-	ErrComponentNotAlive = errors.New("async/await: component not alive")
-)
-
 // CallAsync 异步执行代码，有返回值
 func (c *ComponentBehavior) CallAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.CallAsync(c, func(runtime.Context, ...any) async.Ret {
-		if !c.IsAlive() {
-			return async.MakeRet(nil, ErrComponentNotAlive)
+	return core.CallAsync(c, func(_ runtime.Context, args ...any) async.Ret {
+		if !c.GetLiving() {
+			return async.MakeRet(nil, ErrEntityOrComponentNotLiving)
 		}
 		return fun.UnsafeCall(args...)
-	})
+	}, args...)
 }
 
 // CallVoidAsync 异步执行代码，无返回值
 func (c *ComponentBehavior) CallVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.CallVoidAsync(c, func(runtime.Context, ...any) {
-		if !c.IsAlive() {
-			return
+	return core.CallAsync(c, func(_ runtime.Context, args ...any) async.Ret {
+		if !c.GetLiving() {
+			return async.MakeRet(nil, ErrEntityOrComponentNotLiving)
 		}
 		fun.UnsafeCall(args...)
-	})
+		return async.VoidRet
+	}, args...)
 }
 
 // GoAsync 使用新线程执行代码，有返回值（注意线程安全）
 func (c *ComponentBehavior) GoAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.GoAsync(c, func(context.Context, ...any) async.Ret {
+	return core.GoAsync(c, func(ctx context.Context, args ...any) async.Ret {
 		return fun.UnsafeCall(args...)
-	})
+	}, args...)
 }
 
 // GoVoidAsync 使用新线程执行代码，无返回值（注意线程安全）
 func (c *ComponentBehavior) GoVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.GoVoidAsync(c, func(context.Context, ...any) {
+	return core.GoVoidAsync(c, func(ctx context.Context, args ...any) {
 		fun.UnsafeCall(args...)
-	})
+	}, args...)
 }
 
 // TimeAfterAsync 定时器，指定时长
@@ -80,4 +76,9 @@ func (c *ComponentBehavior) TimeAtAsync(at time.Time) async.AsyncRet {
 // TimeTickAsync 心跳器
 func (c *ComponentBehavior) TimeTickAsync(dur time.Duration) async.AsyncRet {
 	return core.TimeTickAsync(c, dur)
+}
+
+// ReadChanAsync 读取channel
+func (c *ComponentBehavior) ReadChanAsync(ch <-chan any) async.AsyncRet {
+	return core.ReadChanAsync(c, ch)
 }

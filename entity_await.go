@@ -25,9 +25,9 @@ import (
 )
 
 // Await 异步等待结果返回
-func (e *EntityBehavior) Await(asyncRet ...async.AsyncRet) AwaitDirector {
+func (e *EntityBehavior) Await(asyncRets ...async.AsyncRet) AwaitDirector {
 	return AwaitDirector{
 		iec:      e,
-		director: core.Await(e, asyncRet...),
+		director: core.Await(e, asyncRets...),
 	}
 }

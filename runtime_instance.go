@@ -42,8 +42,8 @@ type IRuntimeInstance interface {
 	GetRPCStack() rpcstack.IRPCStack
 	// GetService 获取服务实例
 	GetService() IServiceInstance
-	// CreateEntity 创建实体
-	CreateEntity(prototype string) core.EntityCreator
+	// BuildEntity 创建实体
+	BuildEntity(prototype string) core.EntityCreator
 }
 
 // RuntimeInstance 运行时实例
@@ -66,7 +66,7 @@ func (inst *RuntimeInstance) GetService() IServiceInstance {
 	return reinterpret.Cast[IServiceInstance](service.Current(inst))
 }
 
-// CreateEntity 创建实体
-func (inst *RuntimeInstance) CreateEntity(prototype string) core.EntityCreator {
-	return core.CreateEntity(runtime.Current(inst), prototype)
+// BuildEntity 创建实体
+func (inst *RuntimeInstance) BuildEntity(prototype string) core.EntityCreator {
+	return core.BuildEntity(runtime.Current(inst), prototype)
 }

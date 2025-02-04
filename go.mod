@@ -3,7 +3,7 @@ module git.golaxy.org/framework
 go 1.23
 
 require (
-	git.golaxy.org/core v0.3.91
+	git.golaxy.org/core v0.3.92
 	github.com/andybalholm/brotli v1.1.1
 	github.com/elliotchance/pie/v2 v2.9.1
 	github.com/fsnotify/fsnotify v1.8.0

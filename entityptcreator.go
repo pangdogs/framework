@@ -23,8 +23,8 @@ import (
 	"git.golaxy.org/core"
 )
 
-// CreateEntityPT 创建实体原型
-var CreateEntityPT = core.CreateEntityPT
+// BuildEntityPT 创建实体原型
+var BuildEntityPT = core.BuildEntityPT
 
 // EntityPTCreator 实体原型构建器
 type EntityPTCreator = core.EntityPTCreator

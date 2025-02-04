@@ -47,7 +47,7 @@ func (e *EntityBehavior) GetAddInManager() extension.AddInManager {
 	return runtime.Current(e).GetAddInManager()
 }
 
-// IsAlive 是否活跃
-func (e *EntityBehavior) IsAlive() bool {
+// GetLiving 是否活跃可用
+func (e *EntityBehavior) GetLiving() bool {
 	return e.GetState() <= ec.EntityState_Alive
 }
