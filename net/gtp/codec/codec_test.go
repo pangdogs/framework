@@ -50,17 +50,17 @@ func TestCodec(t *testing.T) {
 	//	panic(err)
 	//}
 
-	encoder := CreateEncoder().
+	encoder := BuildEncoder().
 		SetupEncryptionModule(NewEncryptionModule(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
 		SetupCompressionModule(NewCompressionModule(compressionStream), 1).
-		Spawn()
+		Make()
 
-	decoder := CreateDecoder(gtp.DefaultMsgCreator()).
+	decoder := BuildDecoder(gtp.DefaultMsgCreator()).
 		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
 		SetupCompressionModule(NewCompressionModule(compressionStream)).
-		Spawn()
+		Make()
 
 	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)

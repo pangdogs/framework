@@ -41,15 +41,15 @@ import (
 // handshake 握手过程
 func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Client) error {
 	// 编解码器构建器
-	ctor.encoderCreator = codec.CreateEncoder()
-	ctor.decoderCreator = codec.CreateDecoder(ctor.options.DecoderMsgCreator)
+	ctor.encoderCreator = codec.BuildEncoder()
+	ctor.decoderCreator = codec.BuildDecoder(ctor.options.DecoderMsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
-			Encoder:      ctor.encoderCreator.Spawn(),
-			Decoder:      ctor.decoderCreator.Spawn(),
+			Encoder:      ctor.encoderCreator.Make(),
+			Decoder:      ctor.decoderCreator.Make(),
 			Timeout:      ctor.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},

@@ -21,8 +21,8 @@ package codec
 
 import "git.golaxy.org/core/utils/exception"
 
-// CreateEncoder 创建消息包编码器
-func CreateEncoder() EncoderCreator {
+// BuildEncoder 创建消息包编码器
+func BuildEncoder() EncoderCreator {
 	return EncoderCreator{
 		encoder: &Encoder{},
 	}
@@ -36,7 +36,7 @@ type EncoderCreator struct {
 // SetupEncryptionModule 安装加密模块
 func (ec EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModule) EncoderCreator {
 	if ec.encoder == nil {
-		exception.Panicf("%w: must invoke CreateEncoder() first", ErrEncode)
+		exception.Panicf("%w: must invoke BuildEncoder() first", ErrEncode)
 	}
 	ec.encoder.EncryptionModule = encryptionModule
 	ec.encoder.Encryption = encryptionModule != nil
@@ -46,7 +46,7 @@ func (ec EncoderCreator) SetupEncryptionModule(encryptionModule IEncryptionModul
 // SetupMACModule 安装MAC模块
 func (ec EncoderCreator) SetupMACModule(macModule IMACModule) EncoderCreator {
 	if ec.encoder == nil {
-		exception.Panicf("%w: must invoke CreateEncoder() first", ErrEncode)
+		exception.Panicf("%w: must invoke BuildEncoder() first", ErrEncode)
 	}
 	ec.encoder.MACModule = macModule
 	ec.encoder.PatchMAC = macModule != nil
@@ -56,7 +56,7 @@ func (ec EncoderCreator) SetupMACModule(macModule IMACModule) EncoderCreator {
 // SetupCompressionModule 安装压缩模块
 func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionModule, compressedSize int) EncoderCreator {
 	if ec.encoder == nil {
-		exception.Panicf("%w: must invoke CreateEncoder() first", ErrEncode)
+		exception.Panicf("%w: must invoke BuildEncoder() first", ErrEncode)
 	}
 	ec.encoder.CompressionModule = compressionModule
 	if compressionModule != nil {
@@ -67,10 +67,10 @@ func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 	return ec
 }
 
-// Spawn 获取消息包编码器
-func (ec EncoderCreator) Spawn() IEncoder {
+// Make 获取消息包编码器
+func (ec EncoderCreator) Make() IEncoder {
 	if ec.encoder == nil {
-		exception.Panicf("%w: must invoke CreateEncoder() first", ErrEncode)
+		exception.Panicf("%w: must invoke BuildEncoder() first", ErrEncode)
 	}
 	return ec.encoder
 }
