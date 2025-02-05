@@ -48,8 +48,8 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
-			Encoder:      acc.encoderCreator.Make(),
-			Decoder:      acc.decoderCreator.Make(),
+			Encoder:      acc.encoderCreator.Get(),
+			Decoder:      acc.decoderCreator.Get(),
 			Timeout:      acc.gate.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},

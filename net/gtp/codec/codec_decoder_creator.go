@@ -70,8 +70,8 @@ func (dc DecoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 	return dc
 }
 
-// Make 获取消息包解码器
-func (dc DecoderCreator) Make() IDecoder {
+// Get 获取消息包解码器
+func (dc DecoderCreator) Get() IDecoder {
 	if dc.decoder == nil {
 		exception.Panicf("%w: must invoke BuildDecoder() first", ErrDecode)
 	}

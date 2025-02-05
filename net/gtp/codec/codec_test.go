@@ -54,13 +54,13 @@ func TestCodec(t *testing.T) {
 		SetupEncryptionModule(NewEncryptionModule(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
 		SetupCompressionModule(NewCompressionModule(compressionStream), 1).
-		Make()
+		Get()
 
 	decoder := BuildDecoder(gtp.DefaultMsgCreator()).
 		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
 		SetupCompressionModule(NewCompressionModule(compressionStream)).
-		Make()
+		Get()
 
 	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)

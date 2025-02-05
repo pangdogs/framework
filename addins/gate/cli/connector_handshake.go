@@ -48,8 +48,8 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
-			Encoder:      ctor.encoderCreator.Make(),
-			Decoder:      ctor.decoderCreator.Make(),
+			Encoder:      ctor.encoderCreator.Get(),
+			Decoder:      ctor.decoderCreator.Get(),
 			Timeout:      ctor.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},

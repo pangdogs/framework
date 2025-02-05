@@ -67,8 +67,8 @@ func (ec EncoderCreator) SetupCompressionModule(compressionModule ICompressionMo
 	return ec
 }
 
-// Make 获取消息包编码器
-func (ec EncoderCreator) Make() IEncoder {
+// Get 获取消息包编码器
+func (ec EncoderCreator) Get() IEncoder {
 	if ec.encoder == nil {
 		exception.Panicf("%w: must invoke BuildEncoder() first", ErrEncode)
 	}

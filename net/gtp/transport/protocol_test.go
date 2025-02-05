@@ -61,8 +61,8 @@ func TestProtocol(t *testing.T) {
 
 				transceiver := &Transceiver{
 					Conn:         conn,
-					Encoder:      codec.BuildEncoder().Make(),
-					Decoder:      codec.BuildDecoder(gtp.DefaultMsgCreator()).Make(),
+					Encoder:      codec.BuildEncoder().Get(),
+					Decoder:      codec.BuildDecoder(gtp.DefaultMsgCreator()).Get(),
 					Synchronizer: NewUnsequencedSynchronizer(),
 				}
 
@@ -163,8 +163,8 @@ func TestProtocol(t *testing.T) {
 
 		transceiver := &Transceiver{
 			Conn:         conn,
-			Encoder:      codec.BuildEncoder().Make(),
-			Decoder:      codec.BuildDecoder(gtp.DefaultMsgCreator()).Make(),
+			Encoder:      codec.BuildEncoder().Get(),
+			Decoder:      codec.BuildDecoder(gtp.DefaultMsgCreator()).Get(),
 			Synchronizer: NewUnsequencedSynchronizer(),
 		}
 
