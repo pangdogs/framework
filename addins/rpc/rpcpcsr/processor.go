@@ -43,7 +43,7 @@ var (
 	ErrComponentNotFound            = errors.New("rpc: component not found")               // 找不到组件
 	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")   // 方法参数数量不匹配
 	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")    // 方法参数类型不匹配
-	ErrMethodAsyncResultIsNil       = errors.New("rpc: method async result is nil")        // 异步方法返回值为nil
+	ErrAsyncMethodReturnedNil       = errors.New("rpc: async method returned nil")         // 异步方法返回值为nil
 	ErrPermissionDenied             = errors.New("rpc: permission denied")                 // 权限不足
 )
 
