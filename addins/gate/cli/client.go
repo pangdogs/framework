@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/utils/binaryutil"
@@ -40,15 +41,15 @@ var (
 // IWatcher 监听器
 type IWatcher interface {
 	context.Context
-	Terminate() <-chan struct{}
-	Terminated() <-chan struct{}
+	Terminate() async.AsyncRet
+	Terminated() async.AsyncRet
 }
 
 // Client 客户端
 type Client struct {
 	context.Context
 	terminate       context.CancelCauseFunc
-	terminated      chan struct{}
+	terminated      chan async.Ret
 	wg              sync.WaitGroup
 	mutex           sync.Mutex
 	options         ClientOptions
@@ -178,12 +179,12 @@ func (c *Client) RecvEventChan() <-chan transport.IEvent {
 }
 
 // Close 关闭
-func (c *Client) Close(err error) <-chan struct{} {
+func (c *Client) Close(err error) async.AsyncRet {
 	c.terminate(err)
 	return c.terminated
 }
 
 // Closed 已关闭
-func (c *Client) Closed() <-chan struct{} {
+func (c *Client) Closed() async.AsyncRet {
 	return c.terminated
 }

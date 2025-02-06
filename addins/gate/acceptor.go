@@ -22,6 +22,7 @@ package gate
 import (
 	"context"
 	"errors"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
@@ -56,7 +57,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	}
 
 	session := &_Session{
-		terminated: make(chan struct{}),
+		terminated: async.MakeAsyncRet(),
 		gate:       acc.gate,
 		id:         uid.New(),
 		state:      SessionState_Birth,

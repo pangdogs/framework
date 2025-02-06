@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 )
 
 // IWatcher is an interface that returns updates
@@ -33,9 +34,9 @@ type IWatcher interface {
 	// Next is a blocking call
 	Next() (*Event, error)
 	// Terminate stop watching
-	Terminate() <-chan struct{}
+	Terminate() async.AsyncRet
 	// Terminated stopped notify
-	Terminated() <-chan struct{}
+	Terminated() async.AsyncRet
 }
 
 // Event is returned by a call to Next on the watcher. Type can be create, update, delete

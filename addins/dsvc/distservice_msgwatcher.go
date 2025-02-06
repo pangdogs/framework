@@ -21,6 +21,7 @@ package dsvc
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/async"
 	"slices"
 )
 
@@ -34,7 +35,7 @@ func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 	watcher := &_MsgWatcher{
 		Context:     ctx,
 		terminate:   cancel,
-		terminated:  make(chan struct{}),
+		terminated:  async.MakeAsyncRet(),
 		distributed: d,
 		handler:     handler,
 	}
@@ -49,17 +50,17 @@ func (d *_DistService) newMsgWatcher(ctx context.Context, handler RecvMsgHandler
 type _MsgWatcher struct {
 	context.Context
 	terminate   context.CancelFunc
-	terminated  chan struct{}
+	terminated  chan async.Ret
 	distributed *_DistService
 	handler     RecvMsgHandler
 }
 
-func (w *_MsgWatcher) Terminate() <-chan struct{} {
+func (w *_MsgWatcher) Terminate() async.AsyncRet {
 	w.terminate()
 	return w.terminated
 }
 
-func (w *_MsgWatcher) Terminated() <-chan struct{} {
+func (w *_MsgWatcher) Terminated() async.AsyncRet {
 	return w.terminated
 }
 
@@ -67,7 +68,7 @@ func (w *_MsgWatcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		w.distributed.wg.Done()
-		close(w.terminated)
+		async.ReturnT(w.terminated, async.VoidRet)
 	}()
 
 	select {

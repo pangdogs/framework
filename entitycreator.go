@@ -189,18 +189,18 @@ func (c EntityCreatorAsync) NewAsync() async.AsyncRetT[ec.ConcurrentEntity] {
 		return async.VoidRet
 	})
 
-	ch := async.MakeAsyncRetT[ec.ConcurrentEntity]()
+	asyncRetT := async.MakeAsyncRetT[ec.ConcurrentEntity]()
 	go func() {
 		ret := asyncRet.Wait(c.ctx)
 		if ret.OK() {
-			ch <- async.MakeRetT[ec.ConcurrentEntity](entity, nil)
+			async.ReturnT(asyncRetT, async.MakeRetT[ec.ConcurrentEntity](entity, nil))
 		} else {
 			if c.rtInst == nil {
 				rtInst.Terminate()
 			}
-			ch <- async.MakeRetT[ec.ConcurrentEntity](nil, ret.Error)
+			async.ReturnT(asyncRetT, async.MakeRetT[ec.ConcurrentEntity](nil, ret.Error))
 		}
-		close(ch)
 	}()
-	return ch
+
+	return asyncRetT
 }

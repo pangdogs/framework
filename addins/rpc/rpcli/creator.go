@@ -35,8 +35,8 @@ import (
 	"time"
 )
 
-// CreateRPCli 创建RPC客户端
-func CreateRPCli() RPCliCreator {
+// BuildRPCli 创建RPC客户端
+func BuildRPCli() RPCliCreator {
 	return RPCliCreator{
 		rttSampling:    3,
 		msgCreator:     gap.DefaultMsgCreator(),
@@ -53,152 +53,152 @@ type RPCliCreator struct {
 	mainProc       IProcedure
 }
 
-func (ctor RPCliCreator) NetProtocol(p cli.NetProtocol) RPCliCreator {
+func (ctor RPCliCreator) SetNetProtocol(p cli.NetProtocol) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.NetProtocol(p))
 	return ctor
 }
 
-func (ctor RPCliCreator) TCPNoDelay(b bool) RPCliCreator {
+func (ctor RPCliCreator) SetTCPNoDelay(b bool) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPNoDelay(&b))
 	return ctor
 }
 
-func (ctor RPCliCreator) TCPQuickAck(b bool) RPCliCreator {
+func (ctor RPCliCreator) SetTCPQuickAck(b bool) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPQuickAck(&b))
 	return ctor
 }
 
-func (ctor RPCliCreator) TCPRecvBuf(size int) RPCliCreator {
+func (ctor RPCliCreator) SetTCPRecvBuf(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPRecvBuf(&size))
 	return ctor
 }
 
-func (ctor RPCliCreator) TCPSendBuf(size int) RPCliCreator {
+func (ctor RPCliCreator) SetTCPSendBuf(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPSendBuf(&size))
 	return ctor
 }
 
-func (ctor RPCliCreator) TCPLinger(sec int) RPCliCreator {
+func (ctor RPCliCreator) SetTCPLinger(sec int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TCPLinger(&sec))
 	return ctor
 }
 
-func (ctor RPCliCreator) WebSocketOrigin(origin string) RPCliCreator {
+func (ctor RPCliCreator) SetWebSocketOrigin(origin string) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.WebSocketOrigin(origin))
 	return ctor
 }
 
-func (ctor RPCliCreator) TLSConfig(tlsConfig tls.Config) RPCliCreator {
+func (ctor RPCliCreator) SetTLSConfig(tlsConfig tls.Config) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.TLSConfig(&tlsConfig))
 	return ctor
 }
 
-func (ctor RPCliCreator) IOTimeout(d time.Duration) RPCliCreator {
+func (ctor RPCliCreator) SetIOTimeout(d time.Duration) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.IOTimeout(d))
 	return ctor
 }
 
-func (ctor RPCliCreator) IORetryTimes(times int) RPCliCreator {
+func (ctor RPCliCreator) SetIORetryTimes(times int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.IORetryTimes(times))
 	return ctor
 }
 
-func (ctor RPCliCreator) IOBufferCap(cap int) RPCliCreator {
+func (ctor RPCliCreator) SetIOBufferCap(cap int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.IOBufferCap(cap))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPDecoderMsgCreator(mc gtp.IMsgCreator) RPCliCreator {
+func (ctor RPCliCreator) SetGTPDecoderMsgCreator(mc gtp.IMsgCreator) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.DecoderMsgCreator(mc))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPEncCipherSuite(cs gtp.CipherSuite) RPCliCreator {
+func (ctor RPCliCreator) SetGTPEncCipherSuite(cs gtp.CipherSuite) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.EncCipherSuite(cs))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPEncSignatureAlgorithm(sa gtp.SignatureAlgorithm) RPCliCreator {
+func (ctor RPCliCreator) SetGTPEncSignatureAlgorithm(sa gtp.SignatureAlgorithm) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.EncSignatureAlgorithm(sa))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPEncSignaturePrivateKey(priv crypto.PrivateKey) RPCliCreator {
+func (ctor RPCliCreator) SetGTPEncSignaturePrivateKey(priv crypto.PrivateKey) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.EncSignaturePrivateKey(priv))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPEncVerifyServerSignature(b bool) RPCliCreator {
+func (ctor RPCliCreator) SetGTPEncVerifyServerSignature(b bool) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.EncVerifyServerSignature(b))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPEncVerifySignaturePublicKey(pub crypto.PublicKey) RPCliCreator {
+func (ctor RPCliCreator) SetGTPEncVerifySignaturePublicKey(pub crypto.PublicKey) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.EncVerifySignaturePublicKey(pub))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPCompression(c gtp.Compression) RPCliCreator {
+func (ctor RPCliCreator) SetGTPCompression(c gtp.Compression) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.Compression(c))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPCompressedSize(size int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPCompressedSize(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.CompressedSize(size))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPAutoReconnect(b bool) RPCliCreator {
+func (ctor RPCliCreator) SetGTPAutoReconnect(b bool) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AutoReconnect(b))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPAutoReconnectInterval(dur time.Duration) RPCliCreator {
+func (ctor RPCliCreator) SetGTPAutoReconnectInterval(dur time.Duration) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AutoReconnectInterval(dur))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPAutoReconnectRetryTimes(times int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPAutoReconnectRetryTimes(times int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AutoReconnectRetryTimes(times))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPInactiveTimeout(d time.Duration) RPCliCreator {
+func (ctor RPCliCreator) SetGTPInactiveTimeout(d time.Duration) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.InactiveTimeout(d))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPSendDataChanSize(size int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPSendDataChanSize(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.SendDataChanSize(size))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPRecvDataChanSize(size int, recyclable bool) RPCliCreator {
+func (ctor RPCliCreator) SetGTPRecvDataChanSize(size int, recyclable bool) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.RecvDataChanSize(size, recyclable))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPSendEventChanSize(size int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPSendEventChanSize(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.SendEventChanSize(size))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPRecvEventChanSize(size int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPRecvEventChanSize(size int) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.RecvEventChanSize(size))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPRecvDataHandler(handler cli.RecvDataHandler) RPCliCreator {
+func (ctor RPCliCreator) SetGTPRecvDataHandler(handler cli.RecvDataHandler) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.RecvDataHandler(handler))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPRecvEventHandler(handler cli.RecvEventHandler) RPCliCreator {
+func (ctor RPCliCreator) SetGTPRecvEventHandler(handler cli.RecvEventHandler) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.RecvEventHandler(handler))
 	return ctor
 }
 
-func (ctor RPCliCreator) GTPRTTSampling(n int) RPCliCreator {
+func (ctor RPCliCreator) SetGTPRTTSampling(n int) RPCliCreator {
 	if n < 3 {
 		exception.Panicf("%w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs)
 	}
@@ -206,37 +206,37 @@ func (ctor RPCliCreator) GTPRTTSampling(n int) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) GAPDecoderMsgCreator(mc gap.IMsgCreator) RPCliCreator {
+func (ctor RPCliCreator) SetGAPDecoderMsgCreator(mc gap.IMsgCreator) RPCliCreator {
 	ctor.msgCreator = mc
 	return ctor
 }
 
-func (ctor RPCliCreator) FutureTimeout(d time.Duration) RPCliCreator {
+func (ctor RPCliCreator) SetFutureTimeout(d time.Duration) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.FutureTimeout(d))
 	return ctor
 }
 
-func (ctor RPCliCreator) AuthUserId(userId string) RPCliCreator {
+func (ctor RPCliCreator) SetAuthUserId(userId string) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AuthUserId(userId))
 	return ctor
 }
 
-func (ctor RPCliCreator) AuthToken(token string) RPCliCreator {
+func (ctor RPCliCreator) SetAuthToken(token string) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AuthToken(token))
 	return ctor
 }
 
-func (ctor RPCliCreator) AuthExtensions(extensions []byte) RPCliCreator {
+func (ctor RPCliCreator) SetAuthExtensions(extensions []byte) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AuthExtensions(extensions))
 	return ctor
 }
 
-func (ctor RPCliCreator) ReduceCallPath(b bool) RPCliCreator {
+func (ctor RPCliCreator) SetReduceCallPath(b bool) RPCliCreator {
 	ctor.reduceCallPath = b
 	return ctor
 }
 
-func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
+func (ctor RPCliCreator) SetMainProcedure(proc any) RPCliCreator {
 	_proc, ok := proc.(IProcedure)
 	if !ok {
 		exception.Panicf("%w: incorrect proc type", core.ErrArgs)
@@ -245,7 +245,7 @@ func (ctor RPCliCreator) MainProcedure(proc any) RPCliCreator {
 	return ctor
 }
 
-func (ctor RPCliCreator) ZapLogger(logger *zap.Logger) RPCliCreator {
+func (ctor RPCliCreator) SetZapLogger(logger *zap.Logger) RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.ZapLogger(logger))
 	return ctor
 }

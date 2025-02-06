@@ -68,7 +68,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) as
 	// 目标地址
 	dst, err := dsvc.Using(p.svcCtx).GetNodeDetails().MakeNodeAddr(nodeId)
 	if err != nil {
-		return makeErr(err)
+		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, err))
 	}
 
 	// 调用路径

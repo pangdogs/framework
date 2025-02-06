@@ -24,6 +24,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
@@ -104,7 +105,7 @@ func (s *_Session) mainLoop() {
 		s.gate.deleteSession(s.GetId())
 
 		s.gate.wg.Done()
-		close(s.terminated)
+		async.Return(s.terminated, async.VoidRet)
 	}()
 
 	log.Debugf(s.gate.svcCtx, "session %q started, conn %q -> %q", s.GetId(), s.GetLocalAddr(), s.GetRemoteAddr())

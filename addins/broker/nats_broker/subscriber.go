@@ -22,6 +22,7 @@ package nats_broker
 import (
 	"context"
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/broker"
@@ -85,7 +86,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 	sub := &_Subscriber{
 		Context:        ctx,
 		terminate:      cancel,
-		terminated:     make(chan struct{}),
+		terminated:     async.MakeAsyncRet(),
 		broker:         b,
 		unsubscribedCB: opts.UnsubscribedCB,
 	}
@@ -128,7 +129,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 type _Subscriber struct {
 	context.Context
 	terminate      context.CancelFunc
-	terminated     chan struct{}
+	terminated     chan async.Ret
 	broker         *_Broker
 	natsSub        *nats.Subscription
 	eventChan      chan broker.IEvent
@@ -147,13 +148,13 @@ func (s *_Subscriber) Queue() string {
 }
 
 // Unsubscribe unsubscribes the subscriber from the topic.
-func (s *_Subscriber) Unsubscribe() <-chan struct{} {
+func (s *_Subscriber) Unsubscribe() async.AsyncRet {
 	s.terminate()
 	return s.terminated
 }
 
 // Unsubscribed subscriber is unsubscribed.
-func (s *_Subscriber) Unsubscribed() <-chan struct{} {
+func (s *_Subscriber) Unsubscribed() async.AsyncRet {
 	return s.terminated
 }
 
@@ -174,7 +175,7 @@ func (s *_Subscriber) mainLoop() {
 	defer func() {
 		s.terminate()
 		s.broker.wg.Done()
-		close(s.terminated)
+		async.Return(s.terminated, async.VoidRet)
 	}()
 
 	select {

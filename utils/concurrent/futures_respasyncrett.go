@@ -28,7 +28,7 @@ import (
 
 // MakeRespAsyncRetT 创建接收响应返回值的异步调用结果
 func MakeRespAsyncRetT[T any]() RespAsyncRetT[T] {
-	return make(RespAsyncRetT[T], 1)
+	return async.MakeAsyncRetT[T]()
 }
 
 // MakeFutureRespAsyncRetT 创建future与接收响应返回值的异步调用结果
@@ -42,20 +42,18 @@ func MakeFutureRespAsyncRetT[T any](fs *Futures, ctx context.Context, timeout ..
 type RespAsyncRetT[T any] chan async.RetT[T]
 
 // Push 填入返回结果
-func (ch RespAsyncRetT[T]) Push(ret async.Ret) error {
-	resp, ok := async.AsRetT[T](ret)
+func (resp RespAsyncRetT[T]) Push(ret async.Ret) error {
+	retT, ok := async.AsRetT[T](ret)
 	if !ok {
-		ch <- async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType)
-		close(ch)
+		async.ReturnT(resp, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	ch <- resp
-	close(ch)
+	async.ReturnT(resp, retT)
 	return nil
 }
 
 // ToAsyncRetT 转换为异步调用结果
-func (ch RespAsyncRetT[T]) ToAsyncRetT() async.AsyncRetT[T] {
-	return chan async.RetT[T](ch)
+func (resp RespAsyncRetT[T]) ToAsyncRetT() async.AsyncRetT[T] {
+	return chan async.RetT[T](resp)
 }

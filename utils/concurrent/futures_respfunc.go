@@ -29,19 +29,19 @@ import (
 type RespFunc[T any] generic.Action1[async.RetT[T]]
 
 // Push 填入返回结果
-func (fun RespFunc[T]) Push(ret async.RetT[any]) error {
+func (resp RespFunc[T]) Push(ret async.Ret) error {
 	if !ret.OK() {
-		generic.CastAction1(fun).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ret.Error))
+		generic.CastAction1(resp).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
-	resp, ok := async.AsRetT[T](ret)
+	retT, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.CastAction1(fun).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.CastAction1(resp).UnsafeCall(async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.CastAction1(fun).UnsafeCall(resp)
+	generic.CastAction1(resp).UnsafeCall(retT)
 	return nil
 }
 
@@ -49,18 +49,18 @@ func (fun RespFunc[T]) Push(ret async.RetT[any]) error {
 type RespDelegate[T any] generic.DelegateVoid1[async.RetT[T]]
 
 // Push 填入返回结果
-func (dlg RespDelegate[T]) Push(ret async.RetT[any]) error {
+func (resp RespDelegate[T]) Push(ret async.Ret) error {
 	if !ret.OK() {
-		generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ret.Error))
+		generic.DelegateVoid1[async.RetT[T]](resp).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ret.Error))
 		return nil
 	}
 
-	resp, ok := async.AsRetT[T](ret)
+	retT, ok := async.AsRetT[T](ret)
 	if !ok {
-		generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
+		generic.DelegateVoid1[async.RetT[T]](resp).UnsafeCall(nil, async.MakeRetT[T](types.ZeroT[T](), ErrFutureRespIncorrectType))
 		return nil
 	}
 
-	generic.DelegateVoid1[async.RetT[T]](dlg).UnsafeCall(nil, resp)
+	generic.DelegateVoid1[async.RetT[T]](resp).UnsafeCall(nil, retT)
 	return nil
 }

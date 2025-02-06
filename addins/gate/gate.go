@@ -25,6 +25,7 @@ import (
 	"errors"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -43,8 +44,8 @@ import (
 // IWatcher 监听器
 type IWatcher interface {
 	context.Context
-	Terminate() <-chan struct{}
-	Terminated() <-chan struct{}
+	Terminate() async.AsyncRet
+	Terminated() async.AsyncRet
 }
 
 // IGate 网关

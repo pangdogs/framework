@@ -21,6 +21,7 @@ package broker
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/async"
 )
 
 // ISubscriber is a convenience return type for the IBroker.Subscribe method.
@@ -31,9 +32,9 @@ type ISubscriber interface {
 	// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
 	Queue() string
 	// Unsubscribe unsubscribes the subscriber from the topic.
-	Unsubscribe() <-chan struct{}
+	Unsubscribe() async.AsyncRet
 	// Unsubscribed subscriber is unsubscribed.
-	Unsubscribed() <-chan struct{}
+	Unsubscribed() async.AsyncRet
 }
 
 // ISyncSubscriber is a convenience return type for the IBroker.SubscribeSync method.

@@ -21,6 +21,7 @@ package gate
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/async"
 )
 
 func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEventHandler) *_EventWatcher {
@@ -33,7 +34,7 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEvent
 	watcher := &_EventWatcher{
 		Context:    ctx,
 		terminate:  cancel,
-		terminated: make(chan struct{}),
+		terminated: async.MakeAsyncRet(),
 		session:    s,
 		handler:    handler,
 	}
@@ -48,17 +49,17 @@ func (s *_Session) newEventWatcher(ctx context.Context, handler SessionRecvEvent
 type _EventWatcher struct {
 	context.Context
 	terminate  context.CancelFunc
-	terminated chan struct{}
+	terminated chan async.Ret
 	session    *_Session
 	handler    SessionRecvEventHandler
 }
 
-func (w *_EventWatcher) Terminate() <-chan struct{} {
+func (w *_EventWatcher) Terminate() async.AsyncRet {
 	w.terminate()
 	return w.terminated
 }
 
-func (w *_EventWatcher) Terminated() <-chan struct{} {
+func (w *_EventWatcher) Terminated() async.AsyncRet {
 	return w.terminated
 }
 
@@ -66,7 +67,7 @@ func (w *_EventWatcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		w.session.gate.wg.Done()
-		close(w.terminated)
+		async.Return(w.terminated, async.VoidRet)
 	}()
 
 	select {

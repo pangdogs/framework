@@ -21,6 +21,7 @@ package etcd_discovery
 
 import (
 	"context"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/log"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -48,7 +49,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 		registry:   r,
 		ctx:        ctx,
 		terminate:  cancel,
-		terminated: make(chan struct{}),
+		terminated: async.MakeAsyncRet(),
 		pattern:    pattern,
 		watchChan:  r.client.Watch(ctx, watchKey, watchOpts...),
 		eventChan:  make(chan *discovery.Event, r.options.WatchChanSize),
@@ -63,7 +64,7 @@ type _Watcher struct {
 	registry   *_Registry
 	ctx        context.Context
 	terminate  context.CancelFunc
-	terminated chan struct{}
+	terminated chan async.Ret
 	pattern    string
 	watchChan  etcdv3.WatchChan
 	eventChan  chan *discovery.Event
@@ -83,13 +84,13 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 }
 
 // Terminate stop watching
-func (w *_Watcher) Terminate() <-chan struct{} {
+func (w *_Watcher) Terminate() async.AsyncRet {
 	w.terminate()
 	return w.terminated
 }
 
 // Terminated stopped notify
-func (w *_Watcher) Terminated() <-chan struct{} {
+func (w *_Watcher) Terminated() async.AsyncRet {
 	return w.terminated
 }
 
@@ -97,7 +98,7 @@ func (w *_Watcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		close(w.eventChan)
-		close(w.terminated)
+		async.Return(w.terminated, async.VoidRet)
 	}()
 
 	log.Debugf(w.registry.svcCtx, "start watch %q", w.pattern)

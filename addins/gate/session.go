@@ -24,6 +24,7 @@ import (
 	"context"
 	"fmt"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -83,16 +84,16 @@ type ISession interface {
 	// RecvEventChan 接收自定义事件的channel
 	RecvEventChan() <-chan transport.IEvent
 	// Close 关闭
-	Close(err error) <-chan struct{}
+	Close(err error) async.AsyncRet
 	// Closed 已关闭
-	Closed() <-chan struct{}
+	Closed() async.AsyncRet
 }
 
 type _Session struct {
 	context.Context
 	sync.Mutex
 	terminate       context.CancelCauseFunc
-	terminated      chan struct{}
+	terminated      chan async.Ret
 	options         _SessionOptions
 	gate            *_Gate
 	id              uid.Id
@@ -239,12 +240,12 @@ func (s *_Session) RecvEventChan() <-chan transport.IEvent {
 }
 
 // Close 关闭
-func (s *_Session) Close(err error) <-chan struct{} {
+func (s *_Session) Close(err error) async.AsyncRet {
 	s.terminate(err)
 	return s.terminated
 }
 
 // Closed 已关闭
-func (s *_Session) Closed() <-chan struct{} {
+func (s *_Session) Closed() async.AsyncRet {
 	return s.terminated
 }

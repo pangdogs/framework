@@ -27,7 +27,7 @@ import (
 
 // MakeRespAsyncRet 创建接收响应返回值的异步调用结果
 func MakeRespAsyncRet() RespAsyncRet {
-	return make(chan async.Ret, 1)
+	return async.MakeAsyncRet()
 }
 
 // MakeFutureRespAsyncRet 创建future与接收响应返回值的异步调用结果
@@ -41,13 +41,12 @@ func MakeFutureRespAsyncRet(fs *Futures, ctx context.Context, timeout ...time.Du
 type RespAsyncRet chan async.Ret
 
 // Push 填入返回结果
-func (ch RespAsyncRet) Push(ret async.Ret) error {
-	ch <- async.MakeRet(ret.Value, ret.Error)
-	close(ch)
+func (resp RespAsyncRet) Push(ret async.Ret) error {
+	async.Return(resp, ret)
 	return nil
 }
 
 // ToAsyncRet 转换为异步调用结果
-func (ch RespAsyncRet) ToAsyncRet() async.AsyncRet {
-	return chan async.Ret(ch)
+func (resp RespAsyncRet) ToAsyncRet() async.AsyncRet {
+	return chan async.Ret(resp)
 }

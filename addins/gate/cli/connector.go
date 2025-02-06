@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gtp/codec"
@@ -195,7 +196,7 @@ func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint s
 	}
 
 	client.Context, client.terminate = context.WithCancelCause(ctx)
-	client.terminated = make(chan struct{})
+	client.terminated = async.MakeAsyncRet()
 	client.transceiver.Conn = conn
 
 	// 初始化消息事件分发器

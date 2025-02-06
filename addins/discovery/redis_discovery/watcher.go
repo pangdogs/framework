@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/redis/go-redis/v9"
@@ -91,7 +92,7 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 		registry:       r,
 		ctx:            ctx,
 		terminate:      cancel,
-		terminated:     make(chan struct{}),
+		terminated:     async.MakeAsyncRet(),
 		pattern:        keyPath,
 		pathPrefixList: watchPathPrefixList,
 		pathList:       watchPathList,
@@ -109,7 +110,7 @@ type _Watcher struct {
 	registry       *_Registry
 	ctx            context.Context
 	terminate      context.CancelFunc
-	terminated     chan struct{}
+	terminated     chan async.Ret
 	pattern        string
 	pathPrefixList []string
 	pathList       []string
@@ -132,13 +133,13 @@ func (w *_Watcher) Next() (*discovery.Event, error) {
 }
 
 // Terminate stop watching
-func (w *_Watcher) Terminate() <-chan struct{} {
+func (w *_Watcher) Terminate() async.AsyncRet {
 	w.terminate()
 	return w.terminated
 }
 
 // Terminated stopped notify
-func (w *_Watcher) Terminated() <-chan struct{} {
+func (w *_Watcher) Terminated() async.AsyncRet {
 	return w.terminated
 }
 
@@ -146,7 +147,7 @@ func (w *_Watcher) mainLoop() {
 	defer func() {
 		w.terminate()
 		close(w.eventChan)
-		close(w.terminated)
+		async.Return(w.terminated, async.VoidRet)
 	}()
 
 	log.Debugf(w.registry.svcCtx, "start watch %q", w.pathList)
