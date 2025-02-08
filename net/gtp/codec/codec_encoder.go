@@ -89,7 +89,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 	}()
 
 	// 写入消息
-	mn, err := binaryutil.ReadToBuff(mpBuf.Data()[head.Size():], msg)
+	mn, err := binaryutil.CopyToBuff(mpBuf.Data()[head.Size():], msg)
 	if err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
 	}
@@ -121,7 +121,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 		if e.PatchMAC {
 			head.Flags.Set(gtp.Flag_MAC, true)
 
-			if _, err = binaryutil.ReadToBuff(mpBuf.Data(), head); err != nil {
+			if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
 				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: failed to write msg-packet-head for patch msg-mac, %w", ErrEncode, err)
 			}
 
@@ -151,7 +151,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 
 	// 写入消息头
 	head.Len = uint32(len(mpBuf.Data()))
-	if _, err = binaryutil.ReadToBuff(mpBuf.Data(), head); err != nil {
+	if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg-packet-head failed, %w", ErrEncode, err)
 	}
 

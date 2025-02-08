@@ -26,6 +26,7 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
 	"slices"
+	"time"
 )
 
 func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState gate.SessionState, lastState gate.SessionState) {
@@ -49,13 +50,13 @@ func (p *_GateProcessor) handleRecvData(session gate.ISession, data []byte) erro
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		return p.acceptInbound(session, mp.Head.Seq, mp.Msg.(*gap.MsgForward))
+		return p.acceptInbound(session, mp.Head.Src.Timestamp, mp.Msg.(*gap.MsgForward))
 	}
 
 	return nil
 }
 
-func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *gap.MsgForward) error {
+func (p *_GateProcessor) acceptInbound(session gate.ISession, timestamp int64, req *gap.MsgForward) error {
 	switch req.TransId {
 	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OnewayRPC:
 		break
@@ -85,13 +86,18 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 	node := distEntity.Nodes[nodeIdx]
 
 	msg := &gap.MsgForward{
-		Transit:   p.dist.GetNodeDetails().LocalAddr, // 中转地址
-		Dst:       entity.GetId().String(),           // 目标实体
+		Src: gap.Origin{
+			Svc:       gate.CliDetails.DomainRoot.Path,
+			Addr:      cliAddr,
+			Timestamp: timestamp,
+		},
+		Dst:       entity.GetId().String(), // 目标实体
+		CorrId:    req.CorrId,
 		TransId:   req.TransId,
 		TransData: req.TransData,
 	}
 
-	if err := p.dist.ForwardMsg(gate.CliDetails.DomainRoot.Path, cliAddr, node.RemoteAddr, seq, msg); err != nil {
+	if err := p.dist.SendMsg(node.RemoteAddr, msg); err != nil {
 		go p.finishInbound(session, node.RemoteAddr, req.CorrId, err)
 		return err
 	}
@@ -103,42 +109,41 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, seq int64, req *ga
 func (p *_GateProcessor) finishInbound(session gate.ISession, dst string, corrId int64, err error) {
 	if err == nil {
 		if corrId != 0 {
-			log.Debugf(p.svcCtx, "forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
+			log.Debugf(p.svcCtx, "inbound forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
 		} else {
-			log.Debugf(p.svcCtx, "forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
+			log.Debugf(p.svcCtx, "inbound forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
 		}
 	} else {
 		if corrId != 0 {
-			log.Errorf(p.svcCtx, "forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
-			p.replyInbound(session, corrId, err)
+			log.Errorf(p.svcCtx, "inbound forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
+			p.replyInboundFailed(session, corrId, err)
 		} else {
-			log.Errorf(p.svcCtx, "forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
+			log.Errorf(p.svcCtx, "inbound forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
 		}
 	}
 }
 
-func (p *_GateProcessor) replyInbound(session gate.ISession, corrId int64, retErr error) {
+func (p *_GateProcessor) replyInboundFailed(session gate.ISession, corrId int64, retErr error) {
 	if corrId == 0 || retErr == nil {
 		return
 	}
 
-	msg := &gap.MsgRPCReply{
-		CorrId: corrId,
-		Error:  *variant.MakeError(retErr),
-	}
-
-	bs, err := p.encoder.Encode(p.svcCtx.GetName(), p.dist.GetNodeDetails().LocalAddr, 0, msg)
+	bs, err := p.encoder.Encode(
+		gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+		0,
+		&gap.MsgRPCReply{CorrId: corrId, Error: *variant.MakeError(retErr)},
+	)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q failed, %s", corrId, session.GetId(), err)
 		return
 	}
 	defer bs.Release()
 
 	err = session.SendData(bs.Data())
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to session:%q failed, %s", corrId, session.GetId(), err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q failed, %s", corrId, session.GetId(), err)
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) to session:%q ok", corrId, session.GetId())
+	log.Debugf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q ok", corrId, session.GetId())
 }

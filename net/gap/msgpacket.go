@@ -34,7 +34,7 @@ type MsgPacket struct {
 func (mp MsgPacket) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
-	if _, err := binaryutil.ReadTo(&bs, mp.Head); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, mp.Head); err != nil {
 		return bs.BytesWritten(), err
 	}
 
@@ -42,7 +42,7 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 		return bs.BytesWritten(), io.EOF
 	}
 
-	if _, err := binaryutil.ReadTo(&bs, mp.Msg); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, mp.Msg); err != nil {
 		return bs.BytesWritten(), err
 	}
 

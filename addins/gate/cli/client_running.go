@@ -417,9 +417,9 @@ func (c *Client) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) er
 func (c *Client) handleRecvSyncTime(event transport.Event[gtp.MsgSyncTime]) error {
 	if event.Flags.Is(gtp.Flag_RespTime) {
 		respTime := &ResponseTime{
-			RequestTime: time.UnixMilli(event.Msg.RemoteUnixMilli),
+			RequestTime: time.UnixMilli(event.Msg.RemoteTime).Local(),
 			LocalTime:   time.Now(),
-			RemoteTime:  time.UnixMilli(event.Msg.LocalUnixMilli),
+			RemoteTime:  time.UnixMilli(event.Msg.LocalTime).Local(),
 		}
 		return c.futures.Resolve(event.Msg.CorrId, async.MakeRet(respTime, nil))
 	}

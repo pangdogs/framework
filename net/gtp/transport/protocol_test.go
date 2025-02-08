@@ -199,7 +199,7 @@ func TestProtocol(t *testing.T) {
 				return nil
 			}),
 			SyncTimeHandler: generic.CastDelegate1(func(e Event[gtp.MsgSyncTime]) error {
-				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalUnixMilli, e.Msg.RemoteUnixMilli)
+				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalTime, e.Msg.RemoteTime)
 				return nil
 			}),
 		}

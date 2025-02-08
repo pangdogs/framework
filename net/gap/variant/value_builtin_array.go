@@ -36,7 +36,7 @@ func (v Array) Read(p []byte) (int, error) {
 	}
 
 	for i := range v {
-		if _, err := binaryutil.ReadTo(&bs, v[i]); err != nil {
+		if _, err := binaryutil.CopyToByteStream(&bs, v[i]); err != nil {
 			return bs.BytesWritten(), err
 		}
 	}

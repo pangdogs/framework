@@ -114,7 +114,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 		}
 	}()
 
-	if _, err = binaryutil.ReadToBuff(buf.Data(), msgCompressed); err != nil {
+	if _, err = binaryutil.CopyToBuff(buf.Data(), msgCompressed); err != nil {
 		return binaryutil.NilRecycleBytes, false, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
@@ -153,7 +153,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
-	if _, err = binaryutil.ReadToBuff(buf.Data(), r); err != nil {
+	if _, err = binaryutil.CopyToBuff(buf.Data(), r); err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 

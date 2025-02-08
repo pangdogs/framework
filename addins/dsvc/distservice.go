@@ -38,6 +38,7 @@ import (
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/utils/concurrent"
 	"sync"
+	"time"
 	"unique"
 )
 
@@ -56,8 +57,6 @@ type IDistService interface {
 	GetFutures() *concurrent.Futures
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
-	// ForwardMsg 转发消息
-	ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
 	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
 }
@@ -234,22 +233,11 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 		seq = d.deduplicator.Make()
 	}
 
-	mpBuf, err := d.encoder.Encode(d.svcCtx.GetName(), d.details.LocalAddr, seq, msg)
-	if err != nil {
-		return err
-	}
-	defer mpBuf.Release()
-
-	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
-}
-
-// ForwardMsg 转发消息
-func (d *_DistService) ForwardMsg(svc, src, dst string, seq int64, msg gap.Msg) error {
-	if msg == nil {
-		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
-	}
-
-	mpBuf, err := d.encoder.Encode(svc, src, seq, msg)
+	mpBuf, err := d.encoder.Encode(
+		gap.Origin{Svc: d.svcCtx.GetName(), Addr: d.details.LocalAddr, Timestamp: time.Now().UnixMilli()},
+		seq,
+		msg,
+	)
 	if err != nil {
 		return err
 	}

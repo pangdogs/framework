@@ -91,7 +91,7 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 		}
 	}()
 
-	if _, err = binaryutil.ReadToBuff(buf.Data(), msgMAC); err != nil {
+	if _, err = binaryutil.CopyToBuff(buf.Data(), msgMAC); err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrMAC, err)
 	}
 

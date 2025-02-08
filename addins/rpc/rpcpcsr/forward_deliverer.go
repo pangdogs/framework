@@ -32,6 +32,7 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/concurrent"
 	"slices"
+	"time"
 )
 
 // Match 是否匹配
@@ -68,31 +69,38 @@ func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 		return ret.ToAsyncRet()
 	}
 
-	cpbs, err := cp.Encode(p.reduceCallPath)
+	cpBuf, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
 	}
+
+	nextCC := append(cc, rpcstack.Call{
+		Svc:       svcCtx.GetName(),
+		Addr:      p.dist.GetNodeDetails().LocalAddr,
+		Timestamp: time.Now(),
+		Transit:   false,
+	})
 
 	msg := &gap.MsgRPCRequest{
 		CorrId:    future.Id,
-		CallChain: cc,
-		Path:      cpbs,
+		CallChain: nextCC,
+		Path:      cpBuf,
 		Args:      vargs,
 	}
 
-	bs, err := gap.Marshal(msg)
+	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
 	}
-	defer bs.Release()
+	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       dst,
 		CorrId:    msg.CorrId,
 		TransId:   msg.MsgId(),
-		TransData: bs.Data(),
+		TransData: msgBuf.Data(),
 	}
 
 	if err = p.dist.SendMsg(forwardAddr, forwardMsg); err != nil {
@@ -116,14 +124,21 @@ func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 		return err
 	}
 
-	cpbs, err := cp.Encode(p.reduceCallPath)
+	cpBuf, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
 		return err
 	}
 
+	nextCC := append(cc, rpcstack.Call{
+		Svc:       svcCtx.GetName(),
+		Addr:      p.dist.GetNodeDetails().LocalAddr,
+		Timestamp: time.Now(),
+		Transit:   false,
+	})
+
 	msg := &gap.MsgOnewayRPC{
-		CallChain: cc,
-		Path:      cpbs,
+		CallChain: nextCC,
+		Path:      cpBuf,
 		Args:      vargs,
 	}
 

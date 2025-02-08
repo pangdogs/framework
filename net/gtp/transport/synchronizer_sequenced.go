@@ -88,7 +88,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 	head.Seq = s.sendSeq
 	head.Ack = s.getLocalAck()
 
-	if _, err = binaryutil.ReadToBuff(data, head); err != nil {
+	if _, err = binaryutil.CopyToBuff(data, head); err != nil {
 		binaryutil.BytesPool.Put(data)
 		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}

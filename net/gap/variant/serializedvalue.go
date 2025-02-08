@@ -45,7 +45,7 @@ func MakeSerializedValue(v ValueReader) (ret *SerializedValue, err error) {
 			}
 		}()
 
-		if _, err := binaryutil.ReadToBuff(buf.Data(), v); err != nil {
+		if _, err := binaryutil.CopyToBuff(buf.Data(), v); err != nil {
 			return nil, err
 		}
 

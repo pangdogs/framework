@@ -32,16 +32,16 @@ import (
 
 func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持服务域通信
-	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src) {
+	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
 		return nil
 	}
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OnewayRPC:
-		return p.acceptNotify(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
+		return p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
-		return p.acceptRequest(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		return p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
 		return p.resolve(mp.Msg.(*gap.MsgRPCReply))
@@ -50,17 +50,17 @@ func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	return nil
 }
 
-func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC) error {
+func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
 	}
 
-	if cp.ExcludeSrc && src == p.dist.GetNodeDetails().LocalAddr {
+	if cp.ExcludeSrc && src.Addr == p.dist.GetNodeDetails().LocalAddr {
 		return nil
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
+	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
@@ -70,7 +70,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, path:%q, %s", src, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, path:%q, %s", src.Addr, req.Path, err)
 			return nil
 		}
 	}
@@ -131,7 +131,7 @@ func (p *_ServiceProcessor) acceptNotify(svc, src string, req *gap.MsgOnewayRPC)
 	return nil
 }
 
-func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCRequest) error {
+func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
@@ -139,7 +139,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 		return err
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: svc, Addr: src, Time: time.Now().UnixMilli()})
+	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false})
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
@@ -149,7 +149,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, path:%q, %s", req.CorrId, src, req.Path, err)
+			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, path:%q, %s", req.CorrId, src.Addr, req.Path, err)
 			go p.reply(src, req.CorrId, nil, err)
 			return nil
 		}
@@ -215,7 +215,7 @@ func (p *_ServiceProcessor) acceptRequest(svc, src string, req *gap.MsgRPCReques
 	return nil
 }
 
-func (p *_ServiceProcessor) reply(src string, corrId int64, rets variant.Array, retErr error) {
+func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	defer rets.Release()
 
 	if corrId == 0 {
@@ -231,13 +231,13 @@ func (p *_ServiceProcessor) reply(src string, corrId int64, rets variant.Array, 
 		msg.Error = *variant.MakeError(retErr)
 	}
 
-	err := p.dist.SendMsg(src, msg)
+	err := p.dist.SendMsg(src.Addr, msg)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src.Addr)
 }
 
 func (p *_ServiceProcessor) resolve(reply *gap.MsgRPCReply) error {

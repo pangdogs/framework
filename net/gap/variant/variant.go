@@ -48,22 +48,22 @@ func (v Variant) Read(p []byte) (int, error) {
 
 	bs := binaryutil.NewBigEndianStream(p)
 
-	if _, err := binaryutil.ReadTo(&bs, v.TypeId); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, v.TypeId); err != nil {
 		return bs.BytesWritten(), err
 	}
 
 	if v.Readonly() {
 		if v.Serialized() {
-			if _, err := binaryutil.ReadTo(&bs, v.SerializedValue); err != nil {
+			if _, err := binaryutil.CopyToByteStream(&bs, v.SerializedValue); err != nil {
 				return bs.BytesWritten(), err
 			}
 		} else {
-			if _, err := binaryutil.ReadTo(&bs, v.ReadonlyValue); err != nil {
+			if _, err := binaryutil.CopyToByteStream(&bs, v.ReadonlyValue); err != nil {
 				return bs.BytesWritten(), err
 			}
 		}
 	} else {
-		if _, err := binaryutil.ReadTo(&bs, v.Value); err != nil {
+		if _, err := binaryutil.CopyToByteStream(&bs, v.Value); err != nil {
 			return bs.BytesWritten(), err
 		}
 	}

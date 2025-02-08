@@ -71,7 +71,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 		Method:   method,
 	}
 
-	cpbs, err := cp.Encode(c.reduceCallPath)
+	cpBuf, err := cp.Encode(c.reduceCallPath)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -79,7 +79,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 
 	msg := &gap.MsgRPCRequest{
 		CorrId: future.Id,
-		Path:   cpbs,
+		Path:   cpBuf,
 		Args:   vargs,
 	}
 
@@ -97,7 +97,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 		TransData: msgBuf.Data(),
 	}
 
-	mpBuf, err := c.encoder.Encode("", "", 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -125,13 +125,13 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		Method:   method,
 	}
 
-	cpbs, err := cp.Encode(c.reduceCallPath)
+	cpBuf, err := cp.Encode(c.reduceCallPath)
 	if err != nil {
 		return err
 	}
 
 	msg := &gap.MsgOnewayRPC{
-		Path: cpbs,
+		Path: cpBuf,
 		Args: vargs,
 	}
 
@@ -147,7 +147,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		TransData: msgBuf.Data(),
 	}
 
-	mpBuf, err := c.encoder.Encode("", "", 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		return err
 	}

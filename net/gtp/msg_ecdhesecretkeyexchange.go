@@ -149,7 +149,7 @@ func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.NonceStep); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.SignatureAlgorithm); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.SignatureAlgorithm); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Signature); err != nil {

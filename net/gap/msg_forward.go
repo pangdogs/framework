@@ -26,7 +26,7 @@ import (
 
 // MsgForward 转发
 type MsgForward struct {
-	Transit   string // 中转地址
+	Src       Origin // 源信息
 	Dst       string // 目标地址
 	CorrId    int64  // 关联Id，用于支持Future等异步模型
 	TransId   MsgId  // 传输消息Id
@@ -36,7 +36,7 @@ type MsgForward struct {
 // Read implements io.Reader
 func (m MsgForward) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteString(m.Transit); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.Src); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.Dst); err != nil {
@@ -59,7 +59,7 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
-	m.Transit, err = bs.ReadString()
+	_, err = bs.WriteTo(&m.Src)
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -89,7 +89,7 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgForward) Size() int {
-	return binaryutil.SizeofString(m.Transit) + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32() + binaryutil.SizeofBytes(m.TransData)
+	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32() + binaryutil.SizeofBytes(m.TransData)
 }
 
 // MsgId 消息Id

@@ -39,13 +39,13 @@ func (m MsgRPCRequest) Read(p []byte) (int, error) {
 	if err := bs.WriteVarint(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.CallChain); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.CallChain); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Path); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.Args); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.Args); err != nil {
 		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), io.EOF

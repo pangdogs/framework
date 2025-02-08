@@ -33,7 +33,7 @@ func Marshal[T MsgReader](msg T) (ret binaryutil.RecycleBytes, err error) {
 		}
 	}()
 
-	if _, err := binaryutil.ReadToBuff(bs.Data(), msg); err != nil {
+	if _, err := binaryutil.CopyToBuff(bs.Data(), msg); err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
 	}
 

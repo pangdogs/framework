@@ -28,23 +28,26 @@ import (
 	"git.golaxy.org/framework/addins/router"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"time"
 )
 
 func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
-	// 只支持服务域通信
-	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src) {
-		return nil
-	}
-
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		p.acceptOutbound(mp.Head.Svc, mp.Head.Src, mp.Msg.(*gap.MsgForward))
+		req := mp.Msg.(*gap.MsgForward)
+
+		// 只支持来源于服务域中转消息
+		if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
+			return nil
+		}
+
+		p.acceptOutbound(mp.Head.Src, req)
 	}
 
 	return nil
 }
 
-func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
+func (p *_GateProcessor) acceptOutbound(src gap.Origin, req *gap.MsgForward) {
 	// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
 	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
 	if ok {
@@ -54,7 +57,11 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 				return async.MakeRet(nil, ErrSessionNotFound)
 			}
 
-			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+			mpBuf, err := p.encoder.Encode(
+				gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+				0,
+				&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
+			)
 			if err != nil {
 				return async.MakeRet(nil, err)
 			}
@@ -75,7 +82,11 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	entId, ok = gate.CliDetails.DomainBroadcast.Relative(req.Dst)
 	if ok {
 		p.router.EachGroups(p.svcCtx, uid.From(entId), func(group router.IGroup) {
-			mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+			mpBuf, err := p.encoder.Encode(
+				gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+				0,
+				&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
+			)
 			if err != nil {
 				go p.finishOutbound(src, req, err)
 				return
@@ -101,7 +112,11 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 			return
 		}
 
-		mpBuf, err := p.encoder.Encode(svc, src, 0, &gap.SerializedMsg{Id: req.TransId, Data: req.TransData})
+		mpBuf, err := p.encoder.Encode(
+			gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+			0,
+			&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
+		)
 		if err != nil {
 			go p.finishOutbound(src, req, err)
 			return
@@ -122,24 +137,24 @@ func (p *_GateProcessor) acceptOutbound(svc, src string, req *gap.MsgForward) {
 	go p.finishOutbound(src, req, ErrIncorrectDestAddress)
 }
 
-func (p *_GateProcessor) finishOutbound(src string, req *gap.MsgForward, err error) {
+func (p *_GateProcessor) finishOutbound(src gap.Origin, req *gap.MsgForward, err error) {
 	if err == nil {
 		if req.CorrId != 0 {
-			log.Debugf(p.svcCtx, "forwarding src:%q rpc request(%d) to remote:%q finish", src, req.CorrId, req.Dst)
+			log.Debugf(p.svcCtx, "outbound forwarding src:%q rpc request(%d) to remote:%q finish", src.Addr, req.CorrId, req.Dst)
 		} else {
-			log.Debugf(p.svcCtx, "forwarding src:%q rpc notify to remote:%q finish", src, req.Dst)
+			log.Debugf(p.svcCtx, "outbound forwarding src:%q rpc notify to remote:%q finish", src.Addr, req.Dst)
 		}
 	} else {
 		if req.CorrId != 0 {
-			log.Errorf(p.svcCtx, "forwarding src:%q rpc request(%d) to remote:%q failed, %s", src, req.CorrId, req.Dst, err)
-			p.replyOutbound(src, req.CorrId, err)
+			log.Errorf(p.svcCtx, "outbound forwarding src:%q rpc request(%d) to remote:%q failed, %s", src.Addr, req.CorrId, req.Dst, err)
+			p.replyOutboundFailed(src, req.CorrId, err)
 		} else {
-			log.Errorf(p.svcCtx, "forwarding src:%q rpc notify to remote:%q failed, %s", src, req.Dst, err)
+			log.Errorf(p.svcCtx, "outbound forwarding src:%q rpc notify to remote:%q failed, %s", src.Addr, req.Dst, err)
 		}
 	}
 }
 
-func (p *_GateProcessor) replyOutbound(src string, corrId int64, retErr error) {
+func (p *_GateProcessor) replyOutboundFailed(src gap.Origin, corrId int64, retErr error) {
 	if corrId == 0 || retErr == nil {
 		return
 	}
@@ -149,11 +164,11 @@ func (p *_GateProcessor) replyOutbound(src string, corrId int64, retErr error) {
 		Error:  *variant.MakeError(retErr),
 	}
 
-	err := p.dist.SendMsg(src, msg)
+	err := p.dist.SendMsg(src.Addr, msg)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src, err)
+		log.Errorf(p.svcCtx, "rpc reply(%d) outbound failed to src:%q failed, %s", corrId, src.Addr, err)
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src)
+	log.Debugf(p.svcCtx, "rpc reply(%d) outbound failed to src:%q ok", corrId, src.Addr)
 }

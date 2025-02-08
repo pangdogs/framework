@@ -39,11 +39,11 @@ func (v Map) Read(p []byte) (int, error) {
 	for i := range v {
 		kv := &v[i]
 
-		if _, err := binaryutil.ReadTo(&bs, kv.K); err != nil {
+		if _, err := binaryutil.CopyToByteStream(&bs, kv.K); err != nil {
 			return bs.BytesWritten(), err
 		}
 
-		if _, err := binaryutil.ReadTo(&bs, kv.V); err != nil {
+		if _, err := binaryutil.CopyToByteStream(&bs, kv.V); err != nil {
 			return bs.BytesWritten(), err
 		}
 	}

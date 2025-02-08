@@ -38,10 +38,10 @@ func (m MsgRPCReply) Read(p []byte) (int, error) {
 	if err := bs.WriteVarint(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.Rets); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.Rets); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.Error); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.Error); err != nil {
 		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), io.EOF

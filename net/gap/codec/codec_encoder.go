@@ -47,7 +47,7 @@ func MakeEncoder() Encoder {
 type Encoder struct{}
 
 // Encode 编码消息包
-func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
+func (Encoder) Encode(src gap.Origin, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}
@@ -55,7 +55,6 @@ func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binary
 	mp := gap.MsgPacket{
 		Head: gap.MsgHead{
 			MsgId: msg.MsgId(),
-			Svc:   svc,
 			Src:   src,
 			Seq:   seq,
 		},
@@ -70,7 +69,7 @@ func (Encoder) Encode(svc, src string, seq int64, msg gap.MsgReader) (ret binary
 		}
 	}()
 
-	if _, err := binaryutil.ReadToBuff(mpBuf.Data(), mp); err != nil {
+	if _, err := binaryutil.CopyToBuff(mpBuf.Data(), mp); err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
 	}
 

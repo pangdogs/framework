@@ -67,8 +67,8 @@ func (c *CtrlProtocol) RequestTime(corrId int64) error {
 		Event[gtp.MsgSyncTime]{
 			Flags: gtp.Flags(gtp.Flag_ReqTime),
 			Msg: gtp.MsgSyncTime{
-				CorrId:         corrId,
-				LocalUnixMilli: time.Now().UnixMilli(),
+				CorrId:    corrId,
+				LocalTime: time.Now().UnixMilli(),
 			},
 		}.Interface(),
 	))
@@ -130,9 +130,9 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) error {
 				Event[gtp.MsgSyncTime]{
 					Flags: gtp.Flags(gtp.Flag_RespTime),
 					Msg: gtp.MsgSyncTime{
-						CorrId:          syncTime.Msg.CorrId,
-						LocalUnixMilli:  time.Now().UnixMilli(),
-						RemoteUnixMilli: syncTime.Msg.LocalUnixMilli,
+						CorrId:     syncTime.Msg.CorrId,
+						LocalTime:  time.Now().UnixMilli(),
+						RemoteTime: syncTime.Msg.LocalTime,
 					},
 				}.Interface(),
 			))

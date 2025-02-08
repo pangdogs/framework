@@ -32,9 +32,9 @@ const (
 
 // MsgSyncTime 同步时间
 type MsgSyncTime struct {
-	CorrId          int64 // 关联Id，用于支持Future等异步模型
-	LocalUnixMilli  int64 // 本地时间
-	RemoteUnixMilli int64 // 对端时间（响应时有效）
+	CorrId     int64 // 关联Id，用于支持Future等异步模型
+	LocalTime  int64 // 本地时间
+	RemoteTime int64 // 对端时间（响应时有效）
 }
 
 // Read implements io.Reader
@@ -43,10 +43,10 @@ func (m MsgSyncTime) Read(p []byte) (int, error) {
 	if err := bs.WriteInt64(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteInt64(m.LocalUnixMilli); err != nil {
+	if err := bs.WriteInt64(m.LocalTime); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteInt64(m.RemoteUnixMilli); err != nil {
+	if err := bs.WriteInt64(m.RemoteTime); err != nil {
 		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), io.EOF
@@ -62,12 +62,12 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.LocalUnixMilli, err = bs.ReadInt64()
+	m.LocalTime, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
 
-	m.RemoteUnixMilli, err = bs.ReadInt64()
+	m.RemoteTime, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}

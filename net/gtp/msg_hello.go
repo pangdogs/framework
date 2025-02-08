@@ -174,7 +174,7 @@ func (m MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteBytes(m.Random); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if _, err := binaryutil.ReadTo(&bs, m.CipherSuite); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.CipherSuite); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(m.Compression)); err != nil {

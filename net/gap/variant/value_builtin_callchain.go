@@ -22,11 +22,14 @@ package variant
 import (
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+	"time"
 )
 
 type Call struct {
-	Svc, Addr, Transit string
-	Time               int64
+	Svc       string    // 服务
+	Addr      string    // 地址
+	Timestamp time.Time // 时间戳
+	Transit   bool      // 是否为中转
 }
 
 type CallChain []Call
@@ -46,10 +49,10 @@ func (v CallChain) Read(p []byte) (int, error) {
 		if err := bs.WriteString(v[i].Addr); err != nil {
 			return bs.BytesWritten(), err
 		}
-		if err := bs.WriteString(v[i].Transit); err != nil {
+		if err := bs.WriteInt64(v[i].Timestamp.UnixMilli()); err != nil {
 			return bs.BytesWritten(), err
 		}
-		if err := bs.WriteVarint(v[i].Time); err != nil {
+		if err := bs.WriteBool(v[i].Transit); err != nil {
 			return bs.BytesWritten(), err
 		}
 	}
@@ -79,12 +82,12 @@ func (v *CallChain) Write(p []byte) (int, error) {
 			return bs.BytesRead(), err
 		}
 
-		transit, err := bs.ReadString()
+		ts, err := bs.ReadInt64()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
 
-		t, err := bs.ReadVarint()
+		transit, err := bs.ReadBool()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
@@ -92,7 +95,7 @@ func (v *CallChain) Write(p []byte) (int, error) {
 		(*v)[i].Svc = svc
 		(*v)[i].Addr = addr
 		(*v)[i].Transit = transit
-		(*v)[i].Time = t
+		(*v)[i].Timestamp = time.UnixMilli(ts).Local()
 	}
 
 	return bs.BytesRead(), nil
@@ -104,8 +107,8 @@ func (v CallChain) Size() int {
 	for i := range v {
 		n += binaryutil.SizeofString(v[i].Svc)
 		n += binaryutil.SizeofString(v[i].Addr)
-		n += binaryutil.SizeofString(v[i].Transit)
-		n += binaryutil.SizeofVarint(v[i].Time)
+		n += binaryutil.SizeofInt64()
+		n += binaryutil.SizeofBool()
 	}
 	return n
 }

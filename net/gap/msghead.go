@@ -24,12 +24,61 @@ import (
 	"io"
 )
 
+// Origin 来源信息
+type Origin struct {
+	Svc       string // 服务
+	Addr      string // 地址
+	Timestamp int64  // 时间戳
+}
+
+// Read implements io.Reader
+func (o Origin) Read(p []byte) (int, error) {
+	bs := binaryutil.NewBigEndianStream(p)
+	if err := bs.WriteString(o.Svc); err != nil {
+		return bs.BytesWritten(), err
+	}
+	if err := bs.WriteString(o.Addr); err != nil {
+		return bs.BytesWritten(), err
+	}
+	if err := bs.WriteInt64(o.Timestamp); err != nil {
+		return bs.BytesWritten(), err
+	}
+	return bs.BytesWritten(), io.EOF
+}
+
+// Write implements io.Writer
+func (o *Origin) Write(p []byte) (int, error) {
+	bs := binaryutil.NewBigEndianStream(p)
+	var err error
+
+	o.Svc, err = bs.ReadString()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	o.Addr, err = bs.ReadString()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	o.Timestamp, err = bs.ReadInt64()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	return bs.BytesRead(), nil
+}
+
+// Size 大小
+func (o Origin) Size() int {
+	return binaryutil.SizeofString(o.Svc) + binaryutil.SizeofString(o.Addr) + binaryutil.SizeofInt64()
+}
+
 // MsgHead 消息头
 type MsgHead struct {
 	Len   uint32 // 消息长度
 	MsgId MsgId  // 消息Id
-	Svc   string // 来源服务
-	Src   string // 来源地址
+	Src   Origin // 源信息
 	Seq   int64  // 序号
 }
 
@@ -42,10 +91,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.MsgId); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.Svc); err != nil {
-		return bs.BytesWritten(), err
-	}
-	if err := bs.WriteString(m.Src); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, m.Src); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteInt64(m.Seq); err != nil {
@@ -69,12 +115,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.Svc, err = bs.ReadString()
-	if err != nil {
-		return bs.BytesRead(), err
-	}
-
-	m.Src, err = bs.ReadString()
+	_, err = bs.WriteTo(&m.Src)
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -89,6 +130,5 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgHead) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + binaryutil.SizeofString(m.Svc) +
-		binaryutil.SizeofString(m.Src) + binaryutil.SizeofInt64()
+	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + m.Src.Size() + binaryutil.SizeofInt64()
 }

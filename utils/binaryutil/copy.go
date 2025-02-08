@@ -21,10 +21,19 @@ package binaryutil
 
 import "io"
 
-func ReadToBuff[T io.Reader](p []byte, reader T) (int64, error) {
+func CopyToBuff[T io.Reader](p []byte, reader T) (int64, error) {
 	n, err := reader.Read(p)
 	if err == io.EOF {
 		err = nil
 	}
+	return int64(n), err
+}
+
+func CopyToByteStream[T io.Reader](bs *ByteStream, reader T) (int64, error) {
+	n, err := reader.Read(bs.wp)
+	if err == io.EOF {
+		err = nil
+	}
+	bs.wp = bs.wp[n:]
 	return int64(n), err
 }
