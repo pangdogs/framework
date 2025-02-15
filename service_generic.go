@@ -245,7 +245,11 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			exception.Panicf("%w: parse startup config [--log.level] = %q failed, %s", ErrFramework, startupConf.GetString("log.level"), err)
 		}
 
-		filePath := filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
+		var filePath string
+
+		if startupConf.GetString("log.dir") != "" {
+			filePath = filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
+		}
 
 		var zapLogger *zap.Logger
 		var zapAtomicLevel zap.AtomicLevel
