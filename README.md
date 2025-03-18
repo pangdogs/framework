@@ -51,3 +51,7 @@ See: [Examples](https://github.com/pangdogs/examples)
 ```bash
 go get -u git.golaxy.org/framework
 ```
+
+## Associated Repositories
+- [Golaxy Distributed Service Development Framework Core](https://github.com/pangdogs/core)
+- [Golaxy Developing a Game Server Scaffold](https://github.com/pangdogs/scaffold)
