@@ -27,7 +27,6 @@ import (
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/framework/addins/broker"
@@ -102,7 +101,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		service.With.Context(ctx),
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
-		service.With.RunningHandler(generic.CastDelegateVoidVar2(func(svcCtx service.Context, status service.RunningStatus, args ...any) {
+		service.With.RunningStatusChangedCB(func(svcCtx service.Context, status service.RunningStatus, args ...any) {
 			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
 
 			switch status {
@@ -217,7 +216,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 					cb.EntityPTUndeclared(svcInst, entityPT)
 				}
 			}
-		})),
+		}),
 	)
 
 	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)

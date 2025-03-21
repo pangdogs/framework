@@ -193,10 +193,7 @@ func (s *_Subscriber) mainLoop() {
 		close(s.eventChan)
 	}
 
-	s.unsubscribedCB.SafeCall(func(panicErr error) bool {
-		log.Errorf(s.broker.svcCtx, "handle unsubscribed topic pattern %q queue %q failed, %s", s.Pattern(), s.Queue(), panicErr)
-		return false
-	}, s)
+	s.unsubscribedCB.SafeCall(s)
 }
 
 func (s *_Subscriber) handleEventChan(msg *nats.Msg) {

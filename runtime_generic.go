@@ -26,7 +26,6 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
@@ -106,7 +105,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		runtime.With.Context.Name(settings.Name),
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
-		runtime.With.Context.RunningHandler(generic.CastDelegateVoidVar2(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
+		runtime.With.Context.RunningStatusChangedCB(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
 			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 
 			switch status {
@@ -235,7 +234,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 					cb.AddInDeactivated(rtInst, addInStatus)
 				}
 			}
-		})),
+		}),
 	)
 
 	rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)

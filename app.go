@@ -52,8 +52,8 @@ type _ServPT struct {
 type App struct {
 	servicePTs               map[string]*_ServPT
 	startupConf              *viper.Viper
-	initCB                   generic.DelegateVoid1[*cobra.Command]
-	startingCB, terminatedCB generic.DelegateVoid1[*App]
+	initCB                   generic.Action1[*cobra.Command]
+	startingCB, terminatedCB generic.Action1[*App]
 }
 
 func (app *App) lazyInit() {
@@ -89,19 +89,19 @@ func (app *App) Setup(name string, generic any) *App {
 }
 
 // InitCB 初始化回调
-func (app *App) InitCB(cb generic.DelegateVoid1[*cobra.Command]) *App {
+func (app *App) InitCB(cb generic.Action1[*cobra.Command]) *App {
 	app.initCB = cb
 	return app
 }
 
 // StartingCB 启动回调
-func (app *App) StartingCB(cb generic.DelegateVoid1[*App]) *App {
+func (app *App) StartingCB(cb generic.Action1[*App]) *App {
 	app.startingCB = cb
 	return app
 }
 
 // TerminateCB 终止回调
-func (app *App) TerminateCB(cb generic.DelegateVoid1[*App]) *App {
+func (app *App) TerminateCB(cb generic.Action1[*App]) *App {
 	app.terminatedCB = cb
 	return app
 }
@@ -131,14 +131,14 @@ func (app *App) Run() {
 			app.initPProf()
 
 			// 启动回调
-			app.startingCB.UnsafeCall(nil, app)
+			app.startingCB.UnsafeCall(app)
 
 			// 主循环
 			app.mainLoop()
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			// 结束回调
-			app.terminatedCB.UnsafeCall(nil, app)
+			app.terminatedCB.UnsafeCall(app)
 		},
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd:   true,
@@ -151,7 +151,7 @@ func (app *App) Run() {
 	app.initFlags(cmd)
 
 	// 初始化回调
-	app.initCB.UnsafeCall(nil, cmd)
+	app.initCB.UnsafeCall(cmd)
 
 	// 开始运行
 	if err := cmd.Execute(); err != nil {

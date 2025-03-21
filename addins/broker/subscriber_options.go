@@ -29,7 +29,7 @@ type (
 	// message and optional Ack method to acknowledge receipt of the message.
 	EventHandler = generic.Delegate1[IEvent, error]
 	// UnsubscribedCB Unsubscribed callback method.
-	UnsubscribedCB = generic.DelegateVoid1[ISubscriber]
+	UnsubscribedCB = generic.Action1[ISubscriber]
 )
 
 // SubscriberOptions represents the options for subscribe topic.
@@ -91,8 +91,8 @@ func (_Option) EventChanSize(size int) option.Setting[SubscriberOptions] {
 }
 
 // UnsubscribedCB Unsubscribed callback method.
-func (_Option) UnsubscribedCB(handler UnsubscribedCB) option.Setting[SubscriberOptions] {
+func (_Option) UnsubscribedCB(cb UnsubscribedCB) option.Setting[SubscriberOptions] {
 	return func(o *SubscriberOptions) {
-		o.UnsubscribedCB = handler
+		o.UnsubscribedCB = cb
 	}
 }
