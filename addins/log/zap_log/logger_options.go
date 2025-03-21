@@ -41,7 +41,8 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
-		With.ZapLogger(zap.NewExample())(options)
+		logger, _ := zap.NewDevelopment()
+		With.ZapLogger(logger)(options)
 		With.ServiceInfo(false)(options)
 		With.RuntimeInfo(false)(options)
 		With.CallerSkip(2)(options)

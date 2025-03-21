@@ -209,7 +209,7 @@ func (r *_Registry) updateCache(event *discovery.Event) {
 	case discovery.Create, discovery.Update:
 		service, ok := r.cache.Get(event.Service.Name)
 		if !ok {
-			r.cache.Set(event.Service.Name, event.Service, service.Revision, 0)
+			r.cache.Set(event.Service.Name, event.Service, event.Service.Revision, 0)
 			return
 		}
 
