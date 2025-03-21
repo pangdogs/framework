@@ -187,12 +187,12 @@ retry:
 
 	for watchRsp := range watchChan {
 		if watchRsp.Canceled {
-			log.Debugf(d.svcCtx, "stop watch %q, retry it", d.options.KeyPrefix)
+			log.Debugf(d.svcCtx, "stop watch key %q, retry it", d.options.KeyPrefix)
 			time.Sleep(retryInterval)
 			goto retry
 		}
 		if watchRsp.Err() != nil {
-			log.Errorf(d.svcCtx, "interrupt watch %q, %s, retry it", d.options.KeyPrefix, watchRsp.Err())
+			log.Errorf(d.svcCtx, "interrupt watch key %q, %s, retry it", d.options.KeyPrefix, watchRsp.Err())
 			time.Sleep(retryInterval)
 			goto retry
 		}

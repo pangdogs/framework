@@ -184,9 +184,9 @@ func (s *_Subscriber) mainLoop() {
 	}
 
 	if err := s.natsSub.Unsubscribe(); err != nil {
-		log.Errorf(s.broker.svcCtx, "unsubscribe topic pattern %q with %q failed, %s", s.Pattern(), s.Queue(), err)
+		log.Errorf(s.broker.svcCtx, "unsubscribe topic pattern %q with queue %q failed, %s", s.Pattern(), s.Queue(), err)
 	} else {
-		log.Debugf(s.broker.svcCtx, "unsubscribe topic pattern %q with %q success", s.Pattern(), s.Queue())
+		log.Debugf(s.broker.svcCtx, "unsubscribe topic pattern %q with queue %q success", s.Pattern(), s.Queue())
 	}
 
 	if s.eventChan != nil {
@@ -209,7 +209,7 @@ func (s *_Subscriber) handleEventChan(msg *nats.Msg) {
 		if e.Queue() != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.svcCtx, "handle msg from topic %q queue %q failed, receive event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+		log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, receive event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
 	}
 }
 
@@ -221,7 +221,7 @@ func (s *_Subscriber) handleEventProcess(msg *nats.Msg) {
 
 	s.eventHandler.SafeCall(func(err error, panicErr error) bool {
 		if err := generic.FuncError(err, panicErr); err != nil {
-			log.Errorf(s.broker.svcCtx, "handle msg from topic %q queue %q failed, %s", e.Topic(), e.Queue(), err)
+			log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, %s", e.Topic(), e.Queue(), err)
 		}
 		return panicErr != nil
 	}, e)

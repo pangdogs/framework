@@ -151,10 +151,10 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) bool {
 
 	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithLease(d.leaseId))
 	if err != nil {
-		log.Errorf(d.rtCtx, "put %q with lease %d failed, %s", key, d.leaseId, err)
+		log.Errorf(d.rtCtx, "put key %q with lease %d failed, %s", key, d.leaseId, err)
 		return false
 	}
-	log.Debugf(d.rtCtx, "put %q with lease %d ok", key, d.leaseId)
+	log.Debugf(d.rtCtx, "put key %q with lease %d ok", key, d.leaseId)
 
 	// 通知分布式实体上线
 	_EmitEventDistEntityOnline(d, entity)
@@ -174,9 +174,9 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 
 		_, err := d.client.Delete(d.rtCtx, key)
 		if err != nil {
-			log.Warnf(d.rtCtx, "delete %q failed, %s", key, err)
+			log.Warnf(d.rtCtx, "delete key %q failed, %s", key, err)
 		} else {
-			log.Debugf(d.rtCtx, "delete %q ok", key)
+			log.Debugf(d.rtCtx, "delete key %q ok", key)
 		}
 	}
 
