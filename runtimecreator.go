@@ -43,6 +43,7 @@ func BuildRuntime(svcCtx service.Context) RuntimeCreator {
 			ReportError:          svcCtx.GetReportError(),
 			FPS:                  0,
 			ProcessQueueCapacity: 128,
+			AutoInjection:        true,
 		},
 	}
 
@@ -105,6 +106,12 @@ func (c RuntimeCreator) SetFPS(fps float32) RuntimeCreator {
 // SetProcessQueueCapacity 设置任务处理流水线大小
 func (c RuntimeCreator) SetProcessQueueCapacity(cap int) RuntimeCreator {
 	c.settings.ProcessQueueCapacity = cap
+	return c
+}
+
+// SetAutoInjection 设置是否自动注入依赖的组件
+func (c RuntimeCreator) SetAutoInjection(b bool) RuntimeCreator {
+	c.settings.AutoInjection = b
 	return c
 }
 

@@ -22,6 +22,7 @@ package framework
 import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/ec/pt"
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
@@ -46,6 +47,7 @@ type _RuntimeSettings struct {
 	ReportError          chan error
 	FPS                  float32
 	ProcessQueueCapacity int
+	AutoInjection        bool
 }
 
 type iRuntimeGeneric interface {
@@ -240,6 +242,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
 	cacheCallPath("", rtInst.GetReflected().Type())
 
+	rtInst.setAutoInjection(settings.AutoInjection)
+
 	installed := func(name string) bool {
 		_, ok := rtInst.GetAddInManager().Get(name)
 		return ok
@@ -340,16 +344,30 @@ func (r *RuntimeGeneric) GetService() IServiceInstance {
 
 // onEntityManagerAddEntity 事件处理器: 实体管理器添加实体
 func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityManager, entity ec.Entity) {
-	if entity.GetPT().Prototype() == "" {
-		return
+	rtInst := reinterpret.Cast[IRuntimeInstance](runtime.Current(entityManager))
+
+	if entity.GetPT().Prototype() != "" {
+		cacheCallPath("", entity.GetReflected().Type())
 	}
-	cacheCallPath("", entity.GetReflected().Type())
+
+	if rtInst.GetAutoInjection() {
+		entity.RangeComponents(func(comp ec.Component) bool {
+			pt.InjectRV(entity, comp.GetReflected())
+			return true
+		})
+	}
 }
 
 // onEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
-func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityMgr runtime.EntityManager, entity ec.Entity, components []ec.Component) {
+func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityManager runtime.EntityManager, entity ec.Entity, components []ec.Component) {
+	rtInst := reinterpret.Cast[IRuntimeInstance](runtime.Current(entityManager))
+
 	for i := range components {
 		comp := components[i]
 		cacheCallPath(comp.GetName(), comp.GetReflected().Type())
+
+		if rtInst.GetAutoInjection() {
+			pt.InjectRV(entity, comp.GetReflected())
+		}
 	}
 }

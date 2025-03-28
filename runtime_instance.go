@@ -35,6 +35,7 @@ func GetRuntimeInstance(provider runtime.CurrentContextProvider) IRuntimeInstanc
 
 // IRuntimeInstance 运行时实例接口
 type IRuntimeInstance interface {
+	iRuntimeInstance
 	runtime.Context
 	// GetDistEntityRegistry 获取分布式实体注册支持
 	GetDistEntityRegistry() dentr.IDistEntityRegistry
@@ -42,13 +43,20 @@ type IRuntimeInstance interface {
 	GetRPCStack() rpcstack.IRPCStack
 	// GetService 获取服务实例
 	GetService() IServiceInstance
+	// GetAutoInjection 是否自动注入组件
+	GetAutoInjection() bool
 	// BuildEntity 创建实体
 	BuildEntity(prototype string) core.EntityCreator
+}
+
+type iRuntimeInstance interface {
+	setAutoInjection(b bool)
 }
 
 // RuntimeInstance 运行时实例
 type RuntimeInstance struct {
 	runtime.ContextBehavior
+	autoInjection bool
 }
 
 // GetDistEntityRegistry 获取分布式实体注册支持
@@ -66,7 +74,16 @@ func (inst *RuntimeInstance) GetService() IServiceInstance {
 	return reinterpret.Cast[IServiceInstance](service.Current(inst))
 }
 
+// GetAutoInjection 是否自动注入组件
+func (inst *RuntimeInstance) GetAutoInjection() bool {
+	return inst.autoInjection
+}
+
 // BuildEntity 创建实体
 func (inst *RuntimeInstance) BuildEntity(prototype string) core.EntityCreator {
 	return core.BuildEntity(runtime.Current(inst), prototype)
+}
+
+func (inst *RuntimeInstance) setAutoInjection(b bool) {
+	inst.autoInjection = b
 }
