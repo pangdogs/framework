@@ -22,73 +22,73 @@ package framework
 import "git.golaxy.org/core/extension"
 
 type LifecycleRuntimeBuilt interface {
-	Built(inst IRuntimeInstance)
+	Built(inst IRuntime)
 }
 
 type LifecycleRuntimeBirth interface {
-	Birth(inst IRuntimeInstance)
+	Birth(inst IRuntime)
 }
 
 type LifecycleRuntimeStarting interface {
-	Starting(inst IRuntimeInstance)
+	Starting(inst IRuntime)
 }
 
 type LifecycleRuntimeStarted interface {
-	Started(inst IRuntimeInstance)
+	Started(inst IRuntime)
 }
 
 type LifecycleRuntimeFrameLoopBegin interface {
-	FrameLoopBegin(inst IRuntimeInstance)
+	FrameLoopBegin(inst IRuntime)
 }
 
 type LifecycleRuntimeFrameUpdateBegin interface {
-	FrameUpdateBegin(inst IRuntimeInstance)
+	FrameUpdateBegin(inst IRuntime)
 }
 
 type LifecycleRuntimeFrameUpdateEnd interface {
-	FrameUpdateEnd(inst IRuntimeInstance)
+	FrameUpdateEnd(inst IRuntime)
 }
 
 type LifecycleRuntimeFrameLoopEnd interface {
-	FrameLoopEnd(inst IRuntimeInstance)
+	FrameLoopEnd(inst IRuntime)
 }
 
 type LifecycleRuntimeRunCallBegin interface {
-	RunCallBegin(inst IRuntimeInstance)
+	RunCallBegin(inst IRuntime)
 }
 
 type LifecycleRuntimeRunCallEnd interface {
-	RunCallEnd(inst IRuntimeInstance)
+	RunCallEnd(inst IRuntime)
 }
 
 type LifecycleRuntimeRunGCBegin interface {
-	RunGCBegin(inst IRuntimeInstance)
+	RunGCBegin(inst IRuntime)
 }
 
 type LifecycleRuntimeRunGCEnd interface {
-	RunGCEnd(inst IRuntimeInstance)
+	RunGCEnd(inst IRuntime)
 }
 
 type LifecycleRuntimeTerminating interface {
-	Terminating(inst IRuntimeInstance)
+	Terminating(inst IRuntime)
 }
 
 type LifecycleRuntimeTerminated interface {
-	Terminated(inst IRuntimeInstance)
+	Terminated(inst IRuntime)
 }
 
 type LifecycleRuntimeAddInActivating interface {
-	AddInActivating(inst IRuntimeInstance, addIn extension.AddInStatus)
+	AddInActivating(inst IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInActivated interface {
-	AddInActivated(inst IRuntimeInstance, addIn extension.AddInStatus)
+	AddInActivated(inst IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInDeactivating interface {
-	AddInDeactivating(inst IRuntimeInstance, addIn extension.AddInStatus)
+	AddInDeactivating(inst IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInDeactivated interface {
-	AddInDeactivated(inst IRuntimeInstance, addIn extension.AddInStatus)
+	AddInDeactivated(inst IRuntime, addIn extension.AddInStatus)
 }

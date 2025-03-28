@@ -25,53 +25,53 @@ import (
 )
 
 type LifecycleServiceBuilt interface {
-	Built(inst IServiceInstance)
+	Built(inst IService)
 }
 
 type LifecycleServiceBirth interface {
-	Birth(inst IServiceInstance)
+	Birth(inst IService)
 }
 
 type LifecycleServiceStarting interface {
-	Starting(inst IServiceInstance)
+	Starting(inst IService)
 }
 
 type LifecycleServiceStarted interface {
-	Started(inst IServiceInstance)
+	Started(inst IService)
 }
 
 type LifecycleServiceTerminating interface {
-	Terminating(inst IServiceInstance)
+	Terminating(inst IService)
 }
 
 type LifecycleServiceTerminated interface {
-	Terminated(inst IServiceInstance)
+	Terminated(inst IService)
 }
 
 type LifecycleServiceAddInActivating interface {
-	AddInActivating(inst IServiceInstance, addIn extension.AddInStatus)
+	AddInActivating(inst IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInActivated interface {
-	AddInActivated(inst IServiceInstance, addIn extension.AddInStatus)
+	AddInActivated(inst IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInDeactivating interface {
-	AddInDeactivating(inst IServiceInstance, addIn extension.AddInStatus)
+	AddInDeactivating(inst IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInDeactivated interface {
-	AddInDeactivated(inst IServiceInstance, addIn extension.AddInStatus)
+	AddInDeactivated(inst IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceEntityPTDeclared interface {
-	EntityPTDeclared(inst IServiceInstance, entityPT ec.EntityPT)
+	EntityPTDeclared(inst IService, entityPT ec.EntityPT)
 }
 
 type LifecycleServiceEntityPTRedeclared interface {
-	EntityPTRedeclared(inst IServiceInstance, entityPT ec.EntityPT)
+	EntityPTRedeclared(inst IService, entityPT ec.EntityPT)
 }
 
 type LifecycleServiceEntityPTUndeclared interface {
-	EntityPTUndeclared(inst IServiceInstance, entityPT ec.EntityPT)
+	EntityPTUndeclared(inst IService, entityPT ec.EntityPT)
 }

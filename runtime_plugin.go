@@ -20,13 +20,13 @@
 package framework
 
 type InstallRuntimeLogger interface {
-	InstallLogger(inst IRuntimeInstance)
+	InstallLogger(inst IRuntime)
 }
 
 type InstallRuntimeRPCStack interface {
-	InstallRPCStack(inst IRuntimeInstance)
+	InstallRPCStack(inst IRuntime)
 }
 
 type InstallRuntimeDistEntityRegistry interface {
-	InstallDistEntityRegistry(inst IRuntimeInstance)
+	InstallDistEntityRegistry(inst IRuntime)
 }

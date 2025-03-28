@@ -33,13 +33,13 @@ type EntityBehavior struct {
 }
 
 // GetRuntime 获取运行时
-func (e *EntityBehavior) GetRuntime() IRuntimeInstance {
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(e))
+func (e *EntityBehavior) GetRuntime() IRuntime {
+	return reinterpret.Cast[IRuntime](runtime.Current(e))
 }
 
 // GetService 获取服务
-func (e *EntityBehavior) GetService() IServiceInstance {
-	return reinterpret.Cast[IServiceInstance](service.Current(e))
+func (e *EntityBehavior) GetService() IService {
+	return reinterpret.Cast[IService](service.Current(e))
 }
 
 // GetAddInManager 获取插件管理器

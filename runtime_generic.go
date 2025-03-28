@@ -58,7 +58,7 @@ type iRuntimeGeneric interface {
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
 	once                                   sync.Once
-	svcInst                                IServiceInstance
+	svcInst                                IService
 	instance                               any
 	handleEntityManagerAddEntity           runtime.EventEntityManagerAddEntityHandler
 	handleEntityManagerEntityAddComponents runtime.EventEntityManagerEntityAddComponentsHandler
@@ -66,7 +66,7 @@ type RuntimeGeneric struct {
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 	r.once.Do(func() {
-		r.svcInst = reinterpret.Cast[IServiceInstance](svcCtx)
+		r.svcInst = reinterpret.Cast[IService](svcCtx)
 		r.instance = instance
 		r.handleEntityManagerAddEntity = runtime.HandleEventEntityManagerAddEntity(r.onEntityManagerAddEntity)
 		r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
@@ -79,9 +79,9 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	rtInstFace := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
-		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntimeInstance](cb.Instantiation())
+		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](cb.Instantiation())
 	} else {
-		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntimeInstance](&RuntimeInstance{})
+		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](&Runtime{})
 	}
 
 	rtInstFrameLoopBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameLoopBegin)
@@ -108,7 +108,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		runtime.With.Context.PersistId(settings.PersistId),
 		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
 		runtime.With.Context.RunningStatusChangedCB(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
-			rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
+			rtInst := reinterpret.Cast[IRuntime](rtCtx)
 
 			switch status {
 			case runtime.RunningStatus_Birth:
@@ -239,7 +239,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}),
 	)
 
-	rtInst := reinterpret.Cast[IRuntimeInstance](rtCtx)
+	rtInst := reinterpret.Cast[IRuntime](rtCtx)
 	cacheCallPath("", rtInst.GetReflected().Type())
 
 	rtInst.setAutoInjection(settings.AutoInjection)
@@ -338,13 +338,13 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 }
 
 // GetService 获取服务
-func (r *RuntimeGeneric) GetService() IServiceInstance {
+func (r *RuntimeGeneric) GetService() IService {
 	return r.svcInst
 }
 
 // onEntityManagerAddEntity 事件处理器: 实体管理器添加实体
 func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityManager, entity ec.Entity) {
-	rtInst := reinterpret.Cast[IRuntimeInstance](runtime.Current(entityManager))
+	rtInst := reinterpret.Cast[IRuntime](runtime.Current(entityManager))
 
 	if entity.GetPT().Prototype() != "" {
 		cacheCallPath("", entity.GetReflected().Type())
@@ -360,7 +360,7 @@ func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityMa
 
 // onEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
 func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityManager runtime.EntityManager, entity ec.Entity, components []ec.Component) {
-	rtInst := reinterpret.Cast[IRuntimeInstance](runtime.Current(entityManager))
+	rtInst := reinterpret.Cast[IRuntime](runtime.Current(entityManager))
 
 	for i := range components {
 		comp := components[i]

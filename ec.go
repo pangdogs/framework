@@ -20,7 +20,7 @@
 package framework
 
 type iEC interface {
-	GetRuntime() IRuntimeInstance
-	GetService() IServiceInstance
+	GetRuntime() IRuntime
+	GetService() IService
 	GetLiving() bool
 }

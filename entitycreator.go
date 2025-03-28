@@ -48,14 +48,14 @@ func BuildEntityAsync(svcCtx service.Context, prototype string) EntityCreatorAsy
 type EntityCreatorAsync struct {
 	ctx       service.Context
 	prototype string
-	rtInst    IRuntimeInstance
+	rtInst    IRuntime
 	rtCreator RuntimeCreator
 	parentId  uid.Id
 	settings  []option.Setting[ec.EntityOptions]
 }
 
 // SetRuntime 设置运行时（优先使用）
-func (c EntityCreatorAsync) SetRuntime(rtInst IRuntimeInstance) EntityCreatorAsync {
+func (c EntityCreatorAsync) SetRuntime(rtInst IRuntime) EntityCreatorAsync {
 	c.rtInst = rtInst
 	return c
 }

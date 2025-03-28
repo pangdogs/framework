@@ -91,9 +91,9 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	svcInstFace := iface.Face[service.Context]{}
 
 	if cb, ok := s.instance.(IServiceInstantiation); ok {
-		svcInstFace = iface.MakeFaceTReflectC[service.Context, IServiceInstance](cb.Instantiation())
+		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](cb.Instantiation())
 	} else {
-		svcInstFace = iface.MakeFaceTReflectC[service.Context, IServiceInstance](&ServiceInstance{})
+		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&Service{})
 	}
 
 	svcCtx := service.NewContext(
@@ -102,7 +102,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		service.With.Name(s.GetName()),
 		service.With.PanicHandling(autoRecover, reportError),
 		service.With.RunningStatusChangedCB(func(svcCtx service.Context, status service.RunningStatus, args ...any) {
-			svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
+			svcInst := reinterpret.Cast[IService](svcCtx)
 
 			switch status {
 			case service.RunningStatus_Birth:
@@ -219,7 +219,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}),
 	)
 
-	svcInst := reinterpret.Cast[IServiceInstance](svcCtx)
+	svcInst := reinterpret.Cast[IService](svcCtx)
 	cacheCallPath("", svcInst.GetReflected().Type())
 
 	installed := func(name string) bool {

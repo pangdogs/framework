@@ -33,13 +33,13 @@ type ComponentBehavior struct {
 }
 
 // GetRuntime 获取运行时
-func (c *ComponentBehavior) GetRuntime() IRuntimeInstance {
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(c))
+func (c *ComponentBehavior) GetRuntime() IRuntime {
+	return reinterpret.Cast[IRuntime](runtime.Current(c))
 }
 
 // GetService 获取服务
-func (c *ComponentBehavior) GetService() IServiceInstance {
-	return reinterpret.Cast[IServiceInstance](service.Current(c))
+func (c *ComponentBehavior) GetService() IService {
+	return reinterpret.Cast[IService](service.Current(c))
 }
 
 // GetAddInManager 获取插件管理器

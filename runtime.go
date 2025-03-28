@@ -21,46 +21,69 @@ package framework
 
 import (
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/utils/exception"
-	"reflect"
+	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/addins/dentr"
+	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// IRuntimeInstantiation 运行时实例化接口
-type IRuntimeInstantiation interface {
-	Instantiation() IRuntimeInstance
+// GetRuntime 获取运行时实例
+func GetRuntime(provider runtime.CurrentContextProvider) IRuntime {
+	return reinterpret.Cast[IRuntime](runtime.Current(provider))
 }
 
-func newRuntimeInstantiation(rtInst any) *_RuntimeInstantiation {
-	if rtInst == nil {
-		exception.Panicf("%w: %w: rtInst is nil", ErrFramework, core.ErrArgs)
-	}
-
-	rtInstRT, ok := rtInst.(reflect.Type)
-	if !ok {
-		rtInstRT = reflect.ValueOf(rtInst).Type()
-	}
-
-	for rtInstRT.Kind() == reflect.Pointer {
-		rtInstRT = rtInstRT.Elem()
-	}
-
-	if rtInstRT.PkgPath() == "" || rtInstRT.Name() == "" || !reflect.PointerTo(rtInstRT).Implements(reflect.TypeFor[IRuntimeInstance]()) {
-		exception.Panicf("%w: unsupported type", ErrFramework)
-	}
-
-	return &_RuntimeInstantiation{
-		runtimeInstanceRT: rtInstRT,
-	}
-}
- 
-type _RuntimeInstantiation struct {
-	RuntimeGeneric
-	runtimeInstanceRT reflect.Type
+// IRuntime 运行时实例接口
+type IRuntime interface {
+	iRuntime
+	runtime.Context
+	// GetDistEntityRegistry 获取分布式实体注册支持
+	GetDistEntityRegistry() dentr.IDistEntityRegistry
+	// GetRPCStack 获取RPC调用堆栈支持
+	GetRPCStack() rpcstack.IRPCStack
+	// GetService 获取服务实例
+	GetService() IService
+	// GetAutoInjection 是否自动注入组件
+	GetAutoInjection() bool
+	// BuildEntity 创建实体
+	BuildEntity(prototype string) core.EntityCreator
 }
 
-func (r *_RuntimeInstantiation) Instantiation() IRuntimeInstance {
-	if r.runtimeInstanceRT == nil {
-		exception.Panicf("%w: runtimeInstanceRT is nil", ErrFramework)
-	}
-	return reflect.New(r.runtimeInstanceRT).Interface().(IRuntimeInstance)
+type iRuntime interface {
+	setAutoInjection(b bool)
+}
+
+// Runtime 运行时实例
+type Runtime struct {
+	runtime.ContextBehavior
+	autoInjection bool
+}
+
+// GetDistEntityRegistry 获取分布式实体注册支持
+func (inst *Runtime) GetDistEntityRegistry() dentr.IDistEntityRegistry {
+	return dentr.Using(inst)
+}
+
+// GetRPCStack 获取RPC调用堆栈支持
+func (inst *Runtime) GetRPCStack() rpcstack.IRPCStack {
+	return rpcstack.Using(inst)
+}
+
+// GetService 获取服务
+func (inst *Runtime) GetService() IService {
+	return reinterpret.Cast[IService](service.Current(inst))
+}
+
+// GetAutoInjection 是否自动注入组件
+func (inst *Runtime) GetAutoInjection() bool {
+	return inst.autoInjection
+}
+
+// BuildEntity 创建实体
+func (inst *Runtime) BuildEntity(prototype string) core.EntityCreator {
+	return core.BuildEntity(runtime.Current(inst), prototype)
+}
+
+func (inst *Runtime) setAutoInjection(b bool) {
+	inst.autoInjection = b
 }

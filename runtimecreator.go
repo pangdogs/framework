@@ -116,7 +116,7 @@ func (c RuntimeCreator) SetAutoInjection(b bool) RuntimeCreator {
 }
 
 // New 创建运行时
-func (c RuntimeCreator) New() IRuntimeInstance {
+func (c RuntimeCreator) New() IRuntime {
 	if c.svcCtx == nil {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
@@ -126,5 +126,5 @@ func (c RuntimeCreator) New() IRuntimeInstance {
 		generic = c.Setup(&RuntimeGeneric{}).generic
 	}
 
-	return reinterpret.Cast[IRuntimeInstance](runtime.Current(generic.generate(c.settings)))
+	return reinterpret.Cast[IRuntime](runtime.Current(generic.generate(c.settings)))
 }
