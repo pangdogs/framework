@@ -346,7 +346,7 @@ func (r *RuntimeGeneric) GetService() IService {
 func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityManager, entity ec.Entity) {
 	rtInst := reinterpret.Cast[IRuntime](runtime.Current(entityManager))
 
-	if entity.GetPT().Prototype() != "" {
+	if entity.GetPT().InstanceRT() == nil {
 		cacheCallPath("", entity.GetReflected().Type())
 	}
 
