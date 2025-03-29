@@ -22,7 +22,6 @@ package nats_broker
 import (
 	"context"
 	"fmt"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/broker"
@@ -49,7 +48,7 @@ type _Broker struct {
 }
 
 // Init 初始化插件
-func (b *_Broker) Init(svcCtx service.Context, _ runtime.Context) {
+func (b *_Broker) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	b.svcCtx = svcCtx
@@ -71,7 +70,7 @@ func (b *_Broker) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (b *_Broker) Shut(svcCtx service.Context, _ runtime.Context) {
+func (b *_Broker) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	b.terminate()

@@ -21,7 +21,6 @@ package redisdb
 
 import (
 	"context"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/db"
@@ -46,7 +45,7 @@ type _RedisDB struct {
 	dbs     map[string]*redis.Client
 }
 
-func (r *_RedisDB) Init(svcCtx service.Context, _ runtime.Context) {
+func (r *_RedisDB) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -56,7 +55,7 @@ func (r *_RedisDB) Init(svcCtx service.Context, _ runtime.Context) {
 	}
 }
 
-func (r *_RedisDB) Shut(svcCtx service.Context, _ runtime.Context) {
+func (r *_RedisDB) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	for _, db := range r.dbs {

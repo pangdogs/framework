@@ -21,7 +21,6 @@ package rpcstack
 
 import (
 	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
 	"git.golaxy.org/framework/addins/log"
 )
 
@@ -52,12 +51,12 @@ type _RPCStack struct {
 	variables Variables
 }
 
-func (r *_RPCStack) Init(_ service.Context, rtCtx runtime.Context) {
+func (r *_RPCStack) Init(rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "init addin %q", self.Name)
 	r.rtCtx = rtCtx
 }
 
-func (r *_RPCStack) Shut(_ service.Context, rtCtx runtime.Context) {
+func (r *_RPCStack) Shut(rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut addin %q", self.Name)
 }
 

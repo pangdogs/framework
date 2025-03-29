@@ -23,7 +23,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/dsync"
@@ -46,7 +45,7 @@ type _DistSync struct {
 }
 
 // Init 初始化插件
-func (s *_DistSync) Init(svcCtx service.Context, _ runtime.Context) {
+func (s *_DistSync) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	s.svcCtx = svcCtx
@@ -74,7 +73,7 @@ func (s *_DistSync) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (s *_DistSync) Shut(svcCtx service.Context, _ runtime.Context) {
+func (s *_DistSync) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	if s.options.EtcdClient == nil {

@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -86,7 +85,7 @@ type _DistService struct {
 }
 
 // Init 初始化插件
-func (d *_DistService) Init(svcCtx service.Context, _ runtime.Context) {
+func (d *_DistService) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	d.svcCtx = svcCtx
@@ -201,7 +200,7 @@ func (d *_DistService) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (d *_DistService) Shut(svcCtx service.Context, _ runtime.Context) {
+func (d *_DistService) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	d.terminate()

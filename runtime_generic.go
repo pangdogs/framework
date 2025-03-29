@@ -27,6 +27,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
@@ -351,8 +352,8 @@ func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityMa
 	}
 
 	if rtInst.GetAutoInjection() {
-		entity.RangeComponents(func(comp ec.Component) bool {
-			pt.InjectRV(entity, comp.GetReflected())
+		ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
+			pt.InjectRV(entity, compNode.V.GetReflected())
 			return true
 		})
 	}
@@ -365,9 +366,12 @@ func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityManager runtim
 	for i := range components {
 		comp := components[i]
 		cacheCallPath(comp.GetName(), comp.GetReflected().Type())
+	}
 
-		if rtInst.GetAutoInjection() {
-			pt.InjectRV(entity, comp.GetReflected())
-		}
+	if rtInst.GetAutoInjection() {
+		ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
+			pt.InjectRV(entity, compNode.V.GetReflected())
+			return true
+		})
 	}
 }

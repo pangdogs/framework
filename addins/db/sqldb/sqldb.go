@@ -20,7 +20,6 @@
 package sqldb
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/db"
@@ -53,7 +52,7 @@ type _SQLDB struct {
 	dbs     map[string]*gorm.DB
 }
 
-func (s *_SQLDB) Init(svcCtx service.Context, _ runtime.Context) {
+func (s *_SQLDB) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	s.svcCtx = svcCtx
@@ -63,7 +62,7 @@ func (s *_SQLDB) Init(svcCtx service.Context, _ runtime.Context) {
 	}
 }
 
-func (s *_SQLDB) Shut(svcCtx service.Context, _ runtime.Context) {
+func (s *_SQLDB) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	for _, db := range s.dbs {

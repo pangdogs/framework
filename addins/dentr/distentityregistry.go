@@ -62,7 +62,7 @@ type _DistEntityRegistry struct {
 }
 
 // Init 初始化插件
-func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
+func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "init addin %q", self.Name)
 
 	d.rtCtx = rtCtx
@@ -111,7 +111,7 @@ func (d *_DistEntityRegistry) Init(_ service.Context, rtCtx runtime.Context) {
 }
 
 // Shut 关闭插件
-func (d *_DistEntityRegistry) Shut(_ service.Context, rtCtx runtime.Context) {
+func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut addin %q", self.Name)
 
 	// 清理事件钩子

@@ -20,7 +20,6 @@
 package conf
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/log"
@@ -49,7 +48,7 @@ type _Config struct {
 }
 
 // Init 初始化插件
-func (c *_Config) Init(svcCtx service.Context, _ runtime.Context) {
+func (c *_Config) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	vp := viper.New()
@@ -140,7 +139,7 @@ func (c *_Config) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (c *_Config) Shut(svcCtx service.Context, _ runtime.Context) {
+func (c *_Config) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 }
 

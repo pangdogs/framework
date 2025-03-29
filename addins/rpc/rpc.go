@@ -20,7 +20,6 @@
 package rpc
 
 import (
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
@@ -54,7 +53,7 @@ type _RPC struct {
 }
 
 // Init 初始化插件
-func (r *_RPC) Init(svcCtx service.Context, _ runtime.Context) {
+func (r *_RPC) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	r.svcCtx = svcCtx
@@ -73,7 +72,7 @@ func (r *_RPC) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (r *_RPC) Shut(svcCtx service.Context, _ runtime.Context) {
+func (r *_RPC) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	r.terminated.Store(true)

@@ -23,7 +23,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -82,7 +81,7 @@ type _Gate struct {
 }
 
 // Init 初始化插件
-func (g *_Gate) Init(svcCtx service.Context, _ runtime.Context) {
+func (g *_Gate) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
 	g.svcCtx = svcCtx
@@ -161,7 +160,7 @@ func (g *_Gate) Init(svcCtx service.Context, _ runtime.Context) {
 }
 
 // Shut 关闭插件
-func (g *_Gate) Shut(svcCtx service.Context, _ runtime.Context) {
+func (g *_Gate) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	g.terminate(&transport.RstError{
