@@ -168,9 +168,9 @@ func (app *App) initFlags(cmd *cobra.Command) {
 	// 日志参数
 	cmd.PersistentFlags().String("log.format", "console", "logging output format (json|console)")
 	cmd.PersistentFlags().String("log.level", "info", "logging level")
-	cmd.PersistentFlags().String("log.dir", "./log/", "logging directory path")
+	cmd.PersistentFlags().String("log.dir", "", "logging directory path")
 	cmd.PersistentFlags().Int("log.size", 100*1024*1024, "log file splitting size")
-	cmd.PersistentFlags().Bool("log.stdout", false, "logging output to stdout")
+	cmd.PersistentFlags().Bool("log.stdout", true, "logging output to stdout")
 	cmd.PersistentFlags().Bool("log.development", false, "logging in development mode")
 	cmd.PersistentFlags().Bool("log.service_info", false, "logging output service info")
 	cmd.PersistentFlags().Bool("log.runtime_info", false, "logging output generic info")
