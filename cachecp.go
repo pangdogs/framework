@@ -24,7 +24,14 @@ import (
 	"reflect"
 )
 
+func init() {
+	cacheCallPath("", reflect.TypeFor[*EntityBehavior]())
+}
+
 func cacheCallPath(script string, rt reflect.Type) {
+	if rt == nil {
+		return
+	}
 	for i := range rt.NumMethod() {
 		callpath.Cache(script, rt.Method(i).Name)
 	}
