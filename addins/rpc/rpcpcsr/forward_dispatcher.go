@@ -37,8 +37,8 @@ func (p *_ForwardProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
 	case gap.MsgId_Forward:
 		req := mp.Msg.(*gap.MsgForward)
 
-		// 只支持来源于客户端域中转消息
-		if !gate.CliDetails.DomainRoot.Contains(req.Src.Addr) {
+		// 只支持来源于客户端域的转入消息
+		if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.CliDetails.DomainRoot.Contains(req.Src.Addr) {
 			return nil
 		}
 
