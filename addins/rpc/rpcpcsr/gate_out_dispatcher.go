@@ -31,7 +31,7 @@ import (
 	"time"
 )
 
-func (p *_GateProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
+func (p *_GateProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
 		req := mp.Msg.(*gap.MsgForward)

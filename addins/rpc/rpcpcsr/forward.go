@@ -67,7 +67,7 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.dist = dsvc.Using(svcCtx)
 	p.dentq = dentq.Using(svcCtx)
 	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
-	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleMsg))
+	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }

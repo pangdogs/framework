@@ -76,7 +76,7 @@ func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	// 初始化消息事件分发器
 	session.eventDispatcher.Transceiver = &session.transceiver
 	session.eventDispatcher.RetryTimes = acc.gate.options.IORetryTimes
-	session.eventDispatcher.EventHandler = generic.CastDelegate1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.handleRecvEventChan, session.handleRecvEvent)
+	session.eventDispatcher.EventHandler = generic.CastDelegate1(session.trans.HandleRecvEvent, session.ctrl.HandleRecvEvent, session.handleRecvEventChan, session.handleRecvEvent)
 
 	// 初始化传输协议
 	session.trans.Transceiver = &session.transceiver

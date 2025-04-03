@@ -104,8 +104,8 @@ func (c *CtrlProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理器
-func (c *CtrlProtocol) HandleEvent(e IEvent) error {
+// HandleRecvEvent 消息事件处理器
+func (c *CtrlProtocol) HandleRecvEvent(e IEvent) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {

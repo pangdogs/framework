@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func (p *_ServiceProcessor) handleMsg(topic string, mp gap.MsgPacket) error {
+func (p *_ServiceProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error {
 	// 只支持服务域通信
 	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
 		return nil

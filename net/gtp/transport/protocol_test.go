@@ -110,7 +110,7 @@ func TestProtocol(t *testing.T) {
 
 				dispatcher := EventDispatcher{
 					Transceiver:  transceiver,
-					EventHandler: generic.CastDelegate1(ctrl.HandleEvent, trans.HandleEvent),
+					EventHandler: generic.CastDelegate1(ctrl.HandleRecvEvent, trans.HandleRecvEvent),
 				}
 
 				go func() {
@@ -214,7 +214,7 @@ func TestProtocol(t *testing.T) {
 
 		dispatcher := EventDispatcher{
 			Transceiver:  transceiver,
-			EventHandler: generic.CastDelegate1(ctrl.HandleEvent, trans.HandleEvent),
+			EventHandler: generic.CastDelegate1(ctrl.HandleRecvEvent, trans.HandleRecvEvent),
 		}
 
 		go func() {

@@ -60,8 +60,8 @@ func (t *TransProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理器
-func (t *TransProtocol) HandleEvent(e IEvent) error {
+// HandleRecvEvent 消息事件处理器
+func (t *TransProtocol) HandleRecvEvent(e IEvent) error {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
 		var errs []error
