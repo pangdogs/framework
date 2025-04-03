@@ -58,19 +58,15 @@ type iRuntimeGeneric interface {
 
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
-	once                                   sync.Once
-	svcInst                                IService
-	instance                               any
-	handleEntityManagerAddEntity           runtime.EventEntityManagerAddEntityHandler
-	handleEntityManagerEntityAddComponents runtime.EventEntityManagerEntityAddComponentsHandler
+	once     sync.Once
+	svcInst  IService
+	instance any
 }
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 	r.once.Do(func() {
 		r.svcInst = reinterpret.Cast[IService](svcCtx)
 		r.instance = instance
-		r.handleEntityManagerAddEntity = runtime.HandleEventEntityManagerAddEntity(r.onEntityManagerAddEntity)
-		r.handleEntityManagerEntityAddComponents = runtime.HandleEventEntityManagerEntityAddComponents(r.onEntityManagerEntityAddComponents)
 	})
 }
 
@@ -236,6 +232,34 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivated); ok {
 					cb.AddInDeactivated(rtInst, addInStatus)
 				}
+			case runtime.RunningStatus_EntityActivating:
+				entity := args[0].(ec.Entity)
+
+				if entity.GetPT().Prototype() == "" {
+					cacheCallPath("", entity.GetReflected().Type())
+				}
+
+				if rtInst.GetAutoInjection() {
+					ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
+						pt.InjectRV(entity, compNode.V.GetReflected())
+						return true
+					})
+				}
+			case runtime.RunningStatus_EntityAddComponentsActivating:
+				entity := args[0].(ec.Entity)
+				components := args[1].([]ec.Component)
+
+				for i := range components {
+					comp := components[i]
+					cacheCallPath(comp.GetName(), comp.GetReflected().Type())
+				}
+
+				if rtInst.GetAutoInjection() {
+					ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
+						pt.InjectRV(entity, compNode.V.GetReflected())
+						return true
+					})
+				}
 			}
 		}),
 	)
@@ -319,10 +343,6 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		cb.Built(rtInst)
 	}
 
-	// 订阅实体管理器的相关事件，用于缓存实体动态添加的组件的调用路径
-	runtime.BindEventEntityManagerAddEntity(rtInst.GetEntityManager(), r.handleEntityManagerAddEntity, -10)
-	runtime.BindEventEntityManagerEntityAddComponents(rtInst.GetEntityManager(), r.handleEntityManagerEntityAddComponents, -10)
-
 	// 创建运行时
 	return core.NewRuntime(rtInst,
 		core.With.Runtime.Frame(func() runtime.Frame {
@@ -341,37 +361,4 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 // GetService 获取服务
 func (r *RuntimeGeneric) GetService() IService {
 	return r.svcInst
-}
-
-// onEntityManagerAddEntity 事件处理器: 实体管理器添加实体
-func (r *RuntimeGeneric) onEntityManagerAddEntity(entityManager runtime.EntityManager, entity ec.Entity) {
-	rtInst := reinterpret.Cast[IRuntime](runtime.Current(entityManager))
-
-	if entity.GetPT().Prototype() == "" {
-		cacheCallPath("", entity.GetReflected().Type())
-	}
-
-	if rtInst.GetAutoInjection() {
-		ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
-			pt.InjectRV(entity, compNode.V.GetReflected())
-			return true
-		})
-	}
-}
-
-// onEntityManagerEntityAddComponents 事件处理器：实体管理器中的实体添加组件
-func (r *RuntimeGeneric) onEntityManagerEntityAddComponents(entityManager runtime.EntityManager, entity ec.Entity, components []ec.Component) {
-	rtInst := reinterpret.Cast[IRuntime](runtime.Current(entityManager))
-
-	for i := range components {
-		comp := components[i]
-		cacheCallPath(comp.GetName(), comp.GetReflected().Type())
-	}
-
-	if rtInst.GetAutoInjection() {
-		ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
-			pt.InjectRV(entity, compNode.V.GetReflected())
-			return true
-		})
-	}
 }
