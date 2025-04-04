@@ -199,7 +199,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
-			case runtime.RunningStatus_AddInActivating:
+			case runtime.RunningStatus_ActivatingAddIn:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivating); ok {
@@ -216,7 +216,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivated); ok {
 					cb.AddInActivated(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_AddInDeactivating:
+			case runtime.RunningStatus_DeactivatingAddIn:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivating); ok {
 					cb.AddInDeactivating(rtInst, addInStatus)
@@ -232,7 +232,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivated); ok {
 					cb.AddInDeactivated(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_EntityActivating:
+			case runtime.RunningStatus_EntityInitComponents:
 				entity := args[0].(ec.Entity)
 
 				if entity.GetPT().Prototype() == "" {
@@ -245,7 +245,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 						return true
 					})
 				}
-			case runtime.RunningStatus_EntityAddComponentsActivating:
+			case runtime.RunningStatus_EntityAddComponents:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
 

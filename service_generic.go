@@ -148,7 +148,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
 					v.(*etcdv3.Client).Close()
 				}
-			case service.RunningStatus_AddInActivating:
+			case service.RunningStatus_ActivatingAddIn:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := s.instance.(LifecycleServiceAddInActivating); ok {
@@ -165,7 +165,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if cb, ok := svcInst.(LifecycleServiceAddInActivated); ok {
 					cb.AddInActivated(svcInst, addInStatus)
 				}
-			case service.RunningStatus_AddInDeactivating:
+			case service.RunningStatus_DeactivatingAddIn:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := s.instance.(LifecycleServiceAddInDeactivating); ok {
 					cb.AddInDeactivating(svcInst, addInStatus)
