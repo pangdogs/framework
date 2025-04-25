@@ -28,6 +28,7 @@ import (
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
+	"golang.org/x/net/websocket"
 	"math/big"
 	"net"
 	"net/url"
@@ -35,6 +36,7 @@ import (
 )
 
 type (
+	WebSocketAddrResolver      = generic.Func1[*websocket.Conn, net.Addr]                          // WebSocket的地址解析器
 	Authenticator              = generic.Delegate5[IGate, net.Conn, string, string, []byte, error] // 鉴权客户端处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
 	SessionStateChangedHandler = generic.DelegateVoid3[ISession, SessionState, SessionState]       // 会话状态变化的处理器（args: [session, curState, lastState]）
 	SessionRecvDataHandler     = generic.Delegate2[ISession, []byte, error]                        // 会话接收的数据的处理器
@@ -51,6 +53,8 @@ type GateOptions struct {
 	TCPTLSConfig                   *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
 	WebSocketURL                   *url.URL                   // WebSocket监听地址
 	WebSocketTLSConfig             *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
+	WebSocketLocalAddrResolver     WebSocketAddrResolver      // WebSocket的本地地址解析器
+	WebSocketRemoteAddrResolver    WebSocketAddrResolver      // WebSocket的对端地址解析器
 	IOTimeout                      time.Duration              // 网络io超时时间
 	IORetryTimes                   int                        // 网络io超时后的重试次数
 	IOBufferCap                    int                        // 网络io缓存容量（字节）
@@ -94,6 +98,8 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.TCPTLSConfig(nil)(options)
 		With.WebSocketURL("http://0.0.0.0:80")(options)
 		With.WebSocketTLSConfig(nil)(options)
+		With.WebSocketLocalAddrResolver(DefaultWebSocketLocalAddrResolver)(options)
+		With.WebSocketRemoteAddrResolver(DefaultWebSocketRemoteAddrResolver)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
 		With.IOBufferCap(1024 * 128)(options)
@@ -199,6 +205,18 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 func (_GateOption) WebSocketTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.WebSocketTLSConfig = tlsConfig
+	}
+}
+
+func (_GateOption) WebSocketLocalAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		options.WebSocketLocalAddrResolver = resolver
+	}
+}
+
+func (_GateOption) WebSocketRemoteAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		options.WebSocketRemoteAddrResolver = resolver
 	}
 }
 

@@ -135,8 +135,11 @@ func (g *_Gate) Init(svcCtx service.Context) {
 		}
 
 		mux := http.NewServeMux()
-		mux.Handle(g.options.WebSocketURL.Path, websocket.Handler(func(conn *websocket.Conn) {
+		mux.Handle(g.options.WebSocketURL.Path, websocket.Handler(func(wsConn *websocket.Conn) {
+			conn := &_WebSocketConn{Conn: wsConn, gate: g}
+
 			log.Debugf(g.svcCtx, "listener %q accept a new connection, remote %q", conn.LocalAddr(), conn.RemoteAddr())
+
 			if session, ok := g.handleSession(conn); ok {
 				<-session.Closed()
 			}

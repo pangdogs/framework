@@ -53,11 +53,6 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 	switch ctor.options.NetProtocol {
 	case WebSocket:
-		epURL, err := url.Parse(endpoint)
-		if err != nil {
-			return nil, err
-		}
-
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
 			origin, _ = url.JoinPath(endpoint, "cli", ctor.options.AuthUserId)
@@ -66,13 +61,6 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		conf, err := websocket.NewConfig(endpoint, origin)
 		if err != nil {
 			return nil, err
-		}
-
-		if strings.EqualFold(epURL.Scheme, "wss") {
-			conf.TlsConfig = ctor.options.TLSConfig
-			if conf.TlsConfig == nil {
-				return nil, errors.New("use HTTPS to listen, need to provide a valid TLS configuration")
-			}
 		}
 
 		conn, err = websocket.DialConfig(conf)
@@ -147,10 +135,9 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 			return err
 		}
 
-		if strings.EqualFold(epURL.Scheme, "wss") {
-			conf.TlsConfig = ctor.options.TLSConfig
-			if conf.TlsConfig == nil {
-				return errors.New("use HTTPS to listen, need to provide a valid TLS configuration")
+		if strings.EqualFold(epURL.Scheme, "https") || strings.EqualFold(epURL.Scheme, "wss") {
+			if ctor.options.TLSConfig != nil {
+				conf.TlsConfig = ctor.options.TLSConfig
 			}
 		}
 
