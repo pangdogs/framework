@@ -65,11 +65,11 @@ type IService interface {
 	// GetMemKV 获取服务内存KV数据库
 	GetMemKV() *sync.Map
 	// BuildRuntime 创建运行时
-	BuildRuntime() RuntimeCreator
+	BuildRuntime() *RuntimeCreator
 	// BuildEntityPT 创建实体原型
-	BuildEntityPT(prototype string) core.EntityPTCreator
+	BuildEntityPT(prototype string) *core.EntityPTCreator
 	// BuildEntityAsync 创建实体
-	BuildEntityAsync(prototype string) EntityCreatorAsync
+	BuildEntityAsync(prototype string) *EntityCreatorAsync
 }
 
 // Service 服务实例
@@ -141,16 +141,16 @@ func (inst *Service) GetMemKV() *sync.Map {
 }
 
 // BuildRuntime 创建运行时
-func (inst *Service) BuildRuntime() RuntimeCreator {
+func (inst *Service) BuildRuntime() *RuntimeCreator {
 	return BuildRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface).Setup(&inst.runtimeGeneric)
 }
 
 // BuildEntityPT 创建实体原型
-func (inst *Service) BuildEntityPT(prototype string) core.EntityPTCreator {
+func (inst *Service) BuildEntityPT(prototype string) *core.EntityPTCreator {
 	return core.BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }
 
 // BuildEntityAsync 创建实体
-func (inst *Service) BuildEntityAsync(prototype string) EntityCreatorAsync {
+func (inst *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
 	return BuildEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(inst.BuildRuntime())
 }

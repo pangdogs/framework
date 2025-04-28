@@ -114,8 +114,8 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 	log.Debugf(rtCtx, "shut addin %q", self.Name)
 
-	// 清理事件钩子
-	d.rtCtx.ManagedCleanTagHooks(tagForDistEntityRegistry)
+	// 解绑定事件钩子
+	d.rtCtx.ManagedUnbindTagHooks(tagForDistEntityRegistry)
 
 	// 废除租约
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
@@ -129,7 +129,7 @@ func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 		}
 	}
 
-	d.distEntityRegistryEventTab.Close()
+	d.distEntityRegistryEventTab.Disable()
 }
 
 // OnEntityManagerAddEntity 实体管理器添加实体

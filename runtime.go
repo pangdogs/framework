@@ -46,7 +46,7 @@ type IRuntime interface {
 	// GetAutoInjection 是否自动注入组件
 	GetAutoInjection() bool
 	// BuildEntity 创建实体
-	BuildEntity(prototype string) core.EntityCreator
+	BuildEntity(prototype string) *core.EntityCreator
 }
 
 type iRuntime interface {
@@ -80,7 +80,7 @@ func (inst *Runtime) GetAutoInjection() bool {
 }
 
 // BuildEntity 创建实体
-func (inst *Runtime) BuildEntity(prototype string) core.EntityCreator {
+func (inst *Runtime) BuildEntity(prototype string) *core.EntityCreator {
 	return core.BuildEntity(runtime.Current(inst), prototype)
 }
 

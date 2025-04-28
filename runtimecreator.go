@@ -29,12 +29,12 @@ import (
 )
 
 // BuildRuntime 创建运行时
-func BuildRuntime(svcCtx service.Context) RuntimeCreator {
+func BuildRuntime(svcCtx service.Context) *RuntimeCreator {
 	if svcCtx == nil {
 		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
 	}
 
-	c := RuntimeCreator{
+	return &RuntimeCreator{
 		svcCtx: svcCtx,
 		settings: _RuntimeSettings{
 			Name:                 "",
@@ -46,8 +46,6 @@ func BuildRuntime(svcCtx service.Context) RuntimeCreator {
 			AutoInjection:        true,
 		},
 	}
-
-	return c
 }
 
 // RuntimeCreator 运行时构建器
@@ -58,7 +56,7 @@ type RuntimeCreator struct {
 }
 
 // Setup 安装运行时泛化类型
-func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
+func (c *RuntimeCreator) Setup(generic any) *RuntimeCreator {
 	if c.svcCtx == nil {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
@@ -79,44 +77,44 @@ func (c RuntimeCreator) Setup(generic any) RuntimeCreator {
 }
 
 // SetName 设置名称
-func (c RuntimeCreator) SetName(name string) RuntimeCreator {
+func (c *RuntimeCreator) SetName(name string) *RuntimeCreator {
 	c.settings.Name = name
 	return c
 }
 
 // SetPersistId 设置持久化Id
-func (c RuntimeCreator) SetPersistId(id uid.Id) RuntimeCreator {
+func (c *RuntimeCreator) SetPersistId(id uid.Id) *RuntimeCreator {
 	c.settings.PersistId = id
 	return c
 }
 
 // SetPanicHandling 设置panic时的处理方式
-func (c RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan error) RuntimeCreator {
+func (c *RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan error) *RuntimeCreator {
 	c.settings.AutoRecover = autoRecover
 	c.settings.ReportError = reportError
 	return c
 }
 
 // SetFPS 设置帧率
-func (c RuntimeCreator) SetFPS(fps float32) RuntimeCreator {
+func (c *RuntimeCreator) SetFPS(fps float32) *RuntimeCreator {
 	c.settings.FPS = fps
 	return c
 }
 
 // SetProcessQueueCapacity 设置任务处理流水线大小
-func (c RuntimeCreator) SetProcessQueueCapacity(cap int) RuntimeCreator {
+func (c *RuntimeCreator) SetProcessQueueCapacity(cap int) *RuntimeCreator {
 	c.settings.ProcessQueueCapacity = cap
 	return c
 }
 
 // SetAutoInjection 设置是否自动注入依赖的组件
-func (c RuntimeCreator) SetAutoInjection(b bool) RuntimeCreator {
+func (c *RuntimeCreator) SetAutoInjection(b bool) *RuntimeCreator {
 	c.settings.AutoInjection = b
 	return c
 }
 
 // New 创建运行时
-func (c RuntimeCreator) New() IRuntime {
+func (c *RuntimeCreator) New() IRuntime {
 	if c.svcCtx == nil {
 		exception.Panicf("%w: svcCtx is nil", ErrFramework)
 	}
