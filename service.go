@@ -20,7 +20,6 @@
 package framework
 
 import (
-	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
@@ -147,7 +146,7 @@ func (inst *Service) BuildRuntime() *RuntimeCreator {
 
 // BuildEntityPT 创建实体原型
 func (inst *Service) BuildEntityPT(prototype string) *EntityPTCreator {
-	return core.BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
+	return BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }
 
 // BuildEntityAsync 创建实体
