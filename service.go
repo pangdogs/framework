@@ -67,7 +67,7 @@ type IService interface {
 	// BuildRuntime 创建运行时
 	BuildRuntime() *RuntimeCreator
 	// BuildEntityPT 创建实体原型
-	BuildEntityPT(prototype string) *core.EntityPTCreator
+	BuildEntityPT(prototype string) *EntityPTCreator
 	// BuildEntityAsync 创建实体
 	BuildEntityAsync(prototype string) *EntityCreatorAsync
 }
@@ -146,7 +146,7 @@ func (inst *Service) BuildRuntime() *RuntimeCreator {
 }
 
 // BuildEntityPT 创建实体原型
-func (inst *Service) BuildEntityPT(prototype string) *core.EntityPTCreator {
+func (inst *Service) BuildEntityPT(prototype string) *EntityPTCreator {
 	return core.BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
 }
 
