@@ -36,7 +36,7 @@ var (
 type ISynchronizer interface {
 	io.Writer
 	io.WriterTo
-	codec.IValidate
+	codec.IValidation
 	// Synchronization 同步对端时序，对齐缓存序号
 	Synchronization(remoteRecvSeq uint32) error
 	// Ack 确认消息序号

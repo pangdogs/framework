@@ -44,8 +44,8 @@ func NewDecoder(msgCreator gtp.IMsgCreator) *Decoder {
 	}
 }
 
-// IValidate 验证消息包接口
-type IValidate interface {
+// IValidation 消息包验证模块
+type IValidation interface {
 	// Validate 验证消息包
 	Validate(msgHead gtp.MsgHead, msgBuf []byte) error
 }
@@ -78,7 +78,7 @@ func (d *Decoder) SetCompression(compression ICompression) *Decoder {
 }
 
 // Decode 解码消息包
-func (d *Decoder) Decode(data []byte, validate IValidate) (gtp.MsgPacket, int, error) {
+func (d *Decoder) Decode(data []byte, validation IValidation) (gtp.MsgPacket, int, error) {
 	if d.MsgCreator == nil {
 		return gtp.MsgPacket{}, 0, fmt.Errorf("%w: MsgCreator is nil", ErrDecode)
 	}
@@ -90,7 +90,7 @@ func (d *Decoder) Decode(data []byte, validate IValidate) (gtp.MsgPacket, int, e
 	}
 
 	// 解码消息包
-	mp, err := d.decode(data[:length], validate)
+	mp, err := d.decode(data[:length], validation)
 	if err != nil {
 		return gtp.MsgPacket{}, length, err
 	}
@@ -123,7 +123,7 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 }
 
 // decode 解码消息包
-func (d *Decoder) decode(data []byte, validate IValidate) (gtp.MsgPacket, error) {
+func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, error) {
 	// 消息包数据缓存
 	mpBuf := binaryutil.MakeRecycleBytes(len(data))
 	d.gcList = append(d.gcList, mpBuf)
@@ -141,8 +141,8 @@ func (d *Decoder) decode(data []byte, validate IValidate) (gtp.MsgPacket, error)
 	msgBuf := mpBuf.Data()[mp.Head.Size():]
 
 	// 验证消息包
-	if validate != nil {
-		if err := validate.Validate(mp.Head, msgBuf); err != nil {
+	if validation != nil {
+		if err := validation.Validate(mp.Head, msgBuf); err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("%w: validate msg-packet-head failed, %w", ErrDecode, err)
 		}
 	}
