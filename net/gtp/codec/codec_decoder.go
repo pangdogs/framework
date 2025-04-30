@@ -59,12 +59,6 @@ type Decoder struct {
 	gcList      []binaryutil.RecycleBytes // GC列表
 }
 
-// SetMsgCreator 设置消息对象构建器
-func (d *Decoder) SetMsgCreator(msgCreator gtp.IMsgCreator) *Decoder {
-	d.MsgCreator = msgCreator
-	return d
-}
-
 // SetEncryption 设置加密模块
 func (d *Decoder) SetEncryption(encryption IEncryption) *Decoder {
 	d.Encryption = encryption

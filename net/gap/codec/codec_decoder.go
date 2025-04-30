@@ -52,12 +52,6 @@ type Decoder struct {
 	MsgCreator gap.IMsgCreator // 消息对象构建器
 }
 
-// SetMsgCreator 设置消息对象构建器
-func (d *Decoder) SetMsgCreator(msgCreator gap.IMsgCreator) *Decoder {
-	d.MsgCreator = msgCreator
-	return d
-}
-
 // Decode 解码消息包
 func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 	if d.MsgCreator == nil {
