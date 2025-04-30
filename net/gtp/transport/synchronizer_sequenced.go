@@ -32,7 +32,7 @@ import (
 // NewSequencedSynchronizer 创建有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息
 func NewSequencedSynchronizer(sendSeq, recvSeq uint32, cap int) ISynchronizer {
 	s := &SequencedSynchronizer{}
-	s.Reset(sendSeq, recvSeq, cap)
+	s.init(sendSeq, recvSeq, cap)
 	return s
 }
 
@@ -48,25 +48,30 @@ type SequencedSynchronizer struct {
 	sendSeq uint32            // 发送消息序号
 	recvSeq uint32            // 接收消息序号
 	ackSeq  uint32            // 当前ack序号
-	cap     int               // 缓存区容量，缓存区满时将会触发清理操作，此时断线重连有可能会失败
-	cached  int               // 已缓存大小
+	cap     int               // 缓存区容量（字节），缓存区满时将会触发清理操作，此时断线重连有可能会失败
+	cached  int               // 已缓存大小（字节）
+	queue   []_SequencedFrame // 窗口队列
 	sent    int               // 已发送位置
-	frames  []_SequencedFrame // 帧队列
 }
 
-// Reset 重置缓存
-func (s *SequencedSynchronizer) Reset(sendSeq, recvSeq uint32, cap int) {
+func (s *SequencedSynchronizer) init(sendSeq, recvSeq uint32, cap int) {
 	s.sendSeq = sendSeq
 	s.recvSeq = recvSeq
 	s.ackSeq = sendSeq - 1
 	s.cap = cap
 	s.cached = 0
+	s.queue = nil
 	s.sent = 0
-	s.frames = s.frames[:]
 }
 
 // Write implements io.Writer
 func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
+	// 读取消息头
+	head := gtp.MsgHead{}
+	if _, err = head.Write(p); err != nil {
+		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
+	}
+
 	// ack消息序号
 	s.ack(s.getRemoteAck())
 
@@ -75,29 +80,21 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 		s.reduce(len(p))
 	}
 
-	data := binaryutil.BytesPool.Get(len(p))
-	copy(data, p)
-
-	head := gtp.MsgHead{}
-	if _, err = head.Write(data); err != nil {
-		binaryutil.BytesPool.Put(data)
-		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
-	}
-
 	// 填充序号
 	head.Seq = s.sendSeq
 	head.Ack = s.getLocalAck()
+
+	// 分配内存并拷贝数据
+	data := binaryutil.BytesPool.Get(len(p))
+	copy(data, p)
 
 	if _, err = binaryutil.CopyToBuff(data, head); err != nil {
 		binaryutil.BytesPool.Put(data)
 		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}
 
-	// 写入帧队列
-	s.frames = append(s.frames, _SequencedFrame{seq: head.Seq, data: data})
-	s.cached += len(data)
-
-	// 自增序号
+	// 写入帧队列并自增序号
+	s.append(head.Seq, data)
 	s.sendSeq++
 
 	return len(data), nil
@@ -112,8 +109,8 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	var wn int64
 
 	// 读取帧队列，向输出流写入消息
-	for i := s.sent; i < len(s.frames); i++ {
-		frame := &s.frames[i]
+	for i := s.sent; i < len(s.queue); i++ {
+		frame := &s.queue[i]
 
 		if frame.offset < len(frame.data) {
 			n, err := w.Write(frame.data[frame.offset:])
@@ -145,16 +142,16 @@ func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) err
 	return nil
 }
 
-// Synchronization 同步对端时序，对齐缓存序号
-func (s *SequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
+// Synchronize 同步对端时序，对齐缓存序号
+func (s *SequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
 	// 从时序帧中查询对端序号
-	for i := len(s.frames) - 1; i >= 0; i-- {
-		frame := &s.frames[i]
+	for i := len(s.queue) - 1; i >= 0; i-- {
+		frame := &s.queue[i]
 
 		d := int32(frame.seq - remoteRecvSeq)
 		if d <= 0 {
-			for j := i; j < len(s.frames); j++ {
-				s.frames[j].offset = 0
+			for j := i; j < len(s.queue); j++ {
+				s.queue[j].offset = 0
 			}
 
 			s.sent = i
@@ -212,11 +209,11 @@ func (s *SequencedSynchronizer) Clean() {
 	s.ackSeq = 0
 	s.cap = 0
 	s.cached = 0
-	s.sent = 0
-	for i := range s.frames {
-		binaryutil.BytesPool.Put(s.frames[i].data)
+	for i := range s.queue {
+		binaryutil.BytesPool.Put(s.queue[i].data)
 	}
-	s.frames = nil
+	s.queue = nil
+	s.sent = 0
 }
 
 func (s *SequencedSynchronizer) getLocalAck() uint32 {
@@ -227,20 +224,26 @@ func (s *SequencedSynchronizer) getRemoteAck() uint32 {
 	return atomic.LoadUint32(&s.ackSeq)
 }
 
+func (s *SequencedSynchronizer) append(seq uint32, data []byte) {
+	// 写入帧队列
+	s.queue = append(s.queue, _SequencedFrame{seq: seq, data: data})
+	s.cached += len(data)
+}
+
 func (s *SequencedSynchronizer) ack(seq uint32) {
 	cached := s.cached
 
-	for i := range s.frames {
-		frame := &s.frames[i]
+	for i := range s.queue {
+		frame := &s.queue[i]
 
 		cached -= len(frame.data)
 
 		if frame.seq == seq {
 			for j := 0; j <= i; j++ {
-				binaryutil.BytesPool.Put(s.frames[j].data)
+				binaryutil.BytesPool.Put(s.queue[j].data)
 			}
 
-			s.frames = append(s.frames[:0], s.frames[i+1:]...)
+			s.queue = append(s.queue[:0], s.queue[i+1:]...)
 			s.sent = 0
 
 			s.cached = cached
@@ -257,17 +260,17 @@ func (s *SequencedSynchronizer) reduce(size int) {
 	cached := s.cached
 
 	for i := 0; i < s.sent; i++ {
-		frame := &s.frames[i]
+		frame := &s.queue[i]
 
 		cached -= len(frame.data)
 
 		size -= len(frame.data)
 		if size <= 0 {
 			for j := 0; j <= i; j++ {
-				binaryutil.BytesPool.Put(s.frames[j].data)
+				binaryutil.BytesPool.Put(s.queue[j].data)
 			}
 
-			s.frames = append(s.frames[:0], s.frames[i+1:]...)
+			s.queue = append(s.queue[:0], s.queue[i+1:]...)
 			s.sent = 0
 
 			s.cached = cached

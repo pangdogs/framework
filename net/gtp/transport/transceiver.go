@@ -234,7 +234,7 @@ func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvR
 	}
 
 	// 同步对端时序
-	if err = t.Synchronizer.Synchronization(remoteRecvSeq); err != nil {
+	if err = t.Synchronizer.Synchronize(remoteRecvSeq); err != nil {
 		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrRenew, err)
 	}
 

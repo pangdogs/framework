@@ -50,9 +50,9 @@ func (s *UnsequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) e
 	return nil
 }
 
-// Synchronization 同步对端时序，对齐缓存序号
-func (s *UnsequencedSynchronizer) Synchronization(remoteRecvSeq uint32) error {
-	return fmt.Errorf("%w: not support", ErrSynchronizer)
+// Synchronize 同步对端时序，对齐缓存序号
+func (s *UnsequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
+	return fmt.Errorf("%w: not supported", ErrSynchronizer)
 }
 
 // Ack 确认消息序号

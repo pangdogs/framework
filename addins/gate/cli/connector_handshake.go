@@ -101,7 +101,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 			// 检查协议版本
 			if servHello.Msg.Version != gtp.Version_V1_0 {
-				return fmt.Errorf("version %q not support", servHello.Msg.Version)
+				return fmt.Errorf("version %q not supported", servHello.Msg.Version)
 			}
 
 			// 记录握手参数
@@ -393,7 +393,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		return ctor.setupMAC(cs.MACHash, sharedKeyBytes)
 
 	default:
-		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
+		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not supported", cs.SecretKeyExchange)
 	}
 
 	return nil

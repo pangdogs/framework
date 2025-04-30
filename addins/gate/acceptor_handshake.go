@@ -79,7 +79,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		if cliHello.Msg.Version != gtp.Version_V1_0 {
 			return transport.Event[gtp.MsgHello]{}, &transport.RstError{
 				Code:    gtp.Code_VersionError,
-				Message: fmt.Sprintf("version %q not support", cliHello.Msg.Version),
+				Message: fmt.Sprintf("version %q not supported", cliHello.Msg.Version),
 			}
 		}
 
@@ -544,7 +544,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		return acc.setupMAC(cs.MACHash, sharedKeyBytes)
 
 	default:
-		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
+		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not supported", cs.SecretKeyExchange)
 	}
 
 	return nil
