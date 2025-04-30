@@ -32,9 +32,9 @@ import (
 
 // _Acceptor 网络连接接受器
 type _Acceptor struct {
-	gate           *_Gate
-	encoderCreator codec.EncoderCreator
-	decoderCreator codec.DecoderCreator
+	gate    *_Gate
+	encoder *codec.Encoder
+	decoder *codec.Decoder
 }
 
 // accept 接受网络连接

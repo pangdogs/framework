@@ -36,8 +36,8 @@ import (
 // NewGateProcessor 创建网关RPC处理器，用于C<->G的通信
 func NewGateProcessor(mc gap.IMsgCreator) any {
 	return &_GateProcessor{
-		encoder: codec.MakeEncoder(),
-		decoder: codec.MakeDecoder(mc),
+		encoder: codec.NewEncoder(),
+		decoder: codec.NewDecoder(mc),
 	}
 }
 
@@ -48,8 +48,8 @@ type _GateProcessor struct {
 	dentq          dentq.IDistEntityQuerier
 	gate           gate.IGate
 	router         router.IRouter
-	encoder        codec.Encoder
-	decoder        codec.Decoder
+	encoder        *codec.Encoder
+	decoder        *codec.Decoder
 	sessionWatcher gate.IWatcher
 	msgWatcher     dsvc.IWatcher
 }

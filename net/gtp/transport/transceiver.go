@@ -48,8 +48,8 @@ var (
 // Transceiver 消息事件收发器，线程安全
 type Transceiver struct {
 	Conn                 net.Conn       // 网络连接
-	Encoder              codec.IEncoder // 消息包编码器
-	Decoder              codec.IDecoder // 消息包解码器
+	Encoder              *codec.Encoder // 消息包编码器
+	Decoder              *codec.Decoder // 消息包解码器
 	Timeout              time.Duration  // 网络io超时时间
 	Synchronizer         ISynchronizer  // 同步器
 	buffer               bytes.Buffer   // 接收消息缓存

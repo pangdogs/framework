@@ -76,8 +76,8 @@ type _DistService struct {
 	broker       broker.IBroker
 	dsync        dsync.IDistSync
 	details      *NodeDetails
-	encoder      codec.Encoder
-	decoder      codec.Decoder
+	encoder      *codec.Encoder
+	decoder      *codec.Decoder
 	futures      *concurrent.Futures
 	deduplicator *concurrent.Deduplicator
 	msgWatchers  concurrent.LockedSlice[*_MsgWatcher]
@@ -97,8 +97,8 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	d.dsync = dsync.Using(d.svcCtx)
 
 	// 初始化消息包编解码器
-	d.decoder = codec.MakeDecoder(d.options.DecoderMsgCreator)
-	d.encoder = codec.MakeEncoder()
+	d.decoder = codec.NewDecoder(d.options.DecoderMsgCreator)
+	d.encoder = codec.NewEncoder()
 
 	// 初始化异步模型Future
 	d.futures = concurrent.NewFutures(d.ctx, d.options.FutureTimeout)

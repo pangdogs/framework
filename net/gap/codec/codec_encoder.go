@@ -31,23 +31,18 @@ var (
 	ErrEncode = errors.New("gap-encode") // 编码错误
 )
 
-var encoder = MakeEncoder()
+var encoder = &Encoder{}
 
-// DefaultEncoder 默认消息包编码器
-func DefaultEncoder() Encoder {
+// NewEncoder 创建消息包编码器
+func NewEncoder() *Encoder {
 	return encoder
-}
-
-// MakeEncoder 创建消息包编码器
-func MakeEncoder() Encoder {
-	return Encoder{}
 }
 
 // Encoder 消息包编码器
 type Encoder struct{}
 
 // Encode 编码消息包
-func (Encoder) Encode(src gap.Origin, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
+func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}

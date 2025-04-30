@@ -35,8 +35,8 @@ var (
 	ErrIncorrectMAC = fmt.Errorf("%w: incorrect MAC", ErrMAC) // MAC值不正确
 )
 
-// IMACModule MAC模块接口
-type IMACModule interface {
+// IMAC MAC模块接口
+type IMAC interface {
 	// PatchMAC 补充MAC
 	PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error)
 	// VerifyMAC 验证MAC
@@ -45,8 +45,8 @@ type IMACModule interface {
 	SizeofMAC(msgLen int) int
 }
 
-// NewMACModule 创建MAC模块
-func NewMACModule(h hash.Hash, pk []byte) IMACModule {
+// NewMAC 创建MAC模块
+func NewMAC(h hash.Hash, pk []byte) IMAC {
 	if h == nil {
 		exception.Panicf("%w: %w: h is nil", ErrMAC, core.ErrArgs)
 	}
@@ -55,20 +55,20 @@ func NewMACModule(h hash.Hash, pk []byte) IMACModule {
 		exception.Panicf("%w: %w: len(pk) <= 0", ErrMAC, core.ErrArgs)
 	}
 
-	return &MACModule{
+	return &MAC{
 		Hash:       h,
 		PrivateKey: pk,
 	}
 }
 
-// MACModule MAC模块
-type MACModule struct {
+// MAC MAC模块
+type MAC struct {
 	Hash       hash.Hash // hash函数
 	PrivateKey []byte    // 秘钥
 }
 
 // PatchMAC 补充MAC
-func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
+func (m *MAC) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
@@ -99,7 +99,7 @@ func (m *MACModule) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (d
 }
 
 // VerifyMAC 验证MAC
-func (m *MACModule) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
@@ -124,6 +124,6 @@ func (m *MACModule) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 }
 
 // SizeofMAC MAC大小
-func (m *MACModule) SizeofMAC(msgLen int) int {
+func (m *MAC) SizeofMAC(msgLen int) int {
 	return binaryutil.SizeofVarint(int64(msgLen)) + binaryutil.SizeofVarint(int64(m.Hash.Size())) + m.Hash.Size()
 }

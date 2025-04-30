@@ -41,15 +41,15 @@ import (
 // handshake 握手过程
 func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Client) error {
 	// 编解码器构建器
-	ctor.encoderCreator = codec.BuildEncoder()
-	ctor.decoderCreator = codec.BuildDecoder(ctor.options.DecoderMsgCreator)
+	ctor.encoder = codec.NewEncoder()
+	ctor.decoder = codec.NewDecoder(ctor.options.DecoderMsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
-			Encoder:      ctor.encoderCreator.Get(),
-			Decoder:      ctor.decoderCreator.Get(),
+			Encoder:      ctor.encoder,
+			Decoder:      ctor.decoder,
 			Timeout:      ctor.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},
@@ -157,7 +157,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}
 
 	// 安装压缩模块
-	err = ctor.setupCompressionModule(cm)
+	err = ctor.setupCompression(cm)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		var padding [2]method.Padding
 		var fetchNonce [2]codec.FetchNonce
 		var cipher [2]method.Cipher
-		var encryptionModule [2]codec.IEncryptionModule
+		var encryption [2]codec.IEncryption
 
 		// 与服务端交换秘钥
 		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.IEvent) (transport.IEvent, error) {
@@ -312,10 +312,10 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			}
 
 			// 设置分组对齐填充方案
-			if padding[0], err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+			if padding[0], err = ctor.newPaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
 				return transport.IEvent{}, err
 			}
-			if padding[1], err = ctor.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+			if padding[1], err = ctor.newPaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
 				return transport.IEvent{}, err
 			}
 
@@ -323,8 +323,8 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			if len(servECDHE.Msg.Nonce) > 0 && len(servECDHE.Msg.NonceStep) > 0 {
 				nonce := big.NewInt(0).SetBytes(servECDHE.Msg.Nonce)
 				nonceStep := big.NewInt(0).SetBytes(servECDHE.Msg.NonceStep)
-				fetchNonce[0] = ctor.makeFetchNonce(nonce, nonceStep)
-				fetchNonce[1] = ctor.makeFetchNonce(nonce, nonceStep)
+				fetchNonce[0] = ctor.newFetchNonce(nonce, nonceStep)
+				fetchNonce[1] = ctor.newFetchNonce(nonce, nonceStep)
 			}
 
 			// 创建并设置加解密流
@@ -349,12 +349,12 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			verifyEncryption := servChangeCipherSpec.Flags.Is(gtp.Flag_VerifyEncryption)
 
 			// 加解密模块
-			encryptionModule[0] = codec.NewEncryptionModule(cipher[0], padding[0], fetchNonce[0])
-			encryptionModule[1] = codec.NewEncryptionModule(cipher[1], padding[1], fetchNonce[1])
+			encryption[0] = codec.NewEncryption(cipher[0], padding[0], fetchNonce[0])
+			encryption[1] = codec.NewEncryption(cipher[1], padding[1], fetchNonce[1])
 
 			// 验证加密是否正确
 			if verifyEncryption {
-				decryptedHello, err := encryptionModule[1].Transforming(nil, servChangeCipherSpec.Msg.EncryptedHello)
+				decryptedHello, err := encryption[1].Transforming(nil, servChangeCipherSpec.Msg.EncryptedHello)
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
 				}
@@ -372,7 +372,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			// 加密hello消息
 			if verifyEncryption {
 				var err error
-				encryptedHello, err = encryptionModule[0].Transforming(nil, cliHelloHash[:])
+				encryptedHello, err = encryption[0].Transforming(nil, cliHelloHash[:])
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
 				}
@@ -387,10 +387,10 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		}
 
 		// 安装加密模块
-		ctor.setupEncryptionModule(encryptionModule)
+		ctor.setupEncryption(encryption)
 
 		// 安装MAC模块
-		return ctor.setupMACModule(cs.MACHash, sharedKeyBytes)
+		return ctor.setupMAC(cs.MACHash, sharedKeyBytes)
 
 	default:
 		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
@@ -399,48 +399,48 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 	return nil
 }
 
-// setupCompressionModule 安装压缩模块
-func (ctor *_Connector) setupCompressionModule(cm gtp.Compression) error {
-	compressionModule, compressedSize, err := ctor.makeCompressionModule(cm)
+// setupCompression 安装压缩模块
+func (ctor *_Connector) setupCompression(cm gtp.Compression) error {
+	compression, compressedSize, err := ctor.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	ctor.encoderCreator.SetupCompressionModule(compressionModule, compressedSize)
+	ctor.encoder.SetCompression(compression, compressedSize)
 
-	compressionModule, _, err = ctor.makeCompressionModule(cm)
+	compression, _, err = ctor.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	ctor.decoderCreator.SetupCompressionModule(compressionModule)
+	ctor.decoder.SetCompression(compression)
 
 	return nil
 }
 
-// setupEncryptionModule 安装加密模块
-func (ctor *_Connector) setupEncryptionModule(encryptionModule [2]codec.IEncryptionModule) {
-	ctor.encoderCreator.SetupEncryptionModule(encryptionModule[0])
-	ctor.decoderCreator.SetupEncryptionModule(encryptionModule[1])
+// setupEncryption 安装加密模块
+func (ctor *_Connector) setupEncryption(encryption [2]codec.IEncryption) {
+	ctor.encoder.SetEncryption(encryption[0])
+	ctor.decoder.SetEncryption(encryption[1])
 }
 
-// setupMACModule 安装MAC模块
-func (ctor *_Connector) setupMACModule(hash gtp.Hash, sharedKeyBytes []byte) error {
-	macModule, err := ctor.makeMACModule(hash, sharedKeyBytes)
+// setupMAC 安装MAC模块
+func (ctor *_Connector) setupMAC(hash gtp.Hash, sharedKeyBytes []byte) error {
+	mac, err := ctor.newMAC(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	ctor.encoderCreator.SetupMACModule(macModule)
+	ctor.encoder.SetMAC(mac)
 
-	macModule, err = ctor.makeMACModule(hash, sharedKeyBytes)
+	mac, err = ctor.newMAC(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	ctor.decoderCreator.SetupMACModule(macModule)
+	ctor.decoder.SetMAC(mac)
 
 	return nil
 }
 
-// makeFetchNonce 构造获取nonce值函数
-func (ctor *_Connector) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
+// newFetchNonce 构造获取nonce值函数
+func (ctor *_Connector) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
 	}
@@ -465,8 +465,8 @@ func (ctor *_Connector) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNon
 	}
 }
 
-// makePaddingMode 构造填充方案
-func (ctor *_Connector) makePaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
+// newPaddingMode 构造填充方案
+func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
 	if !bcm.Padding() {
 		return nil, nil
 	}
@@ -483,13 +483,13 @@ func (ctor *_Connector) makePaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp
 	return padding, nil
 }
 
-// makeMACModule 构造MAC模块
-func (ctor *_Connector) makeMACModule(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMACModule, error) {
+// newMAC 构造MAC模块
+func (ctor *_Connector) newMAC(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMAC, error) {
 	if hash.Bits() <= 0 {
 		return nil, nil
 	}
 
-	var macModule codec.IMACModule
+	var mac codec.IMAC
 
 	switch hash.Bits() {
 	case 32:
@@ -497,26 +497,26 @@ func (ctor *_Connector) makeMACModule(hash gtp.Hash, sharedKeyBytes []byte) (cod
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMAC32Module(macHash, sharedKeyBytes)
+		mac = codec.NewMAC32(macHash, sharedKeyBytes)
 	case 64:
 		macHash, err := method.NewHash64(hash)
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMAC64Module(macHash, sharedKeyBytes)
+		mac = codec.NewMAC64(macHash, sharedKeyBytes)
 	default:
 		macHash, err := method.NewHash(hash)
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMACModule(macHash, sharedKeyBytes)
+		mac = codec.NewMAC(macHash, sharedKeyBytes)
 	}
 
-	return macModule, nil
+	return mac, nil
 }
 
-// makeCompressionModule 构造压缩模块
-func (ctor *_Connector) makeCompressionModule(compression gtp.Compression) (codec.ICompressionModule, int, error) {
+// newCompression 构造压缩模块
+func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.ICompression, int, error) {
 	if compression == gtp.Compression_None {
 		return nil, 0, nil
 	}
@@ -526,7 +526,7 @@ func (ctor *_Connector) makeCompressionModule(compression gtp.Compression) (code
 		return nil, 0, err
 	}
 
-	return codec.NewCompressionModule(compressionStream), ctor.options.CompressedSize, err
+	return codec.NewCompression(compressionStream), ctor.options.CompressedSize, err
 }
 
 // sign 签名

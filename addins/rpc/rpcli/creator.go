@@ -275,8 +275,8 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 
 	rpcli := &RPCli{
 		Client:         client,
-		encoder:        codec.MakeEncoder(),
-		decoder:        codec.MakeDecoder(ctor.msgCreator),
+		encoder:        codec.NewEncoder(),
+		decoder:        codec.NewDecoder(ctor.msgCreator),
 		remoteTime:     *remoteTime,
 		reduceCallPath: ctor.reduceCallPath,
 	}

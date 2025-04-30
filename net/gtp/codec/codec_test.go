@@ -50,17 +50,15 @@ func TestCodec(t *testing.T) {
 	//	panic(err)
 	//}
 
-	encoder := BuildEncoder().
-		SetupEncryptionModule(NewEncryptionModule(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
-		SetupCompressionModule(NewCompressionModule(compressionStream), 1).
-		Get()
+	encoder := NewEncoder().
+		SetEncryption(NewEncryption(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetMAC(NewMAC64(fnv.New64a(), key.Bytes())).
+		SetCompression(NewCompression(compressionStream), 1)
 
-	decoder := BuildDecoder(gtp.DefaultMsgCreator()).
-		SetupEncryptionModule(NewEncryptionModule(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetupMACModule(NewMAC64Module(fnv.New64a(), key.Bytes())).
-		SetupCompressionModule(NewCompressionModule(compressionStream)).
-		Get()
+	decoder := NewDecoder(gtp.DefaultMsgCreator()).
+		SetEncryption(NewEncryption(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetMAC(NewMAC64(fnv.New64a(), key.Bytes())).
+		SetCompression(NewCompression(compressionStream))
 
 	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Prime(rand.Reader, 1024)
@@ -81,7 +79,7 @@ func TestCodec(t *testing.T) {
 			panic(err)
 		}
 
-		mp, _, err := decoder.Decode(bs.Data())
+		mp, _, err := decoder.Decode(bs.Data(), nil)
 		if err != nil {
 			panic(err)
 		}

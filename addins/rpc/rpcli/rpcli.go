@@ -42,8 +42,8 @@ var (
 // RPCli RCP客户端
 type RPCli struct {
 	*cli.Client
-	encoder        codec.Encoder
-	decoder        codec.Decoder
+	encoder        *codec.Encoder
+	decoder        *codec.Decoder
 	remoteTime     cli.ResponseTime
 	reduceCallPath bool
 	procs          generic.SliceMap[string, IProcedure]

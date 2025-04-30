@@ -33,7 +33,7 @@ import (
 )
 
 // init 初始化
-func (c *Client) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, remoteSendSeq, remoteRecvSeq uint32, sessionId uid.Id) {
+func (c *Client) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.Decoder, remoteSendSeq, remoteRecvSeq uint32, sessionId uid.Id) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

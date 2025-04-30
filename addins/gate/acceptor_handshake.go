@@ -41,15 +41,15 @@ import (
 // handshake 握手过程
 func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, error) {
 	// 编解码器构建器
-	acc.encoderCreator = codec.BuildEncoder()
-	acc.decoderCreator = codec.BuildDecoder(acc.gate.options.DecoderMsgCreator)
+	acc.encoder = codec.NewEncoder()
+	acc.decoder = codec.NewDecoder(acc.gate.options.DecoderMsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
-			Encoder:      acc.encoderCreator.Get(),
-			Decoder:      acc.decoderCreator.Get(),
+			Encoder:      acc.encoder,
+			Decoder:      acc.decoder,
 			Timeout:      acc.gate.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},
@@ -212,7 +212,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	}
 
 	// 安装压缩模块
-	err = acc.setupCompressionModule(cm)
+	err = acc.setupCompression(cm)
 	if err != nil {
 		return nil, err
 	}
@@ -377,24 +377,24 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		var padding [2]method.Padding
 		var fetchNonce [2]codec.FetchNonce
 		var cipher [2]method.Cipher
-		var encryptionModule [2]codec.IEncryptionModule
+		var encryption [2]codec.IEncryption
 
 		// 设置分组对齐填充方案
-		if padding[0], err = acc.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+		if padding[0], err = acc.newPaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
 			return err
 		}
-		if padding[1], err = acc.makePaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
+		if padding[1], err = acc.newPaddingMode(cs.BlockCipherMode, cs.PaddingMode); err != nil {
 			return err
 		}
 
 		// 创建iv值
-		iv, err := acc.makeIV(cs.SymmetricEncryption, cs.BlockCipherMode)
+		iv, err := acc.newIV(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
 		}
 
 		// 创建nonce值
-		nonce, err := acc.makeNonce(cs.SymmetricEncryption, cs.BlockCipherMode)
+		nonce, err := acc.newNonce(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
 		}
@@ -408,8 +408,8 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		if nonce != nil {
 			nonceBytes = nonce.Bytes()
 			nonceStepBytes = acc.gate.options.EncNonceStep.Bytes()
-			fetchNonce[0] = acc.makeFetchNonce(nonce, acc.gate.options.EncNonceStep)
-			fetchNonce[1] = acc.makeFetchNonce(nonce, acc.gate.options.EncNonceStep)
+			fetchNonce[0] = acc.newFetchNonce(nonce, acc.gate.options.EncNonceStep)
+			fetchNonce[1] = acc.newFetchNonce(nonce, acc.gate.options.EncNonceStep)
 		}
 
 		// 临时共享秘钥
@@ -487,10 +487,10 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 
 				// 加密模块
-				encryptionModule[0] = codec.NewEncryptionModule(cipher[0], padding[0], fetchNonce[0])
+				encryption[0] = codec.NewEncryption(cipher[0], padding[0], fetchNonce[0])
 
 				// 加密hello消息
-				encryptedHello, err = encryptionModule[0].Transforming(nil, servHelloHash[:])
+				encryptedHello, err = encryption[0].Transforming(nil, servHelloHash[:])
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
@@ -506,7 +506,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}, nil
 			}, func(cliChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) error {
 				// 解密模块
-				encryptionModule[1] = codec.NewEncryptionModule(cipher[1], padding[1], fetchNonce[1])
+				encryption[1] = codec.NewEncryption(cipher[1], padding[1], fetchNonce[1])
 
 				// 客户端要求不验证加密
 				if !cliChangeCipherSpec.Flags.Is(gtp.Flag_VerifyEncryption) {
@@ -514,7 +514,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 
 				// 验证加密是否正确
-				decryptedHello, err := encryptionModule[1].Transforming(nil, cliChangeCipherSpec.Msg.EncryptedHello)
+				decryptedHello, err := encryption[1].Transforming(nil, cliChangeCipherSpec.Msg.EncryptedHello)
 				if err != nil {
 					return &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
@@ -538,10 +538,10 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		}
 
 		// 安装加密模块
-		acc.setupEncryptionModule(encryptionModule)
+		acc.setupEncryption(encryption)
 
 		// 安装MAC模块
-		return acc.setupMACModule(cs.MACHash, sharedKeyBytes)
+		return acc.setupMAC(cs.MACHash, sharedKeyBytes)
 
 	default:
 		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not support", cs.SecretKeyExchange)
@@ -550,48 +550,48 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 	return nil
 }
 
-// setupCompressionModule 安装压缩模块
-func (acc *_Acceptor) setupCompressionModule(cm gtp.Compression) error {
-	compressionModule, compressedSize, err := acc.makeCompressionModule(cm)
+// setupCompression 安装压缩模块
+func (acc *_Acceptor) setupCompression(cm gtp.Compression) error {
+	compression, compressedSize, err := acc.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	acc.encoderCreator.SetupCompressionModule(compressionModule, compressedSize)
+	acc.encoder.SetCompression(compression, compressedSize)
 
-	compressionModule, _, err = acc.makeCompressionModule(cm)
+	compression, _, err = acc.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	acc.decoderCreator.SetupCompressionModule(compressionModule)
+	acc.decoder.SetCompression(compression)
 
 	return nil
 }
 
-// setupEncryptionModule 安装加密模块
-func (acc *_Acceptor) setupEncryptionModule(encryptionModule [2]codec.IEncryptionModule) {
-	acc.encoderCreator.SetupEncryptionModule(encryptionModule[0])
-	acc.decoderCreator.SetupEncryptionModule(encryptionModule[1])
+// setupEncryption 安装加密模块
+func (acc *_Acceptor) setupEncryption(encryption [2]codec.IEncryption) {
+	acc.encoder.SetEncryption(encryption[0])
+	acc.decoder.SetEncryption(encryption[1])
 }
 
-// setupMACModule 安装MAC模块
-func (acc *_Acceptor) setupMACModule(hash gtp.Hash, sharedKeyBytes []byte) error {
-	macModule, err := acc.makeMACModule(hash, sharedKeyBytes)
+// setupMAC 安装MAC模块
+func (acc *_Acceptor) setupMAC(hash gtp.Hash, sharedKeyBytes []byte) error {
+	mac, err := acc.newMAC(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	acc.encoderCreator.SetupMACModule(macModule)
+	acc.encoder.SetMAC(mac)
 
-	macModule, err = acc.makeMACModule(hash, sharedKeyBytes)
+	mac, err = acc.newMAC(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	acc.decoderCreator.SetupMACModule(macModule)
+	acc.decoder.SetMAC(mac)
 
 	return nil
 }
 
-// makeIV 构造iv值
-func (acc *_Acceptor) makeIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
+// newIV 构造iv值
+func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
 	size, ok := se.IV()
 	if !ok {
 		if !se.BlockCipherMode() || !bcm.IV() {
@@ -611,8 +611,8 @@ func (acc *_Acceptor) makeIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode
 	return iv, nil
 }
 
-// makeNonce 构造nonce值
-func (acc *_Acceptor) makeNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
+// newNonce 构造nonce值
+func (acc *_Acceptor) newNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
 	size, ok := se.Nonce()
 	if !ok {
 		if !se.BlockCipherMode() || !bcm.Nonce() {
@@ -632,8 +632,8 @@ func (acc *_Acceptor) makeNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherM
 	return nonce, nil
 }
 
-// makeFetchNonce 构造获取nonce值函数
-func (acc *_Acceptor) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
+// newFetchNonce 构造获取nonce值函数
+func (acc *_Acceptor) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
 	}
@@ -658,8 +658,8 @@ func (acc *_Acceptor) makeFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce
 	}
 }
 
-// makePaddingMode 构造填充方案
-func (acc *_Acceptor) makePaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
+// newPaddingMode 构造填充方案
+func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
 	if !bcm.Padding() {
 		return nil, nil
 	}
@@ -676,13 +676,13 @@ func (acc *_Acceptor) makePaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.P
 	return padding, nil
 }
 
-// makeMACModule 构造MAC模块
-func (acc *_Acceptor) makeMACModule(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMACModule, error) {
+// newMAC 构造MAC模块
+func (acc *_Acceptor) newMAC(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMAC, error) {
 	if hash.Bits() <= 0 {
 		return nil, nil
 	}
 
-	var macModule codec.IMACModule
+	var mac codec.IMAC
 
 	switch hash.Bits() {
 	case 32:
@@ -690,26 +690,26 @@ func (acc *_Acceptor) makeMACModule(hash gtp.Hash, sharedKeyBytes []byte) (codec
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMAC32Module(macHash, sharedKeyBytes)
+		mac = codec.NewMAC32(macHash, sharedKeyBytes)
 	case 64:
 		macHash, err := method.NewHash64(hash)
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMAC64Module(macHash, sharedKeyBytes)
+		mac = codec.NewMAC64(macHash, sharedKeyBytes)
 	default:
 		macHash, err := method.NewHash(hash)
 		if err != nil {
 			return nil, err
 		}
-		macModule = codec.NewMACModule(macHash, sharedKeyBytes)
+		mac = codec.NewMAC(macHash, sharedKeyBytes)
 	}
 
-	return macModule, nil
+	return mac, nil
 }
 
-// makeCompressionModule 构造压缩模块
-func (acc *_Acceptor) makeCompressionModule(compression gtp.Compression) (codec.ICompressionModule, int, error) {
+// newCompression 构造压缩模块
+func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompression, int, error) {
 	if compression == gtp.Compression_None {
 		return nil, 0, nil
 	}
@@ -719,7 +719,7 @@ func (acc *_Acceptor) makeCompressionModule(compression gtp.Compression) (codec.
 		return nil, 0, err
 	}
 
-	return codec.NewCompressionModule(compressionStream), acc.gate.options.CompressedSize, err
+	return codec.NewCompression(compressionStream), acc.gate.options.CompressedSize, err
 }
 
 // sign 签名

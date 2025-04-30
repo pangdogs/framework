@@ -31,20 +31,36 @@ var (
 	ErrEncode = errors.New("gtp-encode") // 编码错误
 )
 
-// IEncoder 消息包编码器接口
-type IEncoder interface {
-	// Encode 编码消息包
-	Encode(flags gtp.Flags, msg gtp.MsgReader) (binaryutil.RecycleBytes, error)
+// NewEncoder 创建消息包编码器
+func NewEncoder() *Encoder {
+	return &Encoder{}
 }
 
 // Encoder 消息包编码器
 type Encoder struct {
-	EncryptionModule  IEncryptionModule  // 加密模块
-	MACModule         IMACModule         // MAC模块
-	CompressionModule ICompressionModule // 压缩模块
-	Encryption        bool               // 开启加密
-	PatchMAC          bool               // 开启MAC
-	CompressedSize    int                // 启用压缩阀值（字节），<=0表示不开启
+	Encryption     IEncryption  // 加密模块
+	MAC            IMAC         // MAC模块
+	Compression    ICompression // 压缩模块
+	CompressionMin int          // 启用压缩阀值（字节），<=0表示不开启
+}
+
+// SetEncryption 设置加密模块
+func (e *Encoder) SetEncryption(encryption IEncryption) *Encoder {
+	e.Encryption = encryption
+	return e
+}
+
+// SetMAC 设置MAC模块
+func (e *Encoder) SetMAC(mac IMAC) *Encoder {
+	e.MAC = mac
+	return e
+}
+
+// SetCompression 设置压缩模块
+func (e *Encoder) SetCompression(compression ICompression, compressionMin int) *Encoder {
+	e.Compression = compression
+	e.CompressionMin = compressionMin
+	return e
 }
 
 // Encode 编码消息包
@@ -63,21 +79,15 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可
 	msgAddition := 0
 
-	if e.Encryption {
-		if e.EncryptionModule == nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: EncryptionModule is nil, msg can't be encrypted", ErrEncode)
-		}
-		encAddition, err := e.EncryptionModule.SizeOfAddition(msg.Size())
+	if e.Encryption != nil {
+		encAddition, err := e.Encryption.SizeOfAddition(msg.Size())
 		if err != nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: encrypt SizeOfAddition failed, %w", ErrEncode, err)
 		}
 		msgAddition += encAddition
 
-		if e.PatchMAC {
-			if e.MACModule == nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: MACModule is nil, msg can't be patch MAC", ErrEncode)
-			}
-			msgAddition += e.MACModule.SizeofMAC(msg.Size() + encAddition)
+		if e.MAC != nil {
+			msgAddition += e.MAC.SizeofMAC(msg.Size() + encAddition)
 		}
 	}
 
@@ -96,11 +106,8 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 	end := head.Size() + int(mn)
 
 	// 消息长度达到阀值，需要压缩消息
-	if e.CompressedSize > 0 && msg.Size() >= e.CompressedSize {
-		if e.CompressionModule == nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: CompressionModule is nil, msg can't be compress", ErrEncode)
-		}
-		compressedBuf, compressed, err := e.CompressionModule.Compress(mpBuf.Data()[head.Size():end])
+	if e.Compression != nil && e.CompressionMin > 0 && msg.Size() >= e.CompressionMin {
+		compressedBuf, compressed, err := e.Compression.Compress(mpBuf.Data()[head.Size():end])
 		if err != nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: compress msg failed, %w", ErrEncode, err)
 		}
@@ -114,18 +121,18 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 	}
 
 	// 加密消息
-	if e.Encryption {
+	if e.Encryption != nil {
 		head.Flags.Set(gtp.Flag_Encrypted, true)
 
 		// 补充MAC
-		if e.PatchMAC {
+		if e.MAC != nil {
 			head.Flags.Set(gtp.Flag_MAC, true)
 
 			if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
 				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: failed to write msg-packet-head for patch msg-mac, %w", ErrEncode, err)
 			}
 
-			macBuf, err := e.MACModule.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
+			macBuf, err := e.MAC.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
 			if err != nil {
 				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: patch msg-mac failed, %w", ErrEncode, err)
 			}
@@ -136,7 +143,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.MsgReader) (ret binaryutil.Rec
 		}
 
 		// 加密消息体
-		encryptBuf, err := e.EncryptionModule.Transforming(mpBuf.Data()[head.Size():end], mpBuf.Data()[head.Size():end])
+		encryptBuf, err := e.Encryption.Transforming(mpBuf.Data()[head.Size():end], mpBuf.Data()[head.Size():end])
 		if err != nil {
 			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: encrypt msg failed, %w", ErrEncode, err)
 		}

@@ -35,37 +35,37 @@ var (
 	ErrCompress = errors.New("gtp-compress") // 压缩错误
 )
 
-// ICompressionModule 压缩模块接口
-type ICompressionModule interface {
+// ICompression 压缩模块接口
+type ICompression interface {
 	// Compress 压缩数据
 	Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error)
 	// Uncompress 解压缩数据
 	Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error)
 }
 
-// NewCompressionModule 创建压缩模块
-func NewCompressionModule(cs method.CompressionStream) ICompressionModule {
+// NewCompression 创建压缩模块
+func NewCompression(cs method.CompressionStream) ICompression {
 	if cs == nil {
 		exception.Panicf("%w: %w: cs is nil", ErrCompress, core.ErrArgs)
 	}
 
-	return &CompressionModule{
+	return &Compression{
 		CompressionStream: cs,
 	}
 }
 
-// CompressionModule 压缩模块
-type CompressionModule struct {
+// Compression 压缩模块
+type Compression struct {
 	CompressionStream method.CompressionStream // 压缩流
 }
 
 // Compress 压缩数据
-func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error) {
+func (c *Compression) Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error) {
 	if len(src) <= 0 {
 		return binaryutil.MakeNonRecycleBytes(src), false, nil
 	}
 
-	if m.CompressionStream == nil {
+	if c.CompressionStream == nil {
 		return binaryutil.NilRecycleBytes, false, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
 	}
 
@@ -74,7 +74,7 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 
 	n, err := func() (n int, err error) {
 		bw := binaryutil.NewBytesWriter(compressedBuf.Data())
-		w, err := m.CompressionStream.WrapWriter(bw)
+		w, err := c.CompressionStream.WrapWriter(bw)
 		if err != nil {
 			return 0, err
 		}
@@ -122,12 +122,12 @@ func (m *CompressionModule) Compress(src []byte) (dst binaryutil.RecycleBytes, c
 }
 
 // Uncompress 解压缩数据
-func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
+func (c *Compression) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
 	if len(src) <= 0 {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: src too small", ErrCompress, core.ErrArgs)
 	}
 
-	if m.CompressionStream == nil {
+	if c.CompressionStream == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
 	}
 
@@ -148,7 +148,7 @@ func (m *CompressionModule) Uncompress(src []byte) (dst binaryutil.RecycleBytes,
 		}
 	}()
 
-	r, err := m.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
+	r, err := c.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
 	if err != nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}

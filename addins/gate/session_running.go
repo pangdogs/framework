@@ -36,7 +36,7 @@ import (
 )
 
 // init 初始化
-func (s *_Session) init(conn net.Conn, encoder codec.IEncoder, decoder codec.IDecoder, userId, token string) (sendSeq, recvSeq uint32) {
+func (s *_Session) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.Decoder, userId, token string) (sendSeq, recvSeq uint32) {
 	s.Lock()
 	defer s.Unlock()
 

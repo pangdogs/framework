@@ -32,19 +32,17 @@ var (
 	ErrDecode = errors.New("gap-decode") // 解码错误
 )
 
-var decoder = MakeDecoder(gap.DefaultMsgCreator())
+var decoder = &Decoder{MsgCreator: gap.DefaultMsgCreator()}
 
-// DefaultDecoder 默认消息包解码器
-func DefaultDecoder() Decoder {
-	return decoder
-}
-
-// MakeDecoder 创建消息包解码器
-func MakeDecoder(msgCreator gap.IMsgCreator) Decoder {
+// NewDecoder 创建消息包解码器
+func NewDecoder(msgCreator gap.IMsgCreator) *Decoder {
 	if msgCreator == nil {
 		exception.Panicf("%w: %w: msgCreator is nil", ErrDecode, core.ErrArgs)
 	}
-	return Decoder{
+	if msgCreator == decoder.MsgCreator {
+		return decoder
+	}
+	return &Decoder{
 		MsgCreator: msgCreator,
 	}
 }
@@ -54,8 +52,14 @@ type Decoder struct {
 	MsgCreator gap.IMsgCreator // 消息对象构建器
 }
 
+// SetMsgCreator 设置消息对象构建器
+func (d *Decoder) SetMsgCreator(msgCreator gap.IMsgCreator) *Decoder {
+	d.MsgCreator = msgCreator
+	return d
+}
+
 // Decode 解码消息包
-func (d Decoder) Decode(data []byte) (gap.MsgPacket, error) {
+func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 	if d.MsgCreator == nil {
 		return gap.MsgPacket{}, fmt.Errorf("%w: MsgCreator is nil", ErrDecode)
 	}

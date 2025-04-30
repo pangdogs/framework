@@ -28,8 +28,8 @@ import (
 	"hash"
 )
 
-// NewMAC32Module 创建MAC32模块
-func NewMAC32Module(h hash.Hash32, pk []byte) IMACModule {
+// NewMAC32 创建MAC32模块
+func NewMAC32(h hash.Hash32, pk []byte) IMAC {
 	if h == nil {
 		exception.Panicf("%w: %w: h is nil", ErrMAC, core.ErrArgs)
 	}
@@ -38,20 +38,20 @@ func NewMAC32Module(h hash.Hash32, pk []byte) IMACModule {
 		exception.Panicf("%w: %w: len(pk) <= 0", ErrMAC, core.ErrArgs)
 	}
 
-	return &MAC32Module{
+	return &MAC32{
 		Hash:       h,
 		PrivateKey: pk,
 	}
 }
 
-// MAC32Module MAC32模块
-type MAC32Module struct {
+// MAC32 MAC32模块
+type MAC32 struct {
 	Hash       hash.Hash32 // hash(32bit)函数
 	PrivateKey []byte      // 秘钥
 }
 
 // PatchMAC 补充MAC
-func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
+func (m *MAC32) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
 	if m.Hash == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
@@ -82,7 +82,7 @@ func (m *MAC32Module) PatchMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) 
 }
 
 // VerifyMAC 验证MAC
-func (m *MAC32Module) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
+func (m *MAC32) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
 	if m.Hash == nil {
 		return nil, fmt.Errorf("%w: Hash is nil", ErrMAC)
 	}
@@ -107,6 +107,6 @@ func (m *MAC32Module) VerifyMAC(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte)
 }
 
 // SizeofMAC MAC大小
-func (m *MAC32Module) SizeofMAC(msgLen int) int {
+func (m *MAC32) SizeofMAC(msgLen int) int {
 	return binaryutil.SizeofVarint(int64(msgLen)) + binaryutil.SizeofUint32()
 }

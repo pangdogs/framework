@@ -22,6 +22,8 @@ package codec
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
@@ -32,31 +34,57 @@ var (
 	ErrUnableToDetectLength = fmt.Errorf("%w: %w, unable to detect length", ErrDecode, io.ErrShortBuffer) // 无法探测消息长度
 )
 
+// NewDecoder 创建消息包解码器
+func NewDecoder(msgCreator gtp.IMsgCreator) *Decoder {
+	if msgCreator == nil {
+		exception.Panicf("%w: %w: msgCreator is nil", ErrDecode, core.ErrArgs)
+	}
+	return &Decoder{
+		MsgCreator: msgCreator,
+	}
+}
+
 // IValidate 验证消息包接口
 type IValidate interface {
 	// Validate 验证消息包
 	Validate(msgHead gtp.MsgHead, msgBuf []byte) error
 }
 
-// IDecoder 消息包解码器接口
-type IDecoder interface {
-	// Decode 解码消息包
-	Decode(data []byte, validate ...IValidate) (gtp.MsgPacket, int, error)
-	// GC GC
-	GC()
-}
-
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator        gtp.IMsgCreator           // 消息对象构建器
-	EncryptionModule  IEncryptionModule         // 加密模块
-	MACModule         IMACModule                // MAC模块
-	CompressionModule ICompressionModule        // 压缩模块
-	gcList            []binaryutil.RecycleBytes // GC列表
+	MsgCreator  gtp.IMsgCreator           // 消息对象构建器
+	Encryption  IEncryption               // 加密模块
+	MAC         IMAC                      // MAC模块
+	Compression ICompression              // 压缩模块
+	gcList      []binaryutil.RecycleBytes // GC列表
+}
+
+// SetMsgCreator 设置消息对象构建器
+func (d *Decoder) SetMsgCreator(msgCreator gtp.IMsgCreator) *Decoder {
+	d.MsgCreator = msgCreator
+	return d
+}
+
+// SetEncryption 设置加密模块
+func (d *Decoder) SetEncryption(encryption IEncryption) *Decoder {
+	d.Encryption = encryption
+	return d
+}
+
+// SetMAC 设置MAC模块
+func (d *Decoder) SetMAC(mac IMAC) *Decoder {
+	d.MAC = mac
+	return d
+}
+
+// SetCompression 设置压缩模块
+func (d *Decoder) SetCompression(compression ICompression) *Decoder {
+	d.Compression = compression
+	return d
 }
 
 // Decode 解码消息包
-func (d *Decoder) Decode(data []byte, validate ...IValidate) (gtp.MsgPacket, int, error) {
+func (d *Decoder) Decode(data []byte, validate IValidate) (gtp.MsgPacket, int, error) {
 	if d.MsgCreator == nil {
 		return gtp.MsgPacket{}, 0, fmt.Errorf("%w: MsgCreator is nil", ErrDecode)
 	}
@@ -68,7 +96,7 @@ func (d *Decoder) Decode(data []byte, validate ...IValidate) (gtp.MsgPacket, int
 	}
 
 	// 解码消息包
-	mp, err := d.decode(data[:length], validate...)
+	mp, err := d.decode(data[:length], validate)
 	if err != nil {
 		return gtp.MsgPacket{}, length, err
 	}
@@ -101,7 +129,7 @@ func (d *Decoder) lengthDetection(data []byte) (int, error) {
 }
 
 // decode 解码消息包
-func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, error) {
+func (d *Decoder) decode(data []byte, validate IValidate) (gtp.MsgPacket, error) {
 	// 消息包数据缓存
 	mpBuf := binaryutil.MakeRecycleBytes(len(data))
 	d.gcList = append(d.gcList, mpBuf)
@@ -119,8 +147,8 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	msgBuf := mpBuf.Data()[mp.Head.Size():]
 
 	// 验证消息包
-	if len(validate) > 0 {
-		if err := validate[0].Validate(mp.Head, msgBuf); err != nil {
+	if validate != nil {
+		if err := validate.Validate(mp.Head, msgBuf); err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("%w: validate msg-packet-head failed, %w", ErrDecode, err)
 		}
 	}
@@ -128,10 +156,10 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 	// 检查加密标记
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {
 		// 解密消息体
-		if d.EncryptionModule == nil {
-			return gtp.MsgPacket{}, fmt.Errorf("%w: EncryptionModule is nil, msg can't be decrypted", ErrDecode)
+		if d.Encryption == nil {
+			return gtp.MsgPacket{}, fmt.Errorf("%w: Encryption is nil, msg can't be decrypted", ErrDecode)
 		}
-		dencryptBuf, err := d.EncryptionModule.Transforming(msgBuf, msgBuf)
+		dencryptBuf, err := d.Encryption.Transforming(msgBuf, msgBuf)
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("%w: dencrypt msg failed, %w", ErrDecode, err)
 		}
@@ -142,11 +170,11 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 
 		// 检查MAC标记
 		if mp.Head.Flags.Is(gtp.Flag_MAC) {
-			if d.MACModule == nil {
-				return gtp.MsgPacket{}, fmt.Errorf("%w: MACModule is nil, msg can't be verify MAC", ErrDecode)
+			if d.MAC == nil {
+				return gtp.MsgPacket{}, fmt.Errorf("%w: MAC is nil, msg can't be verify MAC", ErrDecode)
 			}
 			// 检测MAC
-			msgBuf, err = d.MACModule.VerifyMAC(mp.Head.MsgId, mp.Head.Flags, msgBuf)
+			msgBuf, err = d.MAC.VerifyMAC(mp.Head.MsgId, mp.Head.Flags, msgBuf)
 			if err != nil {
 				return gtp.MsgPacket{}, fmt.Errorf("%w: verify msg-mac failed, %w", ErrDecode, err)
 			}
@@ -155,10 +183,10 @@ func (d *Decoder) decode(data []byte, validate ...IValidate) (gtp.MsgPacket, err
 
 	// 检查压缩标记
 	if mp.Head.Flags.Is(gtp.Flag_Compressed) {
-		if d.CompressionModule == nil {
-			return gtp.MsgPacket{}, fmt.Errorf("%w: CompressionModule is nil, msg can't be uncompress", ErrDecode)
+		if d.Compression == nil {
+			return gtp.MsgPacket{}, fmt.Errorf("%w: Compression is nil, msg can't be uncompress", ErrDecode)
 		}
-		uncompressedBuf, err := d.CompressionModule.Uncompress(msgBuf)
+		uncompressedBuf, err := d.Compression.Uncompress(msgBuf)
 		if err != nil {
 			return gtp.MsgPacket{}, fmt.Errorf("%w: uncompress msg failed, %w", ErrDecode, err)
 		}
