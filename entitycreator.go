@@ -112,7 +112,7 @@ func (c *EntityCreatorAsync) SetComponentUniqueID(b bool) *EntityCreatorAsync {
 // SetMeta 设置Meta信息
 func (c *EntityCreatorAsync) SetMeta(dict map[string]any) *EntityCreatorAsync {
 	if c.meta == nil {
-		c.settings = append(c.settings, ec.With.Meta(c.meta))
+		c.settings = append(c.settings, c.withMeta())
 	}
 	c.meta = meta.M(dict)
 	return c
@@ -122,7 +122,7 @@ func (c *EntityCreatorAsync) SetMeta(dict map[string]any) *EntityCreatorAsync {
 func (c *EntityCreatorAsync) MergeMeta(dict map[string]any) *EntityCreatorAsync {
 	for k, v := range dict {
 		if c.meta == nil {
-			c.settings = append(c.settings, ec.With.Meta(c.meta))
+			c.settings = append(c.settings, c.withMeta())
 		}
 		c.meta.Add(k, v)
 	}
@@ -133,7 +133,7 @@ func (c *EntityCreatorAsync) MergeMeta(dict map[string]any) *EntityCreatorAsync 
 func (c *EntityCreatorAsync) MergeMetaIfAbsent(dict map[string]any) *EntityCreatorAsync {
 	for k, v := range dict {
 		if c.meta == nil {
-			c.settings = append(c.settings, ec.With.Meta(c.meta))
+			c.settings = append(c.settings, c.withMeta())
 		}
 		c.meta.TryAdd(k, v)
 	}
@@ -146,7 +146,7 @@ func (c *EntityCreatorAsync) AssignMeta(m meta.Meta) *EntityCreatorAsync {
 		m = meta.M(nil)
 	}
 	if c.meta == nil {
-		c.settings = append(c.settings, ec.With.Meta(c.meta))
+		c.settings = append(c.settings, c.withMeta())
 	}
 	c.meta = m
 	return c
@@ -241,4 +241,10 @@ func (c *EntityCreatorAsync) NewAsync() async.AsyncRetT[ec.ConcurrentEntity] {
 	}()
 
 	return asyncRetT
+}
+
+func (c *EntityCreatorAsync) withMeta() option.Setting[ec.EntityOptions] {
+	return func(o *ec.EntityOptions) {
+		o.Meta = c.meta
+	}
 }
