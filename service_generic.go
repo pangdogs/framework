@@ -91,7 +91,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	svcInstFace := iface.Face[service.Context]{}
 
 	if cb, ok := s.instance.(IServiceInstantiation); ok {
-		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](cb.Instantiation())
+		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](cb.Instantiate())
 	} else {
 		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&Service{})
 	}

@@ -60,30 +60,30 @@ type Runtime struct {
 }
 
 // GetDistEntityRegistry 获取分布式实体注册支持
-func (inst *Runtime) GetDistEntityRegistry() dentr.IDistEntityRegistry {
-	return dentr.Using(inst)
+func (rt *Runtime) GetDistEntityRegistry() dentr.IDistEntityRegistry {
+	return dentr.Using(rt)
 }
 
 // GetRPCStack 获取RPC调用堆栈支持
-func (inst *Runtime) GetRPCStack() rpcstack.IRPCStack {
-	return rpcstack.Using(inst)
+func (rt *Runtime) GetRPCStack() rpcstack.IRPCStack {
+	return rpcstack.Using(rt)
 }
 
 // GetService 获取服务
-func (inst *Runtime) GetService() IService {
-	return reinterpret.Cast[IService](service.Current(inst))
+func (rt *Runtime) GetService() IService {
+	return reinterpret.Cast[IService](service.Current(rt))
 }
 
 // GetAutoInjection 是否自动注入组件
-func (inst *Runtime) GetAutoInjection() bool {
-	return inst.autoInjection
+func (rt *Runtime) GetAutoInjection() bool {
+	return rt.autoInjection
 }
 
 // BuildEntity 创建实体
-func (inst *Runtime) BuildEntity(prototype string) *core.EntityCreator {
-	return core.BuildEntity(runtime.Current(inst), prototype)
+func (rt *Runtime) BuildEntity(prototype string) *core.EntityCreator {
+	return core.BuildEntity(runtime.Current(rt), prototype)
 }
 
-func (inst *Runtime) setAutoInjection(b bool) {
-	inst.autoInjection = b
+func (rt *Runtime) setAutoInjection(b bool) {
+	rt.autoInjection = b
 }

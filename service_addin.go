@@ -20,33 +20,33 @@
 package framework
 
 type InstallServiceLogger interface {
-	InstallLogger(inst IService)
+	InstallLogger(svc IService)
 }
 
 type InstallServiceConfig interface {
-	InstallConfig(inst IService)
+	InstallConfig(svc IService)
 }
 
 type InstallServiceBroker interface {
-	InstallBroker(inst IService)
+	InstallBroker(svc IService)
 }
 
 type InstallServiceRegistry interface {
-	InstallRegistry(inst IService)
+	InstallRegistry(svc IService)
 }
 
 type InstallServiceDistSync interface {
-	InstallDistSync(inst IService)
+	InstallDistSync(svc IService)
 }
 
 type InstallServiceDistService interface {
-	InstallDistService(inst IService)
+	InstallDistService(svc IService)
 }
 
 type InstallServiceRPC interface {
-	InstallRPC(inst IService)
+	InstallRPC(svc IService)
 }
 
 type InstallServiceDistEntityQuerier interface {
-	InstallDistEntityQuerier(inst IService)
+	InstallDistEntityQuerier(svc IService)
 }

@@ -27,7 +27,7 @@ import (
 
 // IServiceInstantiation 服务实例化接口
 type IServiceInstantiation interface {
-	Instantiation() IService
+	Instantiate() IService
 }
 
 func newServiceInstantiation(svcInst any) *_ServiceInstantiation {
@@ -58,7 +58,7 @@ type _ServiceInstantiation struct {
 	serviceInstanceRT reflect.Type
 }
 
-func (s *_ServiceInstantiation) Instantiation() IService {
+func (s *_ServiceInstantiation) Instantiate() IService {
 	if s.serviceInstanceRT == nil {
 		exception.Panicf("%w: serviceInstanceRT is nil", ErrFramework)
 	}

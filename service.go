@@ -78,43 +78,43 @@ type Service struct {
 }
 
 // GetConf 获取配置插件
-func (inst *Service) GetConf() conf.IConfig {
-	return conf.Using(inst)
+func (svc *Service) GetConf() conf.IConfig {
+	return conf.Using(svc)
 }
 
 // GetRegistry 获取服务发现插件
-func (inst *Service) GetRegistry() discovery.IRegistry {
-	return discovery.Using(inst)
+func (svc *Service) GetRegistry() discovery.IRegistry {
+	return discovery.Using(svc)
 }
 
 // GetBroker 获取消息队列中间件插件
-func (inst *Service) GetBroker() broker.IBroker {
-	return broker.Using(inst)
+func (svc *Service) GetBroker() broker.IBroker {
+	return broker.Using(svc)
 }
 
 // GetDistSync 获取分布式同步插件
-func (inst *Service) GetDistSync() dsync.IDistSync {
-	return dsync.Using(inst)
+func (svc *Service) GetDistSync() dsync.IDistSync {
+	return dsync.Using(svc)
 }
 
 // GetDistService 获取分布式服务插件
-func (inst *Service) GetDistService() dsvc.IDistService {
-	return dsvc.Using(inst)
+func (svc *Service) GetDistService() dsvc.IDistService {
+	return dsvc.Using(svc)
 }
 
 // GetDistEntityQuerier 获取分布式实体查询插件
-func (inst *Service) GetDistEntityQuerier() dentq.IDistEntityQuerier {
-	return dentq.Using(inst)
+func (svc *Service) GetDistEntityQuerier() dentq.IDistEntityQuerier {
+	return dentq.Using(svc)
 }
 
 // GetRPC 获取RPC支持插件
-func (inst *Service) GetRPC() rpc.IRPC {
-	return rpc.Using(inst)
+func (svc *Service) GetRPC() rpc.IRPC {
+	return rpc.Using(svc)
 }
 
 // GetStartupNo 获取启动序号
-func (inst *Service) GetStartupNo() int {
-	v, _ := inst.GetMemKV().Load("startup.no")
+func (svc *Service) GetStartupNo() int {
+	v, _ := svc.GetMemKV().Load("startup.no")
 	if v == nil {
 		exception.Panicf("%w: service memory kv startup.no not existed", ErrFramework)
 	}
@@ -122,8 +122,8 @@ func (inst *Service) GetStartupNo() int {
 }
 
 // GetStartupConf 获取启动参数配置
-func (inst *Service) GetStartupConf() *viper.Viper {
-	v, _ := inst.GetMemKV().Load("startup.conf")
+func (svc *Service) GetStartupConf() *viper.Viper {
+	v, _ := svc.GetMemKV().Load("startup.conf")
 	if v == nil {
 		exception.Panicf("%w: service memory kv startup.conf not existed", ErrFramework)
 	}
@@ -131,8 +131,8 @@ func (inst *Service) GetStartupConf() *viper.Viper {
 }
 
 // GetMemKV 获取服务内存KV数据库
-func (inst *Service) GetMemKV() *sync.Map {
-	memKV, _ := inst.Value("mem_kv").(*sync.Map)
+func (svc *Service) GetMemKV() *sync.Map {
+	memKV, _ := svc.Value("mem_kv").(*sync.Map)
 	if memKV == nil {
 		exception.Panicf("%w: service memory not existed", ErrFramework)
 	}
@@ -140,16 +140,16 @@ func (inst *Service) GetMemKV() *sync.Map {
 }
 
 // BuildRuntime 创建运行时
-func (inst *Service) BuildRuntime() *RuntimeCreator {
-	return BuildRuntime(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface).Setup(&inst.runtimeGeneric)
+func (svc *Service) BuildRuntime() *RuntimeCreator {
+	return BuildRuntime(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface).Setup(&svc.runtimeGeneric)
 }
 
 // BuildEntityPT 创建实体原型
-func (inst *Service) BuildEntityPT(prototype string) *EntityPTCreator {
-	return BuildEntityPT(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype)
+func (svc *Service) BuildEntityPT(prototype string) *EntityPTCreator {
+	return BuildEntityPT(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype)
 }
 
 // BuildEntityAsync 创建实体
-func (inst *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
-	return BuildEntityAsync(service.UnsafeContext(inst).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(inst.BuildRuntime())
+func (svc *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
+	return BuildEntityAsync(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(svc.BuildRuntime())
 }

@@ -27,7 +27,7 @@ import (
 
 // IRuntimeInstantiation 运行时实例化接口
 type IRuntimeInstantiation interface {
-	Instantiation() IRuntime
+	Instantiate() IRuntime
 }
 
 func newRuntimeInstantiation(rtInst any) *_RuntimeInstantiation {
@@ -58,7 +58,7 @@ type _RuntimeInstantiation struct {
 	runtimeInstanceRT reflect.Type
 }
 
-func (r *_RuntimeInstantiation) Instantiation() IRuntime {
+func (r *_RuntimeInstantiation) Instantiate() IRuntime {
 	if r.runtimeInstanceRT == nil {
 		exception.Panicf("%w: runtimeInstanceRT is nil", ErrFramework)
 	}

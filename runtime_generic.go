@@ -76,7 +76,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	rtInstFace := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
-		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](cb.Instantiation())
+		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](cb.Instantiate())
 	} else {
 		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](&Runtime{})
 	}
