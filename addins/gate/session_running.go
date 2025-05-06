@@ -99,7 +99,7 @@ func (s *_Session) mainLoop() {
 		if s.transceiver.Conn != nil {
 			s.transceiver.Conn.Close()
 		}
-		s.transceiver.Clean()
+		s.transceiver.Dispose()
 
 		// 删除会话
 		s.gate.deleteSession(s.GetId())

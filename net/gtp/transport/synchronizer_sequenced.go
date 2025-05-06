@@ -284,8 +284,8 @@ func (s *SequencedSynchronizer) Cached() int {
 	return s.cached
 }
 
-// Clean 清理
-func (s *SequencedSynchronizer) Clean() {
+// Dispose 释放资源
+func (s *SequencedSynchronizer) Dispose() {
 	s.sendSeq = 0
 	s.recvSeq = 0
 	s.ackSeq = 0

@@ -94,7 +94,7 @@ func (c *Client) mainLoop() {
 		if c.transceiver.Conn != nil {
 			c.transceiver.Conn.Close()
 		}
-		c.transceiver.Clean()
+		c.transceiver.Dispose()
 
 		c.wg.Done()
 		c.wg.Wait()

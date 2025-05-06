@@ -51,6 +51,6 @@ type ISynchronizer interface {
 	Cap() int
 	// Cached 已缓存大小
 	Cached() int
-	// Clean 清理
-	Clean()
+	// Dispose 释放资源
+	Dispose()
 }

@@ -269,12 +269,12 @@ func (t *Transceiver) GC() {
 	}
 }
 
-// Clean 清理
-func (t *Transceiver) Clean() {
+// Dispose 释放资源
+func (t *Transceiver) Dispose() {
 	t.GC()
 
 	if t.Synchronizer != nil {
-		t.Synchronizer.Clean()
+		t.Synchronizer.Dispose()
 	}
 
 	t.buffer.Reset()

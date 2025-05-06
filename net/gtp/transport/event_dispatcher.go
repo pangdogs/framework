@@ -85,7 +85,7 @@ func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler)
 
 	_errorHandler := pie.First(errorHandler)
 
-	defer d.Transceiver.Clean()
+	defer d.Transceiver.Dispose()
 
 	for {
 		select {

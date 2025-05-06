@@ -79,7 +79,7 @@ func (s *UnsequencedSynchronizer) Cached() int {
 	return s.Len()
 }
 
-// Clean 清理
-func (s *UnsequencedSynchronizer) Clean() {
+// Dispose 释放资源
+func (s *UnsequencedSynchronizer) Dispose() {
 	s.Buffer.Reset()
 }

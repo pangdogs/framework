@@ -55,7 +55,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		},
 		RetryTimes: ctor.options.IORetryTimes,
 	}
-	defer handshake.Transceiver.Clean()
+	defer handshake.Transceiver.Dispose()
 
 	var sessionId uid.Id
 	cs := ctor.options.EncCipherSuite

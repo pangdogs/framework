@@ -55,7 +55,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		},
 		RetryTimes: acc.gate.options.IORetryTimes,
 	}
-	defer handshake.Transceiver.Clean()
+	defer handshake.Transceiver.Dispose()
 
 	var cs gtp.CipherSuite
 	var cm gtp.Compression
