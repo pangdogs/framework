@@ -39,44 +39,44 @@ type SessionSettings struct {
 	CurrRecvEventHandler       SessionRecvEventHandler
 }
 
-// StateChangedHandler 设置会话状态变化的处理器
-func (s SessionSettings) StateChangedHandler(handler SessionStateChangedHandler) SessionSettings {
+// SetStateChangedHandler 设置会话状态变化的处理器
+func (s SessionSettings) SetStateChangedHandler(handler SessionStateChangedHandler) SessionSettings {
 	s.settings = append(s.settings, sessionWith.StateChangedHandler(handler))
 	return s
 }
 
-// SendDataChanSize 设置发送数据的channel的大小，<=0表示不使用channel
-func (s SessionSettings) SendDataChanSize(size int) SessionSettings {
+// SetSendDataChanSize 设置发送数据的channel的大小，<=0表示不使用channel
+func (s SessionSettings) SetSendDataChanSize(size int) SessionSettings {
 	s.settings = append(s.settings, sessionWith.SendDataChanSize(size))
 	return s
 }
 
-// RecvDataChanSize 设置接收数据的channel的大小，<=0表示不使用channel
-func (s SessionSettings) RecvDataChanSize(size int, recyclable bool) SessionSettings {
+// SetRecvDataChanSize 设置接收数据的channel的大小，<=0表示不使用channel
+func (s SessionSettings) SetRecvDataChanSize(size int, recyclable bool) SessionSettings {
 	s.settings = append(s.settings, sessionWith.RecvDataChanSize(size, recyclable))
 	return s
 }
 
-// SendEventChanSize 设置发送自定义事件的channel的大小，<=0表示不使用channel
-func (s SessionSettings) SendEventChanSize(size int) SessionSettings {
+// SetSendEventChanSize 设置发送自定义事件的channel的大小，<=0表示不使用channel
+func (s SessionSettings) SetSendEventChanSize(size int) SessionSettings {
 	s.settings = append(s.settings, sessionWith.SendEventChanSize(size))
 	return s
 }
 
-// RecvEventChanSize 设置接收自定义事件的channel的大小，<=0表示不使用channel
-func (s SessionSettings) RecvEventChanSize(size int) SessionSettings {
+// SetRecvEventChanSize 设置接收自定义事件的channel的大小，<=0表示不使用channel
+func (s SessionSettings) SetRecvEventChanSize(size int) SessionSettings {
 	s.settings = append(s.settings, sessionWith.RecvEventChanSize(size))
 	return s
 }
 
-// RecvDataHandler 设置接收的数据的处理器
-func (s SessionSettings) RecvDataHandler(handler SessionRecvDataHandler) SessionSettings {
+// SetRecvDataHandler 设置接收的数据的处理器
+func (s SessionSettings) SetRecvDataHandler(handler SessionRecvDataHandler) SessionSettings {
 	s.settings = append(s.settings, sessionWith.RecvDataHandler(handler))
 	return s
 }
 
-// RecvEventHandler 设置接收自定义事件的处理器
-func (s SessionSettings) RecvEventHandler(handler SessionRecvEventHandler) SessionSettings {
+// SetRecvEventHandler 设置接收自定义事件的处理器
+func (s SessionSettings) SetRecvEventHandler(handler SessionRecvEventHandler) SessionSettings {
 	s.settings = append(s.settings, sessionWith.RecvEventHandler(handler))
 	return s
 }

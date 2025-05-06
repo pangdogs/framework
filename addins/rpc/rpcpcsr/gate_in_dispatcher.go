@@ -33,7 +33,7 @@ func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState ga
 	switch curState {
 	case gate.SessionState_Confirmed:
 		err := session.GetSettings().
-			RecvDataHandler(append(session.GetSettings().CurrRecvDataHandler, p.handleRecvData)).
+			SetRecvDataHandler(append(session.GetSettings().CurrRecvDataHandler, p.handleRecvData)).
 			Change()
 		if err != nil {
 			log.Errorf(p.svcCtx, "change session %q settings failed, %s", session.GetId(), err)
