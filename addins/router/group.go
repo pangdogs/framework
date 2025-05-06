@@ -224,7 +224,7 @@ func (g *_Group) SendData(data []byte) {
 
 			err := session.SendData(data)
 			if err != nil {
-				log.Errorf(g.router.svcCtx, "group %q send data(%d) to session %q remote %q failed, %s", g.GetName(), len(data), session.GetId(), session.GetRemoteAddr(), err)
+				log.Errorf(g.router.svcCtx, "group %q send data to session %q remote %q failed, %s", g.GetName(), session.GetId(), session.GetRemoteAddr(), err)
 			}
 		})
 	}
