@@ -27,7 +27,7 @@ import (
 type (
 	// EventHandler is used to process messages via a subscription of a topic. The handler is passed a publication interface which contains the
 	// message and optional Ack method to acknowledge receipt of the message.
-	EventHandler = generic.Delegate1[IEvent, error]
+	EventHandler = generic.Delegate1[Event, error]
 	// UnsubscribedCB Unsubscribed callback method.
 	UnsubscribedCB = generic.Action1[ISubscriber]
 )

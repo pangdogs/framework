@@ -21,6 +21,7 @@ package nats_broker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -95,7 +96,7 @@ func (b *_Broker) newSubscriber(ctx context.Context, mode _SubscribeMode, patter
 
 	switch mode {
 	case _SubscribeMode_Sync, _SubscribeMode_Chan:
-		sub.eventChan = make(chan broker.IEvent, opts.EventChanSize)
+		sub.eventChan = make(chan broker.Event, opts.EventChanSize)
 		handleMsg = sub.handleEventChan
 	case _SubscribeMode_Handler:
 		sub.eventHandler = opts.EventHandler
@@ -132,7 +133,7 @@ type _Subscriber struct {
 	terminated     chan async.Ret
 	broker         *_Broker
 	natsSub        *nats.Subscription
-	eventChan      chan broker.IEvent
+	eventChan      chan broker.Event
 	eventHandler   broker.EventHandler
 	unsubscribedCB broker.UnsubscribedCB
 }
@@ -159,15 +160,15 @@ func (s *_Subscriber) Unsubscribed() async.AsyncRet {
 }
 
 // Next is a blocking call that waits for the next event to be received from the subscriber.
-func (s *_Subscriber) Next() (broker.IEvent, error) {
+func (s *_Subscriber) Next() (broker.Event, error) {
 	for event := range s.eventChan {
 		return event, nil
 	}
-	return nil, broker.ErrUnsubscribed
+	return broker.Event{}, broker.ErrUnsubscribed
 }
 
 // EventChan returns a channel that can be used to receive events from the subscriber.
-func (s *_Subscriber) EventChan() (<-chan broker.IEvent, error) {
+func (s *_Subscriber) EventChan() (<-chan broker.Event, error) {
 	return s.eventChan, nil
 }
 
@@ -197,32 +198,48 @@ func (s *_Subscriber) mainLoop() {
 }
 
 func (s *_Subscriber) handleEventChan(msg *nats.Msg) {
-	e := &_Event{
-		msg: msg,
-		ns:  s,
+	e := broker.Event{
+		Pattern: s.Pattern(),
+		Topic:   strings.TrimPrefix(msg.Subject, s.broker.options.TopicPrefix),
+		Queue:   s.Queue(),
+		Message: msg.Data,
+		Ack:     unsupportedAck,
+		Nak:     unsupportedNak,
 	}
 
 	select {
 	case s.eventChan <- e:
 	default:
 		var nakErr error
-		if e.Queue() != "" {
+		if e.Queue != "" {
 			nakErr = e.Nak(context.Background())
 		}
-		log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, receive event chan is full, nak: %v", e.Topic(), e.Queue(), nakErr)
+		log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, receive event chan is full, nak: %v", e.Topic, e.Queue, nakErr)
 	}
 }
 
 func (s *_Subscriber) handleEventProcess(msg *nats.Msg) {
-	e := &_Event{
-		msg: msg,
-		ns:  s,
+	e := broker.Event{
+		Pattern: s.Pattern(),
+		Topic:   strings.TrimPrefix(msg.Subject, s.broker.options.TopicPrefix),
+		Queue:   s.Queue(),
+		Message: msg.Data,
+		Ack:     unsupportedAck,
+		Nak:     unsupportedNak,
 	}
 
 	s.eventHandler.SafeCall(func(err error, panicErr error) bool {
 		if err := generic.FuncError(err, panicErr); err != nil {
-			log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, %s", e.Topic(), e.Queue(), err)
+			log.Errorf(s.broker.svcCtx, "handle msg from topic %q with queue %q failed, %s", e.Topic, e.Queue, err)
 		}
 		return panicErr != nil
 	}, e)
+}
+
+func unsupportedAck(ctx context.Context) error {
+	return errors.New("used not JetStream, unable to acknowledge(ack)")
+}
+
+func unsupportedNak(ctx context.Context) error {
+	return errors.New("used not JetStream, unable to negatively acknowledge(nak)")
 }

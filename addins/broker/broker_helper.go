@@ -75,15 +75,15 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 
 	_, err := broker.Subscribe(ctx, pattern,
 		With.Queue(queue),
-		With.EventHandler(generic.CastDelegate1(func(e IEvent) error {
-			bs := binaryutil.MakeNonRecycleBytes(e.Message())
+		With.EventHandler(generic.CastDelegate1(func(e Event) error {
+			bs := binaryutil.MakeNonRecycleBytes(e.Message)
 
 			select {
 			case ch <- bs:
 				return nil
 			default:
 				var nakErr error
-				if e.Queue() != "" {
+				if e.Queue != "" {
 					nakErr = e.Nak(context.Background())
 				}
 				return fmt.Errorf("read chan is full, nak: %v", nakErr)
