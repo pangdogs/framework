@@ -46,10 +46,10 @@ var (
 type IRouter interface {
 	// Mapping 路由映射
 	Mapping(entityId, sessionId uid.Id) (IMapping, error)
-	// CleanEntity 清理实体路由信息
-	CleanEntity(entityId uid.Id)
-	// CleanSession 清理会话路由信息
-	CleanSession(sessionId uid.Id)
+	// ClearEntity 清除实体路由信息
+	ClearEntity(entityId uid.Id)
+	// ClearSession 清除会话路由信息
+	ClearSession(sessionId uid.Id)
 	// LookupEntity 查找实体
 	LookupEntity(sessionId uid.Id) (ec.ConcurrentEntity, string, bool)
 	// LookupSession 查找会话
@@ -178,8 +178,8 @@ func (r *_Router) Mapping(entityId, sessionId uid.Id) (IMapping, error) {
 	return ret, err
 }
 
-// CleanEntity 清理实体路由信息
-func (r *_Router) CleanEntity(entityId uid.Id) {
+// ClearEntity 清除实体路由信息
+func (r *_Router) ClearEntity(entityId uid.Id) {
 	r.planning.AutoLock(func(planning *map[uid.Id]*_Mapping) {
 		mapping, ok := (*planning)[entityId]
 		if !ok {
@@ -195,8 +195,8 @@ func (r *_Router) CleanEntity(entityId uid.Id) {
 	})
 }
 
-// CleanSession 清理会话路由信息
-func (r *_Router) CleanSession(sessionId uid.Id) {
+// ClearSession 清除会话路由信息
+func (r *_Router) ClearSession(sessionId uid.Id) {
 	r.planning.AutoLock(func(planning *map[uid.Id]*_Mapping) {
 		mapping, ok := (*planning)[sessionId]
 		if !ok {

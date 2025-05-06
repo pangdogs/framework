@@ -121,7 +121,7 @@ func (m *_DistMutex) Lock(ctx context.Context) error {
 		return fmt.Errorf("dsync: %w", err)
 	}
 
-	m.clean()
+	m.reset()
 
 	m.session = session
 	m.mutex = mutex
@@ -144,7 +144,7 @@ func (m *_DistMutex) Unlock(ctx context.Context) error {
 		return dsync.ErrNotAcquired
 	}
 
-	defer m.clean()
+	defer m.reset()
 
 	if err := m.mutex.Unlock(ctx); err != nil {
 		if errors.Is(err, rpctypes.ErrKeyNotFound) {
@@ -196,7 +196,7 @@ func (m *_DistMutex) Valid(ctx context.Context) (bool, error) {
 	}
 }
 
-func (m *_DistMutex) clean() {
+func (m *_DistMutex) reset() {
 	if m.session != nil {
 		m.session.Close()
 	}

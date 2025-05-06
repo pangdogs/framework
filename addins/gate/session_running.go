@@ -95,7 +95,7 @@ func (s *_Session) mainLoop() {
 		// 调整会话状态为已过期
 		s.setState(SessionState_Death)
 
-		// 关闭连接和清理数据
+		// 关闭连接和释放资源
 		if s.transceiver.Conn != nil {
 			s.transceiver.Conn.Close()
 		}
