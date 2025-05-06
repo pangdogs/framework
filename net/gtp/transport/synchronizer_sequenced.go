@@ -76,7 +76,7 @@ func (q *_Queue) Push(elem _Frame) {
 
 func (q *_Queue) Peek() *_Frame {
 	if q.count <= 0 {
-		panic(fmt.Errorf("%w: queue: Peek() called on empty queue", ErrSynchronizer))
+		exception.Panicf("%w: queue: Peek() called on empty queue", ErrSynchronizer)
 	}
 	return &q.buf[q.head]
 }
@@ -86,14 +86,14 @@ func (q *_Queue) Index(i int) *_Frame {
 		i += q.count
 	}
 	if i < 0 || i >= q.count {
-		panic(fmt.Errorf("%w: queue: Index() called with index out of range", ErrSynchronizer))
+		exception.Panicf("%w: queue: Index() called with index out of range", ErrSynchronizer)
 	}
 	return &q.buf[(q.head+i)&(len(q.buf)-1)]
 }
 
 func (q *_Queue) Pop() _Frame {
 	if q.count <= 0 {
-		panic(fmt.Errorf("%w: queue: Pop() called on empty queue", ErrSynchronizer))
+		exception.Panicf("%w: queue: Pop() called on empty queue", ErrSynchronizer)
 	}
 
 	elem := q.buf[q.head]
