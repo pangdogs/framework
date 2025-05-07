@@ -51,8 +51,8 @@ const (
 type ISession interface {
 	context.Context
 	fmt.Stringer
-	// GetContext 获取服务上下文
-	GetContext() service.Context
+	// GetServiceContext 获取服务上下文
+	GetServiceContext() service.Context
 	// GetId 获取会话Id
 	GetId() uid.Id
 	// GetUserId 获取用户Id
@@ -65,6 +65,8 @@ type ISession interface {
 	GetLocalAddr() net.Addr
 	// GetRemoteAddr 获取对端地址
 	GetRemoteAddr() net.Addr
+	// GetResumeTimes 获取会话恢复次数
+	GetResumeTimes() int
 	// GetSettings 获取配置
 	GetSettings() SessionSettings
 	// SendData 发送数据
@@ -104,7 +106,8 @@ type _Session struct {
 	eventDispatcher transport.EventDispatcher
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
-	renewChan       chan struct{}
+	resumeChan      chan struct{}
+	resumeTimes     int
 	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
 	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
 }
@@ -114,8 +117,8 @@ func (s *_Session) String() string {
 	return fmt.Sprintf(`{"id":%q, "user_id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetUserId(), s.GetToken(), s.GetState())
 }
 
-// GetContext 获取服务上下文
-func (s *_Session) GetContext() service.Context {
+// GetServiceContext 获取服务上下文
+func (s *_Session) GetServiceContext() service.Context {
 	return s.gate.svcCtx
 }
 
@@ -153,6 +156,13 @@ func (s *_Session) GetRemoteAddr() net.Addr {
 	s.Lock()
 	defer s.Unlock()
 	return s.transceiver.Conn.RemoteAddr()
+}
+
+// GetResumeTimes 获取会话恢复次数
+func (s *_Session) GetResumeTimes() int {
+	s.Lock()
+	defer s.Unlock()
+	return s.resumeTimes
 }
 
 // GetSettings 获取设置

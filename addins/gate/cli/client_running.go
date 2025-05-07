@@ -44,8 +44,8 @@ func (c *Client) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.Deco
 	c.transceiver.Timeout = c.options.IOTimeout
 	c.transceiver.Synchronizer = transport.NewSequencedSynchronizer(remoteRecvSeq, remoteSendSeq, c.options.IOBufferCap)
 
-	// 初始化刷新通知channel
-	c.renewChan = make(chan struct{}, 1)
+	// 初始化恢复通知channel
+	c.resumeChan = make(chan struct{}, 1)
 
 	// 初始化自动重连channel
 	if c.options.AutoReconnect {
@@ -56,20 +56,20 @@ func (c *Client) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.Deco
 	c.sessionId = sessionId
 }
 
-// renew 刷新
-func (c *Client) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
+// resume 恢复
+func (c *Client) resume(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// 刷新链路
-	sendSeq, recvSeq, err = c.transceiver.Renew(conn, remoteRecvSeq)
+	// 恢复链路
+	sendSeq, recvSeq, err = c.transceiver.Resume(conn, remoteRecvSeq)
 	if err != nil {
 		return
 	}
 
-	// 通知刷新
+	// 通知已恢复
 	select {
-	case c.renewChan <- struct{}{}:
+	case c.resumeChan <- struct{}{}:
 	default:
 	}
 
@@ -223,7 +223,7 @@ loop:
 						select {
 						case <-timer.C:
 							return
-						case <-c.renewChan:
+						case <-c.resumeChan:
 							// 发送缓存的消息
 							transport.Retry{
 								Transceiver: &c.transceiver,
@@ -287,9 +287,9 @@ func (c *Client) reconnect() {
 		if err := Reconnect(c); err != nil {
 			c.logger.Errorf("client %q auto reconnect failed, retry %d times, %s", c.GetSessionId(), i+1, err)
 
-			// 服务端返回rst拒绝连接，刷新链路失败，这两种情况下不再重试，关闭客户端
+			// 服务端返回rst拒绝连接，恢复链路失败，这两种情况下不再重试，关闭客户端
 			var rstErr *transport.RstError
-			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrRenew) {
+			if errors.As(err, &rstErr) || errors.Is(err, transport.ErrResume) {
 				c.logger.Errorf("client %q auto reconnect aborted, %s, close client", c.GetSessionId(), err)
 				c.terminate(err)
 				return

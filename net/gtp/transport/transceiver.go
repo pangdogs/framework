@@ -34,15 +34,15 @@ import (
 )
 
 var (
-	ErrTrans            = errors.New("gtp-trans")                // 传输错误
-	ErrNetIO            = fmt.Errorf("%w: net i/o", ErrTrans)    // 网络io错误
-	ErrRenew            = fmt.Errorf("%w: renew conn", ErrTrans) // 刷新链路错误
-	ErrDeadlineExceeded = os.ErrDeadlineExceeded                 // 网络io超时
-	ErrClosed           = os.ErrClosed                           // 网络链路已关闭
-	ErrShortBuffer      = io.ErrShortBuffer                      // 缓冲区不足
-	ErrShortWrite       = io.ErrShortWrite                       // 短写
-	ErrUnexpectedEOF    = io.ErrUnexpectedEOF                    // 非预期的io结束
-	EOF                 = io.EOF                                 // io结束
+	ErrTrans            = errors.New("gtp-trans")                 // 传输错误
+	ErrNetIO            = fmt.Errorf("%w: net i/o", ErrTrans)     // 网络io错误
+	ErrResume           = fmt.Errorf("%w: resume conn", ErrTrans) // 恢复链路错误
+	ErrDeadlineExceeded = os.ErrDeadlineExceeded                  // 网络io超时
+	ErrClosed           = os.ErrClosed                            // 网络链路已关闭
+	ErrShortBuffer      = io.ErrShortBuffer                       // 缓冲区不足
+	ErrShortWrite       = io.ErrShortWrite                        // 短写
+	ErrUnexpectedEOF    = io.ErrUnexpectedEOF                     // 非预期的io结束
+	EOF                 = io.EOF                                  // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全
@@ -223,19 +223,19 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 	}
 }
 
-// Renew 刷新链路
-func (t *Transceiver) Renew(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
+// Resume 恢复链路
+func (t *Transceiver) Resume(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
 	if conn == nil {
-		return 0, 0, fmt.Errorf("%w: conn is nil", ErrRenew)
+		return 0, 0, fmt.Errorf("%w: conn is nil", ErrResume)
 	}
 
 	if t.Synchronizer == nil {
-		return 0, 0, fmt.Errorf("%w: Synchronizer is nil", ErrRenew)
+		return 0, 0, fmt.Errorf("%w: Synchronizer is nil", ErrResume)
 	}
 
 	// 同步对端时序
 	if err = t.Synchronizer.Synchronize(remoteRecvSeq); err != nil {
-		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrRenew, err)
+		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrResume, err)
 	}
 
 	// 切换连接

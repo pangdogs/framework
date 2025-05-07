@@ -47,8 +47,8 @@ func (s *_Session) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.De
 	s.transceiver.Timeout = s.gate.options.IOTimeout
 	s.transceiver.Synchronizer = transport.NewSequencedSynchronizer(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
 
-	// 初始化刷新通知channel
-	s.renewChan = make(chan struct{}, 1)
+	// 初始化恢复通知channel
+	s.resumeChan = make(chan struct{}, 1)
 
 	// 初始化用户Id与token
 	s.userId = userId
@@ -57,20 +57,22 @@ func (s *_Session) init(conn net.Conn, encoder *codec.Encoder, decoder *codec.De
 	return s.transceiver.Synchronizer.SendSeq(), s.transceiver.Synchronizer.RecvSeq()
 }
 
-// renew 刷新
-func (s *_Session) renew(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
+// resume 恢复
+func (s *_Session) resume(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	s.Lock()
 	defer s.Unlock()
 
-	// 刷新链路
-	sendSeq, recvSeq, err = s.transceiver.Renew(conn, remoteRecvSeq)
+	// 恢复链路
+	sendSeq, recvSeq, err = s.transceiver.Resume(conn, remoteRecvSeq)
 	if err != nil {
 		return
 	}
 
-	// 通知刷新
+	s.resumeTimes++
+
+	// 通知已恢复
 	select {
-	case s.renewChan <- struct{}{}:
+	case s.resumeChan <- struct{}{}:
 	default:
 	}
 
@@ -210,7 +212,7 @@ loop:
 						select {
 						case <-timer.C:
 							return
-						case <-s.renewChan:
+						case <-s.resumeChan:
 							// 发送缓存的消息
 							transport.Retry{
 								Transceiver: &s.transceiver,

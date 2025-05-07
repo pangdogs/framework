@@ -60,7 +60,7 @@ type Client struct {
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
 	reconnectChan   chan struct{}
-	renewChan       chan struct{}
+	resumeChan      chan struct{}
 	futures         *concurrent.Futures
 	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
 	eventWatchers   concurrent.LockedSlice[*_EventWatcher]

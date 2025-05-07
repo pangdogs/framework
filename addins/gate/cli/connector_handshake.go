@@ -218,8 +218,8 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}
 
 	if continueFlow {
-		// 刷新客户端
-		_, _, err = client.renew(conn, remoteRecvSeq)
+		// 恢复客户端
+		_, _, err = client.resume(conn, remoteRecvSeq)
 		if err != nil {
 			return err
 		}

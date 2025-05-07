@@ -261,9 +261,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
 		err = handshake.ServerContinue(ctx, func(e transport.Event[gtp.MsgContinue]) error {
-			// 刷新会话
+			// 恢复会话
 			var err error
-			sendSeq, recvSeq, err = session.renew(handshake.Transceiver.Conn, e.Msg.RecvSeq)
+			sendSeq, recvSeq, err = session.resume(handshake.Transceiver.Conn, e.Msg.RecvSeq)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_ContinueFailed,
