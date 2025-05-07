@@ -66,6 +66,10 @@ func (r *_Registry) Init(svcCtx service.Context) {
 
 	if cb, ok := r.IRegistry.(core.LifecycleAddInInit); ok {
 		cb.Init(r.svcCtx, nil)
+	} else if cb, ok := r.IRegistry.(core.LifecycleServiceAddInInit); ok {
+		cb.Init(r.svcCtx)
+	} else {
+		log.Warn(svcCtx, "wrap registry missing lifecycle init")
 	}
 
 	if err := r.refreshCache(); err != nil {
@@ -87,6 +91,10 @@ func (r *_Registry) Shut(svcCtx service.Context) {
 
 	if cb, ok := r.IRegistry.(core.LifecycleAddInShut); ok {
 		cb.Shut(svcCtx, nil)
+	} else if cb, ok := r.IRegistry.(core.LifecycleServiceAddInShut); ok {
+		cb.Shut(svcCtx)
+	} else {
+		log.Warn(svcCtx, "wrap registry missing lifecycle shut")
 	}
 }
 
