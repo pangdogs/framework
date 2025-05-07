@@ -25,6 +25,7 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/log"
@@ -69,7 +70,7 @@ func (r *_Registry) Init(svcCtx service.Context) {
 	} else if cb, ok := r.IRegistry.(core.LifecycleServiceAddInInit); ok {
 		cb.Init(r.svcCtx)
 	} else {
-		log.Warn(svcCtx, "wrap registry missing lifecycle init")
+		log.Warnf(svcCtx, "wrap registry %q missing lifecycle init", types.FullName(r.IRegistry))
 	}
 
 	if err := r.refreshCache(); err != nil {
@@ -94,7 +95,7 @@ func (r *_Registry) Shut(svcCtx service.Context) {
 	} else if cb, ok := r.IRegistry.(core.LifecycleServiceAddInShut); ok {
 		cb.Shut(svcCtx)
 	} else {
-		log.Warn(svcCtx, "wrap registry missing lifecycle shut")
+		log.Warnf(svcCtx, "wrap registry %q missing lifecycle shut", types.FullName(r.IRegistry))
 	}
 }
 
