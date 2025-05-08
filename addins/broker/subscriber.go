@@ -35,20 +35,8 @@ type ISubscriber interface {
 	Unsubscribe() async.AsyncRet
 	// Unsubscribed subscriber is unsubscribed.
 	Unsubscribed() async.AsyncRet
-}
-
-// ISyncSubscriber is a convenience return type for the IBroker.SubscribeSync method.
-type ISyncSubscriber interface {
-	ISubscriber
-	// Next is a blocking call that waits for the next event to be received from the subscriber.
-	Next() (Event, error)
-}
-
-// IChanSubscriber is a convenience return type for the IBroker.SubscribeChan method.
-type IChanSubscriber interface {
-	ISubscriber
 	// EventChan returns a channel that can be used to receive events from the subscriber.
-	EventChan() (<-chan Event, error)
+	EventChan() <-chan Event
 }
 
 type Event struct {

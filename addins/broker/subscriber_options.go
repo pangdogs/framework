@@ -38,10 +38,10 @@ type SubscriberOptions struct {
 	AutoAck bool
 	// Queue subscribers with the same queue name will create a shared subscription where each receives a subset of messages.
 	Queue string
-	// EventHandler is the function that will be called to handle the received events.
-	EventHandler EventHandler
 	// EventChanSize specifies the size of the event channel used for received synchronously event.
 	EventChanSize int
+	// EventHandler is the function that will be called to handle the received events.
+	EventHandler EventHandler
 	// UnsubscribedCB Unsubscribed callback method.
 	UnsubscribedCB UnsubscribedCB
 }
@@ -55,8 +55,8 @@ func (_Option) Default() option.Setting[SubscriberOptions] {
 	return func(options *SubscriberOptions) {
 		With.AutoAck(true)(options)
 		With.Queue("")(options)
+		With.EventChanSize(0)(options)
 		With.EventHandler(nil)(options)
-		With.EventChanSize(128)(options)
 		With.UnsubscribedCB(nil)(options)
 	}
 }
@@ -76,17 +76,17 @@ func (_Option) Queue(queue string) option.Setting[SubscriberOptions] {
 	}
 }
 
-// EventHandler is the function that will be called to handle the received events.
-func (_Option) EventHandler(handler EventHandler) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.EventHandler = handler
-	}
-}
-
 // EventChanSize specifies the size of the event channel used for received synchronously event.
 func (_Option) EventChanSize(size int) option.Setting[SubscriberOptions] {
 	return func(o *SubscriberOptions) {
 		o.EventChanSize = size
+	}
+}
+
+// EventHandler is the function that will be called to handle the received events.
+func (_Option) EventHandler(handler EventHandler) option.Setting[SubscriberOptions] {
+	return func(o *SubscriberOptions) {
+		o.EventHandler = handler
 	}
 }
 

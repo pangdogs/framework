@@ -21,13 +21,7 @@ package broker
 
 import (
 	"context"
-	"errors"
 	"git.golaxy.org/core/utils/option"
-)
-
-var (
-	// ErrUnsubscribed is an error indicating that the subscriber has been unsubscribed. It is returned by the ISyncSubscriber.Next method when the subscriber has been unsubscribed.
-	ErrUnsubscribed = errors.New("broker: unsubscribed")
 )
 
 // DeliveryReliability Message delivery reliability.
@@ -40,24 +34,6 @@ const (
 	EffectivelyOnce                            // Effectively once
 )
 
-// ISubscriberSettings represents an interface for configuring a subscriber.
-type ISubscriberSettings interface {
-	// With applies additional settings to the subscriber.
-	With(settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
-}
-
-// ISyncSubscriberSettings represents an interface for configuring a subscriber.
-type ISyncSubscriberSettings interface {
-	// With applies additional settings to the subscriber.
-	With(settings ...option.Setting[SubscriberOptions]) (ISyncSubscriber, error)
-}
-
-// IChanSubscriberSettings represents an interface for configuring a subscriber.
-type IChanSubscriberSettings interface {
-	// With applies additional settings to the subscriber.
-	With(settings ...option.Setting[SubscriberOptions]) (IChanSubscriber, error)
-}
-
 // IBroker is an interface used for asynchronous messaging.
 type IBroker interface {
 	// Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
@@ -65,21 +41,9 @@ type IBroker interface {
 	// Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
 	Subscribe(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
 	// Subscribef will express interest in the given topic pattern with a formatted string. Use option EventHandler to handle message events.
-	Subscribef(ctx context.Context, format string, args ...any) ISubscriberSettings
+	Subscribef(ctx context.Context, format string, args ...any) func(settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
 	// Subscribep will express interest in the given topic pattern with elements. Use option EventHandler to handle message events.
-	Subscribep(ctx context.Context, elems ...string) ISubscriberSettings
-	// SubscribeSync will express interest in the given topic pattern.
-	SubscribeSync(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISyncSubscriber, error)
-	// SubscribeSyncf will express interest in the given topic pattern with a formatted string.
-	SubscribeSyncf(ctx context.Context, format string, args ...any) ISyncSubscriberSettings
-	// SubscribeSyncp will express interest in the given topic pattern with elements.
-	SubscribeSyncp(ctx context.Context, elems ...string) ISyncSubscriberSettings
-	// SubscribeChan will express interest in the given topic pattern.
-	SubscribeChan(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (IChanSubscriber, error)
-	// SubscribeChanf will express interest in the given topic pattern with a formatted string.
-	SubscribeChanf(ctx context.Context, format string, args ...any) IChanSubscriberSettings
-	// SubscribeChanp will express interest in the given topic pattern with elements.
-	SubscribeChanp(ctx context.Context, elems ...string) IChanSubscriberSettings
+	Subscribep(ctx context.Context, elems ...string) func(settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
 	// Flush will perform a round trip to the server and return when it receives the internal reply.
 	Flush(ctx context.Context) error
 	// GetDeliveryReliability return message delivery reliability.
