@@ -36,7 +36,7 @@ type (
 // MakeWriteChan creates a new channel for publishing data to a specific topic.
 func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...ErrorHandler) chan<- binaryutil.RecycleBytes {
 	if broker == nil {
-		exception.Panicf("%w: broker is nil", core.ErrArgs)
+		exception.Panicf("broker: %w: broker is nil", core.ErrArgs)
 	}
 
 	_errorHandler := pie.First(errorHandler)
@@ -64,7 +64,7 @@ func MakeWriteChan(broker IBroker, topic string, size int, errorHandler ...Error
 // MakeReadChan creates a new channel for receiving data from a specific pattern.
 func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, size int) (<-chan binaryutil.RecycleBytes, error) {
 	if broker == nil {
-		exception.Panicf("%w: broker is nil", core.ErrArgs)
+		exception.Panicf("broker: %w: broker is nil", core.ErrArgs)
 	}
 
 	if ctx == nil {
@@ -86,7 +86,7 @@ func MakeReadChan(broker IBroker, ctx context.Context, pattern, queue string, si
 				if e.Queue != "" {
 					nakErr = e.Nak(context.Background())
 				}
-				return fmt.Errorf("read chan is full, nak: %v", nakErr)
+				return fmt.Errorf("broker: read chan is full, nak: %w", nakErr)
 			}
 		})),
 		With.UnsubscribedCB(func(sub ISubscriber) {

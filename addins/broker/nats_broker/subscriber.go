@@ -173,9 +173,9 @@ func (s *_Subscriber) handleMsg(msg *nats.Msg) {
 }
 
 func unsupportedAck(ctx context.Context) error {
-	return errors.New("used not JetStream, unable to acknowledge(ack)")
+	return errors.New("broker: used not JetStream, unable to acknowledge(ack)")
 }
 
 func unsupportedNak(ctx context.Context) error {
-	return errors.New("used not JetStream, unable to negatively acknowledge(nak)")
+	return errors.New("broker: used not JetStream, unable to negatively acknowledge(nak)")
 }

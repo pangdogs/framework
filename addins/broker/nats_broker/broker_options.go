@@ -93,7 +93,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("broker: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs
