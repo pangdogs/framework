@@ -48,12 +48,12 @@ type _Option struct{}
 // Default sets default values for DSyncOptions.
 func (_Option) Default() option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
-		With.EtcdClient(nil)(options)
-		With.EtcdConfig(nil)(options)
-		With.KeyPrefix("/golaxy/mutex/")(options)
-		With.CustomAuth("", "")(options)
-		With.CustomAddresses("127.0.0.1:2379")(options)
-		With.CustomTLSConfig(nil)(options)
+		With.EtcdClient(nil).Apply(options)
+		With.EtcdConfig(nil).Apply(options)
+		With.KeyPrefix("/golaxy/mutex/").Apply(options)
+		With.CustomAuth("", "").Apply(options)
+		With.CustomAddresses("127.0.0.1:2379").Apply(options)
+		With.CustomTLSConfig(nil).Apply(options)
 	}
 }
 

@@ -47,13 +47,13 @@ type _Option struct{}
 // Default sets default values for DSyncOptions.
 func (_Option) Default() option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
-		With.RedisClient(nil)(options)
-		With.RedisConfig(nil)(options)
-		With.RedisURL("")(options)
-		With.KeyPrefix("golaxy:mutex:")(options)
-		With.CustomAuth("", "")(options)
-		With.CustomAddress("127.0.0.1:6379")(options)
-		With.CustomDB(0)(options)
+		With.RedisClient(nil).Apply(options)
+		With.RedisConfig(nil).Apply(options)
+		With.RedisURL("").Apply(options)
+		With.KeyPrefix("golaxy:mutex:").Apply(options)
+		With.CustomAuth("", "").Apply(options)
+		With.CustomAddress("127.0.0.1:6379").Apply(options)
+		With.CustomDB(0).Apply(options)
 	}
 }
 
