@@ -50,56 +50,56 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
-		With.RedisClient(nil)(options)
-		With.RedisConfig(nil)(options)
-		With.RedisURL("")(options)
-		With.KeyPrefix("golaxy:services:")(options)
-		With.WatchChanSize(128)(options)
-		With.TTL(10 * time.Second)(options)
-		With.CustomAuth("", "")(options)
-		With.CustomAddress("127.0.0.1:6379")(options)
-		With.CustomDB(0)(options)
+		With.RedisClient(nil).Apply(options)
+		With.RedisConfig(nil).Apply(options)
+		With.RedisURL("").Apply(options)
+		With.KeyPrefix("golaxy:services:").Apply(options)
+		With.WatchChanSize(128).Apply(options)
+		With.TTL(10 * time.Second).Apply(options)
+		With.CustomAuth("", "").Apply(options)
+		With.CustomAddress("127.0.0.1:6379").Apply(options)
+		With.CustomDB(0).Apply(options)
 	}
 }
 
 // RedisClient redis客户端，1st优先使用
 func (_Option) RedisClient(cli *redis.Client) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
-		o.RedisClient = cli
+	return func(options *RegistryOptions) {
+		options.RedisClient = cli
 	}
 }
 
 // RedisConfig redis配置，2nd优先使用
 func (_Option) RedisConfig(conf *redis.Options) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
-		o.RedisConfig = conf
+	return func(options *RegistryOptions) {
+		options.RedisConfig = conf
 	}
 }
 
 // RedisURL redis连接url，3rd优先使用
 func (_Option) RedisURL(url string) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
-		o.RedisURL = url
+	return func(options *RegistryOptions) {
+		options.RedisURL = url
 	}
 }
 
 // KeyPrefix 所有key的前缀
 func (_Option) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
+	return func(options *RegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
-		o.KeyPrefix = prefix
+		options.KeyPrefix = prefix
 	}
 }
 
 // WatchChanSize 监控服务变化的channel大小
 func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
-	return func(o *RegistryOptions) {
+	return func(options *RegistryOptions) {
 		if size < 0 {
-			exception.Panicf("%w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs)
+			exception.Panicf("registry: %w: option WatchChanSize can't be set to a value less than 0", core.ErrArgs)
 		}
-		o.WatchChanSize = size
+		options.WatchChanSize = size
 	}
 }
 
@@ -107,7 +107,7 @@ func (_Option) WatchChanSize(size int) option.Setting[RegistryOptions] {
 func (_Option) TTL(ttl time.Duration) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
+			exception.Panicf("registry: %w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.TTL = ttl
 	}
@@ -125,7 +125,7 @@ func (_Option) CustomAuth(username, password string) option.Setting[RegistryOpti
 func (_Option) CustomAddress(addr string) option.Setting[RegistryOptions] {
 	return func(options *RegistryOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
-			exception.Panicf("%w: %w", core.ErrArgs, err)
+			exception.Panicf("registry: %w: %w", core.ErrArgs, err)
 		}
 		options.CustomAddress = addr
 	}

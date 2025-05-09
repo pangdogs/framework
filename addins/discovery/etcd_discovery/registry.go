@@ -49,7 +49,7 @@ func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistr
 	}
 }
 
-type _Register struct {
+type _Registration struct {
 	ctx       context.Context
 	terminate context.CancelFunc
 	hash      uint64
@@ -58,10 +58,10 @@ type _Register struct {
 }
 
 type _Registry struct {
-	svcCtx    service.Context
-	options   RegistryOptions
-	client    *etcdv3.Client
-	registers *concurrent.Cache[string, *_Register]
+	svcCtx        service.Context
+	options       RegistryOptions
+	client        *etcdv3.Client
+	registrations *concurrent.Cache[string, *_Registration]
 }
 
 // Init 初始化插件
@@ -91,8 +91,8 @@ func (r *_Registry) Init(svcCtx service.Context) {
 		}()
 	}
 
-	r.registers = concurrent.NewCache[string, *_Register]()
-	r.registers.OnDel(func(nodePath string, register *_Register) { register.terminate() })
+	r.registrations = concurrent.NewCache[string, *_Registration]()
+	r.registrations.OnDel(func(nodePath string, registration *_Registration) { registration.terminate() })
 }
 
 // Shut 关闭插件
@@ -174,7 +174,7 @@ func (r *_Registry) RefreshTTL(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	snapshot := r.registers.Snapshot()
+	snapshot := r.registrations.Snapshot()
 	var errs []error
 
 	for _, kv := range snapshot {
@@ -360,18 +360,18 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 	var leaseId etcdv3.LeaseID
 
-	register, ok := r.registers.Get(nodePath)
+	registration, ok := r.registrations.Get(nodePath)
 	if ok {
-		_, err = r.client.KeepAliveOnce(ctx, register.leaseId)
+		_, err = r.client.KeepAliveOnce(ctx, registration.leaseId)
 		if !errors.Is(err, rpctypes.ErrLeaseNotFound) {
 			return err
 		}
 		if err == nil {
-			if register.hash == hv {
+			if registration.hash == hv {
 				log.Debugf(r.svcCtx, "service %q node %q unchanged, keep alive lease", serviceName, node.Id)
 				return nil
 			}
-			leaseId = register.leaseId
+			leaseId = registration.leaseId
 		}
 	}
 
@@ -411,20 +411,20 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		revision = rsp.Header.Revision
 	}
 
-	register = &_Register{
+	registration = &_Registration{
 		hash:     hv,
 		leaseId:  leaseId,
 		revision: revision,
 	}
-	register.ctx, register.terminate = context.WithCancel(r.svcCtx)
+	registration.ctx, registration.terminate = context.WithCancel(r.svcCtx)
 
-	existed := r.registers.Set(nodePath, register, register.revision, 0)
-	if existed != register {
+	existed := r.registrations.Set(nodePath, registration, registration.revision, 0)
+	if existed != registration {
 		return nil
 	}
 
 	if r.options.AutoRefreshTTL {
-		rspChan, err := r.client.KeepAlive(register.ctx, leaseId)
+		rspChan, err := r.client.KeepAlive(registration.ctx, leaseId)
 		if err != nil {
 			return err
 		}
@@ -442,13 +442,13 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 
-	register, ok := r.registers.Get(nodePath)
+	registration, ok := r.registrations.Get(nodePath)
 	if !ok {
 		return nil
 	}
-	r.registers.Del(nodePath, register.revision+1)
+	r.registrations.Del(nodePath, registration.revision+1)
 
-	_, err := r.client.Revoke(ctx, register.leaseId)
+	_, err := r.client.Revoke(ctx, registration.leaseId)
 	if err != nil {
 		return err
 	}

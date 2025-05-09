@@ -47,17 +47,17 @@ func NewRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistr
 	}
 }
 
-type _Register struct {
+type _Registration struct {
 	hash     uint64
 	ttl      time.Duration
 	revision int64
 }
 
 type _Registry struct {
-	svcCtx    service.Context
-	options   RegistryOptions
-	client    *redis.Client
-	registers *concurrent.Cache[string, *_Register]
+	svcCtx        service.Context
+	options       RegistryOptions
+	client        *redis.Client
+	registrations *concurrent.Cache[string, *_Registration]
 }
 
 // Init 初始化插件
@@ -82,7 +82,7 @@ func (r *_Registry) Init(svcCtx service.Context) {
 		log.Panicf(r.svcCtx, "redis %q enable notify-keyspace-events failed, %v", r.client, err)
 	}
 
-	r.registers = concurrent.NewCache[string, *_Register]()
+	r.registrations = concurrent.NewCache[string, *_Registration]()
 }
 
 // Shut 关闭插件
@@ -164,7 +164,7 @@ func (r *_Registry) RefreshTTL(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	snapshot := r.registers.Snapshot()
+	snapshot := r.registrations.Snapshot()
 	var errs []error
 
 	for _, kv := range snapshot {
@@ -380,8 +380,8 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return err
 	}
 
-	register, ok := r.registers.Get(nodePath)
-	if ok && register.hash == hv && keepAlive {
+	registration, ok := r.registrations.Get(nodePath)
+	if ok && registration.hash == hv && keepAlive {
 		log.Debugf(r.svcCtx, "service %q node %q unchanged, skipping registration", serviceName, node.Id)
 		return nil
 	}
@@ -398,14 +398,14 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 		return err
 	}
 
-	register = &_Register{
+	registration = &_Registration{
 		hash:     hv,
 		ttl:      ttl,
 		revision: serviceNode.Revision,
 	}
 
-	existed := r.registers.Set(nodePath, register, register.revision, 0)
-	if existed != register {
+	existed := r.registrations.Set(nodePath, registration, registration.revision, 0)
+	if existed != registration {
 		return nil
 	}
 
@@ -416,12 +416,12 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 func (r *_Registry) deregisterNode(ctx context.Context, serviceName string, node *discovery.Node) error {
 	nodePath := getNodePath(r.options.KeyPrefix, serviceName, node.Id)
 
-	register, ok := r.registers.Get(nodePath)
+	registration, ok := r.registrations.Get(nodePath)
 	if !ok {
 		return nil
 	}
 
-	r.registers.Del(nodePath, register.revision+1)
+	r.registrations.Del(nodePath, registration.revision+1)
 
 	if _, err := r.client.Del(ctx, nodePath).Result(); err != nil {
 		return err

@@ -89,8 +89,8 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 	eventChan := make(chan *discovery.Event, r.options.WatchChanSize)
 
 	watcher = &_Watcher{
+		Context:        ctx,
 		registry:       r,
-		ctx:            ctx,
 		terminate:      cancel,
 		terminated:     async.MakeAsyncRet(),
 		pattern:        keyPath,
@@ -107,8 +107,8 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string) (watcher *_W
 }
 
 type _Watcher struct {
+	context.Context
 	registry       *_Registry
-	ctx            context.Context
 	terminate      context.CancelFunc
 	terminated     chan async.Ret
 	pattern        string
@@ -153,7 +153,7 @@ func (w *_Watcher) mainLoop() {
 	log.Debugf(w.registry.svcCtx, "start watch %q", w.pathList)
 
 	go func() {
-		<-w.ctx.Done()
+		<-w.Done()
 		w.pubSub.Close()
 	}()
 
@@ -190,7 +190,7 @@ loop:
 
 		switch opt {
 		case "set":
-			val, err := w.registry.client.Get(w.ctx, key).Result()
+			val, err := w.registry.client.Get(w, key).Result()
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					continue
@@ -241,7 +241,7 @@ loop:
 
 		select {
 		case w.eventChan <- event:
-		case <-w.ctx.Done():
+		case <-w.Done():
 			log.Debugf(w.registry.svcCtx, "stop watch %q", w.pathList)
 			break loop
 		}

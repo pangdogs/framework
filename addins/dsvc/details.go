@@ -50,7 +50,7 @@ func (d *NodeDetails) MakeBalanceAddr(service string) string {
 // MakeNodeAddr 创建服务节点地址
 func (d *NodeDetails) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
-		return "", fmt.Errorf("%w: nodeId is nil", core.ErrArgs)
+		return "", fmt.Errorf("dsvc: %w: nodeId is nil", core.ErrArgs)
 	}
 	return unique.Make(d.DomainUnicast.Join(nodeId.String())).Value(), nil
 }

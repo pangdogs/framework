@@ -21,6 +21,7 @@ package discovery
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core/utils/async"
@@ -29,6 +30,7 @@ import (
 // IWatcher is an interface that returns updates
 // about services within the registry.
 type IWatcher interface {
+	context.Context
 	// Pattern watching pattern
 	Pattern() string
 	// Next is a blocking call
@@ -59,7 +61,7 @@ const (
 )
 
 // MarshalText marshals the EventType to text.
-func (t *EventType) MarshalText() ([]byte, error) {
+func (t EventType) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 

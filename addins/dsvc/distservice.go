@@ -220,7 +220,7 @@ func (d *_DistService) GetFutures() *concurrent.Futures {
 // SendMsg 发送消息
 func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 	if msg == nil {
-		return fmt.Errorf("%w: msg is nil", core.ErrArgs)
+		return fmt.Errorf("dsvc: %w: msg is nil", core.ErrArgs)
 	}
 
 	var seq int64

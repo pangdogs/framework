@@ -87,7 +87,7 @@ func (_Option) KeyPrefix(prefix string) option.Setting[DistEntityRegistryOptions
 func (_Option) TTL(ttl time.Duration) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("%w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
+			exception.Panicf("dentr: %w: option TTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.TTL = ttl
 	}
@@ -106,7 +106,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityRegistr
 	return func(options *DistEntityRegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("dentr: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

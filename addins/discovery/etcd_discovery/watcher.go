@@ -46,8 +46,8 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 	}
 
 	watcher := &_Watcher{
+		Context:    ctx,
 		registry:   r,
-		ctx:        ctx,
 		terminate:  cancel,
 		terminated: async.MakeAsyncRet(),
 		pattern:    pattern,
@@ -61,8 +61,8 @@ func (r *_Registry) newWatcher(ctx context.Context, pattern string, revision ...
 }
 
 type _Watcher struct {
+	context.Context
 	registry   *_Registry
-	ctx        context.Context
 	terminate  context.CancelFunc
 	terminated chan async.Ret
 	pattern    string
@@ -156,7 +156,7 @@ func (w *_Watcher) mainLoop() {
 
 			select {
 			case w.eventChan <- ret:
-			case <-w.ctx.Done():
+			case <-w.Done():
 				w.terminate()
 			}
 		}

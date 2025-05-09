@@ -103,7 +103,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityQuerier
 	return func(options *DistEntityQuerierOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("dentq: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

@@ -136,7 +136,7 @@ func (d *_DistService) handleEvent(e broker.Event) error {
 	// 最少一次交付模式，需要消息去重
 	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
 		if !d.deduplicator.Validate(mp.Head.Src.Addr, mp.Head.Seq) {
-			return fmt.Errorf("gap: discard duplicate msg-packet, head:%+v", mp.Head)
+			return fmt.Errorf("dsvc: discard duplicate msg-packet, head:%+v", mp.Head)
 		}
 	}
 
