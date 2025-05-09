@@ -71,7 +71,7 @@ func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
-	wholeConf := conf.Using(r.svcInst).Whole()
+	appConf := conf.Using(r.svcInst).AppConf()
 
 	rtInstFace := iface.Face[runtime.Context]{}
 
@@ -289,8 +289,8 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		if v, _ := r.svcInst.GetMemKV().Load("zap.logger"); v != nil {
 			zap_log.Install(rtInst,
 				zap_log.With.ZapLogger(v.(*zap.Logger)),
-				zap_log.With.ServiceInfo(wholeConf.GetBool("log.service_info")),
-				zap_log.With.RuntimeInfo(wholeConf.GetBool("log.runtime_info")),
+				zap_log.With.ServiceInfo(appConf.GetBool("log.service_info")),
+				zap_log.With.RuntimeInfo(appConf.GetBool("log.runtime_info")),
 			)
 		}
 	}
@@ -331,7 +331,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 		dentr.Install(rtInst,
 			dentr.With.EtcdClient(cli),
-			dentr.With.TTL(wholeConf.GetDuration("service.dent_ttl")),
+			dentr.With.TTL(appConf.GetDuration("service.dent_ttl")),
 		)
 	}
 

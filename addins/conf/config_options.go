@@ -32,7 +32,7 @@ type ConfigOptions struct {
 	RemoteEndpoint string         // 远端地址
 	RemotePath     string         // 远端路径
 	AutoHotFix     bool           // 自动热更新
-	DefaultKVs     map[string]any // 默认配置
+	Defaults       map[string]any // 默认配置
 	MergeEnv       bool           // 合并环境变量
 	MergeConf      *viper.Viper   // 合并配置
 }
@@ -45,10 +45,10 @@ type _Option struct{}
 func (_Option) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		With.Format("json").Apply(options)
-		With.LocalPath("").Apply(options)
+		With.Local("").Apply(options)
 		With.Remote("", "", "").Apply(options)
 		With.AutoHotFix(false).Apply(options)
-		With.DefaultKVs(nil).Apply(options)
+		With.Defaults(nil).Apply(options)
 		With.MergeEnv(false).Apply(options)
 		With.MergeConf(nil).Apply(options)
 	}
@@ -56,51 +56,51 @@ func (_Option) Default() option.Setting[ConfigOptions] {
 
 // Format 配置格式（json,yaml,ini...）
 func (_Option) Format(format string) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.Format = format
+	return func(options *ConfigOptions) {
+		options.Format = format
 	}
 }
 
-// LocalPath 本地配置文件路径
-func (_Option) LocalPath(path string) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.LocalPath = path
+// Local 本地配置
+func (_Option) Local(path string) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.LocalPath = path
 	}
 }
 
 // Remote 远端配置
 func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.RemoteProvider = provider
-		o.RemoteEndpoint = endpoint
-		o.RemotePath = path
+	return func(options *ConfigOptions) {
+		options.RemoteProvider = provider
+		options.RemoteEndpoint = endpoint
+		options.RemotePath = path
 	}
 }
 
 // AutoHotFix 是否热更新
 func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.AutoHotFix = b
+	return func(options *ConfigOptions) {
+		options.AutoHotFix = b
 	}
 }
 
-// DefaultKVs 默认配置
-func (_Option) DefaultKVs(kvs map[string]any) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.DefaultKVs = kvs
+// Defaults 默认配置
+func (_Option) Defaults(dict map[string]any) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.Defaults = dict
 	}
 }
 
 // MergeEnv 合并环境变量
 func (_Option) MergeEnv(b bool) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.MergeEnv = b
+	return func(options *ConfigOptions) {
+		options.MergeEnv = b
 	}
 }
 
 // MergeConf 合并配置
 func (_Option) MergeConf(conf *viper.Viper) option.Setting[ConfigOptions] {
-	return func(o *ConfigOptions) {
-		o.MergeConf = conf
+	return func(options *ConfigOptions) {
+		options.MergeConf = conf
 	}
 }

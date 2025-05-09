@@ -31,8 +31,10 @@ import (
 
 // IConfig 配置接口
 type IConfig interface {
-	IVisitConf
-	Whole() IVisitConf
+	// AppConf 当前应用程序配置
+	AppConf() *viper.Viper
+	// ServiceConf 当前服务配置
+	ServiceConf() *viper.Viper
 }
 
 func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
@@ -42,9 +44,8 @@ func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
 }
 
 type _Config struct {
-	options ConfigOptions
-	*_VisitConf
-	whole *_VisitConf
+	options              ConfigOptions
+	appConf, serviceConf *viper.Viper
 }
 
 // Init 初始化插件
@@ -54,7 +55,7 @@ func (c *_Config) Init(svcCtx service.Context) {
 	vp := viper.New()
 	vp.SetConfigType(c.options.Format)
 
-	for k, v := range c.options.DefaultKVs {
+	for k, v := range c.options.Defaults {
 		vp.SetDefault(k, v)
 	}
 
@@ -81,34 +82,31 @@ func (c *_Config) Init(svcCtx service.Context) {
 
 	if remote {
 		if err := vp.AddRemoteProvider(c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath); err != nil {
-			log.Panicf(svcCtx, "set remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.Panicf(svcCtx, `set remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
 		if err := vp.ReadRemoteConfig(); err != nil {
-			log.Panicf(svcCtx, "read remote config [%q, %q, %q] failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.Panicf(svcCtx, `read remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
 
-		log.Infof(svcCtx, "load remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+		log.Infof(svcCtx, `load remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 	}
 
-	subVp := vp.Sub(svcCtx.GetName())
-	if subVp == nil {
-		subVp = viper.New()
+	svcVp := vp.Sub(svcCtx.GetName())
+	if svcVp == nil {
+		svcVp = viper.New()
 	}
-	c._VisitConf = &_VisitConf{
-		Viper: subVp,
-	}
-	c.whole = &_VisitConf{
-		Viper: vp,
-	}
+
+	c.appConf = vp
+	c.serviceConf = svcVp
 
 	if c.options.AutoHotFix {
 		if local {
 			vp.OnConfigChange(func(in fsnotify.Event) {
-				subVp := vp.Sub(svcCtx.GetName())
-				if subVp == nil {
-					subVp = viper.New()
+				svcVp := vp.Sub(svcCtx.GetName())
+				if svcVp == nil {
+					svcVp = viper.New()
 				}
-				c._VisitConf.Viper = subVp
+				c.serviceConf = svcVp
 
 				log.Infof(svcCtx, "reload local config %q ok", c.options.LocalPath)
 			})
@@ -119,19 +117,18 @@ func (c *_Config) Init(svcCtx service.Context) {
 				for {
 					time.Sleep(time.Second * 3)
 
-					err := vp.WatchRemoteConfig()
-					if err != nil {
-						log.Errorf(svcCtx, "watch remote config [%q, %q, %q] changes failed, %s", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+					if err := vp.WatchRemoteConfig(); err != nil {
+						log.Errorf(svcCtx, `watch remote config "%s - %s - %s" changes failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 						continue
 					}
 
-					subVp := vp.Sub(svcCtx.GetName())
-					if subVp == nil {
-						subVp = viper.New()
+					svcVp := vp.Sub(svcCtx.GetName())
+					if svcVp == nil {
+						svcVp = viper.New()
 					}
-					c._VisitConf.Viper = subVp
+					c.serviceConf = svcVp
 
-					log.Infof(svcCtx, "reload remote config [%q, %q, %q] ok", c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+					log.Infof(svcCtx, `reload remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 				}
 			}()
 		}
@@ -143,6 +140,12 @@ func (c *_Config) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 }
 
-func (c *_Config) Whole() IVisitConf {
-	return c.whole
+// AppConf 当前应用程序配置
+func (c *_Config) AppConf() *viper.Viper {
+	return c.appConf
+}
+
+// ServiceConf 当前服务配置
+func (c *_Config) ServiceConf() *viper.Viper {
+	return c.serviceConf
 }

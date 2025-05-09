@@ -296,7 +296,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	if !installed(conf.Name) {
 		conf.Install(svcInst,
 			conf.With.Format(startupConf.GetString("conf.format")),
-			conf.With.LocalPath(startupConf.GetString("conf.local_path")),
+			conf.With.Local(startupConf.GetString("conf.local_path")),
 			conf.With.Remote(
 				startupConf.GetString("conf.remote_provider"),
 				startupConf.GetString("conf.remote_endpoint"),
