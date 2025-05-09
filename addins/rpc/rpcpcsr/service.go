@@ -26,6 +26,7 @@ import (
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/log"
+	"git.golaxy.org/framework/utils/concurrent"
 )
 
 // NewServiceProcessor 创建分布式服务间的RPC处理器
@@ -40,7 +41,7 @@ func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool)
 type _ServiceProcessor struct {
 	svcCtx         service.Context
 	dist           dsvc.IDistService
-	watcher        dsvc.IWatcher
+	msgWatcher     concurrent.IWatcher
 	permValidator  PermissionValidator
 	reduceCallPath bool
 }
@@ -49,14 +50,14 @@ type _ServiceProcessor struct {
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dist = dsvc.Using(svcCtx)
-	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
+	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
 func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
-	<-p.watcher.Terminate()
+	<-p.msgWatcher.Terminate()
 
 	log.Debugf(p.svcCtx, "rpc processor %q stopped", types.FullName(*p))
 }

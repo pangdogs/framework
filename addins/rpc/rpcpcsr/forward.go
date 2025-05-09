@@ -31,6 +31,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
+	"git.golaxy.org/framework/utils/concurrent"
 )
 
 // PermissionValidator 权限验证器
@@ -58,7 +59,7 @@ type _ForwardProcessor struct {
 	transitBroadcastAddr string
 	permValidator        PermissionValidator
 	reduceCallPath       bool
-	watcher              dsvc.IWatcher
+	msgWatcher           concurrent.IWatcher
 }
 
 // Init 初始化
@@ -67,14 +68,14 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.dist = dsvc.Using(svcCtx)
 	p.dentq = dentq.Using(svcCtx)
 	p.transitBroadcastAddr = p.dist.GetNodeDetails().MakeBroadcastAddr(p.transitService)
-	p.watcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
+	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
 }
 
 // Shut 结束
 func (p *_ForwardProcessor) Shut(svcCtx service.Context) {
-	<-p.watcher.Terminate()
+	<-p.msgWatcher.Terminate()
 
 	log.Debugf(p.svcCtx, "rpc processor %q stopped", types.FullName(*p))
 }

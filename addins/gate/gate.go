@@ -49,8 +49,8 @@ type IGate interface {
 	EachSessions(fun generic.Action1[ISession])
 	// CountSessions 统计所有会话数量
 	CountSessions() int
-	// Watch 监听会话变化
-	Watch(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher
+	// WatchSession 监听会话变化
+	WatchSession(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher
 }
 
 func newGate(settings ...option.Setting[GateOptions]) IGate {
@@ -198,7 +198,7 @@ func (g *_Gate) CountSessions() int {
 	return int(atomic.LoadInt64(&g.sessionCount))
 }
 
-// Watch 监听会话变化
-func (g *_Gate) Watch(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher {
+// WatchSession 监听会话变化
+func (g *_Gate) WatchSession(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher {
 	return g.newSessionWatcher(ctx, handler)
 }

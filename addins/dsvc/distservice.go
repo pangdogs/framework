@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/broker"
@@ -50,7 +49,7 @@ type IDistService interface {
 	// SendMsg 发送消息
 	SendMsg(dst string, msg gap.Msg) error
 	// WatchMsg 监听消息（优先级高）
-	WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher
+	WatchMsg(ctx context.Context, handler RecvMsgHandler) concurrent.IWatcher
 }
 
 func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
@@ -239,7 +238,7 @@ func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
 }
 
 // WatchMsg 监听消息（优先级高）
-func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) IWatcher {
+func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) concurrent.IWatcher {
 	return d.newMsgWatcher(ctx, handler)
 }
 

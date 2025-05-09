@@ -31,6 +31,7 @@ import (
 	"git.golaxy.org/framework/addins/router"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
+	"git.golaxy.org/framework/utils/concurrent"
 )
 
 // NewGateProcessor 创建网关RPC处理器，用于C<->G的通信
@@ -50,8 +51,8 @@ type _GateProcessor struct {
 	router         router.IRouter
 	encoder        *codec.Encoder
 	decoder        *codec.Decoder
-	sessionWatcher gate.IWatcher
-	msgWatcher     dsvc.IWatcher
+	sessionWatcher concurrent.IWatcher
+	msgWatcher     concurrent.IWatcher
 }
 
 // Init 初始化
@@ -61,7 +62,7 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 	p.dentq = dentq.Using(svcCtx)
 	p.gate = gate.Using(svcCtx)
 	p.router = router.Using(svcCtx)
-	p.sessionWatcher = p.gate.Watch(context.Background(), generic.CastDelegateVoid3(p.handleSessionChanged))
+	p.sessionWatcher = p.gate.WatchSession(context.Background(), generic.CastDelegateVoid3(p.handleSessionChanged))
 	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
 
 	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))

@@ -72,11 +72,11 @@ type ISession interface {
 	// SendData 发送数据
 	SendData(data []byte) error
 	// WatchData 监听数据
-	WatchData(ctx context.Context, handler SessionRecvDataHandler) IWatcher
+	WatchData(ctx context.Context, handler SessionRecvDataHandler) concurrent.IWatcher
 	// SendEvent 发送自定义事件
 	SendEvent(event transport.IEvent) error
 	// WatchEvent 监听自定义事件
-	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher
+	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) concurrent.IWatcher
 	// SendDataChan 发送数据的channel
 	SendDataChan() chan<- binaryutil.RecycleBytes
 	// RecvDataChan 接收数据的channel
@@ -194,7 +194,7 @@ func (s *_Session) SendData(data []byte) error {
 }
 
 // WatchData 监听数据
-func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler) IWatcher {
+func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler) concurrent.IWatcher {
 	return s.newDataWatcher(ctx, handler)
 }
 
@@ -213,7 +213,7 @@ func (s *_Session) SendEvent(event transport.IEvent) error {
 }
 
 // WatchEvent 监听自定义事件
-func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandler) IWatcher {
+func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandler) concurrent.IWatcher {
 	return s.newEventWatcher(ctx, handler)
 }
 
