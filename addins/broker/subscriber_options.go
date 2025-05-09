@@ -53,46 +53,46 @@ type _Option struct{}
 // Default sets the default options for subscribe topic.
 func (_Option) Default() option.Setting[SubscriberOptions] {
 	return func(options *SubscriberOptions) {
-		With.AutoAck(true)(options)
-		With.Queue("")(options)
-		With.EventChanSize(0)(options)
-		With.EventHandler(nil)(options)
-		With.UnsubscribedCB(nil)(options)
+		With.AutoAck(true).Apply(options)
+		With.Queue("").Apply(options)
+		With.EventChanSize(0).Apply(options)
+		With.EventHandler(nil).Apply(options)
+		With.UnsubscribedCB(nil).Apply(options)
 	}
 }
 
 // AutoAck defaults to true. When a handler returns with a nil error the message is acked.
 func (_Option) AutoAck(b bool) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.AutoAck = b
+	return func(options *SubscriberOptions) {
+		options.AutoAck = b
 	}
 }
 
 // Queue subscribers with the same queue name will create a shared subscription where each
 // receives a subset of messages.
 func (_Option) Queue(queue string) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.Queue = queue
+	return func(options *SubscriberOptions) {
+		options.Queue = queue
 	}
 }
 
 // EventChanSize specifies the size of the event channel used for received synchronously event.
 func (_Option) EventChanSize(size int) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.EventChanSize = size
+	return func(options *SubscriberOptions) {
+		options.EventChanSize = size
 	}
 }
 
 // EventHandler is the function that will be called to handle the received events.
 func (_Option) EventHandler(handler EventHandler) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.EventHandler = handler
+	return func(options *SubscriberOptions) {
+		options.EventHandler = handler
 	}
 }
 
 // UnsubscribedCB Unsubscribed callback method.
 func (_Option) UnsubscribedCB(cb UnsubscribedCB) option.Setting[SubscriberOptions] {
-	return func(o *SubscriberOptions) {
-		o.UnsubscribedCB = cb
+	return func(options *SubscriberOptions) {
+		options.UnsubscribedCB = cb
 	}
 }
