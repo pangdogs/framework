@@ -45,38 +45,38 @@ type _Option struct{}
 // Default sets default values for BrokerOptions.
 func (_Option) Default() option.Setting[BrokerOptions] {
 	return func(options *BrokerOptions) {
-		With.NatsClient(nil)(options)
-		With.TopicPrefix("")(options)
-		With.QueuePrefix("")(options)
-		With.CustomAuth("", "")(options)
-		With.CustomAddresses("127.0.0.1:4222")(options)
+		With.NatsClient(nil).Apply(options)
+		With.TopicPrefix("").Apply(options)
+		With.QueuePrefix("").Apply(options)
+		With.CustomAuth("", "").Apply(options)
+		With.CustomAddresses("127.0.0.1:4222").Apply(options)
 	}
 }
 
 // NatsClient sets the NATS client in BrokerOptions.
 func (_Option) NatsClient(cli *nats.Conn) option.Setting[BrokerOptions] {
-	return func(o *BrokerOptions) {
-		o.NatsClient = cli
+	return func(options *BrokerOptions) {
+		options.NatsClient = cli
 	}
 }
 
 // TopicPrefix sets the topic prefix in BrokerOptions.
 func (_Option) TopicPrefix(prefix string) option.Setting[BrokerOptions] {
-	return func(o *BrokerOptions) {
+	return func(options *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
 		}
-		o.TopicPrefix = prefix
+		options.TopicPrefix = prefix
 	}
 }
 
 // QueuePrefix sets the queue prefix in BrokerOptions.
 func (_Option) QueuePrefix(prefix string) option.Setting[BrokerOptions] {
-	return func(o *BrokerOptions) {
+	return func(options *BrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
 		}
-		o.QueuePrefix = prefix
+		options.QueuePrefix = prefix
 	}
 }
 
