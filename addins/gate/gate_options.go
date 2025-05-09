@@ -142,7 +142,7 @@ func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if addr != "" {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("gate: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.TCPAddress = addr
@@ -193,7 +193,7 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 		}
 		url, err := url.Parse(raw)
 		if err != nil {
-			exception.Panicf("%w: %w", core.ErrArgs, err)
+			exception.Panicf("gate: %w: %w", core.ErrArgs, err)
 		}
 		if url.Path == "" {
 			url.Path = "/"
@@ -241,7 +241,7 @@ func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 func (_GateOption) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if mc == nil {
-			exception.Panicf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("gate: %w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
 		}
 		options.DecoderMsgCreator = mc
 	}

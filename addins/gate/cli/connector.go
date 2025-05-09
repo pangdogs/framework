@@ -92,7 +92,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("cli: %w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			conn.Close()
@@ -115,7 +115,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 // reconnect 重连服务端
 func (ctor *_Connector) reconnect(client *Client) (err error) {
 	if client == nil {
-		return errors.New("client is nil")
+		return errors.New("cli: client is nil")
 	}
 
 	select {
@@ -170,7 +170,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("cli: %w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			conn.Close()

@@ -302,7 +302,7 @@ func (s *_Session) handleRecvEventChan(event transport.IEvent) error {
 		select {
 		case s.options.RecvEventChan <- copied:
 		default:
-			return errors.New("receive event channel is full")
+			return errors.New("gate: receive event channel is full")
 		}
 	}
 	return nil

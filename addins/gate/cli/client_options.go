@@ -205,7 +205,7 @@ func (_Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
 func (_Option) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
-			exception.Panicf("%w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("cli: %w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
 		}
 		options.DecoderMsgCreator = mc
 	}
@@ -357,7 +357,7 @@ func (_Option) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
 func (_Option) ZapLogger(logger *zap.Logger) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if logger == nil {
-			exception.Panicf("%w: option ZapLogger can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("cli: %w: option ZapLogger can't be assigned to nil", core.ErrArgs)
 		}
 		options.ZapLogger = logger
 	}

@@ -35,7 +35,7 @@ func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("gate: %w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
 			log.Errorf(g.svcCtx, "listener %q accept remote %q, handle session failed, %s", conn.LocalAddr(), conn.RemoteAddr(), err)

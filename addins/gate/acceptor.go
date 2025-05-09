@@ -41,7 +41,7 @@ type _Acceptor struct {
 func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 	select {
 	case <-acc.gate.ctx.Done():
-		return nil, errors.New("service shutdown")
+		return nil, errors.New("gate: service shutdown")
 	default:
 	}
 
@@ -53,7 +53,7 @@ func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 // newSession 创建会话
 func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
 	if conn == nil {
-		return nil, errors.New("conn is nil")
+		return nil, errors.New("gate: conn is nil")
 	}
 
 	session := &_Session{

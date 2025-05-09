@@ -59,32 +59,32 @@ func (_Option) Default() option.Setting[DSyncOptions] {
 
 // RedisClient sets the Redis client for DSyncOptions.
 func (_Option) RedisClient(cli *redis.Client) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.RedisClient = cli
+	return func(options *DSyncOptions) {
+		options.RedisClient = cli
 	}
 }
 
 // RedisConfig sets the Redis configuration options for DSyncOptions.
 func (_Option) RedisConfig(conf *redis.Options) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.RedisConfig = conf
+	return func(options *DSyncOptions) {
+		options.RedisConfig = conf
 	}
 }
 
 // RedisURL sets the Redis server URL for DSyncOptions.
 func (_Option) RedisURL(url string) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.RedisURL = url
+	return func(options *DSyncOptions) {
+		options.RedisURL = url
 	}
 }
 
 // KeyPrefix sets the key prefix for locking keys in DSyncOptions.
 func (_Option) KeyPrefix(prefix string) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
+	return func(options *DSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ":") {
 			prefix += ":"
 		}
-		o.KeyPrefix = prefix
+		options.KeyPrefix = prefix
 	}
 }
 

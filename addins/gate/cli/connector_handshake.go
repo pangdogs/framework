@@ -96,12 +96,12 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		func(servHello transport.Event[gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
-				return fmt.Errorf("the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
+				return fmt.Errorf("cli: the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
 			}
 
 			// 检查协议版本
 			if servHello.Msg.Version != gtp.Version_V1_0 {
-				return fmt.Errorf("version %q not supported", servHello.Msg.Version)
+				return fmt.Errorf("cli: version %q not supported", servHello.Msg.Version)
 			}
 
 			// 记录握手参数
@@ -116,7 +116,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 			if encryptionFlow {
 				// 记录服务端随机数
 				if len(servHello.Msg.Random) < 0 {
-					return errors.New("server Hello 'random' is empty")
+					return errors.New("cli: server Hello 'random' is empty")
 				}
 				servRandom = binaryutil.BytesPool.Get(len(servHello.Msg.Random))
 				copy(servRandom, servHello.Msg.Random)
@@ -198,15 +198,15 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	// 等待服务端通知握手结束
 	err = handshake.ClientFinished(ctx, func(finished transport.Event[gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
-			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
+			return fmt.Errorf("cli: the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
 		}
 
 		if authFlow && !finished.Flags.Is(gtp.Flag_AuthOK) {
-			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_AuthOK)
+			return fmt.Errorf("cli: the expected msg-finished-flag (0x%x) was not received", gtp.Flag_AuthOK)
 		}
 
 		if continueFlow && !finished.Flags.Is(gtp.Flag_ContinueOK) {
-			return fmt.Errorf("the expected msg-finished-flag (0x%x) was not received", gtp.Flag_ContinueOK)
+			return fmt.Errorf("cli: the expected msg-finished-flag (0x%x) was not received", gtp.Flag_ContinueOK)
 		}
 
 		remoteSendSeq = finished.Msg.SendSeq

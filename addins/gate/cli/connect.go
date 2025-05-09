@@ -37,7 +37,7 @@ func Connect(ctx context.Context, endpoint string, settings ...option.Setting[Cl
 // Reconnect 重连服务端
 func Reconnect(client *Client) error {
 	if client == nil {
-		return fmt.Errorf("%w: client is nil", core.ErrArgs)
+		return fmt.Errorf("cli: %w: client is nil", core.ErrArgs)
 	}
 
 	connector := _Connector{

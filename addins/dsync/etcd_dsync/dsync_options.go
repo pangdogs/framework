@@ -59,15 +59,15 @@ func (_Option) Default() option.Setting[DSyncOptions] {
 
 // EtcdClient sets the etcd client for DSyncOptions.
 func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.EtcdClient = cli
+	return func(options *DSyncOptions) {
+		options.EtcdClient = cli
 	}
 }
 
 // EtcdConfig sets the etcd config for DSyncOptions.
 func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.EtcdConfig = config
+	return func(options *DSyncOptions) {
+		options.EtcdConfig = config
 	}
 }
 
@@ -103,7 +103,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DSyncOptions] {
 
 // CustomTLSConfig sets the TLS configuration for secure connections in DSyncOptions.
 func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[DSyncOptions] {
-	return func(o *DSyncOptions) {
-		o.CustomTLSConfig = conf
+	return func(options *DSyncOptions) {
+		options.CustomTLSConfig = conf
 	}
 }

@@ -84,7 +84,7 @@ func (s SessionSettings) SetRecvEventHandler(handler SessionRecvEventHandler) Se
 // Change 执行修改
 func (s SessionSettings) Change() error {
 	if s.session == nil {
-		exception.Panic("session is nil")
+		exception.Panic("gate: session is nil")
 	}
 
 	s.session.Lock()
@@ -94,7 +94,7 @@ func (s SessionSettings) Change() error {
 	case SessionState_Birth, SessionState_Handshake, SessionState_Confirmed:
 		break
 	default:
-		return errors.New("incorrect session state")
+		return errors.New("gate: incorrect session state")
 	}
 
 	option.Change(&s.session.options, s.settings...)
