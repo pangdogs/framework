@@ -21,24 +21,19 @@ package discovery
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/framework/utils/concurrent"
 )
 
 // IWatcher is an interface that returns updates
 // about services within the registry.
 type IWatcher interface {
-	context.Context
+	concurrent.IWatcher
 	// Pattern watching pattern
 	Pattern() string
 	// Next is a blocking call
 	Next() (*Event, error)
-	// Terminate stop watching
-	Terminate() async.AsyncRet
-	// Terminated stopped notify
-	Terminated() async.AsyncRet
 }
 
 // Event is returned by a call to Next on the watcher. Type can be create, update, delete

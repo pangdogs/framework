@@ -41,13 +41,6 @@ import (
 	"unique"
 )
 
-// IWatcher 监听器
-type IWatcher interface {
-	context.Context
-	Terminate() async.AsyncRet
-	Terminated() async.AsyncRet
-}
-
 // IDistService 分布式服务支持
 type IDistService interface {
 	// GetNodeDetails 获取节点地址信息

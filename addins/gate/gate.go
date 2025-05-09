@@ -24,7 +24,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"git.golaxy.org/core/service"
-	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -40,13 +39,6 @@ import (
 	"sync/atomic"
 )
 
-// IWatcher 监听器
-type IWatcher interface {
-	context.Context
-	Terminate() async.AsyncRet
-	Terminated() async.AsyncRet
-}
-
 // IGate 网关
 type IGate interface {
 	// GetSession 查询会话
@@ -58,7 +50,7 @@ type IGate interface {
 	// CountSessions 统计所有会话数量
 	CountSessions() int
 	// Watch 监听会话变化
-	Watch(ctx context.Context, handler SessionStateChangedHandler) IWatcher
+	Watch(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher
 }
 
 func newGate(settings ...option.Setting[GateOptions]) IGate {
@@ -207,6 +199,6 @@ func (g *_Gate) CountSessions() int {
 }
 
 // Watch 监听会话变化
-func (g *_Gate) Watch(ctx context.Context, handler SessionStateChangedHandler) IWatcher {
+func (g *_Gate) Watch(ctx context.Context, handler SessionStateChangedHandler) concurrent.IWatcher {
 	return g.newSessionWatcher(ctx, handler)
 }

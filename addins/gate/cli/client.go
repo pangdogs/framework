@@ -38,13 +38,6 @@ var (
 	ErrInactiveTimeout = errors.New("cli: inactive timeout")
 )
 
-// IWatcher 监听器
-type IWatcher interface {
-	context.Context
-	Terminate() async.AsyncRet
-	Terminated() async.AsyncRet
-}
-
 // Client 客户端
 type Client struct {
 	context.Context
@@ -123,7 +116,7 @@ func (c *Client) SendData(data []byte) error {
 }
 
 // WatchData 监听数据
-func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) IWatcher {
+func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) concurrent.IWatcher {
 	return c.newDataWatcher(ctx, handler)
 }
 
@@ -142,7 +135,7 @@ func (c *Client) SendEvent(event transport.IEvent) error {
 }
 
 // WatchEvent 监听自定义事件
-func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) IWatcher {
+func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) concurrent.IWatcher {
 	return c.newEventWatcher(ctx, handler)
 }
 
