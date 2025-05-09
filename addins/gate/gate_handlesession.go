@@ -54,7 +54,7 @@ func (g *_Gate) handleSession(conn net.Conn) (*_Session, bool) {
 		return nil, false
 	}
 
-	log.Infof(g.svcCtx, "listener %q accept remote %q, handle session success, id:%q, token:%q, resumeTimes:%d", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken(), session.GetResumeTimes())
+	log.Infof(g.svcCtx, "listener %q accept remote %q, handle session success, id:%q, token:%q, resume:%t", conn.LocalAddr(), conn.RemoteAddr(), session.GetId(), session.GetToken(), session.GetResumeTimes() > 0)
 	return session, true
 }
 
