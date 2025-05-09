@@ -89,18 +89,16 @@ func (s *_DistSync) NewMutex(name string, settings ...option.Setting[dsync.DistM
 }
 
 // NewMutexf returns a new distributed mutex using a formatted string.
-func (s *_DistSync) NewMutexf(format string, args ...any) dsync.IDistMutexSettings {
-	return &_DistMutexSettings{
-		dsync: s,
-		name:  fmt.Sprintf(format, args...),
+func (s *_DistSync) NewMutexf(format string, args ...any) func(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
+	return func(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
+		return s.NewMutex(fmt.Sprintf(format, args...), settings...)
 	}
 }
 
 // NewMutexp returns a new distributed mutex using elements.
-func (s *_DistSync) NewMutexp(elems ...string) dsync.IDistMutexSettings {
-	return &_DistMutexSettings{
-		dsync: s,
-		name:  netpath.Join(s.GetSeparator(), elems...),
+func (s *_DistSync) NewMutexp(elems ...string) func(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
+	return func(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
+		return s.NewMutex(netpath.Join(s.GetSeparator(), elems...), settings...)
 	}
 }
 

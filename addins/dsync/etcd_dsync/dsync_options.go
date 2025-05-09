@@ -94,7 +94,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("dsync: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs

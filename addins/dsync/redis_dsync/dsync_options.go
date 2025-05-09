@@ -100,7 +100,7 @@ func (_Option) CustomAuth(username, password string) option.Setting[DSyncOptions
 func (_Option) CustomAddress(addr string) option.Setting[DSyncOptions] {
 	return func(options *DSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
-			exception.Panicf("%w: %w", core.ErrArgs, err)
+			exception.Panicf("dsync: %w: %w", core.ErrArgs, err)
 		}
 		options.CustomAddress = addr
 	}

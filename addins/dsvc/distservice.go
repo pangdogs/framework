@@ -132,7 +132,7 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	log.Debugf(d.svcCtx, "service %q node %q details: %+v", d.svcCtx.GetName(), d.svcCtx.GetId(), d.details)
 
 	// 加分布式锁
-	mutex := d.dsync.NewMutexp("service", d.svcCtx.GetName(), "init", d.svcCtx.GetId().String()).With()
+	mutex := d.dsync.NewMutexp("service", d.svcCtx.GetName(), "init", d.svcCtx.GetId().String())()
 	if err := mutex.Lock(d.svcCtx); err != nil {
 		log.Panicf(d.svcCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
 	}

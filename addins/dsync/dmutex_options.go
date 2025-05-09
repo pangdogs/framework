@@ -66,13 +66,13 @@ func (_Option) Default() option.Setting[DistMutexOptions] {
 	}
 
 	return func(options *DistMutexOptions) {
-		With.Expiry(3 * time.Second)(options)
-		With.Tries(15)(options)
-		With.RetryDelayFunc(defaultRetryDelayFunc)(options)
-		With.DriftFactor(0.01)(options)
-		With.TimeoutFactor(0.10)(options)
-		With.GenValueFunc(defaultGenValueFunc)(options)
-		With.Value("")(options)
+		With.Expiry(3 * time.Second).Apply(options)
+		With.Tries(15).Apply(options)
+		With.RetryDelayFunc(defaultRetryDelayFunc).Apply(options)
+		With.DriftFactor(0.01).Apply(options)
+		With.TimeoutFactor(0.10).Apply(options)
+		With.GenValueFunc(defaultGenValueFunc).Apply(options)
+		With.Value("").Apply(options)
 	}
 }
 
@@ -103,7 +103,7 @@ func (_Option) RetryDelay(delay time.Duration) option.Setting[DistMutexOptions] 
 func (_Option) RetryDelayFunc(fn DelayFunc) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		if fn == nil {
-			exception.Panicf("%w: option DelayFunc can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("dsync: %w: option DelayFunc can't be assigned to nil", core.ErrArgs)
 		}
 		options.DelayFunc = fn
 	}
@@ -127,7 +127,7 @@ func (_Option) TimeoutFactor(factor float64) option.Setting[DistMutexOptions] {
 func (_Option) GenValueFunc(fn GenValueFunc) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		if fn == nil {
-			exception.Panicf("%w: option GenValueFunc can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("dsync: %w: option GenValueFunc can't be assigned to nil", core.ErrArgs)
 		}
 		options.GenValueFunc = fn
 	}

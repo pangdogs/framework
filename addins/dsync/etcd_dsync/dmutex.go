@@ -23,7 +23,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/dsync"
 	"git.golaxy.org/framework/addins/log"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -33,16 +32,6 @@ import (
 	"strings"
 	"time"
 )
-
-type _DistMutexSettings struct {
-	dsync *_DistSync
-	name  string
-}
-
-// With applies additional settings to the distributed mutex.
-func (s *_DistMutexSettings) With(settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
-	return s.dsync.NewMutex(s.name, settings...)
-}
 
 func (s *_DistSync) newMutex(name string, options dsync.DistMutexOptions) *_DistMutex {
 	if s.options.KeyPrefix != "" {
