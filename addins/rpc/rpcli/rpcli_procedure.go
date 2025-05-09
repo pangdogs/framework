@@ -29,7 +29,7 @@ import (
 func (c *RPCli) AddProcedure(name string, proc any) error {
 	_proc, ok := proc.(IProcedure)
 	if !ok {
-		return fmt.Errorf("%w: incorrect proc type", core.ErrArgs)
+		return fmt.Errorf("rpcli: %w: incorrect proc type", core.ErrArgs)
 	}
 
 	_proc.init(c, name, proc)
@@ -45,7 +45,7 @@ func (c *RPCli) AddProcedure(name string, proc any) error {
 // RemoveProcedure 删除过程
 func (c *RPCli) RemoveProcedure(name string) error {
 	if name == "" {
-		return errors.New("rpc: the main procedure can't be removed")
+		return errors.New("rpcli: the main procedure can't be removed")
 	}
 
 	if !c.procs.Delete(name) {

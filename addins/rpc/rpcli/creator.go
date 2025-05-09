@@ -200,7 +200,7 @@ func (ctor *RPCliCreator) SetGTPRecvEventHandler(handler cli.RecvEventHandler) *
 
 func (ctor *RPCliCreator) SetGTPRTTSampling(n int) *RPCliCreator {
 	if n < 3 {
-		exception.Panicf("%w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs)
+		exception.Panicf("rpcli: %w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs)
 	}
 	ctor.rttSampling = n
 	return ctor
@@ -239,7 +239,7 @@ func (ctor *RPCliCreator) SetReduceCallPath(b bool) *RPCliCreator {
 func (ctor *RPCliCreator) SetMainProcedure(proc any) *RPCliCreator {
 	_proc, ok := proc.(IProcedure)
 	if !ok {
-		exception.Panicf("%w: incorrect proc type", core.ErrArgs)
+		exception.Panicf("rpcli: %w: incorrect proc type", core.ErrArgs)
 	}
 	ctor.mainProc = _proc
 	return ctor

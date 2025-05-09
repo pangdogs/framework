@@ -53,7 +53,7 @@ func (p *_ServiceProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error 
 func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
+		return fmt.Errorf("rpc: parse rpc notify path:%q failed, %s", req.Path, err)
 	}
 
 	if cp.ExcludeSrc && src.Addr == p.dist.GetNodeDetails().LocalAddr {
@@ -134,7 +134,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
+		err = fmt.Errorf("rpc: parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
 		go p.reply(src, req.CorrId, nil, err)
 		return err
 	}

@@ -57,7 +57,7 @@ func (c *RPCli) handleRecvData(data []byte) error {
 func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("parse rpc notify path:%q failed, %s", req.Path, err)
+		return fmt.Errorf("rpcli: parse rpc notify path:%q failed, %s", req.Path, err)
 	}
 
 	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: true})
@@ -79,7 +79,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
 func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
+		err = fmt.Errorf("rpcli: parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
 		go c.reply(src, req.CorrId, nil, err)
 		return err
 	}

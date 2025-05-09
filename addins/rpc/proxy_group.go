@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package rpcutil
+package rpc
 
 import (
 	"git.golaxy.org/core"
@@ -25,7 +25,6 @@ import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/addins/gate"
-	"git.golaxy.org/framework/addins/rpc"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
 )
@@ -87,5 +86,5 @@ func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)
 }

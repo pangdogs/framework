@@ -46,7 +46,7 @@ var (
 func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, method string, args variant.Array) (_ variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -91,7 +91,7 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, metho
 func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addInName, method string, args variant.Array) (_ async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 
@@ -149,7 +149,7 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.AsyncRet, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("%w: %w", core.ErrPanicked, panicErr)
+			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
 		}
 	}()
 

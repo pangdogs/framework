@@ -71,12 +71,12 @@ func (r *_Router) AddGroup(ctx context.Context, name string) (IGroup, error) {
 
 	if !tr.Succeeded {
 		if len(tr.Responses[0].GetResponseRange().Kvs) <= 0 {
-			return nil, errors.New("missing groupKey")
+			return nil, errors.New("router: missing groupKey")
 		}
 
 		l, err := strconv.Atoi(string(tr.Responses[0].GetResponseRange().Kvs[0].Value))
 		if err != nil {
-			return nil, errors.New("missing groupKey leaseId")
+			return nil, errors.New("router: missing groupKey leaseId")
 		}
 		leaseId = etcdv3.LeaseID(l)
 

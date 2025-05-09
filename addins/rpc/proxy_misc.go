@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package rpcutil
+package rpc
 
 import (
 	"git.golaxy.org/framework/addins/gate"

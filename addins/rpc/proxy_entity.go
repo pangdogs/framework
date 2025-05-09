@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package rpcutil
+package rpc
 
 import (
 	"git.golaxy.org/core"
@@ -29,7 +29,6 @@ import (
 	"git.golaxy.org/framework/addins/dentq"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/gate"
-	"git.golaxy.org/framework/addins/rpc"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/addins/rpcstack"
@@ -103,7 +102,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Asyn
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return Using(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
@@ -157,7 +156,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
@@ -210,7 +209,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // OnewayRPC 向分布式实体目标服务发送单向RPC
@@ -247,7 +246,7 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
@@ -301,7 +300,7 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
@@ -354,7 +353,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
@@ -392,7 +391,7 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 		Method:     method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
 }
 
 // GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
@@ -419,7 +418,7 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 		Method:     method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // CliRPC 向客户端发送RPC
@@ -444,7 +443,7 @@ func (p EntityProxied) CliRPC(proc, method string, args ...any) async.AsyncRet {
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // CliOnewayRPC 向客户端发送单向RPC
@@ -469,7 +468,7 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
@@ -494,5 +493,5 @@ func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) e
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }

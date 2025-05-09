@@ -32,11 +32,11 @@ import (
 )
 
 var (
-	ErrProcedureExists              = errors.New("rpc: procedure exists")                // 过程已存在
-	ErrProcedureNotFound            = errors.New("rpc: procedure not found")             // 找不到过程
-	ErrMethodNotFound               = errors.New("rpc: method not found")                // 找不到方法
-	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch") // 方法参数数量不匹配
-	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")  // 方法参数类型不匹配
+	ErrProcedureExists              = errors.New("rpcli: procedure exists")                // 过程已存在
+	ErrProcedureNotFound            = errors.New("rpcli: procedure not found")             // 找不到过程
+	ErrMethodNotFound               = errors.New("rpcli: method not found")                // 找不到方法
+	ErrMethodParameterCountMismatch = errors.New("rpcli: method parameter count mismatch") // 方法参数数量不匹配
+	ErrMethodParameterTypeMismatch  = errors.New("rpcli: method parameter type mismatch")  // 方法参数类型不匹配
 )
 
 // RPCli RCP客户端

@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package rpcutil
+package rpc
 
 import (
 	"git.golaxy.org/core"
@@ -26,7 +26,6 @@ import (
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/dsvc"
-	"git.golaxy.org/framework/addins/rpc"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
 )
@@ -78,7 +77,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) as
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
@@ -103,7 +102,7 @@ func (p ServiceProxied) BalanceRPC(addIn, method string, args ...any) async.Asyn
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // OnewayRPC 向分布式服务指定节点发送单向RPC
@@ -125,7 +124,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...a
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
@@ -150,7 +149,7 @@ func (p ServiceProxied) BalanceOnewayRPC(addIn, method string, args ...any) erro
 		Method:   method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
@@ -176,5 +175,5 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, addIn, method strin
 		Method:     method,
 	}
 
-	return rpc.Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
 }

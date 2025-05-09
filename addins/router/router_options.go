@@ -69,15 +69,15 @@ func (_Option) Default() option.Setting[RouterOptions] {
 
 // EtcdClient etcd客户端，最优先使用
 func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[RouterOptions] {
-	return func(o *RouterOptions) {
-		o.EtcdClient = cli
+	return func(options *RouterOptions) {
+		options.EtcdClient = cli
 	}
 }
 
 // EtcdConfig etcd配置，次优先使用
 func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[RouterOptions] {
-	return func(o *RouterOptions) {
-		o.EtcdConfig = config
+	return func(options *RouterOptions) {
+		options.EtcdConfig = config
 	}
 }
 
@@ -95,7 +95,7 @@ func (_Option) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
 func (_Option) GroupTTL(ttl time.Duration, auto bool) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("%w: option GroupTTL can't be set to a value less than 3 second", core.ErrArgs)
+			exception.Panicf("router: %w: option GroupTTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.GroupTTL = ttl
 		options.GroupAutoRefreshTTL = auto
@@ -130,7 +130,7 @@ func (_Option) EntityGroupsKeyPrefix(prefix string) option.Setting[RouterOptions
 func (_Option) EntityGroupCacheTTL(ttl time.Duration) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("%w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs)
+			exception.Panicf("router: %w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs)
 		}
 		options.EntityGroupsCacheTTL = ttl
 	}
@@ -149,7 +149,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				exception.Panicf("%w: %w", core.ErrArgs, err)
+				exception.Panicf("router: %w: %w", core.ErrArgs, err)
 			}
 		}
 		options.CustomAddresses = addrs
@@ -158,7 +158,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
 
 // CustomTLSConfig 自定义设置加密etcd连接的配置
 func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[RouterOptions] {
-	return func(o *RouterOptions) {
-		o.CustomTLSConfig = conf
+	return func(options *RouterOptions) {
+		options.CustomTLSConfig = conf
 	}
 }

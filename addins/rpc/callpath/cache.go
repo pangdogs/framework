@@ -54,7 +54,7 @@ func Cache(script, method string) uint32 {
 			return idx
 		}
 		mutex.RUnlock()
-		exception.Panicf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method})
+		exception.Panicf("rpc: cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method})
 	}
 	mutex.RUnlock()
 
@@ -70,7 +70,7 @@ func Cache(script, method string) uint32 {
 			return idx
 		}
 		mutex.Unlock()
-		exception.Panicf("cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached)
+		exception.Panicf("rpc: cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached)
 	}
 
 	cache[idx] = cached

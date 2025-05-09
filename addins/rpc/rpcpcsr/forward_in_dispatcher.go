@@ -79,7 +79,7 @@ func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForwar
 func (p *_ForwardProcessor) acceptNotify(src, transit gap.Origin, dst string, req *gap.MsgOnewayRPC) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src.Addr, dst, transit.Addr, req.Path, err)
+		return fmt.Errorf("rpc: parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src.Addr, dst, transit.Addr, req.Path, err)
 	}
 	cp.Id = uid.From(dst)
 
@@ -160,7 +160,7 @@ func (p *_ForwardProcessor) acceptNotify(src, transit gap.Origin, dst string, re
 func (p *_ForwardProcessor) acceptRequest(src, transit gap.Origin, dst string, req *gap.MsgRPCRequest) error {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src.Addr, dst, transit.Addr, req.Path, err)
+		err = fmt.Errorf("rpc: parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src.Addr, dst, transit.Addr, req.Path, err)
 		go p.reply(src, transit, req.CorrId, nil, err)
 		return err
 	}
