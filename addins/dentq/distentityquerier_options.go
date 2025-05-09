@@ -49,27 +49,27 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
-		With.EtcdClient(nil)(options)
-		With.EtcdConfig(nil)(options)
-		With.KeyPrefix("/golaxy/entities/")(options)
-		With.CacheExpiry(10 * time.Minute)(options)
-		With.CustomAuth("", "")(options)
-		With.CustomAddresses("127.0.0.1:2379")(options)
-		With.CustomTLSConfig(nil)(options)
+		With.EtcdClient(nil).Apply(options)
+		With.EtcdConfig(nil).Apply(options)
+		With.KeyPrefix("/golaxy/entities/").Apply(options)
+		With.CacheExpiry(10 * time.Minute).Apply(options)
+		With.CustomAuth("", "").Apply(options)
+		With.CustomAddresses("127.0.0.1:2379").Apply(options)
+		With.CustomTLSConfig(nil).Apply(options)
 	}
 }
 
 // EtcdClient etcd客户端，最优先使用
 func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[DistEntityQuerierOptions] {
-	return func(o *DistEntityQuerierOptions) {
-		o.EtcdClient = cli
+	return func(options *DistEntityQuerierOptions) {
+		options.EtcdClient = cli
 	}
 }
 
 // EtcdConfig etcd配置，次优先使用
 func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[DistEntityQuerierOptions] {
-	return func(o *DistEntityQuerierOptions) {
-		o.EtcdConfig = config
+	return func(options *DistEntityQuerierOptions) {
+		options.EtcdConfig = config
 	}
 }
 
@@ -112,7 +112,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[DistEntityQuerier
 
 // CustomTLSConfig 自定义设置加密etcd连接的配置
 func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[DistEntityQuerierOptions] {
-	return func(o *DistEntityQuerierOptions) {
-		o.CustomTLSConfig = conf
+	return func(options *DistEntityQuerierOptions) {
+		options.CustomTLSConfig = conf
 	}
 }
