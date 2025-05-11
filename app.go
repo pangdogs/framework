@@ -43,14 +43,14 @@ func NewApp() *App {
 	return &App{}
 }
 
-type _ServPT struct {
+type _ServicePT struct {
 	generic iServiceGeneric
 	num     int
 }
 
 // App 应用
 type App struct {
-	servicePTs               map[string]*_ServPT
+	servicePTs               map[string]*_ServicePT
 	startupConf              *viper.Viper
 	initCB                   generic.Action1[*cobra.Command]
 	startingCB, terminatedCB generic.Action1[*App]
@@ -58,7 +58,7 @@ type App struct {
 
 func (app *App) lazyInit() {
 	if app.servicePTs == nil {
-		app.servicePTs = make(map[string]*_ServPT)
+		app.servicePTs = make(map[string]*_ServicePT)
 	}
 	if app.startupConf == nil {
 		app.startupConf = viper.New()
@@ -80,7 +80,7 @@ func (app *App) Setup(name string, generic any) *App {
 
 	svcGeneric.init(app.startupConf, name, svcGeneric)
 
-	app.servicePTs[name] = &_ServPT{
+	app.servicePTs[name] = &_ServicePT{
 		generic: svcGeneric,
 		num:     1,
 	}
