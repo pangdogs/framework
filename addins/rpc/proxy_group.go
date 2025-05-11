@@ -29,7 +29,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyGroup 代理分组
+// ProxyGroup 创建分组代理，用于向分组发送RPC
 func ProxyGroup(provider runtime.CurrentContextProvider, name string) GroupProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -41,8 +41,8 @@ func ProxyGroup(provider runtime.CurrentContextProvider, name string) GroupProxi
 	}
 }
 
-// ConcurrentProxyGroup 代理分组
-func ConcurrentProxyGroup(svcCtx service.Context, name string) GroupProxied {
+// UntrackedProxyGroup 创建分组代理，不继承RPC调用链，用于向分组发送RPC
+func UntrackedProxyGroup(svcCtx service.Context, name string) GroupProxied {
 	return GroupProxied{
 		svcCtx: svcCtx,
 		addr:   gate.CliDetails.DomainMulticast.Join(name),

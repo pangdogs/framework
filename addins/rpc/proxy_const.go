@@ -19,22 +19,9 @@
 
 package rpc
 
-import (
-	"git.golaxy.org/framework/addins/gate"
-	"git.golaxy.org/framework/addins/rpc/callpath"
-	"git.golaxy.org/framework/addins/rpcstack"
-	"strings"
-)
-
 const (
-	NoAddIn = "" // 不使用插件
-	NoComp  = "" // 不使用组件
+	Main        = "" // 调用客户端主过程
+	EntitySelf  = "" // 调用实体自身方法
+	RuntimeSelf = "" // 调用运行时自身方法
+	ServiceSelf = "" // 调用服务自身方法
 )
-
-// CliRPCPermValidator 默认的客户端RPC请求权限验证器，强制客户端只能RPC调用前缀为C_的函数
-func CliRPCPermValidator(cc rpcstack.CallChain, cp callpath.CallPath) bool {
-	if !gate.CliDetails.DomainRoot.Contains(cc.First().Addr) {
-		return true
-	}
-	return strings.HasPrefix(cp.Method, "C_")
-}

@@ -35,7 +35,7 @@ import (
 	"slices"
 )
 
-// ProxyRuntime 代理运行时
+// ProxyRuntime 创建运行时代理，用于向实体的运行时发送RPC
 func ProxyRuntime(provider runtime.CurrentContextProvider, entityId uid.Id) RuntimeProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -47,8 +47,8 @@ func ProxyRuntime(provider runtime.CurrentContextProvider, entityId uid.Id) Runt
 	}
 }
 
-// ConcurrentProxyRuntime 代理运行时
-func ConcurrentProxyRuntime(svcCtx service.Context, entityId uid.Id) RuntimeProxied {
+// UntrackedProxyRuntime 创建运行时代理，不继承RPC调用链，用于向实体的运行时发送RPC
+func UntrackedProxyRuntime(svcCtx service.Context, entityId uid.Id) RuntimeProxied {
 	return RuntimeProxied{
 		svcCtx:   svcCtx,
 		entityId: entityId,

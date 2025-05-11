@@ -36,7 +36,7 @@ import (
 	"slices"
 )
 
-// ProxyEntity 代理实体
+// ProxyEntity 创建实体代理，用于向实体发送RPC
 func ProxyEntity(provider runtime.CurrentContextProvider, id uid.Id) EntityProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -48,8 +48,8 @@ func ProxyEntity(provider runtime.CurrentContextProvider, id uid.Id) EntityProxi
 	}
 }
 
-// ConcurrentProxyEntity 代理实体
-func ConcurrentProxyEntity(svcCtx service.Context, id uid.Id) EntityProxied {
+// UntrackedProxyEntity 创建实体代理，不继承RPC调用链，用于向实体发送RPC
+func UntrackedProxyEntity(svcCtx service.Context, id uid.Id) EntityProxied {
 	return EntityProxied{
 		svcCtx: svcCtx,
 		id:     id,

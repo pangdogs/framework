@@ -21,6 +21,7 @@ package rpc
 
 import (
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
@@ -28,28 +29,42 @@ import (
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
+	"github.com/elliotchance/pie/v2"
 )
 
-// ProxyService 代理服务
-func ProxyService(svcCtx service.Context, service ...string) ServiceProxied {
-	if svcCtx == nil {
-		exception.Panicf("rpc: %w: svcCtx is nil", core.ErrArgs)
+// ProxyService 创建服务代理，用于向服务发送RPC
+func ProxyService(provider runtime.CurrentContextProvider, serviceName ...string) ServiceProxied {
+	if provider == nil {
+		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
 
 	p := ServiceProxied{
-		svcCtx: svcCtx,
-	}
-
-	if len(service) > 0 {
-		p.service = service[0]
+		svcCtx:  service.Current(provider),
+		rtCtx:   runtime.Current(provider),
+		service: pie.First(serviceName),
 	}
 
 	return p
 }
 
-// ServiceProxied 实体服务，用于向服务发送RPC
+// UntrackedProxyService 创建服务代理，不继承RPC调用链，用于向服务发送RPC
+func UntrackedProxyService(svcCtx service.Context, serviceName ...string) ServiceProxied {
+	if svcCtx == nil {
+		exception.Panicf("rpc: %w: svcCtx is nil", core.ErrArgs)
+	}
+
+	p := ServiceProxied{
+		svcCtx:  svcCtx,
+		service: pie.First(serviceName),
+	}
+
+	return p
+}
+
+// ServiceProxied 服务代理，用于向服务发送RPC
 type ServiceProxied struct {
 	svcCtx  service.Context
+	rtCtx   runtime.Context
 	service string
 }
 
@@ -70,6 +85,12 @@ func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) as
 		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, err))
 	}
 
+	// 调用链
+	cc := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		cc = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
@@ -77,7 +98,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) as
 		Method:   method,
 	}
 
-	return Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
@@ -95,6 +116,12 @@ func (p ServiceProxied) BalanceRPC(addIn, method string, args ...any) async.Asyn
 		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
+	// 调用链
+	cc := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		cc = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
@@ -102,7 +129,7 @@ func (p ServiceProxied) BalanceRPC(addIn, method string, args ...any) async.Asyn
 		Method:   method,
 	}
 
-	return Using(p.svcCtx).RPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // OnewayRPC 向分布式服务指定节点发送单向RPC
@@ -117,6 +144,12 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...a
 		return err
 	}
 
+	// 调用链
+	cc := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		cc = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
@@ -124,7 +157,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...a
 		Method:   method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
@@ -142,6 +175,12 @@ func (p ServiceProxied) BalanceOnewayRPC(addIn, method string, args ...any) erro
 		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBalanceAddr
 	}
 
+	// 调用链
+	cc := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		cc = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category: callpath.Service,
@@ -149,7 +188,7 @@ func (p ServiceProxied) BalanceOnewayRPC(addIn, method string, args ...any) erro
 		Method:   method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
@@ -167,6 +206,12 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, addIn, method strin
 		dst = dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
 	}
 
+	// 调用链
+	cc := rpcstack.EmptyCallChain
+	if p.rtCtx != nil {
+		cc = rpcstack.Using(p.rtCtx).CallChain()
+	}
+
 	// 调用路径
 	cp := callpath.CallPath{
 		Category:   callpath.Service,
@@ -175,5 +220,5 @@ func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, addIn, method strin
 		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, rpcstack.EmptyCallChain, cp, args...)
+	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
