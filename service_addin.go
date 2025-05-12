@@ -27,6 +27,10 @@ type InstallServiceConfig interface {
 	InstallConfig(svc IService)
 }
 
+type DefaultServiceConfig interface {
+	DefaultConfig(svc IService) map[string]any
+}
+
 type InstallServiceBroker interface {
 	InstallBroker(svc IService)
 }

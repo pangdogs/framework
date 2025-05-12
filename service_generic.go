@@ -294,6 +294,12 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}
 	}
 	if !installed(conf.Name) {
+		var defaults map[string]any
+
+		if cb, ok := s.instance.(DefaultServiceConfig); ok {
+			defaults = cb.DefaultConfig(svcInst)
+		}
+
 		conf.Install(svcInst,
 			conf.With.Format(startupConf.GetString("conf.format")),
 			conf.With.Local(startupConf.GetString("conf.local_path")),
@@ -302,6 +308,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				startupConf.GetString("conf.remote_endpoint"),
 				startupConf.GetString("conf.remote_path"),
 			),
+			conf.With.Defaults(defaults),
 			conf.With.AutoHotFix(startupConf.GetBool("conf.auto_update")),
 			conf.With.MergeConf(startupConf),
 		)
