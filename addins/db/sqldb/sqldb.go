@@ -30,6 +30,7 @@ import (
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -37,19 +38,25 @@ import (
 
 type ISQLDB interface {
 	SQLDB(tag string) *gorm.DB
+	ReflectedSQLDB(tag string) reflect.Value
 }
 
 func newSQLDB(settings ...option.Setting[SQLDBOptions]) ISQLDB {
 	return &_SQLDB{
 		options: option.Make(With.Default(), settings...),
-		dbs:     make(map[string]*gorm.DB),
+		dbs:     make(map[string]*_GormDB),
 	}
+}
+
+type _GormDB struct {
+	db        *gorm.DB
+	reflected reflect.Value
 }
 
 type _SQLDB struct {
 	svcCtx  service.Context
 	options SQLDBOptions
-	dbs     map[string]*gorm.DB
+	dbs     map[string]*_GormDB
 }
 
 func (s *_SQLDB) Init(svcCtx service.Context) {
@@ -58,7 +65,12 @@ func (s *_SQLDB) Init(svcCtx service.Context) {
 	s.svcCtx = svcCtx
 
 	for _, info := range s.options.DBInfos {
-		s.dbs[info.Tag] = s.connectToDB(info)
+		db := s.connectToDB(info)
+
+		s.dbs[info.Tag] = &_GormDB{
+			db:        db,
+			reflected: reflect.ValueOf(db),
+		}
 	}
 }
 
@@ -66,7 +78,7 @@ func (s *_SQLDB) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	for _, db := range s.dbs {
-		sqldb, _ := db.DB()
+		sqldb, _ := db.db.DB()
 		if sqldb != nil {
 			sqldb.Close()
 		}
@@ -74,10 +86,22 @@ func (s *_SQLDB) Shut(svcCtx service.Context) {
 }
 
 func (s *_SQLDB) SQLDB(tag string) *gorm.DB {
-	return s.dbs[tag]
+	db := s.dbs[tag]
+	if db == nil {
+		return nil
+	}
+	return db.db
 }
 
-func (s *_SQLDB) connectToDB(info dbtypes.DBInfo) *gorm.DB {
+func (s *_SQLDB) ReflectedSQLDB(tag string) reflect.Value {
+	db := s.dbs[tag]
+	if db == nil {
+		return reflect.Value{}
+	}
+	return db.reflected
+}
+
+func (s *_SQLDB) connectToDB(info *dbtypes.DBInfo) *gorm.DB {
 	dbConnStrUrl, dbConnStrValues, _ := strings.Cut(info.ConnStr, "?")
 	queryValues, err := url.ParseQuery(dbConnStrValues)
 	if err != nil {

@@ -26,7 +26,7 @@ import (
 )
 
 type SQLDBOptions struct {
-	DBInfos []dbtypes.DBInfo
+	DBInfos []*dbtypes.DBInfo
 }
 
 var With _Option
@@ -39,9 +39,9 @@ func (_Option) Default() option.Setting[SQLDBOptions] {
 	}
 }
 
-func (_Option) DBInfos(infos ...dbtypes.DBInfo) option.Setting[SQLDBOptions] {
+func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[SQLDBOptions] {
 	return func(options *SQLDBOptions) {
-		options.DBInfos = pie.Filter(infos, func(info dbtypes.DBInfo) bool {
+		options.DBInfos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
 			switch info.Type {
 			case dbtypes.MySQL, dbtypes.PostgreSQL, dbtypes.SQLServer, dbtypes.SQLite:
 				return true

@@ -26,23 +26,30 @@ import (
 	"git.golaxy.org/framework/addins/db/dbtypes"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/redis/go-redis/v9"
+	"reflect"
 )
 
 type IRedisDB interface {
 	RedisDB(tag string) *redis.Client
+	ReflectedRedisDB(tag string) reflect.Value
 }
 
 func newRedisDB(settings ...option.Setting[RedisDBOptions]) IRedisDB {
 	return &_RedisDB{
 		options: option.Make(With.Default(), settings...),
-		dbs:     make(map[string]*redis.Client),
+		dbs:     make(map[string]*_RedisClient),
 	}
+}
+
+type _RedisClient struct {
+	client    *redis.Client
+	reflected reflect.Value
 }
 
 type _RedisDB struct {
 	svcCtx  service.Context
 	options RedisDBOptions
-	dbs     map[string]*redis.Client
+	dbs     map[string]*_RedisClient
 }
 
 func (r *_RedisDB) Init(svcCtx service.Context) {
@@ -51,7 +58,12 @@ func (r *_RedisDB) Init(svcCtx service.Context) {
 	r.svcCtx = svcCtx
 
 	for _, info := range r.options.DBInfos {
-		r.dbs[info.Tag] = r.connectToDB(info)
+		cli := r.connectToDB(info)
+
+		r.dbs[info.Tag] = &_RedisClient{
+			client:    cli,
+			reflected: reflect.ValueOf(cli),
+		}
 	}
 }
 
@@ -59,15 +71,27 @@ func (r *_RedisDB) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	for _, db := range r.dbs {
-		db.Close()
+		db.client.Close()
 	}
 }
 
 func (r *_RedisDB) RedisDB(tag string) *redis.Client {
-	return r.dbs[tag]
+	cli := r.dbs[tag]
+	if cli == nil {
+		return nil
+	}
+	return cli.client
 }
 
-func (r *_RedisDB) connectToDB(info dbtypes.DBInfo) *redis.Client {
+func (r *_RedisDB) ReflectedRedisDB(tag string) reflect.Value {
+	cli := r.dbs[tag]
+	if cli == nil {
+		return reflect.Value{}
+	}
+	return cli.reflected
+}
+
+func (r *_RedisDB) connectToDB(info *dbtypes.DBInfo) *redis.Client {
 	opt, err := redis.ParseURL(info.ConnStr)
 	if err != nil {
 		log.Panicf(r.svcCtx, "parse db conn str %q failed, %v", info.ConnStr, err)

@@ -26,7 +26,7 @@ import (
 )
 
 type MongoDBOptions struct {
-	DBInfos []dbtypes.DBInfo
+	DBInfos []*dbtypes.DBInfo
 }
 
 var With _Option
@@ -39,14 +39,16 @@ func (_Option) Default() option.Setting[MongoDBOptions] {
 	}
 }
 
-func (_Option) DBInfos(infos ...dbtypes.DBInfo) option.Setting[MongoDBOptions] {
+func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
-		options.DBInfos = pie.Filter(infos, func(info dbtypes.DBInfo) bool {
+		infos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
 			switch info.Type {
 			case dbtypes.MongoDB:
 				return true
 			}
 			return false
 		})
+
+		options.DBInfos = infos
 	}
 }

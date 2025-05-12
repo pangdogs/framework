@@ -28,23 +28,30 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"reflect"
 )
 
 type IMongoDB interface {
 	MongoDB(tag string) *mongo.Client
+	ReflectedMongoDB(tag string) reflect.Value
 }
 
 func newMongoDB(settings ...option.Setting[MongoDBOptions]) IMongoDB {
 	return &_MongoDB{
 		options: option.Make(With.Default(), settings...),
-		dbs:     make(map[string]*mongo.Client),
+		dbs:     make(map[string]*_MongoClient),
 	}
+}
+
+type _MongoClient struct {
+	client    *mongo.Client
+	reflected reflect.Value
 }
 
 type _MongoDB struct {
 	svcCtx  service.Context
 	options MongoDBOptions
-	dbs     map[string]*mongo.Client
+	dbs     map[string]*_MongoClient
 }
 
 func (m *_MongoDB) Init(svcCtx service.Context) {
@@ -53,7 +60,12 @@ func (m *_MongoDB) Init(svcCtx service.Context) {
 	m.svcCtx = svcCtx
 
 	for _, info := range m.options.DBInfos {
-		m.dbs[info.Tag] = m.connectToDB(info)
+		cli := m.connectToDB(info)
+
+		m.dbs[info.Tag] = &_MongoClient{
+			client:    cli,
+			reflected: reflect.ValueOf(cli),
+		}
 	}
 }
 
@@ -61,15 +73,27 @@ func (m *_MongoDB) Shut(svcCtx service.Context) {
 	log.Infof(svcCtx, "shut addin %q", self.Name)
 
 	for _, db := range m.dbs {
-		db.Disconnect(context.Background())
+		db.client.Disconnect(context.Background())
 	}
 }
 
 func (m *_MongoDB) MongoDB(tag string) *mongo.Client {
-	return m.dbs[tag]
+	cli := m.dbs[tag]
+	if cli == nil {
+		return nil
+	}
+	return cli.client
 }
 
-func (m *_MongoDB) connectToDB(info dbtypes.DBInfo) *mongo.Client {
+func (m *_MongoDB) ReflectedMongoDB(tag string) reflect.Value {
+	cli := m.dbs[tag]
+	if cli == nil {
+		return reflect.Value{}
+	}
+	return cli.reflected
+}
+
+func (m *_MongoDB) connectToDB(info *dbtypes.DBInfo) *mongo.Client {
 	opt := options.Client().ApplyURI(info.ConnStr)
 
 	client, err := mongo.NewClient(opt)
