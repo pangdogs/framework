@@ -21,12 +21,12 @@ package mongodb
 
 import (
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db"
+	"git.golaxy.org/framework/addins/db/dbtypes"
 	"github.com/elliotchance/pie/v2"
 )
 
 type MongoDBOptions struct {
-	DBInfos []db.DBInfo
+	DBInfos []dbtypes.DBInfo
 }
 
 var With _Option
@@ -39,11 +39,11 @@ func (_Option) Default() option.Setting[MongoDBOptions] {
 	}
 }
 
-func (_Option) DBInfos(infos ...db.DBInfo) option.Setting[MongoDBOptions] {
+func (_Option) DBInfos(infos ...dbtypes.DBInfo) option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
-		options.DBInfos = pie.Filter(infos, func(info db.DBInfo) bool {
+		options.DBInfos = pie.Filter(infos, func(info dbtypes.DBInfo) bool {
 			switch info.Type {
-			case db.MongoDB:
+			case dbtypes.MongoDB:
 				return true
 			}
 			return false

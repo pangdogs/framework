@@ -21,12 +21,12 @@ package redisdb
 
 import (
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db"
+	"git.golaxy.org/framework/addins/db/dbtypes"
 	"github.com/elliotchance/pie/v2"
 )
 
 type RedisDBOptions struct {
-	DBInfos []db.DBInfo
+	DBInfos []dbtypes.DBInfo
 }
 
 var With _Option
@@ -39,11 +39,11 @@ func (_Option) Default() option.Setting[RedisDBOptions] {
 	}
 }
 
-func (_Option) DBInfos(infos ...db.DBInfo) option.Setting[RedisDBOptions] {
+func (_Option) DBInfos(infos ...dbtypes.DBInfo) option.Setting[RedisDBOptions] {
 	return func(options *RedisDBOptions) {
-		options.DBInfos = pie.Filter(infos, func(info db.DBInfo) bool {
+		options.DBInfos = pie.Filter(infos, func(info dbtypes.DBInfo) bool {
 			switch info.Type {
-			case db.Redis:
+			case dbtypes.Redis:
 				return true
 			}
 			return false

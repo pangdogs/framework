@@ -22,7 +22,7 @@ package sqldb
 import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db"
+	"git.golaxy.org/framework/addins/db/dbtypes"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
@@ -77,7 +77,7 @@ func (s *_SQLDB) SQLDB(tag string) *gorm.DB {
 	return s.dbs[tag]
 }
 
-func (s *_SQLDB) connectToDB(info db.DBInfo) *gorm.DB {
+func (s *_SQLDB) connectToDB(info dbtypes.DBInfo) *gorm.DB {
 	dbConnStrUrl, dbConnStrValues, _ := strings.Cut(info.ConnStr, "?")
 	queryValues, err := url.ParseQuery(dbConnStrValues)
 	if err != nil {
@@ -127,13 +127,13 @@ func (s *_SQLDB) connectToDB(info db.DBInfo) *gorm.DB {
 	var dial gorm.Dialector
 
 	switch strings.ToLower(info.Type) {
-	case strings.ToLower(db.MySQL):
+	case strings.ToLower(dbtypes.MySQL):
 		dial = mysql.Open(dbConnStr)
-	case strings.ToLower(db.PostgreSQL):
+	case strings.ToLower(dbtypes.PostgreSQL):
 		dial = postgres.Open(dbConnStr)
-	case strings.ToLower(db.SQLServer):
+	case strings.ToLower(dbtypes.SQLServer):
 		dial = sqlserver.Open(dbConnStr)
-	case strings.ToLower(db.SQLite):
+	case strings.ToLower(dbtypes.SQLite):
 		dial = sqlite.Open(dbConnStr)
 	default:
 		log.Panicf(s.svcCtx, "conn to db(%s) %q failed, not", info.Type, dbConnStr)

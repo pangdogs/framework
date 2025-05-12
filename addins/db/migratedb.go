@@ -19,17 +19,19 @@
 
 package db
 
-const (
-	MySQL      = "mysql"
-	PostgreSQL = "postgresql"
-	SQLServer  = "sqlserver"
-	SQLite     = "sqlite"
-	Redis      = "redis"
-	MongoDB    = "mongodb"
-)
+type IMigrateDB interface {
+	MigrateDB() error
+}
 
-type DBInfo struct {
-	Tag     string `json:"tag,omitempty"`
-	Type    string `json:"type,omitempty"`
-	ConnStr string `json:"conn_str,omitempty"`
+func MigrateDB(services ...any) error {
+	for _, service := range services {
+		migrateDB, ok := service.(IMigrateDB)
+		if !ok {
+			continue
+		}
+		if err := migrateDB.MigrateDB(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

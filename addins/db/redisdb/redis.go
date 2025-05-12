@@ -23,7 +23,7 @@ import (
 	"context"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db"
+	"git.golaxy.org/framework/addins/db/dbtypes"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/redis/go-redis/v9"
 )
@@ -67,7 +67,7 @@ func (r *_RedisDB) RedisDB(tag string) *redis.Client {
 	return r.dbs[tag]
 }
 
-func (r *_RedisDB) connectToDB(info db.DBInfo) *redis.Client {
+func (r *_RedisDB) connectToDB(info dbtypes.DBInfo) *redis.Client {
 	opt, err := redis.ParseURL(info.ConnStr)
 	if err != nil {
 		log.Panicf(r.svcCtx, "parse db conn str %q failed, %v", info.ConnStr, err)

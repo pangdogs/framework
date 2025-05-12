@@ -23,7 +23,7 @@ import (
 	"context"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db"
+	"git.golaxy.org/framework/addins/db/dbtypes"
 	"git.golaxy.org/framework/addins/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -69,7 +69,7 @@ func (m *_MongoDB) MongoDB(tag string) *mongo.Client {
 	return m.dbs[tag]
 }
 
-func (m *_MongoDB) connectToDB(info db.DBInfo) *mongo.Client {
+func (m *_MongoDB) connectToDB(info dbtypes.DBInfo) *mongo.Client {
 	opt := options.Client().ApplyURI(info.ConnStr)
 
 	client, err := mongo.NewClient(opt)

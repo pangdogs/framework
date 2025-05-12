@@ -17,21 +17,26 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package dbutil
+package db
 
-type IMigrateDB interface {
-	MigrateDB() error
+import (
+	"git.golaxy.org/core/service"
+	"git.golaxy.org/framework/addins/db/mongodb"
+	"git.golaxy.org/framework/addins/db/redisdb"
+	"git.golaxy.org/framework/addins/db/sqldb"
+	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
+	"gorm.io/gorm"
+)
+
+func SQLDB(svcCtx service.Context, tag string) *gorm.DB {
+	return sqldb.Using(svcCtx).SQLDB(tag)
 }
 
-func MigrateDB(services ...any) error {
-	for _, service := range services {
-		migrateDB, ok := service.(IMigrateDB)
-		if !ok {
-			continue
-		}
-		if err := migrateDB.MigrateDB(); err != nil {
-			return err
-		}
-	}
-	return nil
+func RedisDB(svcCtx service.Context, tag string) *redis.Client {
+	return redisdb.Using(svcCtx).RedisDB(tag)
+}
+
+func MongoDB(svcCtx service.Context, tag string) *mongo.Client {
+	return mongodb.Using(svcCtx).MongoDB(tag)
 }

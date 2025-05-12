@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package dbutil
+package db
 
 import (
 	"git.golaxy.org/core"
