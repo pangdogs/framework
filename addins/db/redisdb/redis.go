@@ -65,6 +65,10 @@ func (r *_RedisDB) Init(svcCtx service.Context) {
 			reflected: reflect.ValueOf(cli),
 		}
 	}
+
+	if len(r.dbs) <= 0 {
+		log.Warn(svcCtx, "no redis db has been connected")
+	}
 }
 
 func (r *_RedisDB) Shut(svcCtx service.Context) {

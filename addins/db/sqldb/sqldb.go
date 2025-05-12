@@ -72,6 +72,10 @@ func (s *_SQLDB) Init(svcCtx service.Context) {
 			reflected: reflect.ValueOf(db),
 		}
 	}
+
+	if len(s.dbs) <= 0 {
+		log.Warn(svcCtx, "no sql db has been connected")
+	}
 }
 
 func (s *_SQLDB) Shut(svcCtx service.Context) {

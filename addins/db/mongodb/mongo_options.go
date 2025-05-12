@@ -20,6 +20,7 @@
 package mongodb
 
 import (
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/db/dbtypes"
 	"github.com/elliotchance/pie/v2"
@@ -42,12 +43,19 @@ func (_Option) Default() option.Setting[MongoDBOptions] {
 func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
 		infos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
+			if info == nil {
+				return false
+			}
 			switch info.Type {
 			case dbtypes.MongoDB:
 				return true
 			}
 			return false
 		})
+
+		if len(options.DBInfos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
+			exception.Panicf("db: %w: tags in db infos must be unique", exception.ErrArgs)
+		}
 
 		options.DBInfos = infos
 	}

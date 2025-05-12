@@ -67,6 +67,10 @@ func (m *_MongoDB) Init(svcCtx service.Context) {
 			reflected: reflect.ValueOf(cli),
 		}
 	}
+
+	if len(m.dbs) <= 0 {
+		log.Warn(svcCtx, "no mongo db has been connected")
+	}
 }
 
 func (m *_MongoDB) Shut(svcCtx service.Context) {
