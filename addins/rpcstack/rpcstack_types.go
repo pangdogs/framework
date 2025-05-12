@@ -27,8 +27,7 @@ import (
 type (
 	Call      = variant.Call
 	CallChain = variant.CallChain
+	Variables = generic.UnorderedSliceMap[string, any]
 )
 
 var EmptyCallChain = CallChain{}
-
-type Variables = generic.UnorderedSliceMap[string, any]
