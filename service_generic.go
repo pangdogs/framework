@@ -294,10 +294,18 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}
 	}
 	if !installed(conf.Name) {
-		var defaults map[string]any
+		defaults := map[string]any{}
 
 		if cb, ok := s.instance.(ServiceConfigDefaults); ok {
-			defaults = cb.ServiceConfigDefaults(svcInst)
+			for k, v := range cb.ServiceConfigDefaults(svcInst) {
+				defaults[s.GetName()+"."+k] = v
+			}
+		}
+
+		if cb, ok := svcInst.(ServiceConfigDefaults); ok {
+			for k, v := range cb.ServiceConfigDefaults(svcInst) {
+				defaults[s.GetName()+"."+k] = v
+			}
 		}
 
 		conf.Install(svcInst,
