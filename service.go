@@ -43,8 +43,10 @@ func GetService(provider runtime.ConcurrentContextProvider) IService {
 // IService 服务实例接口
 type IService interface {
 	service.Context
-	// GetConf 获取配置插件
-	GetConf() conf.IConfig
+	// GetAppConf 获取当前应用程序配置
+	GetAppConf() *viper.Viper
+	// GetServiceConf 获取当前服务配置
+	GetServiceConf() *viper.Viper
 	// GetRegistry 获取服务发现插件
 	GetRegistry() discovery.IRegistry
 	// GetBroker 获取消息队列中间件插件
@@ -77,9 +79,14 @@ type Service struct {
 	runtimeGeneric RuntimeGeneric
 }
 
-// GetConf 获取配置插件
-func (svc *Service) GetConf() conf.IConfig {
-	return conf.Using(svc)
+// GetAppConf 获取当前应用程序配置
+func (svc *Service) GetAppConf() *viper.Viper {
+	return conf.Using(svc).AppConf()
+}
+
+// GetServiceConf 获取当前服务配置
+func (svc *Service) GetServiceConf() *viper.Viper {
+	return conf.Using(svc).ServiceConf()
 }
 
 // GetRegistry 获取服务发现插件
