@@ -56,6 +56,15 @@ type iServiceGeneric interface {
 	generate(ctx context.Context, no int) core.Service
 }
 
+const (
+	memStartupNo      = "startup.no"
+	memStartupConf    = "startup.conf"
+	memZapLogger      = "zap.logger"
+	memZapAtomicLevel = "zap.atomic_level"
+	memEtcdClientOnce = "etcd.client_once"
+	memEtcdClient     = "etcd.client"
+)
+
 // ServiceGeneric 服务泛化类型
 type ServiceGeneric struct {
 	once        sync.Once
@@ -74,12 +83,6 @@ func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, instance an
 
 func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	startupConf := s.GetStartupConf()
-
-	memKV := &sync.Map{}
-	memKV.Store("startup.no", no)
-	memKV.Store("startup.conf", startupConf)
-
-	ctx = context.WithValue(ctx, "mem_kv", memKV)
 
 	autoRecover := startupConf.GetBool("service.auto_recover")
 	var reportError chan error
@@ -106,6 +109,9 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 			switch status {
 			case service.RunningStatus_Birth:
+				svcInst.GetMemory().Store(memStartupNo, no)
+				svcInst.GetMemory().Store(memStartupConf, startupConf)
+
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
 					cb.Birth(svcInst)
 				}
@@ -140,13 +146,17 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				if cb, ok := svcInst.(LifecycleServiceTerminated); ok {
 					cb.Terminated(svcInst)
 				}
-
-				if v, ok := svcInst.GetMemKV().Load("zap.logger"); ok {
-					v.(*zap.Logger).Sync()
+				{
+					v, _ := svcInst.GetMemory().Load(memZapLogger)
+					if logger, ok := v.(*zap.Logger); ok {
+						logger.Sync()
+					}
 				}
-
-				if v, ok := svcInst.GetMemKV().Load("etcd.client"); ok {
-					v.(*etcdv3.Client).Close()
+				{
+					v, _ := svcInst.GetMemory().Load(memEtcdClient)
+					if cli, ok := v.(*etcdv3.Client); ok {
+						cli.Close()
+					}
 				}
 			case service.RunningStatus_ActivatingAddIn:
 				addInStatus := args[0].(extension.AddInStatus)
@@ -273,8 +283,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			)
 		}
 
-		memKV.Store("zap.logger", zapLogger)
-		memKV.Store("zap.atomic_level", zapAtomicLevel)
+		svcInst.GetMemory().Store(memZapLogger, zapLogger)
+		svcInst.GetMemory().Store(memZapAtomicLevel, zapAtomicLevel)
 
 		zap_log.Install(svcInst,
 			zap_log.With.ZapLogger(zapLogger),
@@ -449,8 +459,8 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		cb.Built(svcInst)
 	}
 
-	// 延迟连接etcd
-	memKV.Store("etcd.lazy_conn", sync.OnceValue(func() *etcdv3.Client {
+	// 创建etcd客户端
+	svcInst.GetMemory().Store(memEtcdClientOnce, sync.OnceValue(func() *etcdv3.Client {
 		cli, err := etcdv3.New(etcdv3.Config{
 			Endpoints: []string{startupConf.GetString("etcd.address")},
 			Username:  startupConf.GetString("etcd.username"),
@@ -459,7 +469,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		if err != nil {
 			exception.Panicf("%w: new etcd client failed, %s", ErrFramework, err)
 		}
-		memKV.Store("etcd.client", cli)
+		svcInst.GetMemory().Store(memEtcdClient, cli)
 		return cli
 	}))
 

@@ -63,8 +63,8 @@ type IService interface {
 	GetStartupNo() int
 	// GetStartupConf 获取启动参数配置
 	GetStartupConf() *viper.Viper
-	// GetMemKV 获取服务内存KV数据库
-	GetMemKV() *sync.Map
+	// GetMemory 获取服务内存KV存储
+	GetMemory() *sync.Map
 	// BuildRuntime 创建运行时
 	BuildRuntime() *RuntimeCreator
 	// BuildEntityPT 创建实体原型
@@ -77,6 +77,7 @@ type IService interface {
 type Service struct {
 	service.ContextBehavior
 	runtimeGeneric RuntimeGeneric
+	memory         sync.Map
 }
 
 // GetAppConf 获取当前应用程序配置
@@ -121,29 +122,27 @@ func (svc *Service) GetRPC() rpc.IRPC {
 
 // GetStartupNo 获取启动序号
 func (svc *Service) GetStartupNo() int {
-	v, _ := svc.GetMemKV().Load("startup.no")
-	if v == nil {
-		exception.Panicf("%w: service memory kv startup.no not existed", ErrFramework)
+	v, _ := svc.GetMemory().Load(memStartupNo)
+	startupNo, ok := v.(int)
+	if !ok {
+		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupNo)
 	}
-	return v.(int)
+	return startupNo
 }
 
 // GetStartupConf 获取启动参数配置
 func (svc *Service) GetStartupConf() *viper.Viper {
-	v, _ := svc.GetMemKV().Load("startup.conf")
-	if v == nil {
-		exception.Panicf("%w: service memory kv startup.conf not existed", ErrFramework)
+	v, _ := svc.GetMemory().Load(memStartupConf)
+	startupConf, ok := v.(*viper.Viper)
+	if !ok {
+		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupConf)
 	}
-	return v.(*viper.Viper)
+	return startupConf
 }
 
-// GetMemKV 获取服务内存KV数据库
-func (svc *Service) GetMemKV() *sync.Map {
-	memKV, _ := svc.Value("mem_kv").(*sync.Map)
-	if memKV == nil {
-		exception.Panicf("%w: service memory not existed", ErrFramework)
-	}
-	return memKV
+// GetMemory 获取服务内存KV存储
+func (svc *Service) GetMemory() *sync.Map {
+	return &svc.memory
 }
 
 // BuildRuntime 创建运行时

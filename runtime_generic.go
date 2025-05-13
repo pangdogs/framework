@@ -286,9 +286,10 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(log.Name) {
-		if v, _ := r.svcInst.GetMemKV().Load("zap.logger"); v != nil {
+		v, _ := r.svcInst.GetMemory().Load(memZapLogger)
+		if logger, ok := v.(*zap.Logger); ok {
 			zap_log.Install(rtInst,
-				zap_log.With.ZapLogger(v.(*zap.Logger)),
+				zap_log.With.ZapLogger(logger),
 				zap_log.With.ServiceInfo(appConf.GetBool("log.service_info")),
 				zap_log.With.RuntimeInfo(appConf.GetBool("log.runtime_info")),
 			)
@@ -322,15 +323,13 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}
 	}
 	if !installed(dentr.Name) {
-		v, _ := r.GetService().GetMemKV().Load("etcd.lazy_conn")
-		fun, _ := v.(func() *etcdv3.Client)
-		if fun == nil {
-			exception.Panicf("%w: service memory kv etcd.lazy_conn not existed", ErrFramework)
+		v, _ := r.GetService().GetMemory().Load(memEtcdClientOnce)
+		cliOnce, ok := v.(func() *etcdv3.Client)
+		if !ok {
+			exception.Panicf("%w: service memory %q not existed", ErrFramework, memEtcdClientOnce)
 		}
-		cli := fun()
-
 		dentr.Install(rtInst,
-			dentr.With.EtcdClient(cli),
+			dentr.With.EtcdClient(cliOnce()),
 			dentr.With.TTL(appConf.GetDuration("service.dent_ttl")),
 		)
 	}

@@ -114,18 +114,8 @@ func (app *App) Run() {
 		Short: "Application for Launching Services",
 		Run: func(cmd *cobra.Command, args []string) {
 			// 合并启动参数配置
-			startupConf := app.startupConf
-
-			startupConf.AutomaticEnv()
-			startupConf.BindPFlags(cmd.Flags())
-			startupConf.SetConfigType(startupConf.GetString("conf.format"))
-			startupConf.SetConfigFile(startupConf.GetString("conf.local_path"))
-
-			if startupConf.ConfigFileUsed() != "" {
-				if err := startupConf.ReadInConfig(); err != nil {
-					exception.Panicf("%w: load startup config [--conf.local_path] = %q failed, %s", ErrFramework, startupConf.GetString("conf.local_path"), err)
-				}
-			}
+			app.startupConf.AutomaticEnv()
+			app.startupConf.BindPFlags(cmd.Flags())
 
 			// 启动pprof
 			app.initPProf()
