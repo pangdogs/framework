@@ -113,9 +113,8 @@ func (app *App) Run() {
 	cmd := &cobra.Command{
 		Short: "Application for Launching Services",
 		Run: func(cmd *cobra.Command, args []string) {
-			// 合并启动参数配置
-			app.startupConf.AutomaticEnv()
-			app.startupConf.BindPFlags(cmd.Flags())
+			// 加载启动参数
+			app.initStartupConf(cmd)
 
 			// 启动pprof
 			app.initPProf()
@@ -166,12 +165,12 @@ func (app *App) initFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().Bool("log.runtime_info", false, "logging output generic info")
 
 	// 配置参数
-	cmd.PersistentFlags().String("conf.format", "json", "config file format")
+	cmd.PersistentFlags().String("conf.env_prefix", "", "defines the prefix for environment variables")
 	cmd.PersistentFlags().String("conf.local_path", "", "local config file path")
 	cmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
 	cmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
 	cmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
-	cmd.PersistentFlags().Bool("conf.auto_hotfix", true, "auto hotfix config")
+	cmd.PersistentFlags().Bool("conf.auto_hotfix", false, "auto hotfix config")
 
 	// nats参数
 	cmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")
@@ -203,6 +202,42 @@ func (app *App) initFlags(cmd *cobra.Command) {
 	// pprof参数
 	cmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
 	cmd.PersistentFlags().String("pprof.address", "0.0.0.0:6060", "pprof listening address")
+}
+
+func (app *App) initStartupConf(cmd *cobra.Command) {
+	startupConf := app.startupConf
+
+	// 合并启动参数
+	startupConf.BindPFlags(cmd.Flags())
+
+	// 合并环境变量
+	startupConf.SetEnvPrefix(startupConf.GetString("conf.env_prefix"))
+	startupConf.AutomaticEnv()
+
+	// 加载本地配置文件
+	localPath := startupConf.GetString("conf.local_path")
+
+	if localPath != "" {
+		startupConf.SetConfigFile(localPath)
+
+		if err := startupConf.ReadInConfig(); err != nil {
+			exception.Panicf("%w: read local config %q failed, %s", ErrFramework, localPath, err)
+		}
+	}
+
+	// 加载远程配置文件
+	remoteProvider := startupConf.GetString("conf.remote_provider")
+	remoteEndpoint := startupConf.GetString("conf.remote_endpoint")
+	remotePath := startupConf.GetString("conf.remote_path")
+
+	if remoteProvider != "" {
+		if err := startupConf.AddRemoteProvider(remoteProvider, remoteEndpoint, remotePath); err != nil {
+			exception.Panicf(`%w: set remote config "%s - %s - %s" failed, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
+		}
+		if err := startupConf.ReadRemoteConfig(); err != nil {
+			exception.Panicf(`%w: read remote config "%s - %s - %s" failed, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
+		}
+	}
 }
 
 func (app *App) initPProf() {

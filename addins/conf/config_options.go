@@ -26,14 +26,14 @@ import (
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
-	Format         string         // 配置格式（json,yaml,ini...）
 	LocalPath      string         // 本地配置文件路径
 	RemoteProvider string         // 远端配置类型（etcd3,consul...）
 	RemoteEndpoint string         // 远端地址
 	RemotePath     string         // 远端路径
 	AutoHotFix     bool           // 自动热更新
 	Defaults       map[string]any // 默认配置
-	MergeEnv       bool           // 合并环境变量
+	AutomaticEnv   bool           // 合并环境变量
+	EnvPrefix      string         // 环境变量前缀
 	MergeConf      *viper.Viper   // 合并配置
 }
 
@@ -44,20 +44,13 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		With.Format("json").Apply(options)
 		With.Local("").Apply(options)
 		With.Remote("", "", "").Apply(options)
 		With.AutoHotFix(false).Apply(options)
 		With.Defaults(nil).Apply(options)
-		With.MergeEnv(false).Apply(options)
+		With.AutomaticEnv(false).Apply(options)
+		With.EnvPrefix("").Apply(options)
 		With.MergeConf(nil).Apply(options)
-	}
-}
-
-// Format 配置格式（json,yaml,ini...）
-func (_Option) Format(format string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.Format = format
 	}
 }
 
@@ -91,10 +84,17 @@ func (_Option) Defaults(dict map[string]any) option.Setting[ConfigOptions] {
 	}
 }
 
-// MergeEnv 合并环境变量
-func (_Option) MergeEnv(b bool) option.Setting[ConfigOptions] {
+// AutomaticEnv 合并环境变量
+func (_Option) AutomaticEnv(b bool) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		options.MergeEnv = b
+		options.AutomaticEnv = b
+	}
+}
+
+// EnvPrefix 环境变量前缀
+func (_Option) EnvPrefix(prefix string) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.EnvPrefix = prefix
 	}
 }
 
