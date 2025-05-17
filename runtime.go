@@ -35,7 +35,6 @@ func GetRuntime(provider runtime.CurrentContextProvider) IRuntime {
 
 // IRuntime 运行时实例接口
 type IRuntime interface {
-	iRuntime
 	runtime.Context
 	// GetDistEntityRegistry 获取分布式实体注册支持
 	GetDistEntityRegistry() dentr.IDistEntityRegistry

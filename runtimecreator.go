@@ -69,8 +69,8 @@ func (c *RuntimeCreator) Setup(generic any) *RuntimeCreator {
 	if !ok {
 		rtGeneric = newRuntimeInstantiation(generic)
 	}
-
 	rtGeneric.init(c.svcCtx, rtGeneric)
+
 	c.generic = rtGeneric
 
 	return c
@@ -121,7 +121,8 @@ func (c *RuntimeCreator) New() IRuntime {
 
 	generic := c.generic
 	if generic == nil {
-		generic = c.Setup(&RuntimeGeneric{}).generic
+		generic = &RuntimeGeneric{}
+		generic.init(c.svcCtx, generic)
 	}
 
 	return reinterpret.Cast[IRuntime](runtime.Current(generic.generate(c.settings)))

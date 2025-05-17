@@ -31,14 +31,12 @@ import (
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/addins/conf"
 	"git.golaxy.org/framework/addins/dentr"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/log/zap_log"
 	"git.golaxy.org/framework/addins/rpcstack"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type _RuntimeSettings struct {
@@ -58,21 +56,16 @@ type iRuntimeGeneric interface {
 
 // RuntimeGeneric 运行时泛化类型
 type RuntimeGeneric struct {
-	once     sync.Once
 	svcInst  IService
 	instance any
 }
 
 func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
-	r.once.Do(func() {
-		r.svcInst = reinterpret.Cast[IService](svcCtx)
-		r.instance = instance
-	})
+	r.svcInst = reinterpret.Cast[IService](svcCtx)
+	r.instance = instance
 }
 
 func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
-	appConf := conf.Using(r.svcInst).AppConf()
-
 	rtInstFace := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
@@ -109,11 +102,23 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 			switch status {
 			case runtime.RunningStatus_Birth:
+				cacheCallPath("", rtInst.GetReflected().Type())
+				rtInst.(iRuntime).setAutoInjection(settings.AutoInjection)
+
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
 					cb.Birth(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeBirth); ok {
 					cb.Birth(rtInst)
+				}
+
+				r.installAddIns(rtInst)
+
+				if cb, ok := r.instance.(LifecycleRuntimeBuilt); ok {
+					cb.Built(rtInst)
+				}
+				if cb, ok := rtInst.(LifecycleRuntimeBuilt); ok {
+					cb.Built(rtInst)
 				}
 			case runtime.RunningStatus_Starting:
 				if cb, ok := r.instance.(LifecycleRuntimeStarting); ok {
@@ -264,10 +269,27 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 		}),
 	)
 
-	rtInst := reinterpret.Cast[IRuntime](rtCtx)
-	cacheCallPath("", rtInst.GetReflected().Type())
+	return core.NewRuntime(rtCtx,
+		core.With.Runtime.Frame(func() runtime.Frame {
+			if settings.FPS <= 0 {
+				return nil
+			}
+			return runtime.NewFrame(
+				runtime.With.Frame.TargetFPS(settings.FPS),
+			)
+		}()),
+		core.With.Runtime.AutoRun(true),
+		core.With.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
+	)
+}
 
-	rtInst.setAutoInjection(settings.AutoInjection)
+// GetService 获取服务
+func (r *RuntimeGeneric) GetService() IService {
+	return r.svcInst
+}
+
+func (r *RuntimeGeneric) installAddIns(rtInst IRuntime) {
+	appConf := r.svcInst.GetAppConf()
 
 	installed := func(name string) bool {
 		_, ok := rtInst.GetAddInManager().Get(name)
@@ -333,31 +355,4 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 			dentr.With.TTL(appConf.GetDuration("service.dent_ttl")),
 		)
 	}
-
-	// 组装完成回调
-	if cb, ok := r.instance.(LifecycleRuntimeBuilt); ok {
-		cb.Built(rtInst)
-	}
-	if cb, ok := rtInst.(LifecycleRuntimeBuilt); ok {
-		cb.Built(rtInst)
-	}
-
-	// 创建运行时
-	return core.NewRuntime(rtInst,
-		core.With.Runtime.Frame(func() runtime.Frame {
-			if settings.FPS <= 0 {
-				return nil
-			}
-			return runtime.NewFrame(
-				runtime.With.Frame.TargetFPS(settings.FPS),
-			)
-		}()),
-		core.With.Runtime.AutoRun(true),
-		core.With.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
-	)
-}
-
-// GetService 获取服务
-func (r *RuntimeGeneric) GetService() IService {
-	return r.svcInst
 }

@@ -74,6 +74,7 @@ type IService interface {
 
 type iService interface {
 	getStarted() *atomic.Bool
+	getRuntimeGeneric() *RuntimeGeneric
 }
 
 // Service 服务实例
@@ -147,7 +148,9 @@ func (svc *Service) GetMemory() *sync.Map {
 
 // BuildRuntime 创建运行时
 func (svc *Service) BuildRuntime() *RuntimeCreator {
-	return BuildRuntime(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface).Setup(&svc.runtimeGeneric)
+	rtCtor := BuildRuntime(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface)
+	rtCtor.generic = &svc.runtimeGeneric
+	return rtCtor
 }
 
 // BuildEntityPT 创建实体原型
@@ -162,6 +165,10 @@ func (svc *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
 
 func (svc *Service) getStarted() *atomic.Bool {
 	return &svc.started
+}
+
+func (svc *Service) getRuntimeGeneric() *RuntimeGeneric {
+	return &svc.runtimeGeneric
 }
 
 func (svc *Service) getStartupConf() *viper.Viper {

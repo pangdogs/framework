@@ -115,6 +115,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 				svcInst.GetMemory().Store(memStartupConf, startupConf)
 				svcInst.GetMemory().Store(memStartupCmd, s.startupCmd)
 
+				svcInst.(iService).getRuntimeGeneric().init(svcInst, startupConf)
 				cacheCallPath("", svcInst.GetReflected().Type())
 
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
