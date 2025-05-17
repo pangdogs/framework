@@ -3,7 +3,7 @@ module git.golaxy.org/framework
 go 1.23.4
 
 require (
-	git.golaxy.org/core v0.4.18
+	git.golaxy.org/core v0.4.21
 	github.com/andybalholm/brotli v1.1.1
 	github.com/elliotchance/pie/v2 v2.9.1
 	github.com/fsnotify/fsnotify v1.9.0
@@ -16,6 +16,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/spf13/cobra v1.9.1
+	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.20.1
 	github.com/spf13/viper/remote v1.20.1
 	go.etcd.io/etcd/api/v3 v3.5.21
@@ -97,7 +98,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

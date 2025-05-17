@@ -323,7 +323,7 @@ func (s *SequencedSynchronizer) ack(seq uint32) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				exception.Panicf("%w: sequenced buffer cached less 0 invalid", ErrSynchronizer)
+				exception.Panicf("%w: sequenced buffer cached less 0 is invalid", ErrSynchronizer)
 			}
 
 			return
@@ -349,7 +349,7 @@ func (s *SequencedSynchronizer) reduce(size int) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				exception.Panicf("%w: sequenced buffer cached less 0 invalid", ErrSynchronizer)
+				exception.Panicf("%w: sequenced buffer cached less 0 is invalid", ErrSynchronizer)
 			}
 
 			return

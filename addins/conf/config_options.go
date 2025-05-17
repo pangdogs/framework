@@ -21,20 +21,20 @@ package conf
 
 import (
 	"git.golaxy.org/core/utils/option"
-	"github.com/spf13/viper"
+	"github.com/spf13/pflag"
 )
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
+	Defaults       map[string]any // 默认配置
+	Flags          *pflag.FlagSet // 启动命令参数
+	AutomaticEnv   bool           // 合并环境变量
+	EnvPrefix      string         // 环境变量前缀
 	LocalPath      string         // 本地配置文件路径
 	RemoteProvider string         // 远端配置类型（etcd3,consul...）
 	RemoteEndpoint string         // 远端地址
 	RemotePath     string         // 远端路径
 	AutoHotFix     bool           // 自动热更新
-	Defaults       map[string]any // 默认配置
-	AutomaticEnv   bool           // 合并环境变量
-	EnvPrefix      string         // 环境变量前缀
-	MergeConf      *viper.Viper   // 合并配置
 }
 
 var With _Option
@@ -44,36 +44,13 @@ type _Option struct{}
 // Default 默认值
 func (_Option) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
+		With.Defaults(nil).Apply(options)
+		With.Flags(nil).Apply(options)
+		With.AutomaticEnv(false).Apply(options)
+		With.EnvPrefix("").Apply(options)
 		With.Local("").Apply(options)
 		With.Remote("", "", "").Apply(options)
 		With.AutoHotFix(false).Apply(options)
-		With.Defaults(nil).Apply(options)
-		With.AutomaticEnv(false).Apply(options)
-		With.EnvPrefix("").Apply(options)
-		With.MergeConf(nil).Apply(options)
-	}
-}
-
-// Local 本地配置
-func (_Option) Local(path string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.LocalPath = path
-	}
-}
-
-// Remote 远端配置
-func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.RemoteProvider = provider
-		options.RemoteEndpoint = endpoint
-		options.RemotePath = path
-	}
-}
-
-// AutoHotFix 是否热更新
-func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.AutoHotFix = b
 	}
 }
 
@@ -98,9 +75,32 @@ func (_Option) EnvPrefix(prefix string) option.Setting[ConfigOptions] {
 	}
 }
 
-// MergeConf 合并配置
-func (_Option) MergeConf(conf *viper.Viper) option.Setting[ConfigOptions] {
+// Flags 启动命令参数
+func (_Option) Flags(flags *pflag.FlagSet) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		options.MergeConf = conf
+		options.Flags = flags
+	}
+}
+
+// Local 本地配置
+func (_Option) Local(path string) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.LocalPath = path
+	}
+}
+
+// Remote 远端配置
+func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.RemoteProvider = provider
+		options.RemoteEndpoint = endpoint
+		options.RemotePath = path
+	}
+}
+
+// AutoHotFix 是否热更新
+func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.AutoHotFix = b
 	}
 }

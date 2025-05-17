@@ -58,13 +58,13 @@ func (c *_Config) Init(svcCtx service.Context) {
 		appConf.SetDefault(k, v)
 	}
 
+	if c.options.Flags != nil {
+		appConf.BindPFlags(c.options.Flags)
+	}
+
 	if c.options.AutomaticEnv {
 		appConf.SetEnvPrefix(c.options.EnvPrefix)
 		appConf.AutomaticEnv()
-	}
-
-	if c.options.MergeConf != nil {
-		appConf.MergeConfigMap(c.options.MergeConf.AllSettings())
 	}
 
 	local := c.options.LocalPath != ""

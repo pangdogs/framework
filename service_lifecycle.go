@@ -24,12 +24,16 @@ import (
 	"git.golaxy.org/core/extension"
 )
 
-type LifecycleServiceBuilt interface {
-	Built(svc IService)
-}
-
 type LifecycleServiceBirth interface {
 	Birth(svc IService)
+}
+
+type LifecycleServiceDefaultConfig interface {
+	DefaultConfig(svc IService) map[string]any
+}
+
+type LifecycleServiceBuilt interface {
+	Built(svc IService)
 }
 
 type LifecycleServiceStarting interface {

@@ -33,6 +33,7 @@ import (
 	"git.golaxy.org/framework/addins/rpc"
 	"github.com/spf13/viper"
 	"sync"
+	"sync/atomic"
 )
 
 // GetService 获取服务实例
@@ -61,8 +62,6 @@ type IService interface {
 	GetRPC() rpc.IRPC
 	// GetStartupNo 获取启动序号
 	GetStartupNo() int
-	// GetStartupConf 获取启动参数配置
-	GetStartupConf() *viper.Viper
 	// GetMemory 获取服务内存KV存储
 	GetMemory() *sync.Map
 	// BuildRuntime 创建运行时
@@ -73,20 +72,31 @@ type IService interface {
 	BuildEntityAsync(prototype string) *EntityCreatorAsync
 }
 
+type iService interface {
+	getStarted() *atomic.Bool
+}
+
 // Service 服务实例
 type Service struct {
 	service.ContextBehavior
-	runtimeGeneric RuntimeGeneric
+	started        atomic.Bool
 	memory         sync.Map
+	runtimeGeneric RuntimeGeneric
 }
 
 // GetAppConf 获取当前应用程序配置
 func (svc *Service) GetAppConf() *viper.Viper {
+	if !svc.started.Load() {
+		return svc.getStartupConf()
+	}
 	return conf.Using(svc).AppConf()
 }
 
 // GetServiceConf 获取当前服务配置
 func (svc *Service) GetServiceConf() *viper.Viper {
+	if !svc.started.Load() {
+		return svc.getStartupConf().Sub(svc.GetName())
+	}
 	return conf.Using(svc).ServiceConf()
 }
 
@@ -130,16 +140,6 @@ func (svc *Service) GetStartupNo() int {
 	return startupNo
 }
 
-// GetStartupConf 获取启动参数配置
-func (svc *Service) GetStartupConf() *viper.Viper {
-	v, _ := svc.GetMemory().Load(memStartupConf)
-	startupConf, ok := v.(*viper.Viper)
-	if !ok {
-		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupConf)
-	}
-	return startupConf
-}
-
 // GetMemory 获取服务内存KV存储
 func (svc *Service) GetMemory() *sync.Map {
 	return &svc.memory
@@ -158,4 +158,17 @@ func (svc *Service) BuildEntityPT(prototype string) *EntityPTCreator {
 // BuildEntityAsync 创建实体
 func (svc *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
 	return BuildEntityAsync(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(svc.BuildRuntime())
+}
+
+func (svc *Service) getStarted() *atomic.Bool {
+	return &svc.started
+}
+
+func (svc *Service) getStartupConf() *viper.Viper {
+	v, _ := svc.GetMemory().Load(memStartupConf)
+	startupConf, ok := v.(*viper.Viper)
+	if !ok {
+		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupConf)
+	}
+	return startupConf
 }

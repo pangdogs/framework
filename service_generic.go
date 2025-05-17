@@ -41,6 +41,7 @@ import (
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/log/zap_log"
 	"git.golaxy.org/framework/addins/rpc"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -52,13 +53,14 @@ import (
 )
 
 type iServiceGeneric interface {
-	init(startupConf *viper.Viper, name string, instance any)
+	init(startupConf *viper.Viper, startupCmd *cobra.Command, name string, instance any)
 	generate(ctx context.Context, no int) core.Service
 }
 
 const (
 	memStartupNo      = "startup.no"
 	memStartupConf    = "startup.conf"
+	memStartupCmd     = "startup.cmd"
 	memZapLogger      = "zap.logger"
 	memZapAtomicLevel = "zap.atomic_level"
 	memEtcdClientOnce = "etcd.client_once"
@@ -67,36 +69,36 @@ const (
 
 // ServiceGeneric 服务泛化类型
 type ServiceGeneric struct {
-	once        sync.Once
 	startupConf *viper.Viper
+	startupCmd  *cobra.Command
 	name        string
 	instance    any
 }
 
-func (s *ServiceGeneric) init(startupConf *viper.Viper, name string, instance any) {
-	s.once.Do(func() {
-		s.startupConf = startupConf
-		s.name = name
-		s.instance = instance
-	})
+func (s *ServiceGeneric) init(startupConf *viper.Viper, startupCmd *cobra.Command, name string, instance any) {
+	s.startupConf = startupConf
+	s.startupCmd = startupCmd
+	s.name = name
+	s.instance = instance
 }
 
 func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
-	startupConf := s.GetStartupConf()
-
-	autoRecover := startupConf.GetBool("service.auto_recover")
-	var reportError chan error
-
-	if autoRecover {
-		reportError = make(chan error, 128)
-	}
-
 	svcInstFace := iface.Face[service.Context]{}
 
 	if cb, ok := s.instance.(IServiceInstantiation); ok {
 		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](cb.Instantiate())
 	} else {
 		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&Service{})
+	}
+
+	startupConf := viper.New()
+	startupConf.MergeConfigMap(s.startupConf.AllSettings())
+
+	autoRecover := startupConf.GetBool("service.auto_recover")
+	var reportError chan error
+
+	if autoRecover {
+		reportError = make(chan error, 128)
 	}
 
 	svcCtx := service.NewContext(
@@ -111,12 +113,70 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 			case service.RunningStatus_Birth:
 				svcInst.GetMemory().Store(memStartupNo, no)
 				svcInst.GetMemory().Store(memStartupConf, startupConf)
+				svcInst.GetMemory().Store(memStartupCmd, s.startupCmd)
+
+				cacheCallPath("", svcInst.GetReflected().Type())
 
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
 					cb.Birth(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceBirth); ok {
 					cb.Birth(svcInst)
+				}
+
+				defaults := map[string]any{}
+
+				if cb, ok := s.instance.(LifecycleServiceDefaultConfig); ok {
+					for k, v := range cb.DefaultConfig(svcInst) {
+						defaults[svcInst.GetName()+"."+k] = v
+					}
+				}
+				if cb, ok := svcInst.(LifecycleServiceDefaultConfig); ok {
+					for k, v := range cb.DefaultConfig(svcInst) {
+						defaults[svcInst.GetName()+"."+k] = v
+					}
+				}
+				for k, v := range defaults {
+					startupConf.SetDefault(k, v)
+				}
+
+				s.installAddIns(svcInst, defaults)
+
+				if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
+					cb.Built(svcInst)
+				}
+				if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
+					cb.Built(svcInst)
+				}
+
+				svcInst.GetMemory().Store(memEtcdClientOnce, sync.OnceValue(func() *etcdv3.Client {
+					cli, err := etcdv3.New(etcdv3.Config{
+						Endpoints: []string{startupConf.GetString("etcd.address")},
+						Username:  startupConf.GetString("etcd.username"),
+						Password:  startupConf.GetString("etcd.password"),
+					})
+					if err != nil {
+						exception.Panicf("%w: new etcd client failed, %s", ErrFramework, err)
+					}
+					svcInst.GetMemory().Store(memEtcdClient, cli)
+					return cli
+				}))
+
+				if svcInst.GetAutoRecover() && svcInst.GetReportError() != nil {
+					go func() {
+						for {
+							select {
+							case err := <-svcInst.GetReportError():
+								if svcInst.(iService).getStarted().Load() {
+									log.Errorf(svcInst, "recover:\n%s", err)
+								} else {
+									panic(err)
+								}
+							case <-svcInst.Done():
+								return
+							}
+						}
+					}()
 				}
 			case service.RunningStatus_Starting:
 				if cb, ok := s.instance.(LifecycleServiceStarting); ok {
@@ -126,6 +186,9 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 					cb.Starting(svcInst)
 				}
 			case service.RunningStatus_Started:
+				if !svcInst.(iService).getStarted().CompareAndSwap(false, true) {
+					exception.Panicf("%w: already started", ErrFramework)
+				}
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
 					cb.Started(svcInst)
 				}
@@ -229,8 +292,26 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}),
 	)
 
-	svcInst := reinterpret.Cast[IService](svcCtx)
-	cacheCallPath("", svcInst.GetReflected().Type())
+	return core.NewService(svcCtx)
+}
+
+// GetName 获取服务名称
+func (s *ServiceGeneric) GetName() string {
+	return s.name
+}
+
+// GetStartupConf 获取启动参数配置
+func (s *ServiceGeneric) GetStartupConf() *viper.Viper {
+	return s.startupConf
+}
+
+// GetStartupCmd 获取启动命令
+func (s *ServiceGeneric) GetStartupCmd() *cobra.Command {
+	return s.startupCmd
+}
+
+func (s *ServiceGeneric) installAddIns(svcInst IService, defaults map[string]any) {
+	appConf := svcInst.GetAppConf()
 
 	installed := func(name string) bool {
 		_, ok := svcInst.GetAddInManager().Get(name)
@@ -249,37 +330,37 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}
 	}
 	if !installed(log.Name) {
-		level, err := zapcore.ParseLevel(startupConf.GetString("log.level"))
+		level, err := zapcore.ParseLevel(appConf.GetString("log.level"))
 		if err != nil {
-			exception.Panicf("%w: parse startup config [--log.level] = %q failed, %s", ErrFramework, startupConf.GetString("log.level"), err)
+			exception.Panicf("%w: invalid log level %q, %s", ErrFramework, appConf.GetString("log.level"), err)
 		}
 
 		var filePath string
 
-		if startupConf.GetString("log.dir") != "" {
-			filePath = filepath.Join(startupConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), no))
+		if appConf.GetString("log.dir") != "" {
+			filePath = filepath.Join(appConf.GetString("log.dir"), fmt.Sprintf("%s-%s-%d.log", strings.TrimSuffix(filepath.Base(os.Args[0]), filepath.Ext(os.Args[0])), s.GetName(), svcInst.GetStartupNo()))
 		}
 
 		var zapLogger *zap.Logger
 		var zapAtomicLevel zap.AtomicLevel
 
-		switch startupConf.GetString("log.format") {
+		switch appConf.GetString("log.format") {
 		case "json":
 			zapLogger, zapAtomicLevel = zap_log.NewJsonZapLogger(
 				level,
 				filePath,
-				startupConf.GetInt("log.size"),
-				startupConf.GetBool("log.stdout"),
-				startupConf.GetBool("log.development"),
+				appConf.GetInt("log.size"),
+				appConf.GetBool("log.stdout"),
+				appConf.GetBool("log.development"),
 			)
 		default:
 			zapLogger, zapAtomicLevel = zap_log.NewConsoleZapLogger(
 				level,
 				"\t",
 				filePath,
-				startupConf.GetInt("log.size"),
-				startupConf.GetBool("log.stdout"),
-				startupConf.GetBool("log.development"),
+				appConf.GetInt("log.size"),
+				appConf.GetBool("log.stdout"),
+				appConf.GetBool("log.development"),
 			)
 		}
 
@@ -288,7 +369,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 		zap_log.Install(svcInst,
 			zap_log.With.ZapLogger(zapLogger),
-			zap_log.With.ServiceInfo(startupConf.GetBool("log.service_info")),
+			zap_log.With.ServiceInfo(appConf.GetBool("log.service_info")),
 		)
 	}
 
@@ -304,31 +385,18 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		}
 	}
 	if !installed(conf.Name) {
-		defaults := map[string]any{}
-
-		if cb, ok := s.instance.(ServiceConfigDefaults); ok {
-			for k, v := range cb.ServiceConfigDefaults(svcInst) {
-				defaults[s.GetName()+"."+k] = v
-			}
-		}
-
-		if cb, ok := svcInst.(ServiceConfigDefaults); ok {
-			for k, v := range cb.ServiceConfigDefaults(svcInst) {
-				defaults[s.GetName()+"."+k] = v
-			}
-		}
-
 		conf.Install(svcInst,
-			conf.With.Local(startupConf.GetString("conf.local_path")),
-			conf.With.Remote(
-				startupConf.GetString("conf.remote_provider"),
-				startupConf.GetString("conf.remote_endpoint"),
-				startupConf.GetString("conf.remote_path"),
-			),
-			conf.With.AutoHotFix(startupConf.GetBool("conf.auto_hotfix")),
 			conf.With.Defaults(defaults),
 			conf.With.AutomaticEnv(true),
-			conf.With.EnvPrefix(startupConf.GetString("conf.env_prefix")),
+			conf.With.EnvPrefix(appConf.GetString("conf.env_prefix")),
+			conf.With.Flags(s.startupCmd.Flags()),
+			conf.With.Local(appConf.GetString("conf.local_path")),
+			conf.With.Remote(
+				appConf.GetString("conf.remote_provider"),
+				appConf.GetString("conf.remote_endpoint"),
+				appConf.GetString("conf.remote_path"),
+			),
+			conf.With.AutoHotFix(appConf.GetBool("conf.auto_hotfix")),
 		)
 	}
 
@@ -345,10 +413,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(broker.Name) {
 		nats_broker.Install(svcInst,
-			nats_broker.With.CustomAddresses(startupConf.GetString("nats.address")),
+			nats_broker.With.CustomAddresses(appConf.GetString("nats.address")),
 			nats_broker.With.CustomAuth(
-				startupConf.GetString("nats.username"),
-				startupConf.GetString("nats.password"),
+				appConf.GetString("nats.username"),
+				appConf.GetString("nats.password"),
 			),
 		)
 	}
@@ -366,11 +434,11 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(discovery.Name) {
 		etcd_discovery.Install(svcInst,
-			etcd_discovery.With.TTL(startupConf.GetDuration("service.ttl"), true),
-			etcd_discovery.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			etcd_discovery.With.TTL(appConf.GetDuration("service.ttl"), true),
+			etcd_discovery.With.CustomAddresses(appConf.GetString("etcd.address")),
 			etcd_discovery.With.CustomAuth(
-				startupConf.GetString("etcd.username"),
-				startupConf.GetString("etcd.password"),
+				appConf.GetString("etcd.username"),
+				appConf.GetString("etcd.password"),
 			),
 		)
 	}
@@ -388,10 +456,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(dsync.Name) {
 		etcd_dsync.Install(svcInst,
-			etcd_dsync.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			etcd_dsync.With.CustomAddresses(appConf.GetString("etcd.address")),
 			etcd_dsync.With.CustomAuth(
-				startupConf.GetString("etcd.username"),
-				startupConf.GetString("etcd.password"),
+				appConf.GetString("etcd.username"),
+				appConf.GetString("etcd.password"),
 			),
 		)
 	}
@@ -409,9 +477,9 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(dsvc.Name) {
 		dsvc.Install(svcInst,
-			dsvc.With.Version(startupConf.GetString("service.version")),
-			dsvc.With.Meta(startupConf.GetStringMapString("service.meta")),
-			dsvc.With.FutureTimeout(startupConf.GetDuration("service.future_timeout")),
+			dsvc.With.Version(appConf.GetString("service.version")),
+			dsvc.With.Meta(appConf.GetStringMapString("service.meta")),
+			dsvc.With.FutureTimeout(appConf.GetDuration("service.future_timeout")),
 		)
 	}
 
@@ -428,10 +496,10 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	}
 	if !installed(dentq.Name) {
 		dentq.Install(svcInst,
-			dentq.With.CustomAddresses(startupConf.GetString("etcd.address")),
+			dentq.With.CustomAddresses(appConf.GetString("etcd.address")),
 			dentq.With.CustomAuth(
-				startupConf.GetString("etcd.username"),
-				startupConf.GetString("etcd.password"),
+				appConf.GetString("etcd.username"),
+				appConf.GetString("etcd.password"),
 			),
 		)
 	}
@@ -450,53 +518,4 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	if !installed(rpc.Name) {
 		rpc.Install(svcInst)
 	}
-
-	// 组装完成回调
-	if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
-		cb.Built(svcInst)
-	}
-	if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
-		cb.Built(svcInst)
-	}
-
-	// 创建etcd客户端
-	svcInst.GetMemory().Store(memEtcdClientOnce, sync.OnceValue(func() *etcdv3.Client {
-		cli, err := etcdv3.New(etcdv3.Config{
-			Endpoints: []string{startupConf.GetString("etcd.address")},
-			Username:  startupConf.GetString("etcd.username"),
-			Password:  startupConf.GetString("etcd.password"),
-		})
-		if err != nil {
-			exception.Panicf("%w: new etcd client failed, %s", ErrFramework, err)
-		}
-		svcInst.GetMemory().Store(memEtcdClient, cli)
-		return cli
-	}))
-
-	// 自动恢复时，打印panic信息
-	if svcInst.GetAutoRecover() && svcInst.GetReportError() != nil {
-		go func() {
-			for {
-				select {
-				case err := <-svcInst.GetReportError():
-					log.Errorf(svcInst, "recover:\n%s", err)
-				case <-svcInst.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	// 创建服务
-	return core.NewService(svcInst)
-}
-
-// GetName 获取服务名称
-func (s *ServiceGeneric) GetName() string {
-	return s.name
-}
-
-// GetStartupConf 获取启动参数配置
-func (s *ServiceGeneric) GetStartupConf() *viper.Viper {
-	return s.startupConf
 }
