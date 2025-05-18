@@ -91,10 +91,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&Service{})
 	}
 
-	startupConf := viper.New()
-	startupConf.MergeConfigMap(s.startupConf.AllSettings())
-
-	autoRecover := startupConf.GetBool("service.auto_recover")
+	autoRecover := s.startupConf.GetBool("service.auto_recover")
 	var reportError chan error
 
 	if autoRecover {
@@ -111,11 +108,14 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 
 			switch status {
 			case service.RunningStatus_Birth:
+				startupConf := viper.New()
+				startupConf.MergeConfigMap(s.startupConf.AllSettings())
+
 				svcInst.GetMemory().Store(memStartupNo, no)
 				svcInst.GetMemory().Store(memStartupConf, startupConf)
 				svcInst.GetMemory().Store(memStartupCmd, s.startupCmd)
 
-				svcInst.(iService).getRuntimeGeneric().init(svcInst, startupConf)
+				svcInst.(iService).getRuntimeGeneric().init(svcInst, svcInst.(iService).getRuntimeGeneric())
 				cacheCallPath("", svcInst.GetReflected().Type())
 
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
@@ -137,8 +137,18 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 						defaults[svcInst.GetName()+"."+k] = v
 					}
 				}
-				for k, v := range defaults {
-					startupConf.SetDefault(k, v)
+				if len(defaults) > 0 {
+					newStartupConf := viper.New()
+					newStartupConf.MergeConfigMap(s.startupConf.AllSettings())
+
+					for k, v := range defaults {
+						newStartupConf.SetDefault(k, v)
+					}
+
+					startupConf = viper.New()
+					startupConf.MergeConfigMap(newStartupConf.AllSettings())
+
+					svcInst.GetMemory().Store(memStartupConf, startupConf)
 				}
 
 				s.installAddIns(svcInst, defaults)

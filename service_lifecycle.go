@@ -29,7 +29,7 @@ type LifecycleServiceBirth interface {
 }
 
 type LifecycleServiceDefaultConfig interface {
-	DefaultConfig(svc IService) map[string]any
+	DefaultConfig(svc any) map[string]any
 }
 
 type LifecycleServiceBuilt interface {

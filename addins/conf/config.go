@@ -52,28 +52,28 @@ type _Config struct {
 func (c *_Config) Init(svcCtx service.Context) {
 	log.Infof(svcCtx, "init addin %q", self.Name)
 
-	appConf := viper.New()
+	startupConf := viper.New()
 
 	for k, v := range c.options.Defaults {
-		appConf.SetDefault(k, v)
+		startupConf.SetDefault(k, v)
 	}
 
 	if c.options.Flags != nil {
-		appConf.BindPFlags(c.options.Flags)
+		startupConf.BindPFlags(c.options.Flags)
 	}
 
 	if c.options.AutomaticEnv {
-		appConf.SetEnvPrefix(c.options.EnvPrefix)
-		appConf.AutomaticEnv()
+		startupConf.SetEnvPrefix(c.options.EnvPrefix)
+		startupConf.AutomaticEnv()
 	}
 
 	local := c.options.LocalPath != ""
 	remote := c.options.RemoteProvider != ""
 
 	if local {
-		appConf.SetConfigFile(c.options.LocalPath)
+		startupConf.SetConfigFile(c.options.LocalPath)
 
-		if err := appConf.MergeInConfig(); err != nil {
+		if err := startupConf.MergeInConfig(); err != nil {
 			log.Panicf(svcCtx, "read local config %q failed, %s", c.options.LocalPath, err)
 		}
 
@@ -81,52 +81,37 @@ func (c *_Config) Init(svcCtx service.Context) {
 	}
 
 	if remote {
-		if err := appConf.AddRemoteProvider(c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath); err != nil {
+		if err := startupConf.AddRemoteProvider(c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath); err != nil {
 			log.Panicf(svcCtx, `set remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
-		if err := appConf.ReadRemoteConfig(); err != nil {
+		if err := startupConf.ReadRemoteConfig(); err != nil {
 			log.Panicf(svcCtx, `read remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 		}
 
 		log.Infof(svcCtx, `load remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 	}
 
-	serviceConf := appConf.Sub(svcCtx.GetName())
-	if serviceConf == nil {
-		serviceConf = viper.New()
-	}
-
-	c.appConf = appConf
-	c.serviceConf = serviceConf
+	c.updateConf(startupConf, svcCtx.GetName())
 
 	if c.options.AutoHotFix {
 		if local {
-			appConf.OnConfigChange(func(in fsnotify.Event) {
-				subConf := appConf.Sub(svcCtx.GetName())
-				if subConf == nil {
-					subConf = viper.New()
-				}
-				c.serviceConf = subConf
-
+			startupConf.OnConfigChange(func(in fsnotify.Event) {
+				c.updateConf(startupConf, svcCtx.GetName())
 				log.Infof(svcCtx, "reload local config %q ok", c.options.LocalPath)
 			})
-			appConf.WatchConfig()
+			startupConf.WatchConfig()
 		}
 		if remote {
 			go func() {
 				for {
 					time.Sleep(time.Second * 3)
 
-					if err := appConf.WatchRemoteConfig(); err != nil {
+					if err := startupConf.WatchRemoteConfig(); err != nil {
 						log.Errorf(svcCtx, `watch remote config "%s - %s - %s" changes failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
 						continue
 					}
 
-					subConf := appConf.Sub(svcCtx.GetName())
-					if subConf == nil {
-						subConf = viper.New()
-					}
-					c.serviceConf = subConf
+					c.updateConf(startupConf, svcCtx.GetName())
 
 					log.Infof(svcCtx, `reload remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
 				}
@@ -148,4 +133,17 @@ func (c *_Config) AppConf() *viper.Viper {
 // ServiceConf 当前服务配置
 func (c *_Config) ServiceConf() *viper.Viper {
 	return c.serviceConf
+}
+
+func (c *_Config) updateConf(startupConf *viper.Viper, svcName string) {
+	appConf := viper.New()
+	appConf.MergeConfigMap(startupConf.AllSettings())
+
+	serviceConf := appConf.Sub(svcName)
+	if serviceConf == nil {
+		serviceConf = viper.New()
+	}
+
+	c.appConf = appConf
+	c.serviceConf = serviceConf
 }
