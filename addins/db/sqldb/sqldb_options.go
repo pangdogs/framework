@@ -53,7 +53,7 @@ func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[SQLDBOptions] {
 			return false
 		})
 
-		if len(options.DBInfos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
+		if len(infos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
 			exception.Panicf("db: %w: tags in db infos must be unique", exception.ErrArgs)
 		}
 
