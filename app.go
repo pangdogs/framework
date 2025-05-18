@@ -126,6 +126,8 @@ func (app *App) Run() {
 	app.startupCmd = &cobra.Command{
 		Short: "Application for Launching Services",
 		Run: func(*cobra.Command, []string) {
+			// 加载启动参数配置
+			app.initStartupConf()
 			// 加载pprof
 			app.initPProf()
 			// 执行启动回调
@@ -146,8 +148,6 @@ func (app *App) Run() {
 	app.initFlags()
 	// 执行初始化回调
 	app.initCB.UnsafeCall(app)
-	// 加载启动参数配置
-	app.initStartupConf()
 
 	// 开始运行
 	if err := app.startupCmd.Execute(); err != nil {
