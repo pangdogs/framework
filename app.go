@@ -117,11 +117,6 @@ func (app *App) Run() {
 		exception.Panicf("%w: already running", ErrFramework)
 	}
 
-	// 初始化已安装的服务泛化类型
-	for name, servicePT := range app.servicePTs {
-		servicePT.generic.init(app.startupConf, app.startupCmd, name, servicePT.generic)
-	}
-
 	// 初始化启动命令
 	app.startupCmd = &cobra.Command{
 		Short: "Application for Launching Services",
@@ -142,6 +137,11 @@ func (app *App) Run() {
 			DisableNoDescFlag:   true,
 			DisableDescriptions: true,
 		},
+	}
+
+	// 初始化已安装的服务泛化类型
+	for name, servicePT := range app.servicePTs {
+		servicePT.generic.init(app.startupConf, app.startupCmd, name, servicePT.generic)
 	}
 
 	// 初始化启动参数
