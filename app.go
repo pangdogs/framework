@@ -41,10 +41,31 @@ import (
 
 // NewApp 创建应用
 func NewApp() *App {
-	return &App{
+	app := &App{
 		startupConf: viper.New(),
 		servicePTs:  map[string]*_ServicePT{},
 	}
+	app.startupCmd = &cobra.Command{
+		Short: "Application for Launching Services",
+		Run: func(*cobra.Command, []string) {
+			// 加载启动参数配置
+			app.initStartupConf()
+			// 加载pprof
+			app.initPProf()
+			// 执行启动回调
+			app.startingCB.UnsafeCall(app)
+			// 主循环
+			app.mainLoop()
+			// 执行结束回调
+			app.terminatedCB.UnsafeCall(app)
+		},
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd:   true,
+			DisableNoDescFlag:   true,
+			DisableDescriptions: true,
+		},
+	}
+	return app
 }
 
 type _ServicePT struct {
@@ -67,6 +88,18 @@ func (app *App) Setup(name string, generic any) *App {
 		exception.Panicf("%w: already running", ErrFramework)
 	}
 
+	if app.servicePTs == nil {
+		exception.Panicf("%w: servicePTs is nil", ErrFramework)
+	}
+
+	if app.startupConf == nil {
+		exception.Panicf("%w: startupConf is nil", ErrFramework)
+	}
+
+	if app.startupCmd == nil {
+		exception.Panicf("%w: startupCmd is nil", ErrFramework)
+	}
+
 	if generic == nil {
 		exception.Panicf("%w: %w: generic is nil", ErrFramework, core.ErrArgs)
 	}
@@ -75,6 +108,7 @@ func (app *App) Setup(name string, generic any) *App {
 	if !ok {
 		svcGeneric = newServiceInstantiation(generic)
 	}
+	svcGeneric.init(app.startupConf, app.startupCmd, name, svcGeneric)
 
 	app.servicePTs[name] = &_ServicePT{
 		generic: svcGeneric,
@@ -113,35 +147,20 @@ func (app *App) TerminateCB(cb generic.Action1[*App]) *App {
 
 // Run 运行
 func (app *App) Run() {
+	if app.servicePTs == nil {
+		exception.Panicf("%w: servicePTs is nil", ErrFramework)
+	}
+
+	if app.startupConf == nil {
+		exception.Panicf("%w: startupConf is nil", ErrFramework)
+	}
+
+	if app.startupCmd == nil {
+		exception.Panicf("%w: startupCmd is nil", ErrFramework)
+	}
+
 	if !app.isRunning.CompareAndSwap(false, true) {
 		exception.Panicf("%w: already running", ErrFramework)
-	}
-
-	// 初始化启动命令
-	app.startupCmd = &cobra.Command{
-		Short: "Application for Launching Services",
-		Run: func(*cobra.Command, []string) {
-			// 加载启动参数配置
-			app.initStartupConf()
-			// 加载pprof
-			app.initPProf()
-			// 执行启动回调
-			app.startingCB.UnsafeCall(app)
-			// 主循环
-			app.mainLoop()
-			// 执行结束回调
-			app.terminatedCB.UnsafeCall(app)
-		},
-		CompletionOptions: cobra.CompletionOptions{
-			DisableDefaultCmd:   true,
-			DisableNoDescFlag:   true,
-			DisableDescriptions: true,
-		},
-	}
-
-	// 初始化已安装的服务泛化类型
-	for name, servicePT := range app.servicePTs {
-		servicePT.generic.init(app.startupConf, app.startupCmd, name, servicePT.generic)
 	}
 
 	// 初始化启动参数
