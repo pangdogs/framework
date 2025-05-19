@@ -37,13 +37,13 @@ func BuildRuntime(svcCtx service.Context) *RuntimeCreator {
 	return &RuntimeCreator{
 		svcCtx: svcCtx,
 		settings: _RuntimeSettings{
-			Name:                 "",
-			PersistId:            uid.Nil,
-			AutoRecover:          svcCtx.GetAutoRecover(),
-			ReportError:          svcCtx.GetReportError(),
-			FPS:                  0,
-			ProcessQueueCapacity: 128,
-			AutoInjection:        true,
+			name:                 "",
+			persistId:            uid.Nil,
+			autoRecover:          svcCtx.GetAutoRecover(),
+			reportError:          svcCtx.GetReportError(),
+			fps:                  0,
+			processQueueCapacity: 128,
+			autoInjection:        true,
 		},
 	}
 }
@@ -78,38 +78,38 @@ func (c *RuntimeCreator) Setup(generic any) *RuntimeCreator {
 
 // SetName 设置名称
 func (c *RuntimeCreator) SetName(name string) *RuntimeCreator {
-	c.settings.Name = name
+	c.settings.name = name
 	return c
 }
 
 // SetPersistId 设置持久化Id
 func (c *RuntimeCreator) SetPersistId(id uid.Id) *RuntimeCreator {
-	c.settings.PersistId = id
+	c.settings.persistId = id
 	return c
 }
 
 // SetPanicHandling 设置panic时的处理方式
 func (c *RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan error) *RuntimeCreator {
-	c.settings.AutoRecover = autoRecover
-	c.settings.ReportError = reportError
+	c.settings.autoRecover = autoRecover
+	c.settings.reportError = reportError
 	return c
 }
 
 // SetFPS 设置帧率
 func (c *RuntimeCreator) SetFPS(fps float32) *RuntimeCreator {
-	c.settings.FPS = fps
+	c.settings.fps = fps
 	return c
 }
 
 // SetProcessQueueCapacity 设置任务处理流水线大小
 func (c *RuntimeCreator) SetProcessQueueCapacity(cap int) *RuntimeCreator {
-	c.settings.ProcessQueueCapacity = cap
+	c.settings.processQueueCapacity = cap
 	return c
 }
 
 // SetAutoInjection 设置是否自动注入依赖的组件
 func (c *RuntimeCreator) SetAutoInjection(b bool) *RuntimeCreator {
-	c.settings.AutoInjection = b
+	c.settings.autoInjection = b
 	return c
 }
 

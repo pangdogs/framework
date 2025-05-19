@@ -40,13 +40,13 @@ import (
 )
 
 type _RuntimeSettings struct {
-	Name                 string
-	PersistId            uid.Id
-	AutoRecover          bool
-	ReportError          chan error
-	FPS                  float32
-	ProcessQueueCapacity int
-	AutoInjection        bool
+	name                 string
+	persistId            uid.Id
+	autoRecover          bool
+	reportError          chan error
+	fps                  float32
+	processQueueCapacity int
+	autoInjection        bool
 }
 
 type iRuntimeGeneric interface {
@@ -94,16 +94,16 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 	rtCtx := runtime.NewContext(r.GetService(),
 		runtime.With.Context.InstanceFace(rtInstFace),
-		runtime.With.Context.Name(settings.Name),
-		runtime.With.Context.PersistId(settings.PersistId),
-		runtime.With.Context.PanicHandling(settings.AutoRecover, settings.ReportError),
+		runtime.With.Context.Name(settings.name),
+		runtime.With.Context.PersistId(settings.persistId),
+		runtime.With.Context.PanicHandling(settings.autoRecover, settings.reportError),
 		runtime.With.Context.RunningStatusChangedCB(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
 			rtInst := reinterpret.Cast[IRuntime](rtCtx)
 
 			switch status {
 			case runtime.RunningStatus_Birth:
 				cacheCallPath("", rtInst.GetReflected().Type())
-				rtInst.(iRuntime).setAutoInjection(settings.AutoInjection)
+				rtInst.(iRuntime).setAutoInjection(settings.autoInjection)
 
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
 					cb.Birth(rtInst)
@@ -271,15 +271,15 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 
 	return core.NewRuntime(rtCtx,
 		core.With.Runtime.Frame(func() runtime.Frame {
-			if settings.FPS <= 0 {
+			if settings.fps <= 0 {
 				return nil
 			}
 			return runtime.NewFrame(
-				runtime.With.Frame.TargetFPS(settings.FPS),
+				runtime.With.Frame.TargetFPS(settings.fps),
 			)
 		}()),
 		core.With.Runtime.AutoRun(true),
-		core.With.Runtime.ProcessQueueCapacity(settings.ProcessQueueCapacity),
+		core.With.Runtime.ProcessQueueCapacity(settings.processQueueCapacity),
 	)
 }
 
