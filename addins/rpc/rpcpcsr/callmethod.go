@@ -201,31 +201,32 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
-	var argsRV []reflect.Value
-	var argsPos int
 
 	switch methodRT.NumIn() {
-	case len(args) + 1:
-		if !callChainRT.AssignableTo(methodRT.In(0)) {
-			return nil, ErrMethodParameterTypeMismatch
-		}
-		argsRV = append(make([]reflect.Value, 0, len(args)+1), reflect.ValueOf(cc))
-		argsPos = 1
-
-	case len(args):
-		argsRV = make([]reflect.Value, 0, len(args))
-		argsPos = 0
-
+	case len(args), len(args) + 1:
+		break
 	default:
 		return nil, ErrMethodParameterCountMismatch
 	}
 
-	for i := range args {
-		argRV, err := args[i].Convert(methodRT.In(argsPos + i))
+	argsRV := make([]reflect.Value, methodRT.NumIn())
+	injectCC := len(argsRV) > len(args)
+	j := 0
+
+	for i := range argsRV {
+		if injectCC && callChainRT.AssignableTo(methodRT.In(i)) {
+			argsRV[i] = reflect.ValueOf(cc)
+			injectCC = false
+			continue
+		}
+
+		argRV, err := args[j].Convert(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}
-		argsRV = append(argsRV, argRV)
+
+		argsRV[i] = argRV
+		j++
 	}
 
 	return argsRV, nil
