@@ -52,37 +52,37 @@ type iRuntime interface {
 	setAutoInjection(b bool)
 }
 
-// Runtime 运行时实例
-type Runtime struct {
+// RuntimeBehavior 运行时实例行为
+type RuntimeBehavior struct {
 	runtime.ContextBehavior
 	autoInjection bool
 }
 
 // GetDistEntityRegistry 获取分布式实体注册支持
-func (rt *Runtime) GetDistEntityRegistry() dentr.IDistEntityRegistry {
+func (rt *RuntimeBehavior) GetDistEntityRegistry() dentr.IDistEntityRegistry {
 	return dentr.Using(rt)
 }
 
 // GetRPCStack 获取RPC调用堆栈支持
-func (rt *Runtime) GetRPCStack() rpcstack.IRPCStack {
+func (rt *RuntimeBehavior) GetRPCStack() rpcstack.IRPCStack {
 	return rpcstack.Using(rt)
 }
 
 // GetService 获取服务
-func (rt *Runtime) GetService() IService {
+func (rt *RuntimeBehavior) GetService() IService {
 	return reinterpret.Cast[IService](service.Current(rt))
 }
 
 // GetAutoInjection 是否自动注入组件
-func (rt *Runtime) GetAutoInjection() bool {
+func (rt *RuntimeBehavior) GetAutoInjection() bool {
 	return rt.autoInjection
 }
 
 // BuildEntity 创建实体
-func (rt *Runtime) BuildEntity(prototype string) *core.EntityCreator {
+func (rt *RuntimeBehavior) BuildEntity(prototype string) *core.EntityCreator {
 	return core.BuildEntity(runtime.Current(rt), prototype)
 }
 
-func (rt *Runtime) setAutoInjection(b bool) {
+func (rt *RuntimeBehavior) setAutoInjection(b bool) {
 	rt.autoInjection = b
 }

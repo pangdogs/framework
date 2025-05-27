@@ -77,8 +77,8 @@ type iService interface {
 	getRuntimeGeneric() *RuntimeGeneric
 }
 
-// Service 服务实例
-type Service struct {
+// ServiceBehavior 服务实例行为
+type ServiceBehavior struct {
 	service.ContextBehavior
 	started        atomic.Bool
 	memory         sync.Map
@@ -86,7 +86,7 @@ type Service struct {
 }
 
 // GetAppConf 获取当前应用程序配置
-func (svc *Service) GetAppConf() *viper.Viper {
+func (svc *ServiceBehavior) GetAppConf() *viper.Viper {
 	if !svc.started.Load() {
 		return svc.getStartupConf()
 	}
@@ -94,7 +94,7 @@ func (svc *Service) GetAppConf() *viper.Viper {
 }
 
 // GetServiceConf 获取当前服务配置
-func (svc *Service) GetServiceConf() *viper.Viper {
+func (svc *ServiceBehavior) GetServiceConf() *viper.Viper {
 	if !svc.started.Load() {
 		return svc.getStartupConf().Sub(svc.GetName())
 	}
@@ -102,37 +102,37 @@ func (svc *Service) GetServiceConf() *viper.Viper {
 }
 
 // GetRegistry 获取服务发现插件
-func (svc *Service) GetRegistry() discovery.IRegistry {
+func (svc *ServiceBehavior) GetRegistry() discovery.IRegistry {
 	return discovery.Using(svc)
 }
 
 // GetBroker 获取消息队列中间件插件
-func (svc *Service) GetBroker() broker.IBroker {
+func (svc *ServiceBehavior) GetBroker() broker.IBroker {
 	return broker.Using(svc)
 }
 
 // GetDistSync 获取分布式同步插件
-func (svc *Service) GetDistSync() dsync.IDistSync {
+func (svc *ServiceBehavior) GetDistSync() dsync.IDistSync {
 	return dsync.Using(svc)
 }
 
 // GetDistService 获取分布式服务插件
-func (svc *Service) GetDistService() dsvc.IDistService {
+func (svc *ServiceBehavior) GetDistService() dsvc.IDistService {
 	return dsvc.Using(svc)
 }
 
 // GetDistEntityQuerier 获取分布式实体查询插件
-func (svc *Service) GetDistEntityQuerier() dentq.IDistEntityQuerier {
+func (svc *ServiceBehavior) GetDistEntityQuerier() dentq.IDistEntityQuerier {
 	return dentq.Using(svc)
 }
 
 // GetRPC 获取RPC支持插件
-func (svc *Service) GetRPC() rpc.IRPC {
+func (svc *ServiceBehavior) GetRPC() rpc.IRPC {
 	return rpc.Using(svc)
 }
 
 // GetStartupNo 获取启动序号
-func (svc *Service) GetStartupNo() int {
+func (svc *ServiceBehavior) GetStartupNo() int {
 	v, _ := svc.GetMemory().Load(memStartupNo)
 	startupNo, ok := v.(int)
 	if !ok {
@@ -142,36 +142,36 @@ func (svc *Service) GetStartupNo() int {
 }
 
 // GetMemory 获取服务内存KV存储
-func (svc *Service) GetMemory() *sync.Map {
+func (svc *ServiceBehavior) GetMemory() *sync.Map {
 	return &svc.memory
 }
 
 // BuildRuntime 创建运行时
-func (svc *Service) BuildRuntime() *RuntimeCreator {
+func (svc *ServiceBehavior) BuildRuntime() *RuntimeCreator {
 	rtCtor := BuildRuntime(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface)
 	rtCtor.generic = &svc.runtimeGeneric
 	return rtCtor
 }
 
 // BuildEntityPT 创建实体原型
-func (svc *Service) BuildEntityPT(prototype string) *EntityPTCreator {
+func (svc *ServiceBehavior) BuildEntityPT(prototype string) *EntityPTCreator {
 	return BuildEntityPT(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype)
 }
 
 // BuildEntityAsync 创建实体
-func (svc *Service) BuildEntityAsync(prototype string) *EntityCreatorAsync {
+func (svc *ServiceBehavior) BuildEntityAsync(prototype string) *EntityCreatorAsync {
 	return BuildEntityAsync(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(svc.BuildRuntime())
 }
 
-func (svc *Service) getStarted() *atomic.Bool {
+func (svc *ServiceBehavior) getStarted() *atomic.Bool {
 	return &svc.started
 }
 
-func (svc *Service) getRuntimeGeneric() *RuntimeGeneric {
+func (svc *ServiceBehavior) getRuntimeGeneric() *RuntimeGeneric {
 	return &svc.runtimeGeneric
 }
 
-func (svc *Service) getStartupConf() *viper.Viper {
+func (svc *ServiceBehavior) getStartupConf() *viper.Viper {
 	v, _ := svc.GetMemory().Load(memStartupConf)
 	startupConf, ok := v.(*viper.Viper)
 	if !ok {

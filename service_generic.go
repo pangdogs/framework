@@ -88,7 +88,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 	if cb, ok := s.instance.(IServiceInstantiation); ok {
 		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](cb.Instantiate())
 	} else {
-		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&Service{})
+		svcInstFace = iface.MakeFaceTReflectC[service.Context, IService](&ServiceBehavior{})
 	}
 
 	autoRecover := s.startupConf.GetBool("service.auto_recover")
