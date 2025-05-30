@@ -22,19 +22,21 @@ package conf
 import (
 	"git.golaxy.org/core/utils/option"
 	"github.com/spf13/pflag"
+	"time"
 )
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
-	Defaults       map[string]any // 默认配置
-	Flags          *pflag.FlagSet // 启动命令参数
-	AutomaticEnv   bool           // 合并环境变量
-	EnvPrefix      string         // 环境变量前缀
-	LocalPath      string         // 本地配置文件路径
-	RemoteProvider string         // 远端配置类型（etcd3,consul...）
-	RemoteEndpoint string         // 远端地址
-	RemotePath     string         // 远端路径
-	AutoHotFix     bool           // 自动热更新
+	Defaults                             map[string]any // 默认配置
+	Flags                                *pflag.FlagSet // 启动命令参数
+	AutomaticEnv                         bool           // 合并环境变量
+	EnvPrefix                            string         // 环境变量前缀
+	LocalPath                            string         // 本地配置文件路径
+	RemoteProvider                       string         // 远端配置类型（etcd3,consul...）
+	RemoteEndpoint                       string         // 远端地址
+	RemotePath                           string         // 远端路径
+	AutoHotFix                           bool           // 自动热更新
+	AutoHotFixRemoteCheckingIntervalTime time.Duration  // 自动热更新远端配置检测间隔时间
 }
 
 var With _Option
@@ -51,6 +53,7 @@ func (_Option) Default() option.Setting[ConfigOptions] {
 		With.Local("").Apply(options)
 		With.Remote("", "", "").Apply(options)
 		With.AutoHotFix(false).Apply(options)
+		With.AutoHotFixRemoteCheckingIntervalTime(time.Minute).Apply(options)
 	}
 }
 
@@ -102,5 +105,12 @@ func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOpti
 func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.AutoHotFix = b
+	}
+}
+
+// AutoHotFixRemoteCheckingIntervalTime 自动热更新远端配置检测间隔时间
+func (_Option) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
+	return func(options *ConfigOptions) {
+		options.AutoHotFixRemoteCheckingIntervalTime = d
 	}
 }

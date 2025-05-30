@@ -103,7 +103,14 @@ func (c *_Config) Init(svcCtx service.Context) {
 	if c.options.AutoHotFix {
 		if local {
 			c.startupConf.OnConfigChange(func(in fsnotify.Event) {
+				select {
+				case <-c.svcCtx.Done():
+					return
+				default:
+				}
+
 				c.updateConf()
+
 				log.Infof(svcCtx, "auto hotfix reload local config %q ok", c.options.LocalPath)
 			})
 			c.startupConf.WatchConfig()
@@ -111,7 +118,13 @@ func (c *_Config) Init(svcCtx service.Context) {
 		if remote {
 			go func() {
 				for {
-					time.Sleep(time.Second * 3)
+					time.Sleep(c.options.AutoHotFixRemoteCheckingIntervalTime)
+
+					select {
+					case <-c.svcCtx.Done():
+						return
+					default:
+					}
 
 					if err := c.startupConf.WatchRemoteConfig(); err != nil {
 						log.Errorf(svcCtx, `auto hotfix watch remote config "%s - %s - %s" changes failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
