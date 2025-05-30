@@ -20,6 +20,8 @@
 package conf
 
 import (
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"github.com/spf13/pflag"
 	"time"
@@ -111,6 +113,9 @@ func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
 // AutoHotFixRemoteCheckingIntervalTime 自动热更新远端配置检测间隔时间
 func (_Option) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
+		if d < 3*time.Second {
+			exception.Panicf("dentr: %w: option AutoHotFixRemoteCheckingIntervalTime can't be set to a value less than 3 second", core.ErrArgs)
+		}
 		options.AutoHotFixRemoteCheckingIntervalTime = d
 	}
 }
