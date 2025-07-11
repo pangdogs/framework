@@ -328,7 +328,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			}
 
 			// 创建并设置加解密流
-			cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV)
+			cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, servECDHE.Msg.IV, servECDHE.Msg.Nonce)
 			if err != nil {
 				return transport.IEvent{}, fmt.Errorf("new cipher stream failed, %s", err)
 			}

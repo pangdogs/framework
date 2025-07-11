@@ -52,26 +52,26 @@ type Cipher interface {
 }
 
 // NewCipher 创建对称密码算法
-func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv []byte) (encryptor, decrypter Cipher, err error) {
+func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv, nonce []byte) (encryptor, decrypter Cipher, err error) {
 	switch se {
 	case gtp.SymmetricEncryption_AES:
-		block, err := NewBlock(se, key)
+		block, err := NewCipherBlock(se, key)
 		if err != nil {
 			return nil, nil, err
 		}
 		return NewBlockCipherMode(bcm, block, iv)
 
 	case gtp.SymmetricEncryption_ChaCha20, gtp.SymmetricEncryption_XChaCha20:
-		_encryptor, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		_encryptor, err := chacha20.NewUnauthenticatedCipher(key, nonce)
 		if err != nil {
 			return nil, nil, err
 		}
-		_decrypter, err := chacha20.NewUnauthenticatedCipher(key, iv)
+		_decrypter, err := chacha20.NewUnauthenticatedCipher(key, nonce)
 		if err != nil {
 			return nil, nil, err
 		}
-		encryptor = _XORKeyStream{Stream: _encryptor}
-		decrypter = _XORKeyStream{Stream: _decrypter}
+		encryptor = _CipherStream{Stream: _encryptor}
+		decrypter = _CipherStream{Stream: _decrypter}
 		return encryptor, decrypter, nil
 
 	case gtp.SymmetricEncryption_ChaCha20_Poly1305:
@@ -105,8 +105,8 @@ func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv []by
 	}
 }
 
-// NewBlock 创建分组
-func NewBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err error) {
+// NewCipherBlock 创建密码分组
+func NewCipherBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			block = nil
@@ -134,20 +134,20 @@ func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) 
 
 	switch bcm {
 	case gtp.BlockCipherMode_CTR:
-		encryptor = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
-		decrypter = _XORKeyStream{Stream: cipher.NewCTR(block, iv)}
+		encryptor = _CipherStream{Stream: cipher.NewCTR(block, iv)}
+		decrypter = _CipherStream{Stream: cipher.NewCTR(block, iv)}
 		return
 	case gtp.BlockCipherMode_CBC:
 		encryptor = _BlockModeEncryptor{BlockMode: cipher.NewCBCEncrypter(block, iv)}
 		decrypter = _BlockModeDecrypter{BlockMode: cipher.NewCBCDecrypter(block, iv)}
 		return
 	case gtp.BlockCipherMode_CFB:
-		encryptor = _XORKeyStream{Stream: cipher.NewCFBEncrypter(block, iv)}
-		decrypter = _XORKeyStream{Stream: cipher.NewCFBDecrypter(block, iv)}
+		encryptor = _CipherStream{Stream: cipher.NewCFBEncrypter(block, iv)}
+		decrypter = _CipherStream{Stream: cipher.NewCFBDecrypter(block, iv)}
 		return
 	case gtp.BlockCipherMode_OFB:
-		encryptor = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
-		decrypter = _XORKeyStream{Stream: cipher.NewOFB(block, iv)}
+		encryptor = _CipherStream{Stream: cipher.NewOFB(block, iv)}
+		decrypter = _CipherStream{Stream: cipher.NewOFB(block, iv)}
 		return
 	case gtp.BlockCipherMode_GCM:
 		mode, err := cipher.NewGCMWithNonceSize(block, block.BlockSize())
@@ -162,11 +162,11 @@ func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) 
 	}
 }
 
-type _XORKeyStream struct {
+type _CipherStream struct {
 	cipher.Stream
 }
 
-func (s _XORKeyStream) Transforming(dst, src, nonce []byte) (size int, err error) {
+func (s _CipherStream) Transforming(dst, src, nonce []byte) (size int, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			size = 0
@@ -177,31 +177,31 @@ func (s _XORKeyStream) Transforming(dst, src, nonce []byte) (size int, err error
 	return len(dst), nil
 }
 
-func (s _XORKeyStream) BlockSize() int {
+func (s _CipherStream) BlockSize() int {
 	return 0
 }
 
-func (s _XORKeyStream) NonceSize() int {
+func (s _CipherStream) NonceSize() int {
 	return 0
 }
 
-func (s _XORKeyStream) Overhead() int {
+func (s _CipherStream) Overhead() int {
 	return 0
 }
 
-func (s _XORKeyStream) Pad() bool {
+func (s _CipherStream) Pad() bool {
 	return false
 }
 
-func (s _XORKeyStream) Unpad() bool {
+func (s _CipherStream) Unpad() bool {
 	return false
 }
 
-func (s _XORKeyStream) InputSize(size int) int {
+func (s _CipherStream) InputSize(size int) int {
 	return size
 }
 
-func (s _XORKeyStream) OutputSize(size int) int {
+func (s _CipherStream) OutputSize(size int) int {
 	return size
 }
 

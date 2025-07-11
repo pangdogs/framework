@@ -33,7 +33,7 @@ func TestCodec(t *testing.T) {
 	key, _ := rand.Prime(rand.Reader, 256)
 	//iv, _ := rand.Prime(rand.Reader, chacha20.NonceSize*8)
 
-	encrypter, decrypter, err := method.NewCipher(gtp.SymmetricEncryption_AES, gtp.BlockCipherMode_GCM, key.Bytes(), nil)
+	encrypter, decrypter, err := method.NewCipher(gtp.SymmetricEncryption_AES, gtp.BlockCipherMode_GCM, key.Bytes(), nil, nil)
 	if err != nil {
 		panic(err)
 	}

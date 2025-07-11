@@ -478,7 +478,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 
 				// 创建并设置加解密流
-				cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, ivBytes)
+				cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, ivBytes, nonceBytes)
 				if err != nil {
 					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
@@ -592,15 +592,13 @@ func (acc *_Acceptor) setupMAC(hash gtp.Hash, sharedKeyBytes []byte) error {
 
 // newIV 构造iv值
 func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
-	size, ok := se.IV()
+	if !se.BlockCipherMode() || !bcm.IV() {
+		return nil, nil
+	}
+
+	size, ok := se.BlockSize()
 	if !ok {
-		if !se.BlockCipherMode() || !bcm.IV() {
-			return nil, nil
-		}
-		size, ok = se.BlockSize()
-		if !ok {
-			return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs IV, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
-		}
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs IV, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
 	}
 
 	iv, err := rand.Prime(rand.Reader, size*8)

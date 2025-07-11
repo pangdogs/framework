@@ -104,11 +104,11 @@ type SymmetricEncryption uint8
 
 const (
 	SymmetricEncryption_None               SymmetricEncryption = iota // 未设置
-	SymmetricEncryption_AES                                           // AES算法
-	SymmetricEncryption_ChaCha20                                      // ChaCha20算法
-	SymmetricEncryption_XChaCha20                                     // XChaCha20算法
-	SymmetricEncryption_ChaCha20_Poly1305                             // ChaCha20-Poly1305算法
-	SymmetricEncryption_XChaCha20_Poly1305                            // XChaCha20-Poly1305算法
+	SymmetricEncryption_AES                                           // AES算法（分组密码模式）
+	SymmetricEncryption_ChaCha20                                      // ChaCha20算法（流模式）
+	SymmetricEncryption_XChaCha20                                     // XChaCha20算法（流模式）
+	SymmetricEncryption_ChaCha20_Poly1305                             // ChaCha20-Poly1305算法（流模式）
+	SymmetricEncryption_XChaCha20_Poly1305                            // XChaCha20-Poly1305算法（流模式）
 )
 
 // ParseSymmetricEncryption 解析配置字串
@@ -149,7 +149,7 @@ func (se SymmetricEncryption) String() string {
 	}
 }
 
-// BlockSize 获取block大小
+// BlockSize 获取block大小，分组密码模式使用
 func (se SymmetricEncryption) BlockSize() (int, bool) {
 	switch se {
 	case SymmetricEncryption_AES:
@@ -159,21 +159,13 @@ func (se SymmetricEncryption) BlockSize() (int, bool) {
 	}
 }
 
-// IV 获取iv大小和是否需要iv，iv大小为0表示与加密算法的blocksize相同
-func (se SymmetricEncryption) IV() (int, bool) {
+// Nonce 获取nonce大小，流密码模式使用
+func (se SymmetricEncryption) Nonce() (int, bool) {
 	switch se {
 	case SymmetricEncryption_ChaCha20:
 		return chacha20.NonceSize, true
 	case SymmetricEncryption_XChaCha20:
 		return chacha20.NonceSizeX, true
-	default:
-		return 0, false
-	}
-}
-
-// Nonce 是否需要nonce，nonce大小为0表示与加密算法的blocksize相同
-func (se SymmetricEncryption) Nonce() (int, bool) {
-	switch se {
 	case SymmetricEncryption_ChaCha20_Poly1305:
 		return chacha20poly1305.NonceSize, true
 	case SymmetricEncryption_XChaCha20_Poly1305:
@@ -183,10 +175,20 @@ func (se SymmetricEncryption) Nonce() (int, bool) {
 	}
 }
 
-// BlockCipherMode 是否需要分组密码工作模式配合
+// BlockCipherMode 是否需要使用分组密码模式
 func (se SymmetricEncryption) BlockCipherMode() bool {
 	switch se {
 	case SymmetricEncryption_AES:
+		return true
+	default:
+		return false
+	}
+}
+
+// StreamCipherMode 是否需要使用流密码模式
+func (se SymmetricEncryption) StreamCipherMode() bool {
+	switch se {
+	case SymmetricEncryption_ChaCha20, SymmetricEncryption_XChaCha20, SymmetricEncryption_ChaCha20_Poly1305, SymmetricEncryption_XChaCha20_Poly1305:
 		return true
 	default:
 		return false
@@ -238,7 +240,7 @@ func (pm PaddingMode) String() string {
 	}
 }
 
-// BlockCipherMode 分组密码工作模式
+// BlockCipherMode 分组密码模式
 type BlockCipherMode uint8
 
 const (

@@ -39,7 +39,7 @@ const (
 type CipherSuite struct {
 	SecretKeyExchange   SecretKeyExchange   // 秘钥交换函数
 	SymmetricEncryption SymmetricEncryption // 对称加密算法
-	BlockCipherMode     BlockCipherMode     // 分组密码工作模式
+	BlockCipherMode     BlockCipherMode     // 分组密码模式
 	PaddingMode         PaddingMode         // 填充方案
 	MACHash             Hash                // MAC摘要函数
 }
