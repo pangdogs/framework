@@ -367,6 +367,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 
 			cliChangeCipherSpec := transport.Event[*gtp.MsgChangeCipherSpec]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_VerifyEncryption, verifyEncryption),
+				Msg:   &gtp.MsgChangeCipherSpec{},
 			}
 
 			// 加密hello消息
