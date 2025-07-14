@@ -163,7 +163,7 @@ type MsgHello struct {
 }
 
 // Read implements io.Reader
-func (m MsgHello) Read(p []byte) (int, error) {
+func (m *MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
 		return bs.BytesWritten(), err
@@ -218,19 +218,19 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m MsgHello) Size() int {
+func (m *MsgHello) Size() int {
 	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8()
 }
 
 // MsgId 消息Id
-func (MsgHello) MsgId() MsgId {
+func (*MsgHello) MsgId() MsgId {
 	return MsgId_Hello
 }
 
 // Clone 克隆消息对象
-func (m MsgHello) Clone() MsgReader {
-	return MsgHello{
+func (m *MsgHello) Clone() Msg {
+	return &MsgHello{
 		Version:     m.Version,
 		SessionId:   strings.Clone(m.SessionId),
 		Random:      bytes.Clone(m.Random),

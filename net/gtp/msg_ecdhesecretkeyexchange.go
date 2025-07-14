@@ -132,7 +132,7 @@ type MsgECDHESecretKeyExchange struct {
 }
 
 // Read implements io.Reader
-func (m MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
+func (m *MsgECDHESecretKeyExchange) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(m.NamedCurve)); err != nil {
 		return bs.BytesWritten(), err
@@ -201,20 +201,20 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m MsgECDHESecretKeyExchange) Size() int {
+func (m *MsgECDHESecretKeyExchange) Size() int {
 	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
 		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() +
 		binaryutil.SizeofBytes(m.Signature)
 }
 
 // MsgId 消息Id
-func (MsgECDHESecretKeyExchange) MsgId() MsgId {
+func (*MsgECDHESecretKeyExchange) MsgId() MsgId {
 	return MsgId_ECDHESecretKeyExchange
 }
 
 // Clone 克隆消息对象
-func (m MsgECDHESecretKeyExchange) Clone() MsgReader {
-	return MsgECDHESecretKeyExchange{
+func (m *MsgECDHESecretKeyExchange) Clone() Msg {
+	return &MsgECDHESecretKeyExchange{
 		NamedCurve:         m.NamedCurve,
 		PublicKey:          bytes.Clone(m.PublicKey),
 		IV:                 bytes.Clone(m.IV),

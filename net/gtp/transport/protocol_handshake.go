@@ -29,15 +29,15 @@ import (
 )
 
 type (
-	HelloAccept               = generic.FuncPair1[Event[gtp.MsgHello], Event[gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
-	HelloFin                  = generic.Func1[Event[gtp.MsgHello], error]                                                      // 客户端获取服务端Hello响应
-	SecretKeyExchangeAccept   = generic.FuncPair1[IEvent, IEvent, error]                                                       // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
-	ECDHESecretKeyExchangeFin = generic.FuncPair1[Event[gtp.MsgECDHESecretKeyExchange], Event[gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
-	ChangeCipherSpecAccept    = generic.FuncPair1[Event[gtp.MsgChangeCipherSpec], Event[gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
-	ChangeCipherSpecFin       = generic.Func1[Event[gtp.MsgChangeCipherSpec], error]                                           // 服务端获取客户端ChangeCipherSpec响应
-	AuthAccept                = generic.Func1[Event[gtp.MsgAuth], error]                                                       // 服务端确认客户端Auth请求
-	ContinueAccept            = generic.Func1[Event[gtp.MsgContinue], error]                                                   // 服务端确认客户端Continue请求
-	FinishedAccept            = generic.Func1[Event[gtp.MsgFinished], error]                                                   // 客户端确认服务端Finished请求
+	HelloAccept               = generic.FuncPair1[Event[*gtp.MsgHello], Event[*gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
+	HelloFin                  = generic.Func1[Event[*gtp.MsgHello], error]                                                       // 客户端获取服务端Hello响应
+	SecretKeyExchangeAccept   = generic.FuncPair1[IEvent, IEvent, error]                                                         // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
+	ECDHESecretKeyExchangeFin = generic.FuncPair1[Event[*gtp.MsgECDHESecretKeyExchange], Event[*gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
+	ChangeCipherSpecAccept    = generic.FuncPair1[Event[*gtp.MsgChangeCipherSpec], Event[*gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
+	ChangeCipherSpecFin       = generic.Func1[Event[*gtp.MsgChangeCipherSpec], error]                                            // 服务端获取客户端ChangeCipherSpec响应
+	AuthAccept                = generic.Func1[Event[*gtp.MsgAuth], error]                                                        // 服务端确认客户端Auth请求
+	ContinueAccept            = generic.Func1[Event[*gtp.MsgContinue], error]                                                    // 服务端确认客户端Continue请求
+	FinishedAccept            = generic.Func1[Event[*gtp.MsgFinished], error]                                                    // 客户端确认服务端Finished请求
 )
 
 // HandshakeProtocol 握手协议
@@ -47,7 +47,7 @@ type HandshakeProtocol struct {
 }
 
 // ClientHello 客户端Hello
-func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[gtp.MsgHello], helloFin HelloFin) (err error) {
+func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.MsgHello], helloFin HelloFin) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -82,12 +82,12 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[gtp.Msg
 	case gtp.MsgId_Hello:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(EventT[gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = helloFin.UnsafeCall(EventT[gtp.MsgHello](recv))
+	err = helloFin.UnsafeCall(AssertEvent[*gtp.MsgHello](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -132,7 +132,7 @@ func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAc
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	reply, err := helloAccept.UnsafeCall(EventT[gtp.MsgHello](recv))
+	reply, err := helloAccept.UnsafeCall(AssertEvent[*gtp.MsgHello](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -180,7 +180,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 	case gtp.MsgId_ECDHESecretKeyExchange:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(EventT[gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -204,12 +204,12 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 	case gtp.MsgId_ChangeCipherSpec:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(EventT[gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecReply, err := changeCipherSpecAccept.UnsafeCall(EventT[gtp.MsgChangeCipherSpec](recv))
+	changeCipherSpecReply, err := changeCipherSpecAccept.UnsafeCall(AssertEvent[*gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -223,7 +223,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 }
 
 // ServerECDHESecretKeyExchange 服务端交换秘钥（ECDHE）
-func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, secretKeyExchange Event[gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
+func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, secretKeyExchange Event[*gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -268,7 +268,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	changeCipherSpecMsg, err := secretKeyExchangeFin.UnsafeCall(EventT[gtp.MsgECDHESecretKeyExchange](recv))
+	changeCipherSpecMsg, err := secretKeyExchangeFin.UnsafeCall(AssertEvent[*gtp.MsgECDHESecretKeyExchange](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -290,7 +290,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = changeCipherSpecFin.UnsafeCall(EventT[gtp.MsgChangeCipherSpec](recv))
+	err = changeCipherSpecFin.UnsafeCall(AssertEvent[*gtp.MsgChangeCipherSpec](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -299,7 +299,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 }
 
 // ClientAuth 客户端发起鉴权
-func (h *HandshakeProtocol) ClientAuth(ctx context.Context, auth Event[gtp.MsgAuth]) (err error) {
+func (h *HandshakeProtocol) ClientAuth(ctx context.Context, auth Event[*gtp.MsgAuth]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -356,7 +356,7 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = authAccept.UnsafeCall(EventT[gtp.MsgAuth](recv))
+	err = authAccept.UnsafeCall(AssertEvent[*gtp.MsgAuth](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -365,7 +365,7 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 }
 
 // ClientContinue 客户端发起重连
-func (h *HandshakeProtocol) ClientContinue(ctx context.Context, cont Event[gtp.MsgContinue]) (err error) {
+func (h *HandshakeProtocol) ClientContinue(ctx context.Context, cont Event[*gtp.MsgContinue]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -418,7 +418,7 @@ func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept C
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = continueAccept.UnsafeCall(EventT[gtp.MsgContinue](recv))
+	err = continueAccept.UnsafeCall(AssertEvent[*gtp.MsgContinue](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -453,12 +453,12 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 	case gtp.MsgId_Finished:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(EventT[gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
 
-	err = finishedAccept.UnsafeCall(EventT[gtp.MsgFinished](recv))
+	err = finishedAccept.UnsafeCall(AssertEvent[*gtp.MsgFinished](recv))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
@@ -467,7 +467,7 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 }
 
 // ServerFinished 服务端握手结束
-func (h *HandshakeProtocol) ServerFinished(ctx context.Context, finished Event[gtp.MsgFinished]) (err error) {
+func (h *HandshakeProtocol) ServerFinished(ctx context.Context, finished Event[*gtp.MsgFinished]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}

@@ -70,16 +70,16 @@ func TestProtocol(t *testing.T) {
 					Transceiver: transceiver,
 				}
 
-				err = handshake.ServerHello(context.Background(), func(e Event[gtp.MsgHello]) (Event[gtp.MsgHello], error) {
+				err = handshake.ServerHello(context.Background(), func(e Event[*gtp.MsgHello]) (Event[*gtp.MsgHello], error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= hello")
-					return Event[gtp.MsgHello]{Flags: gtp.Flags(gtp.Flag_HelloDone)}, nil
+					return Event[*gtp.MsgHello]{Flags: gtp.Flags(gtp.Flag_HelloDone)}, nil
 				})
 				if err != nil {
 					panic(err)
 				}
 
-				err = handshake.ServerFinished(context.Background(), Event[gtp.MsgFinished]{
-					Msg: gtp.MsgFinished{
+				err = handshake.ServerFinished(context.Background(), Event[*gtp.MsgFinished]{
+					Msg: &gtp.MsgFinished{
 						SendSeq: transceiver.Synchronizer.SendSeq(),
 						RecvSeq: transceiver.Synchronizer.RecvSeq(),
 					},
@@ -90,7 +90,7 @@ func TestProtocol(t *testing.T) {
 
 				ctrl := &CtrlProtocol{
 					Transceiver: transceiver,
-					HeartbeatHandler: generic.CastDelegate1(func(e Event[gtp.MsgHeartbeat]) error {
+					HeartbeatHandler: generic.CastDelegate1(func(e Event[*gtp.MsgHeartbeat]) error {
 						text := "ping"
 						if e.Flags.Is(gtp.Flag_Pong) {
 							text = "pong"
@@ -102,7 +102,7 @@ func TestProtocol(t *testing.T) {
 
 				trans := &TransProtocol{
 					Transceiver: transceiver,
-					PayloadHandler: generic.CastDelegate1(func(e Event[gtp.MsgPayload]) error {
+					PayloadHandler: generic.CastDelegate1(func(e Event[*gtp.MsgPayload]) error {
 						fmt.Printf("%s server <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 						return nil
 					}),
@@ -172,7 +172,7 @@ func TestProtocol(t *testing.T) {
 			Transceiver: transceiver,
 		}
 
-		err = handshake.ClientHello(context.Background(), Event[gtp.MsgHello]{}, func(e Event[gtp.MsgHello]) error {
+		err = handshake.ClientHello(context.Background(), Event[*gtp.MsgHello]{}, func(e Event[*gtp.MsgHello]) error {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= hello")
 			return nil
 		})
@@ -180,7 +180,7 @@ func TestProtocol(t *testing.T) {
 			panic(err)
 		}
 
-		err = handshake.ClientFinished(context.Background(), func(e Event[gtp.MsgFinished]) error {
+		err = handshake.ClientFinished(context.Background(), func(e Event[*gtp.MsgFinished]) error {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= finished", e.Msg.SendSeq, e.Msg.RecvSeq)
 			return nil
 		})
@@ -190,7 +190,7 @@ func TestProtocol(t *testing.T) {
 
 		ctrl := &CtrlProtocol{
 			Transceiver: transceiver,
-			HeartbeatHandler: generic.CastDelegate1(func(e Event[gtp.MsgHeartbeat]) error {
+			HeartbeatHandler: generic.CastDelegate1(func(e Event[*gtp.MsgHeartbeat]) error {
 				text := "ping"
 				if e.Flags.Is(gtp.Flag_Pong) {
 					text = "pong"
@@ -198,7 +198,7 @@ func TestProtocol(t *testing.T) {
 				fmt.Printf("%s client <= seq:%d ack:%d %s\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, text)
 				return nil
 			}),
-			SyncTimeHandler: generic.CastDelegate1(func(e Event[gtp.MsgSyncTime]) error {
+			SyncTimeHandler: generic.CastDelegate1(func(e Event[*gtp.MsgSyncTime]) error {
 				fmt.Printf("%s client <= response time %d %d\n", time.Now().Format(time.RFC3339Nano), e.Msg.LocalTime, e.Msg.RemoteTime)
 				return nil
 			}),
@@ -206,7 +206,7 @@ func TestProtocol(t *testing.T) {
 
 		trans := &TransProtocol{
 			Transceiver: transceiver,
-			PayloadHandler: generic.CastDelegate1(func(e Event[gtp.MsgPayload]) error {
+			PayloadHandler: generic.CastDelegate1(func(e Event[*gtp.MsgPayload]) error {
 				fmt.Printf("%s client <= seq:%d ack:%d data:%q\n", time.Now().Format(time.RFC3339Nano), e.Seq, e.Ack, string(e.Msg.Data))
 				return nil
 			}),

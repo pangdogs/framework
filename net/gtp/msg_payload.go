@@ -31,7 +31,7 @@ type MsgPayload struct {
 }
 
 // Read implements io.Reader
-func (m MsgPayload) Read(p []byte) (int, error) {
+func (m *MsgPayload) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
 		return bs.BytesWritten(), err
@@ -53,18 +53,18 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m MsgPayload) Size() int {
+func (m *MsgPayload) Size() int {
 	return binaryutil.SizeofBytes(m.Data)
 }
 
 // MsgId 消息Id
-func (MsgPayload) MsgId() MsgId {
+func (*MsgPayload) MsgId() MsgId {
 	return MsgId_Payload
 }
 
 // Clone 克隆消息对象
-func (m MsgPayload) Clone() MsgReader {
-	return MsgPayload{
+func (m *MsgPayload) Clone() Msg {
+	return &MsgPayload{
 		Data: bytes.Clone(m.Data),
 	}
 }

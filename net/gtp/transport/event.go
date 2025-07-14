@@ -32,18 +32,23 @@ var (
 )
 
 // IEvent 消息事件接口
-type IEvent = Event[gtp.MsgReader]
+type IEvent = Event[gtp.Msg]
 
 // Event 消息事件
-type Event[T gtp.MsgReader] struct {
+type Event[T gtp.Msg] struct {
 	Flags gtp.Flags // 标志位
 	Seq   uint32    // 消息序号
 	Ack   uint32    // 应答序号
 	Msg   T         // 消息
 }
 
-// Interface 泛化事件，转换为事件接口
+// Interface 接口化事件，转换为事件接口
 func (e Event[T]) Interface() IEvent {
+	switch e.Msg {
+	case nil:
+		exception.Panic(ErrIncorrectMsg)
+		panic("unreachable")
+	}
 	return IEvent{
 		Flags: e.Flags,
 		Seq:   e.Seq,
@@ -52,30 +57,17 @@ func (e Event[T]) Interface() IEvent {
 	}
 }
 
-// EventT 特化事件，转换为事件具体类型
-func EventT[T gtp.MsgReader](e IEvent) Event[T] {
-	ret := Event[T]{
+// AssertEvent 断言事件，转换为事件具体类型
+func AssertEvent[T gtp.Msg](e IEvent) Event[T] {
+	msg, ok := any(e.Msg).(T)
+	if !ok {
+		exception.Panic(ErrIncorrectMsg)
+		panic("unreachable")
+	}
+	return Event[T]{
 		Flags: e.Flags,
 		Seq:   e.Seq,
 		Ack:   e.Ack,
+		Msg:   msg,
 	}
-
-	if e.Msg == nil {
-		return ret
-	}
-
-	msgPtr, ok := any(e.Msg).(*T)
-	if ok {
-		ret.Msg = *msgPtr
-		return ret
-	}
-
-	msg, ok := any(e.Msg).(T)
-	if ok {
-		ret.Msg = msg
-		return ret
-	}
-
-	exception.Panic(ErrIncorrectMsg)
-	panic("unreachable")
 }

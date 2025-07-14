@@ -31,26 +31,26 @@ const (
 type MsgHeartbeat struct{}
 
 // Read implements io.Reader
-func (MsgHeartbeat) Read(p []byte) (int, error) {
+func (*MsgHeartbeat) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
 // Write implements io.Writer
-func (MsgHeartbeat) Write(p []byte) (int, error) {
+func (*MsgHeartbeat) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
 // Size 大小
-func (MsgHeartbeat) Size() int {
+func (*MsgHeartbeat) Size() int {
 	return 0
 }
 
 // MsgId 消息Id
-func (MsgHeartbeat) MsgId() MsgId {
+func (*MsgHeartbeat) MsgId() MsgId {
 	return MsgId_Heartbeat
 }
 
 // Clone 克隆消息对象
-func (m MsgHeartbeat) Clone() MsgReader {
-	return m
+func (m MsgHeartbeat) Clone() Msg {
+	return &m
 }

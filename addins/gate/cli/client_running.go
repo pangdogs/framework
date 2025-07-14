@@ -354,7 +354,7 @@ func (c *Client) handleRecvEvent(event transport.IEvent) error {
 }
 
 // handleRecvDataChan 接收Payload消息数据并写入channel
-func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error {
+func (c *Client) handleRecvDataChan(event transport.Event[*gtp.MsgPayload]) error {
 	// 写入channel
 	if c.options.RecvDataChan != nil {
 		var bs binaryutil.RecycleBytes
@@ -376,7 +376,7 @@ func (c *Client) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error
 }
 
 // handleRecvPayload 接收Payload消息数据并回调
-func (c *Client) handleRecvPayload(event transport.Event[gtp.MsgPayload]) error {
+func (c *Client) handleRecvPayload(event transport.Event[*gtp.MsgPayload]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -404,7 +404,7 @@ func (c *Client) handleRecvPayload(event transport.Event[gtp.MsgPayload]) error 
 }
 
 // handleRecvHeartbeat 接收Heartbeat消息事件
-func (c *Client) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
+func (c *Client) handleRecvHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		c.logger.Debugf("client %q receive ping", c.GetSessionId())
 	} else {
@@ -414,7 +414,7 @@ func (c *Client) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) er
 }
 
 // handleRecvSyncTime 接收SyncTime消息事件
-func (c *Client) handleRecvSyncTime(event transport.Event[gtp.MsgSyncTime]) error {
+func (c *Client) handleRecvSyncTime(event transport.Event[*gtp.MsgSyncTime]) error {
 	if event.Flags.Is(gtp.Flag_RespTime) {
 		respTime := &ResponseTime{
 			RequestTime: time.UnixMilli(event.Msg.RemoteTime).Local(),
@@ -427,7 +427,7 @@ func (c *Client) handleRecvSyncTime(event transport.Event[gtp.MsgSyncTime]) erro
 }
 
 // handleRecvRst 接收Rst消息事件
-func (c *Client) handleRecvRst(event transport.Event[gtp.MsgRst]) error {
+func (c *Client) handleRecvRst(event transport.Event[*gtp.MsgRst]) error {
 	c.Close(transport.CastRstErr(event))
 	return nil
 }

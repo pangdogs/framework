@@ -340,7 +340,7 @@ func (s *_Session) handleRecvEvent(event transport.IEvent) error {
 }
 
 // handleRecvDataChan 接收Payload消息数据并写入channel
-func (s *_Session) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) error {
+func (s *_Session) handleRecvDataChan(event transport.Event[*gtp.MsgPayload]) error {
 	// 写入channel
 	if s.options.RecvDataChan != nil {
 		var bs binaryutil.RecycleBytes
@@ -362,7 +362,7 @@ func (s *_Session) handleRecvDataChan(event transport.Event[gtp.MsgPayload]) err
 }
 
 // handleRecvPayload 接收Payload消息数据并回调
-func (s *_Session) handleRecvPayload(event transport.Event[gtp.MsgPayload]) error {
+func (s *_Session) handleRecvPayload(event transport.Event[*gtp.MsgPayload]) error {
 	var errs []error
 
 	interrupt := func(err, _ error) bool {
@@ -393,7 +393,7 @@ func (s *_Session) handleRecvPayload(event transport.Event[gtp.MsgPayload]) erro
 }
 
 // handleRecvHeartbeat 接收Heartbeat消息事件
-func (s *_Session) handleRecvHeartbeat(event transport.Event[gtp.MsgHeartbeat]) error {
+func (s *_Session) handleRecvHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) error {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		log.Debugf(s.gate.svcCtx, "session %q receive ping", s.GetId())
 	} else {

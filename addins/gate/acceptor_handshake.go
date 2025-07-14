@@ -74,10 +74,10 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	}()
 
 	// 与客户端互相hello
-	err := handshake.ServerHello(ctx, func(cliHello transport.Event[gtp.MsgHello]) (transport.Event[gtp.MsgHello], error) {
+	err := handshake.ServerHello(ctx, func(cliHello transport.Event[*gtp.MsgHello]) (transport.Event[*gtp.MsgHello], error) {
 		// 检查协议版本
 		if cliHello.Msg.Version != gtp.Version_V1_0 {
-			return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+			return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 				Code:    gtp.Code_VersionError,
 				Message: fmt.Sprintf("version %q not supported", cliHello.Msg.Version),
 			}
@@ -87,7 +87,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		if cliHello.Msg.SessionId != "" {
 			v, ok := acc.gate.getSession(uid.From(cliHello.Msg.SessionId))
 			if !ok {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,
 					Message: fmt.Sprintf("session %q not exist", cliHello.Msg.SessionId),
 				}
@@ -98,7 +98,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		} else {
 			v, err := acc.newSession(conn)
 			if err != nil {
-				return transport.Event[gtp.MsgHello]{}, err
+				return transport.Event[*gtp.MsgHello]{}, err
 			}
 
 			// 调整会话状态为握手中
@@ -126,7 +126,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		if cs.SecretKeyExchange != gtp.SecretKeyExchange_None {
 			// 记录客户端随机数
 			if len(cliHello.Msg.Random) < 0 {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: "client Hello 'random' is empty",
 				}
@@ -137,7 +137,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			// 生成服务端随机数
 			n, err := rand.Prime(rand.Reader, 256)
 			if err != nil {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: err.Error(),
 				}
@@ -149,9 +149,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 
 		// 返回服务端Hello
-		servHello := transport.Event[gtp.MsgHello]{
+		servHello := transport.Event[*gtp.MsgHello]{
 			Flags: gtp.Flags(gtp.Flag_HelloDone),
-			Msg: gtp.MsgHello{
+			Msg: &gtp.MsgHello{
 				Version:     gtp.Version_V1_0,
 				SessionId:   session.GetId().String(),
 				Random:      servRandom,
@@ -179,7 +179,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			h.Reset()
 			_, err := io.CopyBuffer(h, cliHello.Msg, hashBuff)
 			if err != nil {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: err.Error(),
 				}
@@ -189,7 +189,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			h.Reset()
 			_, err = io.CopyBuffer(h, servHello.Msg, hashBuff)
 			if err != nil {
-				return transport.Event[gtp.MsgHello]{}, &transport.RstError{
+				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: err.Error(),
 				}
@@ -221,7 +221,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 	// 开启鉴权时，鉴权客户端
 	if authFlow {
-		err = handshake.ServerAuth(ctx, func(e transport.Event[gtp.MsgAuth]) error {
+		err = handshake.ServerAuth(ctx, func(e transport.Event[*gtp.MsgAuth]) error {
 			// 断线重连流程，检查会话Id与token是否匹配，防止hack客户端猜测会话Id，恶意通过断线重连登录
 			if continueFlow {
 				if e.Msg.UserId != session.GetUserId() || e.Msg.Token != session.GetToken() {
@@ -260,7 +260,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		err = handshake.ServerContinue(ctx, func(e transport.Event[gtp.MsgContinue]) error {
+		err = handshake.ServerContinue(ctx, func(e transport.Event[*gtp.MsgContinue]) error {
 			// 恢复会话
 			var err error
 			sendSeq, recvSeq, err = session.resume(handshake.Transceiver.Conn, e.Msg.RecvSeq)
@@ -282,12 +282,12 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	}
 
 	// 通知客户端握手结束
-	err = handshake.ServerFinished(ctx, transport.Event[gtp.MsgFinished]{
+	err = handshake.ServerFinished(ctx, transport.Event[*gtp.MsgFinished]{
 		Flags: gtp.Flags_None().
 			Setd(gtp.Flag_EncryptOK, encryptionFlow).
 			Setd(gtp.Flag_AuthOK, authFlow).
 			Setd(gtp.Flag_ContinueOK, continueFlow),
-		Msg: gtp.MsgFinished{
+		Msg: &gtp.MsgFinished{
 			SendSeq: sendSeq,
 			RecvSeq: recvSeq,
 		},
@@ -421,9 +421,9 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 
 		// 与客户端交换秘钥
 		err = handshake.ServerECDHESecretKeyExchange(ctx,
-			transport.Event[gtp.MsgECDHESecretKeyExchange]{
+			transport.Event[*gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
-				Msg: gtp.MsgECDHESecretKeyExchange{
+				Msg: &gtp.MsgECDHESecretKeyExchange{
 					NamedCurve:         acc.gate.options.EncECDHENamedCurve,
 					PublicKey:          servPubBytes,
 					IV:                 ivBytes,
@@ -433,10 +433,10 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 					Signature:          signature,
 				},
 			},
-			func(cliECDHE transport.Event[gtp.MsgECDHESecretKeyExchange]) (transport.Event[gtp.MsgChangeCipherSpec], error) {
+			func(cliECDHE transport.Event[*gtp.MsgECDHESecretKeyExchange]) (transport.Event[*gtp.MsgChangeCipherSpec], error) {
 				// 检查客户端曲线类型
 				if cliECDHE.Msg.NamedCurve != acc.gate.options.EncECDHENamedCurve {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve' %d is incorrect", cliECDHE.Msg.NamedCurve),
 					}
@@ -445,14 +445,14 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 验证客户端签名
 				if acc.gate.options.EncVerifyClientSignature {
 					if !cliECDHE.Flags.Is(gtp.Flag_Signature) {
-						return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+						return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
 							Message: "no client signature",
 						}
 					}
 
 					if err := acc.verify(cliECDHE.Msg.SignatureAlgorithm, cliECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionId, cliECDHE.Msg.PublicKey); err != nil {
-						return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+						return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
 							Message: err.Error(),
 						}
@@ -462,7 +462,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 客户端临时公钥
 				cliPub, err := curve.NewPublicKey(cliECDHE.Msg.PublicKey)
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err),
 					}
@@ -471,7 +471,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 临时共享秘钥
 				sharedKeyBytes, err = servPriv.ECDH(cliPub)
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("ECDH failed, %s", err),
 					}
@@ -480,7 +480,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 创建并设置加解密流
 				cipher[0], cipher[1], err = method.NewCipher(cs.SymmetricEncryption, cs.BlockCipherMode, sharedKeyBytes, ivBytes, nonceBytes)
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("new cipher stream failed, %s", err),
 					}
@@ -492,19 +492,19 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 加密hello消息
 				encryptedHello, err = encryption[0].Transforming(nil, servHelloHash[:])
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, &transport.RstError{
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("encrypt hello failed, %s", err),
 					}
 				}
 
-				return transport.Event[gtp.MsgChangeCipherSpec]{
+				return transport.Event[*gtp.MsgChangeCipherSpec]{
 					Flags: gtp.Flags(gtp.Flag_VerifyEncryption),
-					Msg: gtp.MsgChangeCipherSpec{
+					Msg: &gtp.MsgChangeCipherSpec{
 						EncryptedHello: encryptedHello.Data(),
 					},
 				}, nil
-			}, func(cliChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) error {
+			}, func(cliChangeCipherSpec transport.Event[*gtp.MsgChangeCipherSpec]) error {
 				// 解密模块
 				encryption[1] = codec.NewEncryption(cipher[1], padding[1], fetchNonce[1])
 

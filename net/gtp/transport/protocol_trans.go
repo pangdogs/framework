@@ -27,7 +27,7 @@ import (
 )
 
 type (
-	PayloadHandler = generic.Delegate1[Event[gtp.MsgPayload], error] // Payload消息事件处理器
+	PayloadHandler = generic.Delegate1[Event[*gtp.MsgPayload], error] // Payload消息事件处理器
 )
 
 // TransProtocol 传输协议
@@ -43,8 +43,8 @@ func (t *TransProtocol) SendData(data []byte) error {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
 
-	err := t.retrySend(t.Transceiver.Send(Event[gtp.MsgPayload]{
-		Msg: gtp.MsgPayload{Data: data},
+	err := t.retrySend(t.Transceiver.Send(Event[*gtp.MsgPayload]{
+		Msg: &gtp.MsgPayload{Data: data},
 	}.Interface()))
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
@@ -71,7 +71,7 @@ func (t *TransProtocol) HandleRecvEvent(e IEvent) error {
 				errs = append(errs, err)
 			}
 			return false
-		}, EventT[gtp.MsgPayload](e))
+		}, AssertEvent[*gtp.MsgPayload](e))
 
 		if len(errs) > 0 {
 			return errors.Join(errs...)

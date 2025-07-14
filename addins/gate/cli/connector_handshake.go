@@ -81,8 +81,8 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	cliRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
 	n.FillBytes(cliRandom)
 
-	cliHello := transport.Event[gtp.MsgHello]{
-		Msg: gtp.MsgHello{
+	cliHello := transport.Event[*gtp.MsgHello]{
+		Msg: &gtp.MsgHello{
 			Version:     gtp.Version_V1_0,
 			SessionId:   client.GetSessionId().String(),
 			Random:      cliRandom,
@@ -93,7 +93,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 	// 与服务端互相hello
 	err = handshake.ClientHello(ctx, cliHello,
-		func(servHello transport.Event[gtp.MsgHello]) error {
+		func(servHello transport.Event[*gtp.MsgHello]) error {
 			// 检查HelloDone标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
 				return fmt.Errorf("cli: the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
@@ -164,8 +164,8 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 	// 开启鉴权时，向服务端发起鉴权
 	if authFlow {
-		err = handshake.ClientAuth(ctx, transport.Event[gtp.MsgAuth]{
-			Msg: gtp.MsgAuth{
+		err = handshake.ClientAuth(ctx, transport.Event[*gtp.MsgAuth]{
+			Msg: &gtp.MsgAuth{
 				UserId:     ctor.options.AuthUserId,
 				Token:      ctor.options.AuthToken,
 				Extensions: ctor.options.AuthExtensions,
@@ -182,8 +182,8 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
-		err = handshake.ClientContinue(ctx, transport.Event[gtp.MsgContinue]{
-			Msg: gtp.MsgContinue{
+		err = handshake.ClientContinue(ctx, transport.Event[*gtp.MsgContinue]{
+			Msg: &gtp.MsgContinue{
 				SendSeq: client.transceiver.Synchronizer.SendSeq(),
 				RecvSeq: client.transceiver.Synchronizer.RecvSeq(),
 			},
@@ -196,7 +196,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	var remoteSendSeq, remoteRecvSeq uint32
 
 	// 等待服务端通知握手结束
-	err = handshake.ClientFinished(ctx, func(finished transport.Event[gtp.MsgFinished]) error {
+	err = handshake.ClientFinished(ctx, func(finished transport.Event[*gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
 			return fmt.Errorf("cli: the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
 		}
@@ -264,7 +264,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			default:
 				return transport.IEvent{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
 			}
-			servECDHE := transport.EventT[gtp.MsgECDHESecretKeyExchange](e)
+			servECDHE := transport.AssertEvent[*gtp.MsgECDHESecretKeyExchange](e)
 
 			// 验证服务端签名
 			if ctor.options.EncVerifyServerSignature {
@@ -333,9 +333,9 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				return transport.IEvent{}, fmt.Errorf("new cipher stream failed, %s", err)
 			}
 
-			cliECDHE := transport.Event[gtp.MsgECDHESecretKeyExchange]{
+			cliECDHE := transport.Event[*gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
-				Msg: gtp.MsgECDHESecretKeyExchange{
+				Msg: &gtp.MsgECDHESecretKeyExchange{
 					NamedCurve:         servECDHE.Msg.NamedCurve,
 					PublicKey:          cliPubBytes,
 					SignatureAlgorithm: ctor.options.EncSignatureAlgorithm,
@@ -345,7 +345,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 
 			return cliECDHE.Interface(), nil
 
-		}, func(servChangeCipherSpec transport.Event[gtp.MsgChangeCipherSpec]) (transport.Event[gtp.MsgChangeCipherSpec], error) {
+		}, func(servChangeCipherSpec transport.Event[*gtp.MsgChangeCipherSpec]) (transport.Event[*gtp.MsgChangeCipherSpec], error) {
 			verifyEncryption := servChangeCipherSpec.Flags.Is(gtp.Flag_VerifyEncryption)
 
 			// 加解密模块
@@ -356,16 +356,16 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			if verifyEncryption {
 				decryptedHello, err := encryption[1].Transforming(nil, servChangeCipherSpec.Msg.EncryptedHello)
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, fmt.Errorf("decrypt hello failed, %s", err)
 				}
 				defer decryptedHello.Release()
 
 				if bytes.Compare(decryptedHello.Data(), servHelloHash[:]) != 0 {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
 				}
 			}
 
-			cliChangeCipherSpec := transport.Event[gtp.MsgChangeCipherSpec]{
+			cliChangeCipherSpec := transport.Event[*gtp.MsgChangeCipherSpec]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_VerifyEncryption, verifyEncryption),
 			}
 
@@ -374,7 +374,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				var err error
 				encryptedHello, err = encryption[0].Transforming(nil, cliHelloHash[:])
 				if err != nil {
-					return transport.Event[gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
+					return transport.Event[*gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
 				}
 
 				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello.Data()

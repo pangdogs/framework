@@ -36,9 +36,9 @@ func (err RstError) Error() string {
 }
 
 // ToEvent 转换为消息事件
-func (err RstError) ToEvent() Event[gtp.MsgRst] {
-	return Event[gtp.MsgRst]{
-		Msg: gtp.MsgRst{
+func (err RstError) ToEvent() Event[*gtp.MsgRst] {
+	return Event[*gtp.MsgRst]{
+		Msg: &gtp.MsgRst{
 			Code:    err.Code,
 			Message: err.Message,
 		},
@@ -46,7 +46,7 @@ func (err RstError) ToEvent() Event[gtp.MsgRst] {
 }
 
 // CastRstErr Rst错误事件转换为错误提示
-func CastRstErr(e Event[gtp.MsgRst]) *RstError {
+func CastRstErr(e Event[*gtp.MsgRst]) *RstError {
 	return &RstError{
 		Code:    e.Msg.Code,
 		Message: e.Msg.Message,
