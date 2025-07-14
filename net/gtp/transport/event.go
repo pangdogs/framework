@@ -44,11 +44,6 @@ type Event[T gtp.Msg] struct {
 
 // Interface 接口化事件，转换为事件接口
 func (e Event[T]) Interface() IEvent {
-	switch e.Msg {
-	case nil:
-		exception.Panic(ErrIncorrectMsg)
-		panic("unreachable")
-	}
 	return IEvent{
 		Flags: e.Flags,
 		Seq:   e.Seq,
