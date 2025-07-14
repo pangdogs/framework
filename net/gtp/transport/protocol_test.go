@@ -72,7 +72,7 @@ func TestProtocol(t *testing.T) {
 
 				err = handshake.ServerHello(context.Background(), func(e Event[*gtp.MsgHello]) (Event[*gtp.MsgHello], error) {
 					fmt.Println(time.Now().Format(time.RFC3339Nano), "server <= hello")
-					return Event[*gtp.MsgHello]{Flags: gtp.Flags(gtp.Flag_HelloDone)}, nil
+					return Event[*gtp.MsgHello]{Flags: gtp.Flags(gtp.Flag_HelloDone), Msg: &gtp.MsgHello{}}, nil
 				})
 				if err != nil {
 					panic(err)
@@ -172,7 +172,7 @@ func TestProtocol(t *testing.T) {
 			Transceiver: transceiver,
 		}
 
-		err = handshake.ClientHello(context.Background(), Event[*gtp.MsgHello]{}, func(e Event[*gtp.MsgHello]) error {
+		err = handshake.ClientHello(context.Background(), Event[*gtp.MsgHello]{Msg: &gtp.MsgHello{}}, func(e Event[*gtp.MsgHello]) error {
 			fmt.Println(time.Now().Format(time.RFC3339Nano), "client <= hello")
 			return nil
 		})
