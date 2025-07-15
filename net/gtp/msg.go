@@ -28,14 +28,19 @@ var (
 	ErrGTP = errors.New("gtp") // 消息协议错误
 )
 
-// Msg 消息接口
-type Msg interface {
+// ReadableMsg 可读消息接口
+type ReadableMsg interface {
 	io.Reader
-	io.Writer
 	// Size 大小
 	Size() int
 	// MsgId 消息Id
 	MsgId() MsgId
 	// Clone 克隆消息对象
 	Clone() Msg
+}
+
+// Msg 消息接口
+type Msg interface {
+	ReadableMsg
+	io.Writer
 }

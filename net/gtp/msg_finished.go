@@ -38,7 +38,7 @@ type MsgFinished struct {
 }
 
 // Read implements io.Reader
-func (m *MsgFinished) Read(p []byte) (int, error) {
+func (m MsgFinished) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
 		return bs.BytesWritten(), err
@@ -68,12 +68,12 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (*MsgFinished) Size() int {
+func (MsgFinished) Size() int {
 	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
 }
 
 // MsgId 消息Id
-func (*MsgFinished) MsgId() MsgId {
+func (MsgFinished) MsgId() MsgId {
 	return MsgId_Finished
 }
 

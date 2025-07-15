@@ -64,7 +64,7 @@ func (e *Encoder) SetCompression(compression ICompression, compressionMin int) *
 }
 
 // Encode 编码消息包
-func (e *Encoder) Encode(flags gtp.Flags, msg gtp.Msg) (ret binaryutil.RecycleBytes, err error) {
+func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}

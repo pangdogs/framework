@@ -25,7 +25,7 @@ import (
 )
 
 // Marshal 序列化
-func Marshal(msg Msg) (ret binaryutil.RecycleBytes, err error) {
+func Marshal[T ReadableMsg](msg T) (ret binaryutil.RecycleBytes, err error) {
 	bs := binaryutil.MakeRecycleBytes(msg.Size())
 	defer func() {
 		if !bs.Equal(ret) {

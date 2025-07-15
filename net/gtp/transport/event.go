@@ -35,7 +35,7 @@ var (
 type IEvent = Event[gtp.Msg]
 
 // Event 消息事件
-type Event[T gtp.Msg] struct {
+type Event[T gtp.ReadableMsg] struct {
 	Flags gtp.Flags // 标志位
 	Seq   uint32    // 消息序号
 	Ack   uint32    // 应答序号
@@ -44,25 +44,46 @@ type Event[T gtp.Msg] struct {
 
 // Interface 接口化事件，转换为事件接口
 func (e Event[T]) Interface() IEvent {
-	return IEvent{
-		Flags: e.Flags,
-		Seq:   e.Seq,
-		Ack:   e.Ack,
-		Msg:   e.Msg,
-	}
-}
-
-// AssertEvent 断言事件，转换为事件具体类型
-func AssertEvent[T gtp.Msg](e IEvent) Event[T] {
-	msg, ok := any(e.Msg).(T)
+	msg, ok := any(e.Msg).(gtp.Msg)
 	if !ok {
-		exception.Panic(ErrIncorrectMsg)
-		panic("unreachable")
+		msg, ok = any(&e.Msg).(gtp.Msg)
+		if !ok {
+			exception.Panic(ErrIncorrectMsg)
+			panic("unreachable")
+		}
 	}
-	return Event[T]{
+	return IEvent{
 		Flags: e.Flags,
 		Seq:   e.Seq,
 		Ack:   e.Ack,
 		Msg:   msg,
 	}
+}
+
+// AssertEvent 断言事件，转换为事件具体类型
+func AssertEvent[T gtp.ReadableMsg](e IEvent) Event[T] {
+	ret := Event[T]{
+		Flags: e.Flags,
+		Seq:   e.Seq,
+		Ack:   e.Ack,
+	}
+
+	{
+		msg, ok := any(e.Msg).(T)
+		if ok {
+			ret.Msg = msg
+			return ret
+		}
+	}
+
+	{
+		msg, ok := any(e.Msg).(*T)
+		if ok {
+			ret.Msg = *msg
+			return ret
+		}
+	}
+
+	exception.Panic(ErrIncorrectMsg)
+	panic("unreachable")
 }

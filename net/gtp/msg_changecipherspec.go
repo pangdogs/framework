@@ -36,7 +36,7 @@ type MsgChangeCipherSpec struct {
 }
 
 // Read implements io.Reader
-func (m *MsgChangeCipherSpec) Read(p []byte) (int, error) {
+func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
 		return bs.BytesWritten(), err
@@ -58,17 +58,17 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *MsgChangeCipherSpec) Size() int {
+func (m MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }
 
 // MsgId 消息Id
-func (*MsgChangeCipherSpec) MsgId() MsgId {
+func (MsgChangeCipherSpec) MsgId() MsgId {
 	return MsgId_ChangeCipherSpec
 }
 
 // Clone 克隆消息对象
-func (m *MsgChangeCipherSpec) Clone() Msg {
+func (m MsgChangeCipherSpec) Clone() Msg {
 	return &MsgChangeCipherSpec{
 		EncryptedHello: bytes.Clone(m.EncryptedHello),
 	}

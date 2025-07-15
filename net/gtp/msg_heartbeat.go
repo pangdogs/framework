@@ -31,7 +31,7 @@ const (
 type MsgHeartbeat struct{}
 
 // Read implements io.Reader
-func (*MsgHeartbeat) Read(p []byte) (int, error) {
+func (MsgHeartbeat) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
@@ -41,12 +41,12 @@ func (*MsgHeartbeat) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (*MsgHeartbeat) Size() int {
+func (MsgHeartbeat) Size() int {
 	return 0
 }
 
 // MsgId 消息Id
-func (*MsgHeartbeat) MsgId() MsgId {
+func (MsgHeartbeat) MsgId() MsgId {
 	return MsgId_Heartbeat
 }
 
