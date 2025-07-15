@@ -32,7 +32,7 @@ var (
 )
 
 // IEvent 消息事件接口
-type IEvent = Event[gtp.Msg]
+type IEvent = Event[gtp.ReadableMsg]
 
 // Event 消息事件
 type Event[T gtp.ReadableMsg] struct {
