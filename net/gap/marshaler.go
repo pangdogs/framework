@@ -25,7 +25,7 @@ import (
 )
 
 // Marshal 序列化
-func Marshal[T MsgReader](msg T) (ret binaryutil.RecycleBytes, err error) {
+func Marshal[T ReadableMsg](msg T) (ret binaryutil.RecycleBytes, err error) {
 	bs := binaryutil.MakeRecycleBytes(msg.Size())
 	defer func() {
 		if !bs.Equal(ret) {
@@ -41,7 +41,7 @@ func Marshal[T MsgReader](msg T) (ret binaryutil.RecycleBytes, err error) {
 }
 
 // Unmarshal 反序列化
-func Unmarshal[T MsgWriter](msg T, data []byte) error {
+func Unmarshal(msg Msg, data []byte) error {
 	if _, err := msg.Write(data); err != nil {
 		return fmt.Errorf("%w: unmarshal msg(%d) failed, %w", ErrGAP, msg.MsgId(), err)
 	}

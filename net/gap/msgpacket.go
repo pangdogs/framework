@@ -26,8 +26,8 @@ import (
 
 // MsgPacket 消息包
 type MsgPacket struct {
-	Head MsgHead   // 消息头
-	Msg  MsgReader // 消息
+	Head MsgHead     // 消息头
+	Msg  ReadableMsg // 消息
 }
 
 // Read implements io.Reader

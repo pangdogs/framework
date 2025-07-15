@@ -105,7 +105,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				arr.Release()
 			}
 		}()
@@ -116,7 +116,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				arr.Release()
 			}
 		}()
@@ -127,7 +127,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				arr.Release()
 			}
 		}()
@@ -138,7 +138,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				arr.Release()
 			}
 		}()
@@ -153,7 +153,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -164,7 +164,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -175,7 +175,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -186,7 +186,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -197,7 +197,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -208,7 +208,7 @@ retry:
 			return Variant{}, err
 		}
 		defer func() {
-			if !ret.Valid() {
+			if !ret.IsValid() {
 				m.Release()
 			}
 		}()
@@ -239,7 +239,7 @@ retry:
 		return v, nil
 	case *Variant:
 		return *v, nil
-	case ValueReader:
+	case ReadableValue:
 		return MakeSerializedVariant(v)
 	default:
 		return Variant{}, ErrInvalidCast

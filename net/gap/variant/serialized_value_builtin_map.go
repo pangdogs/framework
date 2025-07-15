@@ -24,38 +24,22 @@ import (
 	"git.golaxy.org/core/utils/generic"
 )
 
-// MakeReadonlyMapFromGoMap 创建只读map
-func MakeReadonlyMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
+// MakeSerializedMapFromGoMap 创建已序列化map
+func MakeSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret Map, err error) {
 	varMap := make(Map, 0, len(m))
+	defer func() {
+		if ret == nil {
+			varMap.Release()
+		}
+	}()
 
 	for k, v := range m {
-		varK, err := CastReadonlyVariant(k)
+		varK, err := CastSerializedVariant(k)
 		if err != nil {
 			return nil, err
 		}
 
-		varV, err := CastReadonlyVariant(v)
-		if err != nil {
-			return nil, err
-		}
-
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
-	}
-
-	return varMap, nil
-}
-
-// MakeReadonlyMapFromSliceMap 创建只读map
-func MakeReadonlyMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
-	varMap := make(Map, 0, len(m))
-
-	for _, kv := range m {
-		varK, err := CastReadonlyVariant(kv.K)
-		if err != nil {
-			return nil, err
-		}
-
-		varV, err := CastReadonlyVariant(kv.V)
+		varV, err := CastSerializedVariant(v)
 		if err != nil {
 			return nil, err
 		}
@@ -66,17 +50,52 @@ func MakeReadonlyMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V])
 	return varMap, nil
 }
 
-// MakeReadonlyMapFromUnorderedSliceMap 创建只读map
-func MakeReadonlyMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
+// MakeSerializedMapFromSliceMap 创建已序列化map
+func MakeSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (ret Map, err error) {
 	varMap := make(Map, 0, len(m))
+	defer func() {
+		if ret == nil {
+			varMap.Release()
+		}
+	}()
 
-	for _, kv := range m {
-		varK, err := CastReadonlyVariant(kv.K)
+	for i := range m {
+		kv := &m[i]
+
+		varK, err := CastSerializedVariant(&kv.K)
 		if err != nil {
 			return nil, err
 		}
 
-		varV, err := CastReadonlyVariant(kv.V)
+		varV, err := CastSerializedVariant(&kv.V)
+		if err != nil {
+			return nil, err
+		}
+
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
+	}
+
+	return varMap, nil
+}
+
+// MakeSerializedMapFromUnorderedSliceMap 创建已序列化map
+func MakeSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (ret Map, err error) {
+	varMap := make(Map, 0, len(m))
+	defer func() {
+		if ret == nil {
+			varMap.Release()
+		}
+	}()
+
+	for i := range m {
+		kv := &m[i]
+
+		varK, err := CastSerializedVariant(&kv.K)
+		if err != nil {
+			return nil, err
+		}
+
+		varV, err := CastSerializedVariant(&kv.V)
 		if err != nil {
 			return nil, err
 		}

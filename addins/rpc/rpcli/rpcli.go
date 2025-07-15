@@ -59,7 +59,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 	ret := concurrent.MakeRespAsyncRet()
 	future := concurrent.MakeFuture(c.GetFutures(), nil, ret)
 
-	vargs, err := variant.MakeReadonlyArray(args)
+	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -114,7 +114,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 
 // OnewayRPC 单向RPC调用
 func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
-	vargs, err := variant.MakeReadonlyArray(args)
+	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		return err
 	}

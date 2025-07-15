@@ -42,7 +42,7 @@ func NewEncoder() *Encoder {
 type Encoder struct{}
 
 // Encode 编码消息包
-func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.MsgReader) (ret binaryutil.RecycleBytes, err error) {
+func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret binaryutil.RecycleBytes, err error) {
 	if msg == nil {
 		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}

@@ -27,7 +27,7 @@ import (
 )
 
 // MakeSerializedValue 创建已序列化值
-func MakeSerializedValue(v ValueReader) (ret *SerializedValue, err error) {
+func MakeSerializedValue(v ReadableValue) (ret *SerializedValue, err error) {
 	if v == nil {
 		return nil, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}

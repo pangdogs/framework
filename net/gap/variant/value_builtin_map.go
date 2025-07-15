@@ -20,10 +20,78 @@
 package variant
 
 import (
+	"cmp"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 )
+
+// MakeMapFromGoMap 创建map
+func MakeMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
+	varMap := make(Map, 0, len(m))
+
+	for k, v := range m {
+		varK, err := CastVariant(k)
+		if err != nil {
+			return nil, err
+		}
+
+		varV, err := CastVariant(v)
+		if err != nil {
+			return nil, err
+		}
+
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
+	}
+
+	return varMap, nil
+}
+
+// MakeMapFromSliceMap 创建map
+func MakeMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
+	varMap := make(Map, 0, len(m))
+
+	for i := range m {
+		kv := &m[i]
+
+		varK, err := CastVariant(&kv.K)
+		if err != nil {
+			return nil, err
+		}
+
+		varV, err := CastVariant(&kv.V)
+		if err != nil {
+			return nil, err
+		}
+
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
+	}
+
+	return varMap, nil
+}
+
+// MakeMapFromUnorderedSliceMap 创建map
+func MakeMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
+	varMap := make(Map, 0, len(m))
+
+	for i := range m {
+		kv := &m[i]
+
+		varK, err := CastVariant(&kv.K)
+		if err != nil {
+			return nil, err
+		}
+
+		varV, err := CastVariant(&kv.V)
+		if err != nil {
+			return nil, err
+		}
+
+		varMap.ToUnorderedSliceMap().Add(varK, varV)
+	}
+
+	return varMap, nil
+}
 
 // Map map
 type Map generic.UnorderedSliceMap[Variant, Variant]
@@ -102,14 +170,8 @@ func (v Map) Indirect() any {
 func (v Map) Release() {
 	for i := range v {
 		kv := &v[i]
-
-		if kv.K.Serialized() {
-			kv.K.SerializedValue.Release()
-		}
-
-		if kv.V.Serialized() {
-			kv.V.SerializedValue.Release()
-		}
+		kv.K.Release()
+		kv.V.Release()
 	}
 }
 

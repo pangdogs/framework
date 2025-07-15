@@ -19,17 +19,25 @@
 
 package variant
 
-// MakeReadonlyArray 创建只读array
-func MakeReadonlyArray[T any](arr []T) (Array, error) {
-	varArr := make(Array, 0, len(arr))
+import (
+	"fmt"
+	"git.golaxy.org/core"
+)
 
-	for i := range arr {
-		v, err := CastReadonlyVariant(arr[i])
-		if err != nil {
-			return nil, err
-		}
-		varArr = append(varArr, v)
+// MakeSerializedVariant 创建已序列化可变类型
+func MakeSerializedVariant(v ReadableValue) (Variant, error) {
+	if v == nil {
+		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
 
-	return varArr, nil
+	sv, err := MakeSerializedValue(v)
+	if err != nil {
+		return Variant{}, err
+	}
+
+	return Variant{
+		TypeId:     v.TypeId(),
+		Value:      sv,
+		Releasable: sv,
+	}, nil
 }

@@ -30,7 +30,7 @@ type SerializedMsg struct {
 }
 
 // Read implements io.Reader
-func (m *SerializedMsg) Read(p []byte) (int, error) {
+func (m SerializedMsg) Read(p []byte) (int, error) {
 	if len(p) < len(m.Data) {
 		return 0, io.ErrShortWrite
 	}
@@ -38,11 +38,11 @@ func (m *SerializedMsg) Read(p []byte) (int, error) {
 }
 
 // Size 大小
-func (m *SerializedMsg) Size() int {
+func (m SerializedMsg) Size() int {
 	return len(m.Data)
 }
 
 // MsgId 消息Id
-func (m *SerializedMsg) MsgId() MsgId {
+func (m SerializedMsg) MsgId() MsgId {
 	return m.Id
 }

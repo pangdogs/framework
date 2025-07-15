@@ -23,14 +23,8 @@ import (
 	"io"
 )
 
-// Value 值
-type Value interface {
-	ValueReader
-	ValueWriter
-}
-
-// ValueReader 读取值
-type ValueReader interface {
+// ReadableValue 可读取值
+type ReadableValue interface {
 	io.Reader
 	// Size 大小
 	Size() int
@@ -40,11 +34,8 @@ type ValueReader interface {
 	Indirect() any
 }
 
-// ValueWriter 写入值
-type ValueWriter interface {
+// Value 值
+type Value interface {
+	ReadableValue
 	io.Writer
-	// Size 大小
-	Size() int
-	// TypeId 类型
-	TypeId() TypeId
 }

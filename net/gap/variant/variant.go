@@ -22,6 +22,7 @@ package variant
 import (
 	"errors"
 	"fmt"
+	"git.golaxy.org/core"
 	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"reflect"
@@ -31,18 +32,33 @@ var (
 	ErrVariant = errors.New("gap-variant") // 可变类型错误
 )
 
+// MakeVariant 创建可变类型
+func MakeVariant(v ReadableValue) (Variant, error) {
+	if v == nil {
+		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
+	}
+	return Variant{
+		TypeId: v.TypeId(),
+		Value:  v,
+	}, nil
+}
+
+// Releasable 释放资源接口
+type Releasable interface {
+	Release()
+}
+
 // Variant 可变类型
 type Variant struct {
-	TypeId          TypeId           // 类型Id
-	Value           Value            // 值
-	Reflected       reflect.Value    // 反射值
-	ReadonlyValue   ValueReader      // 只读值
-	SerializedValue *SerializedValue // 已序列化值
+	TypeId     TypeId        // 类型Id
+	Value      ReadableValue // 值
+	Reflected  reflect.Value // 反射值
+	Releasable Releasable    // 释放资源
 }
 
 // Read implements io.Reader
 func (v Variant) Read(p []byte) (int, error) {
-	if !v.Valid() {
+	if !v.IsValid() {
 		return 0, fmt.Errorf("%w: invalid variant", ErrVariant)
 	}
 
@@ -52,20 +68,8 @@ func (v Variant) Read(p []byte) (int, error) {
 		return bs.BytesWritten(), err
 	}
 
-	if v.Readonly() {
-		if v.Serialized() {
-			if _, err := binaryutil.CopyToByteStream(&bs, v.SerializedValue); err != nil {
-				return bs.BytesWritten(), err
-			}
-		} else {
-			if _, err := binaryutil.CopyToByteStream(&bs, v.ReadonlyValue); err != nil {
-				return bs.BytesWritten(), err
-			}
-		}
-	} else {
-		if _, err := binaryutil.CopyToByteStream(&bs, v.Value); err != nil {
-			return bs.BytesWritten(), err
-		}
+	if _, err := binaryutil.CopyToByteStream(&bs, v.Value); err != nil {
+		return bs.BytesWritten(), err
 	}
 
 	return bs.BytesWritten(), io.EOF
@@ -89,8 +93,6 @@ func (v *Variant) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	v.ReadonlyValue = nil
-	v.SerializedValue = nil
 	v.Value = value
 	v.Reflected = reflected
 
@@ -99,46 +101,28 @@ func (v *Variant) Write(p []byte) (int, error) {
 
 // Size 大小
 func (v Variant) Size() int {
-	if !v.Valid() {
+	if !v.IsValid() {
 		return 0
 	}
 
 	n := v.TypeId.Size()
 
-	if v.Readonly() {
-		if v.Serialized() {
-			n += v.SerializedValue.Size()
-		} else {
-			n += v.ReadonlyValue.Size()
-		}
-	} else {
-		if v.Value != nil {
-			n += v.Value.Size()
-		}
+	if v.Value != nil {
+		n += v.Value.Size()
 	}
 
 	return n
 }
 
-// Readonly 是否只读
-func (v Variant) Readonly() bool {
-	return v.Serialized() || v.ReadonlyValue != nil
-}
-
-// Serialized 是否已序列化
-func (v Variant) Serialized() bool {
-	return v.SerializedValue != nil
-}
-
-// Valid 是否有效
-func (v Variant) Valid() bool {
-	if v.Readonly() {
-		if v.Serialized() {
-			return v.TypeId == v.SerializedValue.TypeId()
-		} else {
-			return v.TypeId == v.ReadonlyValue.TypeId()
-		}
+// Release 释放资源
+func (v Variant) Release() {
+	if v.Releasable != nil {
+		v.Releasable.Release()
 	}
+}
+
+// IsValid 是否有效
+func (v Variant) IsValid() bool {
 	if v.Value != nil {
 		return v.TypeId == v.Value.TypeId()
 	}

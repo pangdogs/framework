@@ -24,6 +24,21 @@ import (
 	"io"
 )
 
+// MakeArray 创建array
+func MakeArray[T any](arr []T) (Array, error) {
+	varArr := make(Array, 0, len(arr))
+
+	for i := range arr {
+		v, err := CastVariant(&arr[i])
+		if err != nil {
+			return nil, err
+		}
+		varArr = append(varArr, v)
+	}
+
+	return varArr, nil
+}
+
 // Array array
 type Array []Variant
 
@@ -86,10 +101,6 @@ func (v Array) Indirect() any {
 // Release 释放资源
 func (v Array) Release() {
 	for i := range v {
-		it := &v[i]
-
-		if it.Serialized() {
-			it.SerializedValue.Release()
-		}
+		v[i].Release()
 	}
 }

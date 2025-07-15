@@ -63,7 +63,7 @@ func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 		return ret.ToAsyncRet()
 	}
 
-	vargs, err := variant.MakeReadonlyArray(args)
+	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		future.Cancel(err)
 		return ret.ToAsyncRet()
@@ -119,7 +119,7 @@ func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 		return err
 	}
 
-	vargs, err := variant.MakeReadonlyArray(args)
+	vargs, err := variant.MakeArray(args)
 	if err != nil {
 		return err
 	}

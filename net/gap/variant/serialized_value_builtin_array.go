@@ -19,24 +19,22 @@
 
 package variant
 
-import (
-	"fmt"
-	"git.golaxy.org/core"
-)
+// MakeSerializedArray 创建已序列化array
+func MakeSerializedArray[T any](arr []T) (ret Array, err error) {
+	varArr := make(Array, 0, len(arr))
+	defer func() {
+		if ret == nil {
+			varArr.Release()
+		}
+	}()
 
-// MakeSerializedVariant 创建已序列化可变类型
-func MakeSerializedVariant(v ValueReader) (Variant, error) {
-	if v == nil {
-		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
+	for i := range arr {
+		v, err := CastSerializedVariant(&arr[i])
+		if err != nil {
+			return nil, err
+		}
+		varArr = append(varArr, v)
 	}
 
-	sv, err := MakeSerializedValue(v)
-	if err != nil {
-		return Variant{}, err
-	}
-
-	return Variant{
-		TypeId:          v.TypeId(),
-		SerializedValue: sv,
-	}, nil
+	return varArr, nil
 }
