@@ -99,6 +99,9 @@ retry:
 		return MakeSerializedVariant(v)
 	case *Array:
 		return MakeSerializedVariant(*v)
+	case *any:
+		a = *v
+		goto retry
 	case []any:
 		arr, err := MakeSerializedArray(v)
 		if err != nil {

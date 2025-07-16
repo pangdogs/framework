@@ -99,6 +99,9 @@ retry:
 		return MakeVariant(v)
 	case *Array:
 		return MakeVariant(*v)
+	case *any:
+		a = *v
+		goto retry
 	case []any:
 		arr, err := MakeArray(v)
 		if err != nil {
