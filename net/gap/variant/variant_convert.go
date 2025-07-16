@@ -40,12 +40,15 @@ var (
 )
 
 func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
-	if !v.Reflected.IsValid() {
+	if !v.IsValid() {
 		return reflect.Value{}, ErrInvalidCast
 	}
 
 	{
 		retRV := v.Reflected
+		if !retRV.IsValid() {
+			retRV = reflect.ValueOf(v.Value)
+		}
 		retRT := retRV.Type()
 
 	retry:
