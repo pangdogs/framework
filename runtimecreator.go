@@ -37,13 +37,14 @@ func BuildRuntime(svcCtx service.Context) *RuntimeCreator {
 	return &RuntimeCreator{
 		svcCtx: svcCtx,
 		settings: _RuntimeSettings{
-			name:                 "",
-			persistId:            uid.Nil,
-			autoRecover:          svcCtx.GetAutoRecover(),
-			reportError:          svcCtx.GetReportError(),
-			fps:                  0,
-			processQueueCapacity: 128,
-			autoInjection:        true,
+			name:                            "",
+			persistId:                       uid.Nil,
+			autoRecover:                     svcCtx.GetAutoRecover(),
+			reportError:                     svcCtx.GetReportError(),
+			continueOnActivatingEntityPanic: false,
+			processQueueCapacity:            128,
+			fps:                             0,
+			autoInjection:                   true,
 		},
 	}
 }
@@ -95,15 +96,21 @@ func (c *RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan err
 	return c
 }
 
-// SetFPS 设置帧率
-func (c *RuntimeCreator) SetFPS(fps float32) *RuntimeCreator {
-	c.settings.fps = fps
+// ContinueOnActivatingEntityPanic 激活实体时发生panic是否继续，不继续将会主动删除实体
+func (c *RuntimeCreator) ContinueOnActivatingEntityPanic(b bool) *RuntimeCreator {
+	c.settings.continueOnActivatingEntityPanic = b
 	return c
 }
 
 // SetProcessQueueCapacity 设置任务处理流水线大小
 func (c *RuntimeCreator) SetProcessQueueCapacity(cap int) *RuntimeCreator {
 	c.settings.processQueueCapacity = cap
+	return c
+}
+
+// SetFPS 设置帧率
+func (c *RuntimeCreator) SetFPS(fps float32) *RuntimeCreator {
+	c.settings.fps = fps
 	return c
 }
 

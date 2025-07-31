@@ -40,13 +40,14 @@ import (
 )
 
 type _RuntimeSettings struct {
-	name                 string
-	persistId            uid.Id
-	autoRecover          bool
-	reportError          chan error
-	fps                  float32
-	processQueueCapacity int
-	autoInjection        bool
+	name                            string
+	persistId                       uid.Id
+	autoRecover                     bool
+	reportError                     chan error
+	continueOnActivatingEntityPanic bool
+	processQueueCapacity            int
+	fps                             float32
+	autoInjection                   bool
 }
 
 type iRuntimeGeneric interface {
@@ -270,6 +271,9 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	)
 
 	return core.NewRuntime(rtCtx,
+		core.With.Runtime.AutoRun(true),
+		core.With.Runtime.ContinueOnActivatingEntityPanic(settings.continueOnActivatingEntityPanic),
+		core.With.Runtime.ProcessQueueCapacity(settings.processQueueCapacity),
 		core.With.Runtime.Frame(func() runtime.Frame {
 			if settings.fps <= 0 {
 				return nil
@@ -278,8 +282,6 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				runtime.With.Frame.TargetFPS(settings.fps),
 			)
 		}()),
-		core.With.Runtime.AutoRun(true),
-		core.With.Runtime.ProcessQueueCapacity(settings.processQueueCapacity),
 	)
 }
 
