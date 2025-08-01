@@ -179,7 +179,7 @@ func (s *ServiceGeneric) generate(ctx context.Context, no int) core.Service {
 							select {
 							case err := <-svcInst.GetReportError():
 								if svcInst.(iService).getStarted().Load() {
-									log.Errorf(svcInst, "recover:\n%s", err)
+									log.Errorf(svcInst, "recover: %s", err)
 								} else {
 									panic(err)
 								}
