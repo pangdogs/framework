@@ -12,7 +12,7 @@
 - 分布式锁（`Distributed Synchronization`）：基于ETCD或Redis，默认ETCD。
 - 分布式服务支持（`Distributed Service`）：定义分布式服务节点地址格式，提供异步模型未来（`Future`），支持分布式服务间通信，可以横向拓展服务。
 - 分布式实体支持（`Distributed Entities`）：提供分布式实体（`Distributed Entity`）信息登记与查询功能，支持分布式实体间通信。
-- GTP协议（`Golaxy Transfer Protocol`）：适用于长连接、实时通信的工作场景，需要工作在可靠网络协议（`TCP/WebSocket`）之上，支持双向签名验证、链路加密、链路鉴权、断线续连重传、自定义消息等特性。
+- GTP协议（`Golaxy Transfer Protocol`）：适用于长连接、实时通信的工作场景，需要工作在可靠网络协议（`TCP/WebSocket`）之上，支持双向签名验证、链路加密、链路鉴权、连接迁移、自定义消息等特性。
 - GAP协议（`Golaxy Application Protocol`）：适用于开发应用层通信消息，需要工作在`GTP协议`或`MQ`之上，支持消息判重、自定义消息、自定义可变类型等特性。
 - GTP协议网关与客户端（`GTP Gate and Client`）：基于`GTP协议`的网关与客户端，支持`TCP/WebSocket`长连接。
 - 路由（`Router`）：支持规划通信路线，映射会话与实体，使任意服务可以与客户端通信，还支持创建通信分组，实现消息组播。
