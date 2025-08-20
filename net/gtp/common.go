@@ -326,7 +326,8 @@ type Hash uint8
 const (
 	Hash_None    Hash = iota // 未设置
 	Hash_SHA256              // SHA256算法
-	Hash_BLAKE2s             // BLAKE2b算法
+	Hash_BLAKE2s             // BLAKE2s算法
+	Hash_BLAKE2b             // BLAKE2b算法
 )
 
 // ParseHash 解析配置字串
@@ -338,6 +339,8 @@ func ParseHash(str string) (Hash, error) {
 		return Hash_SHA256, nil
 	case "blake2s":
 		return Hash_BLAKE2s, nil
+	case "blake2b":
+		return Hash_BLAKE2b, nil
 	default:
 		return Hash_None, fmt.Errorf("%w: invalid Hash", ErrGTP)
 	}
@@ -350,6 +353,8 @@ func (h Hash) String() string {
 		return "sha256"
 	case Hash_BLAKE2s:
 		return "blake2s"
+	case Hash_BLAKE2b:
+		return "blake2b"
 	default:
 		return "none"
 	}
@@ -358,7 +363,7 @@ func (h Hash) String() string {
 // Bits 位数
 func (h Hash) Bits() int {
 	switch h {
-	case Hash_SHA256, Hash_BLAKE2s:
+	case Hash_SHA256, Hash_BLAKE2s, Hash_BLAKE2b:
 		return 256
 	default:
 		return 0

@@ -106,7 +106,7 @@ func (_Option) Default() option.Setting[ClientOptions] {
 			SymmetricEncryption: gtp.SymmetricEncryption_AES,
 			BlockCipherMode:     gtp.BlockCipherMode_CTR,
 			PaddingMode:         gtp.PaddingMode_None,
-			HMAC:                gtp.Hash_BLAKE2s,
+			HMAC:                gtp.Hash_BLAKE2b,
 		})(options)
 		With.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
 			AsymmetricEncryption: gtp.AsymmetricEncryption_None,

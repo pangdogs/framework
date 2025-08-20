@@ -23,6 +23,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"git.golaxy.org/framework/net/gtp"
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
 	"hash"
 )
@@ -34,6 +35,8 @@ func NewHMAC(h gtp.Hash, key []byte) (hash.Hash, error) {
 		return hmac.New(sha256.New, key), nil
 	case gtp.Hash_BLAKE2s:
 		return blake2s.New256(key)
+	case gtp.Hash_BLAKE2b:
+		return blake2b.New256(key)
 	default:
 		return nil, ErrInvalidMethod
 	}
