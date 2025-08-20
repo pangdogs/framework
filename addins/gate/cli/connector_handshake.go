@@ -486,7 +486,7 @@ func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.
 
 // newAuthentication 构造认证模块
 func (ctor *_Connector) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
-	if hash.Bits() <= 0 {
+	if hash == gtp.Hash_None {
 		return nil, nil
 	}
 
