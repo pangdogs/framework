@@ -38,10 +38,10 @@ func NewEncoder() *Encoder {
 
 // Encoder 消息包编码器
 type Encoder struct {
-	Encryption     IEncryption  // 加密模块
-	MAC            IMAC         // MAC模块
-	Compression    ICompression // 压缩模块
-	CompressionMin int          // 启用压缩阀值（字节），<=0表示不开启
+	Encryption     IEncryption     // 加密模块
+	Authentication IAuthentication // 认证模块
+	Compression    ICompression    // 压缩模块
+	CompressionMin int             // 启用压缩阀值（字节），<=0表示不开启
 }
 
 // SetEncryption 设置加密模块
@@ -50,9 +50,9 @@ func (e *Encoder) SetEncryption(encryption IEncryption) *Encoder {
 	return e
 }
 
-// SetMAC 设置MAC模块
-func (e *Encoder) SetMAC(mac IMAC) *Encoder {
-	e.MAC = mac
+// SetAuthentication 设置认证模块
+func (e *Encoder) SetAuthentication(authentication IAuthentication) *Encoder {
+	e.Authentication = authentication
 	return e
 }
 
@@ -73,7 +73,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 	head.MsgId = msg.MsgId()
 
 	head.Flags = flags.Setd(gtp.Flag_Encrypted, false).
-		Setd(gtp.Flag_MAC, false).
+		Setd(gtp.Flag_Signed, false).
 		Setd(gtp.Flag_Compressed, false)
 
 	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可
@@ -86,8 +86,12 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 		}
 		msgAddition += encAddition
 
-		if e.MAC != nil {
-			msgAddition += e.MAC.SizeofMAC(msg.Size() + encAddition)
+		if e.Authentication != nil {
+			authAddition, err := e.Authentication.SizeOfAddition(msg.Size() + encAddition)
+			if err != nil {
+				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: authenticate SizeOfAddition failed, %w", ErrEncode, err)
+			}
+			msgAddition += authAddition
 		}
 	}
 
@@ -124,17 +128,17 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 	if e.Encryption != nil {
 		head.Flags.Set(gtp.Flag_Encrypted, true)
 
-		// 补充MAC
-		if e.MAC != nil {
-			head.Flags.Set(gtp.Flag_MAC, true)
+		// 消息签名
+		if e.Authentication != nil {
+			head.Flags.Set(gtp.Flag_Signed, true)
 
 			if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: failed to write msg-packet-head for patch msg-mac, %w", ErrEncode, err)
+				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: failed to write msg-packet-head for sign msg-mac, %w", ErrEncode, err)
 			}
 
-			macBuf, err := e.MAC.PatchMAC(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
+			macBuf, err := e.Authentication.Sign(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
 			if err != nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: patch msg-mac failed, %w", ErrEncode, err)
+				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: sign msg-mac failed, %w", ErrEncode, err)
 			}
 			defer macBuf.Release()
 

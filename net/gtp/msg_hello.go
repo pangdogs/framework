@@ -41,7 +41,7 @@ type CipherSuite struct {
 	SymmetricEncryption SymmetricEncryption // 对称加密算法
 	BlockCipherMode     BlockCipherMode     // 分组密码模式
 	PaddingMode         PaddingMode         // 填充方案
-	MACHash             Hash                // MAC摘要函数
+	HMAC                Hash                // HMAC函数
 }
 
 // ParseCipherSuite 解析配置字串
@@ -74,7 +74,7 @@ func ParseCipherSuite(str string) (CipherSuite, error) {
 				return CipherSuite{}, err
 			}
 		case 4:
-			cs.MACHash, err = ParseHash(s)
+			cs.HMAC, err = ParseHash(s)
 			if err != nil {
 				return CipherSuite{}, err
 			}
@@ -86,7 +86,7 @@ func ParseCipherSuite(str string) (CipherSuite, error) {
 
 // String implements fmt.Stringer
 func (cs CipherSuite) String() string {
-	return fmt.Sprintf("%s-%s-%s-%s-%s", cs.SecretKeyExchange, cs.SymmetricEncryption, cs.BlockCipherMode, cs.PaddingMode, cs.MACHash)
+	return fmt.Sprintf("%s-%s-%s-%s-%s", cs.SecretKeyExchange, cs.SymmetricEncryption, cs.BlockCipherMode, cs.PaddingMode, cs.HMAC)
 }
 
 // Read implements io.Reader
@@ -104,7 +104,7 @@ func (cs CipherSuite) Read(p []byte) (int, error) {
 	if err := bs.WriteUint8(uint8(cs.PaddingMode)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteUint8(uint8(cs.MACHash)); err != nil {
+	if err := bs.WriteUint8(uint8(cs.HMAC)); err != nil {
 		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), io.EOF
@@ -138,11 +138,11 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	}
 	cs.PaddingMode = PaddingMode(paddingMode)
 
-	macHash, err := bs.ReadUint8()
+	hmac, err := bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	cs.MACHash = Hash(macHash)
+	cs.HMAC = Hash(hmac)
 
 	return bs.BytesRead(), nil
 }

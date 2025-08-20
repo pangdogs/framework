@@ -17,43 +17,50 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package method
+package gtp
 
 import (
-	"crypto/sha256"
-	"git.golaxy.org/framework/net/gtp"
-	"hash"
-	"hash/fnv"
+	"git.golaxy.org/framework/utils/binaryutil"
+	"io"
 )
 
-// NewHash 创建Hash
-func NewHash(h gtp.Hash) (hash.Hash, error) {
-	switch h {
-	case gtp.Hash_Fnv1a128:
-		return fnv.New128a(), nil
-	case gtp.Hash_SHA256:
-		return sha256.New(), nil
-	default:
-		return nil, ErrInvalidMethod
-	}
+// MsgSigned 已签名消息
+type MsgSigned struct {
+	Data []byte
+	MAC  []byte
 }
 
-// NewHash32 创建Hash32
-func NewHash32(h gtp.Hash) (hash.Hash32, error) {
-	switch h {
-	case gtp.Hash_Fnv1a32:
-		return fnv.New32a(), nil
-	default:
-		return nil, ErrInvalidMethod
+// Read implements io.Reader
+func (m MsgSigned) Read(p []byte) (int, error) {
+	bs := binaryutil.NewBigEndianStream(p)
+	if err := bs.WriteBytes(m.Data); err != nil {
+		return bs.BytesWritten(), err
 	}
+	if err := bs.WriteBytes(m.MAC); err != nil {
+		return bs.BytesWritten(), err
+	}
+	return bs.BytesWritten(), io.EOF
 }
 
-// NewHash64 创建Hash64
-func NewHash64(h gtp.Hash) (hash.Hash64, error) {
-	switch h {
-	case gtp.Hash_Fnv1a64:
-		return fnv.New64a(), nil
-	default:
-		return nil, ErrInvalidMethod
+// Write implements io.Writer
+func (m *MsgSigned) Write(p []byte) (int, error) {
+	bs := binaryutil.NewBigEndianStream(p)
+	var err error
+
+	m.Data, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
 	}
+
+	m.MAC, err = bs.ReadBytesRef()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	return bs.BytesRead(), nil
+}
+
+// Size 大小
+func (m MsgSigned) Size() int {
+	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofBytes(m.MAC)
 }

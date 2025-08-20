@@ -390,11 +390,11 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		// 安装加密模块
 		ctor.setupEncryption(encryption)
 
-		// 安装MAC模块
-		return ctor.setupMAC(cs.MACHash, sharedKeyBytes)
+		// 安装认证模块
+		return ctor.setupAuthentication(cs.HMAC, sharedKeyBytes)
 
 	default:
-		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not supported", cs.SecretKeyExchange)
+		return fmt.Errorf("CipherSuite.SecretKeyExchange(%s) not supported", cs.SecretKeyExchange)
 	}
 
 	return nil
@@ -423,19 +423,19 @@ func (ctor *_Connector) setupEncryption(encryption [2]codec.IEncryption) {
 	ctor.decoder.SetEncryption(encryption[1])
 }
 
-// setupMAC 安装MAC模块
-func (ctor *_Connector) setupMAC(hash gtp.Hash, sharedKeyBytes []byte) error {
-	mac, err := ctor.newMAC(hash, sharedKeyBytes)
+// setupAuthentication 安装认证模块
+func (ctor *_Connector) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte) error {
+	authentication, err := ctor.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	ctor.encoder.SetMAC(mac)
+	ctor.encoder.SetAuthentication(authentication)
 
-	mac, err = ctor.newMAC(hash, sharedKeyBytes)
+	authentication, err = ctor.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	ctor.decoder.SetMAC(mac)
+	ctor.decoder.SetAuthentication(authentication)
 
 	return nil
 }
@@ -473,7 +473,7 @@ func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.
 	}
 
 	if paddingMode == gtp.PaddingMode_None {
-		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d, plaintext padding is necessary", bcm)
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode(%s), plaintext padding is necessary", bcm)
 	}
 
 	padding, err := method.NewPadding(paddingMode)
@@ -484,36 +484,18 @@ func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.
 	return padding, nil
 }
 
-// newMAC 构造MAC模块
-func (ctor *_Connector) newMAC(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMAC, error) {
+// newAuthentication 构造认证模块
+func (ctor *_Connector) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
 	if hash.Bits() <= 0 {
 		return nil, nil
 	}
 
-	var mac codec.IMAC
-
-	switch hash.Bits() {
-	case 32:
-		macHash, err := method.NewHash32(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC32(macHash, sharedKeyBytes)
-	case 64:
-		macHash, err := method.NewHash64(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC64(macHash, sharedKeyBytes)
-	default:
-		macHash, err := method.NewHash(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC(macHash, sharedKeyBytes)
+	hmac, err := method.NewHMAC(hash, sharedKeyBytes)
+	if err != nil {
+		return nil, err
 	}
 
-	return mac, nil
+	return codec.NewAuthentication(hmac), nil
 }
 
 // newCompression 构造压缩模块

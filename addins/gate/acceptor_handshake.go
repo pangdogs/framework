@@ -438,7 +438,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				if cliECDHE.Msg.NamedCurve != acc.gate.options.EncECDHENamedCurve {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
-						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve' %d is incorrect", cliECDHE.Msg.NamedCurve),
+						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve(%s)' is incorrect", cliECDHE.Msg.NamedCurve),
 					}
 				}
 
@@ -540,11 +540,11 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		// 安装加密模块
 		acc.setupEncryption(encryption)
 
-		// 安装MAC模块
-		return acc.setupMAC(cs.MACHash, sharedKeyBytes)
+		// 安装认证模块
+		return acc.setupAuthentication(cs.HMAC, sharedKeyBytes)
 
 	default:
-		return fmt.Errorf("CipherSuite.SecretKeyExchange %d not supported", cs.SecretKeyExchange)
+		return fmt.Errorf("CipherSuite.SecretKeyExchange(%s) not supported", cs.SecretKeyExchange)
 	}
 
 	return nil
@@ -573,19 +573,19 @@ func (acc *_Acceptor) setupEncryption(encryption [2]codec.IEncryption) {
 	acc.decoder.SetEncryption(encryption[1])
 }
 
-// setupMAC 安装MAC模块
-func (acc *_Acceptor) setupMAC(hash gtp.Hash, sharedKeyBytes []byte) error {
-	mac, err := acc.newMAC(hash, sharedKeyBytes)
+// setupAuthentication 安装认证模块
+func (acc *_Acceptor) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte) error {
+	authentication, err := acc.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	acc.encoder.SetMAC(mac)
+	acc.encoder.SetAuthentication(authentication)
 
-	mac, err = acc.newMAC(hash, sharedKeyBytes)
+	authentication, err = acc.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
 		return err
 	}
-	acc.decoder.SetMAC(mac)
+	acc.decoder.SetAuthentication(authentication)
 
 	return nil
 }
@@ -598,7 +598,7 @@ func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode)
 
 	size, ok := se.BlockSize()
 	if !ok {
-		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs IV, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode(%s) needs IV, but CipherSuite.SymmetricEncryption(%s) lacks a fixed block size", bcm, se)
 	}
 
 	iv, err := rand.Prime(rand.Reader, size*8)
@@ -618,7 +618,7 @@ func (acc *_Acceptor) newNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMo
 		}
 		size, ok = se.BlockSize()
 		if !ok {
-			return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d needs Nonce, but CipherSuite.SymmetricEncryption %d lacks a fixed block size", bcm, se)
+			return nil, fmt.Errorf("CipherSuite.BlockCipherMode(%s) needs Nonce, but CipherSuite.SymmetricEncryption(%s) lacks a fixed block size", bcm, se)
 		}
 	}
 
@@ -663,7 +663,7 @@ func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.Pa
 	}
 
 	if paddingMode == gtp.PaddingMode_None {
-		return nil, fmt.Errorf("CipherSuite.BlockCipherMode %d, plaintext padding is necessary", bcm)
+		return nil, fmt.Errorf("CipherSuite.BlockCipherMode(%s), plaintext padding is necessary", bcm)
 	}
 
 	padding, err := method.NewPadding(paddingMode)
@@ -674,36 +674,18 @@ func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.Pa
 	return padding, nil
 }
 
-// newMAC 构造MAC模块
-func (acc *_Acceptor) newMAC(hash gtp.Hash, sharedKeyBytes []byte) (codec.IMAC, error) {
+// newAuthentication 构造认证模块
+func (acc *_Acceptor) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
 	if hash.Bits() <= 0 {
 		return nil, nil
 	}
 
-	var mac codec.IMAC
-
-	switch hash.Bits() {
-	case 32:
-		macHash, err := method.NewHash32(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC32(macHash, sharedKeyBytes)
-	case 64:
-		macHash, err := method.NewHash64(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC64(macHash, sharedKeyBytes)
-	default:
-		macHash, err := method.NewHash(hash)
-		if err != nil {
-			return nil, err
-		}
-		mac = codec.NewMAC(macHash, sharedKeyBytes)
+	hmac, err := method.NewHMAC(hash, sharedKeyBytes)
+	if err != nil {
+		return nil, err
 	}
 
-	return mac, nil
+	return codec.NewAuthentication(hmac), nil
 }
 
 // newCompression 构造压缩模块

@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/method"
-	"hash/fnv"
 	"testing"
 )
 
@@ -50,14 +49,19 @@ func TestCodec(t *testing.T) {
 	//	panic(err)
 	//}
 
+	hmac, err := method.NewHMAC(gtp.Hash_BLAKE2s, key.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
 	encoder := NewEncoder().
 		SetEncryption(NewEncryption(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetMAC(NewMAC64(fnv.New64a(), key.Bytes())).
+		SetAuthentication(NewAuthentication(hmac)).
 		SetCompression(NewCompression(compressionStream), 1)
 
 	decoder := NewDecoder(gtp.DefaultMsgCreator()).
 		SetEncryption(NewEncryption(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetMAC(NewMAC64(fnv.New64a(), key.Bytes())).
+		SetAuthentication(NewAuthentication(hmac)).
 		SetCompression(NewCompression(compressionStream))
 
 	for i := 0; i < 10; i++ {
@@ -72,7 +76,7 @@ func TestCodec(t *testing.T) {
 				SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 				SymmetricEncryption: gtp.SymmetricEncryption_AES,
 				BlockCipherMode:     gtp.BlockCipherMode_CFB,
-				MACHash:             gtp.Hash_Fnv1a32,
+				HMAC:                gtp.Hash_BLAKE2s,
 			},
 		})
 		if err != nil {

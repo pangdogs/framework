@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	ErrDecode               = errors.New("gtp-decode")                                                    // 解码错误
-	ErrUnableToDetectLength = fmt.Errorf("%w: %w, unable to detect length", ErrDecode, io.ErrShortBuffer) // 无法探测消息长度
+	ErrDecode             = errors.New("gtp-decode")                                                  // 解码错误
+	ErrUnableToPeekLength = fmt.Errorf("%w: %w, unable to peek length", ErrDecode, io.ErrShortBuffer) // 无法探测消息长度
 )
 
 // NewDecoder 创建消息包解码器
@@ -52,11 +52,11 @@ type IValidation interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator  gtp.IMsgCreator           // 消息对象构建器
-	Encryption  IEncryption               // 加密模块
-	MAC         IMAC                      // MAC模块
-	Compression ICompression              // 压缩模块
-	gcList      []binaryutil.RecycleBytes // GC列表
+	MsgCreator     gtp.IMsgCreator           // 消息对象构建器
+	Encryption     IEncryption               // 加密模块
+	Authentication IAuthentication           // 认证模块
+	Compression    ICompression              // 压缩模块
+	gcList         []binaryutil.RecycleBytes // GC列表
 }
 
 // SetEncryption 设置加密模块
@@ -65,9 +65,9 @@ func (d *Decoder) SetEncryption(encryption IEncryption) *Decoder {
 	return d
 }
 
-// SetMAC 设置MAC模块
-func (d *Decoder) SetMAC(mac IMAC) *Decoder {
-	d.MAC = mac
+// SetAuthentication 设置认证模块
+func (d *Decoder) SetAuthentication(authentication IAuthentication) *Decoder {
+	d.Authentication = authentication
 	return d
 }
 
@@ -84,7 +84,7 @@ func (d *Decoder) Decode(data []byte, validation IValidation) (gtp.MsgPacket, in
 	}
 
 	// 探测消息包长度
-	length, err := d.lengthDetection(data)
+	length, err := d.peekLength(data)
 	if err != nil {
 		return gtp.MsgPacket{}, length, err
 	}
@@ -106,13 +106,13 @@ func (d *Decoder) GC() {
 	d.gcList = d.gcList[:0]
 }
 
-// lengthDetection 消息包长度探针
-func (d *Decoder) lengthDetection(data []byte) (int, error) {
+// peekLength 探测消息包长度
+func (d *Decoder) peekLength(data []byte) (int, error) {
 	mpl := gtp.MsgPacketLen{}
 
 	// 读取消息包长度
 	if _, err := mpl.Write(data); err != nil {
-		return 0, ErrUnableToDetectLength
+		return 0, ErrUnableToPeekLength
 	}
 
 	if len(data) < int(mpl.Len) {
@@ -162,15 +162,14 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 		}
 		msgBuf = dencryptBuf.Data()
 
-		// 检查MAC标记
-		if mp.Head.Flags.Is(gtp.Flag_MAC) {
-			if d.MAC == nil {
-				return gtp.MsgPacket{}, fmt.Errorf("%w: MAC is nil, msg can't be verify MAC", ErrDecode)
+		// 消息认证
+		if mp.Head.Flags.Is(gtp.Flag_Signed) {
+			if d.Authentication == nil {
+				return gtp.MsgPacket{}, fmt.Errorf("%w: Authentication is nil, msg can't be auth msg-mac", ErrDecode)
 			}
-			// 检测MAC
-			msgBuf, err = d.MAC.VerifyMAC(mp.Head.MsgId, mp.Head.Flags, msgBuf)
+			msgBuf, err = d.Authentication.Auth(mp.Head.MsgId, mp.Head.Flags, msgBuf)
 			if err != nil {
-				return gtp.MsgPacket{}, fmt.Errorf("%w: verify msg-mac failed, %w", ErrDecode, err)
+				return gtp.MsgPacket{}, fmt.Errorf("%w: auth msg-mac failed, %w", ErrDecode, err)
 			}
 		}
 	}

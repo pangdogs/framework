@@ -324,11 +324,9 @@ func (bcm BlockCipherMode) Padding() bool {
 type Hash uint8
 
 const (
-	Hash_None     Hash = iota // 未设置
-	Hash_Fnv1a32              // Fnv-1a 32bit算法（用于MAC）
-	Hash_Fnv1a64              // Fnv-1a 64bit算法（用于MAC）
-	Hash_Fnv1a128             // Fnv-1a 128bit算法（用于MAC）
-	Hash_SHA256               // SHA256算法（用于非对称加密或MAC）
+	Hash_None    Hash = iota // 未设置
+	Hash_SHA256              // SHA256算法
+	Hash_BLAKE2s             // BLAKE2b算法
 )
 
 // ParseHash 解析配置字串
@@ -336,14 +334,10 @@ func ParseHash(str string) (Hash, error) {
 	switch strings.ToLower(str) {
 	case "none":
 		return Hash_None, nil
-	case "fnv1a32":
-		return Hash_Fnv1a32, nil
-	case "fnv1a64":
-		return Hash_Fnv1a64, nil
-	case "fnv1a128":
-		return Hash_Fnv1a128, nil
 	case "sha256":
 		return Hash_SHA256, nil
+	case "blake2s":
+		return Hash_BLAKE2s, nil
 	default:
 		return Hash_None, fmt.Errorf("%w: invalid Hash", ErrGTP)
 	}
@@ -352,14 +346,10 @@ func ParseHash(str string) (Hash, error) {
 // String implements fmt.Stringer
 func (h Hash) String() string {
 	switch h {
-	case Hash_Fnv1a32:
-		return "fnv1a32"
-	case Hash_Fnv1a64:
-		return "fnv1a64"
-	case Hash_Fnv1a128:
-		return "fnv1a128"
 	case Hash_SHA256:
 		return "sha256"
+	case Hash_BLAKE2s:
+		return "blake2s"
 	default:
 		return "none"
 	}
@@ -368,13 +358,7 @@ func (h Hash) String() string {
 // Bits 位数
 func (h Hash) Bits() int {
 	switch h {
-	case Hash_Fnv1a32:
-		return 32
-	case Hash_Fnv1a64:
-		return 64
-	case Hash_Fnv1a128:
-		return 128
-	case Hash_SHA256:
+	case Hash_SHA256, Hash_BLAKE2s:
 		return 256
 	default:
 		return 0
