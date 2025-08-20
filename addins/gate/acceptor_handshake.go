@@ -184,7 +184,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 					Message: err.Error(),
 				}
 			}
-			copy(cliHelloHash[:], h.Sum(nil))
+			h.Sum(cliHelloHash[:0])
 
 			h.Reset()
 			_, err = io.CopyBuffer(h, servHello.Msg, hashBuff)
@@ -194,7 +194,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 					Message: err.Error(),
 				}
 			}
-			copy(servHelloHash[:], h.Sum(nil))
+			h.Sum(servHelloHash[:0])
 		}
 
 		return servHello, nil

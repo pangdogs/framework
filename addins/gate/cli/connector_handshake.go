@@ -132,14 +132,14 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 				if err != nil {
 					return err
 				}
-				copy(cliHelloHash[:], h.Sum(nil))
+				h.Sum(cliHelloHash[:0])
 
 				h.Reset()
 				_, err = io.CopyBuffer(h, servHello.Msg, hashBuff)
 				if err != nil {
 					return err
 				}
-				copy(servHelloHash[:], h.Sum(nil))
+				h.Sum(servHelloHash[:0])
 			}
 
 			return nil
