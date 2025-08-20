@@ -20,7 +20,7 @@
 package codec
 
 import (
-	"bytes"
+	"crypto/hmac"
 	"errors"
 	"fmt"
 	"git.golaxy.org/core"
@@ -117,7 +117,7 @@ func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	m.HMAC.Write(bs[:])
 	m.HMAC.Write(msgSigned.Data)
 
-	if bytes.Compare(m.HMAC.Sum(m.macBuff[:0]), msgSigned.MAC) != 0 {
+	if !hmac.Equal(m.HMAC.Sum(m.macBuff[:0]), msgSigned.MAC) {
 		return nil, ErrInvalidMAC
 	}
 
