@@ -360,16 +360,6 @@ func (h Hash) String() string {
 	}
 }
 
-// Bits 位数
-func (h Hash) Bits() int {
-	switch h {
-	case Hash_SHA256, Hash_BLAKE2s, Hash_BLAKE2b:
-		return 256
-	default:
-		return 0
-	}
-}
-
 // NamedCurve 曲线类型
 type NamedCurve uint8
 

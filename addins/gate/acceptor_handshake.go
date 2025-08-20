@@ -676,7 +676,7 @@ func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.Pa
 
 // newAuthentication 构造认证模块
 func (acc *_Acceptor) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
-	if hash.Bits() <= 0 {
+	if hash == gtp.Hash_None {
 		return nil, nil
 	}
 
