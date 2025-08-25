@@ -110,7 +110,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 			SymmetricEncryption: gtp.SymmetricEncryption_AES,
 			BlockCipherMode:     gtp.BlockCipherMode_CTR,
 			PaddingMode:         gtp.PaddingMode_None,
-			HMAC:                gtp.Hash_BLAKE2b,
+			HMAC:                gtp.Hash_BLAKE2b256,
 		})(options)
 		With.EncNonceStep(big.NewInt(1))(options)
 		With.EncECDHENamedCurve(gtp.NamedCurve_X25519)(options)
