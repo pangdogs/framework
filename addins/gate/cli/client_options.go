@@ -103,10 +103,10 @@ func (_Option) Default() option.Setting[ClientOptions] {
 		With.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
 		With.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
-			SymmetricEncryption: gtp.SymmetricEncryption_AES,
-			BlockCipherMode:     gtp.BlockCipherMode_CTR,
+			SymmetricEncryption: gtp.SymmetricEncryption_XChaCha20_Poly1305,
+			BlockCipherMode:     gtp.BlockCipherMode_None,
 			PaddingMode:         gtp.PaddingMode_None,
-			HMAC:                gtp.Hash_BLAKE2b256,
+			HMAC:                gtp.Hash_None,
 		})(options)
 		With.EncSignatureAlgorithm(gtp.SignatureAlgorithm{
 			AsymmetricEncryption: gtp.AsymmetricEncryption_None,
