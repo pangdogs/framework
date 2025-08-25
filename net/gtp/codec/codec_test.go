@@ -49,7 +49,7 @@ func TestCodec(t *testing.T) {
 	//	panic(err)
 	//}
 
-	hmac, err := method.NewHMAC(gtp.Hash_BLAKE2s, key.Bytes())
+	hmac, err := method.NewHMAC(gtp.Hash_BLAKE2b256, key.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func TestCodec(t *testing.T) {
 				SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 				SymmetricEncryption: gtp.SymmetricEncryption_AES,
 				BlockCipherMode:     gtp.BlockCipherMode_CFB,
-				HMAC:                gtp.Hash_BLAKE2s,
+				HMAC:                gtp.Hash_BLAKE2b256,
 			},
 		})
 		if err != nil {

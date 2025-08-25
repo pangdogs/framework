@@ -68,9 +68,9 @@ func (ske SecretKeyExchange) String() string {
 type AsymmetricEncryption uint8
 
 const (
-	AsymmetricEncryption_None       AsymmetricEncryption = iota // 未设置
-	AsymmetricEncryption_RSA256                                 // RSA-256算法
-	AsymmetricEncryption_ECDSA_P256                             // ECDSA-NIST-P256算法
+	AsymmetricEncryption_None  AsymmetricEncryption = iota // 未设置
+	AsymmetricEncryption_RSA                               // RSA算法
+	AsymmetricEncryption_ECDSA                             // ECDSA-NIST算法
 )
 
 // ParseAsymmetricEncryption 解析配置字串
@@ -78,10 +78,10 @@ func ParseAsymmetricEncryption(str string) (AsymmetricEncryption, error) {
 	switch strings.ToLower(str) {
 	case "none":
 		return AsymmetricEncryption_None, nil
-	case "rsa256":
-		return AsymmetricEncryption_RSA256, nil
-	case "ecdsa_p256":
-		return AsymmetricEncryption_ECDSA_P256, nil
+	case "rsa":
+		return AsymmetricEncryption_RSA, nil
+	case "ecdsa":
+		return AsymmetricEncryption_ECDSA, nil
 	default:
 		return AsymmetricEncryption_None, fmt.Errorf("%w: invalid AsymmetricEncryption", ErrGTP)
 	}
@@ -90,10 +90,10 @@ func ParseAsymmetricEncryption(str string) (AsymmetricEncryption, error) {
 // String implements fmt.Stringer
 func (ae AsymmetricEncryption) String() string {
 	switch ae {
-	case AsymmetricEncryption_RSA256:
-		return "rsa256"
-	case AsymmetricEncryption_ECDSA_P256:
-		return "ecdsa_p256"
+	case AsymmetricEncryption_RSA:
+		return "rsa"
+	case AsymmetricEncryption_ECDSA:
+		return "ecdsa"
 	default:
 		return "none"
 	}
@@ -324,10 +324,14 @@ func (bcm BlockCipherMode) Padding() bool {
 type Hash uint8
 
 const (
-	Hash_None    Hash = iota // 未设置
-	Hash_SHA256              // SHA256算法
-	Hash_BLAKE2s             // BLAKE2s算法
-	Hash_BLAKE2b             // BLAKE2b算法
+	Hash_None       Hash = iota // 未设置
+	Hash_SHA256                 // SHA-256算法
+	Hash_SHA384                 // SHA-384算法
+	Hash_SHA512                 // SHA-512算法
+	Hash_BLAKE2b256             // BLAKE2b-256算法
+	Hash_BLAKE2b384             // BLAKE2b-384算法
+	Hash_BLAKE2b512             // BLAKE2b-512算法
+	Hash_BLAKE2s256             // BLAKE2s-256算法
 )
 
 // ParseHash 解析配置字串
@@ -337,10 +341,18 @@ func ParseHash(str string) (Hash, error) {
 		return Hash_None, nil
 	case "sha256":
 		return Hash_SHA256, nil
-	case "blake2s":
-		return Hash_BLAKE2s, nil
-	case "blake2b":
-		return Hash_BLAKE2b, nil
+	case "sha384":
+		return Hash_SHA384, nil
+	case "sha512":
+		return Hash_SHA512, nil
+	case "blake2b256":
+		return Hash_BLAKE2b256, nil
+	case "blake2b384":
+		return Hash_BLAKE2b384, nil
+	case "blake2b512":
+		return Hash_BLAKE2b512, nil
+	case "blake2s256":
+		return Hash_BLAKE2s256, nil
 	default:
 		return Hash_None, fmt.Errorf("%w: invalid Hash", ErrGTP)
 	}
@@ -351,10 +363,18 @@ func (h Hash) String() string {
 	switch h {
 	case Hash_SHA256:
 		return "sha256"
-	case Hash_BLAKE2s:
-		return "blake2s"
-	case Hash_BLAKE2b:
-		return "blake2b"
+	case Hash_SHA384:
+		return "sha384"
+	case Hash_SHA512:
+		return "sha512"
+	case Hash_BLAKE2b256:
+		return "blake2b256"
+	case Hash_BLAKE2b384:
+		return "blake2b384"
+	case Hash_BLAKE2b512:
+		return "blake2b512"
+	case Hash_BLAKE2s256:
+		return "blake2s256"
 	default:
 		return "none"
 	}
@@ -367,6 +387,8 @@ const (
 	NamedCurve_None   NamedCurve = iota // 未设置
 	NamedCurve_X25519                   // 曲线x25519
 	NamedCurve_P256                     // 曲线NIST-P256
+	NamedCurve_P384                     // 曲线NIST-P384
+	NamedCurve_P521                     // 曲线NIST-P521
 )
 
 // ParseNamedCurve 解析配置字串
@@ -378,6 +400,10 @@ func ParseNamedCurve(str string) (NamedCurve, error) {
 		return NamedCurve_X25519, nil
 	case "p256":
 		return NamedCurve_P256, nil
+	case "p384":
+		return NamedCurve_P384, nil
+	case "p521":
+		return NamedCurve_P521, nil
 	default:
 		return NamedCurve_None, fmt.Errorf("%w: invalid NamedCurve", ErrGTP)
 	}
@@ -390,6 +416,10 @@ func (nc NamedCurve) String() string {
 		return "x25519"
 	case NamedCurve_P256:
 		return "p256"
+	case NamedCurve_P384:
+		return "p384"
+	case NamedCurve_P521:
+		return "p521"
 	default:
 		return "none"
 	}

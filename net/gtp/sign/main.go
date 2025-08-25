@@ -22,7 +22,6 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -40,15 +39,28 @@ func main() {
 			viper.BindPFlags(cmd.Flags())
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			bits := sha256.Size * viper.GetInt("sha256_len")
-			priKey, err := rsa.GenerateKey(rand.Reader, bits)
+			shaBits := viper.GetInt("sha_bits")
+			var rsaBits int
+
+			switch shaBits {
+			case 256:
+				rsaBits = 2048
+			case 384:
+				rsaBits = 3072
+			case 512:
+				rsaBits = 4096
+			default:
+				panic("sha_bits must be 256, 384 or 512")
+			}
+
+			priKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 			if err != nil {
 				panic(err)
 			}
 
 			nowStr := time.Now().Format("2006-01-02T15_04_05")
 
-			priKeyFile, err := os.Create(fmt.Sprintf("rsa-%d-%s.pem", bits, nowStr))
+			priKeyFile, err := os.Create(fmt.Sprintf("rsa-%d-%s.pem", rsaBits, nowStr))
 			if err != nil {
 				panic(err)
 			}
@@ -62,7 +74,7 @@ func main() {
 				panic(err)
 			}
 
-			pubKeyFile, err := os.Create(fmt.Sprintf("ras-%d-%s.pub", bits, nowStr))
+			pubKeyFile, err := os.Create(fmt.Sprintf("rsa-%d-%s.pub", rsaBits, nowStr))
 			if err != nil {
 				panic(err)
 			}
@@ -84,7 +96,7 @@ func main() {
 			DisableDescriptions: true,
 		},
 	}
-	cmd.Flags().Int("sha256_len", 64, "sha256 hash length")
+	cmd.Flags().Int("sha_bits", 512, "sha hash bits")
 
 	if err := cmd.Execute(); err != nil {
 		panic(err)

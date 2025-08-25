@@ -31,6 +31,10 @@ func NewNamedCurve(nc gtp.NamedCurve) (ecdh.Curve, error) {
 		return ecdh.X25519(), nil
 	case gtp.NamedCurve_P256:
 		return ecdh.P256(), nil
+	case gtp.NamedCurve_P384:
+		return ecdh.P384(), nil
+	case gtp.NamedCurve_P521:
+		return ecdh.P521(), nil
 	default:
 		return nil, ErrInvalidMethod
 	}

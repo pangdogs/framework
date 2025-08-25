@@ -42,7 +42,7 @@ type Signer interface {
 // NewSigner 创建签名器
 func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Hash) (Signer, error) {
 	switch ae {
-	case gtp.AsymmetricEncryption_RSA256:
+	case gtp.AsymmetricEncryption_RSA:
 		switch padding {
 		case gtp.PaddingMode_Pkcs1v15, gtp.PaddingMode_PSS:
 			break
@@ -54,29 +54,50 @@ func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Ha
 		switch hash {
 		case gtp.Hash_SHA256:
 			cryptoHash = crypto.SHA256
+		case gtp.Hash_SHA384:
+			cryptoHash = crypto.SHA384
+		case gtp.Hash_SHA512:
+			cryptoHash = crypto.SHA512
+		case gtp.Hash_BLAKE2b256:
+			cryptoHash = crypto.BLAKE2b_256
+		case gtp.Hash_BLAKE2b384:
+			cryptoHash = crypto.BLAKE2b_384
+		case gtp.Hash_BLAKE2b512:
+			cryptoHash = crypto.BLAKE2b_512
+		case gtp.Hash_BLAKE2s256:
+			cryptoHash = crypto.BLAKE2s_256
 		default:
 			return nil, errors.New("crypto/rsa: invalid hash method")
 		}
 
-		return _RSA256Signer{padding: padding, hash: cryptoHash}, nil
+		return _RSASigner{padding: padding, hash: cryptoHash}, nil
 
-	case gtp.AsymmetricEncryption_ECDSA_P256:
-		return _ECDSAP256Signer{}, nil
+	case gtp.AsymmetricEncryption_ECDSA:
+		return _ECDSAPSigner{}, nil
 	default:
 		return nil, ErrInvalidMethod
 	}
 }
 
-type _RSA256Signer struct {
+type _RSASigner struct {
 	padding gtp.PaddingMode
 	hash    crypto.Hash
 }
 
-func (s _RSA256Signer) GenerateKey() (crypto.PrivateKey, error) {
-	return rsa.GenerateKey(rand.Reader, 256)
+func (s _RSASigner) GenerateKey() (crypto.PrivateKey, error) {
+	switch s.hash.Size() {
+	case 32:
+		return rsa.GenerateKey(rand.Reader, 2048)
+	case 48:
+		return rsa.GenerateKey(rand.Reader, 3072)
+	case 64:
+		return rsa.GenerateKey(rand.Reader, 4096)
+	default:
+		return nil, errors.New("crypto/rsa: invalid hash method")
+	}
 }
 
-func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
+func (s _RSASigner) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
 	rsaPriv, ok := priv.(*rsa.PrivateKey)
 	if !ok {
 		return nil, errors.New("crypto/rsa: invalid private key")
@@ -101,7 +122,7 @@ func (s _RSA256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 	}
 }
 
-func (s _RSA256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
+func (s _RSASigner) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	rsaPub, ok := pub.(*rsa.PublicKey)
 	if !ok {
 		return errors.New("crypto/rsa: invalid public key")
@@ -122,15 +143,24 @@ func (s _RSA256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	}
 }
 
-type _ECDSAP256Signer struct {
+type _ECDSAPSigner struct {
 	hash crypto.Hash
 }
 
-func (s _ECDSAP256Signer) GenerateKey() (crypto.PrivateKey, error) {
-	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func (s _ECDSAPSigner) GenerateKey() (crypto.PrivateKey, error) {
+	switch s.hash.Size() {
+	case 32:
+		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case 48:
+		return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	case 64:
+		return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	default:
+		return nil, errors.New("crypto/ecdsa: invalid hash method")
+	}
 }
 
-func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
+func (s _ECDSAPSigner) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error) {
 	ecdsaPriv, ok := priv.(*ecdsa.PrivateKey)
 	if !ok {
 		return nil, errors.New("crypto/ecdsa: invalid private key")
@@ -144,7 +174,7 @@ func (s _ECDSAP256Signer) Sign(priv crypto.PrivateKey, data []byte) ([]byte, err
 	return ecdsa.SignASN1(rand.Reader, ecdsaPriv, hashed)
 }
 
-func (s _ECDSAP256Signer) Verify(pub crypto.PublicKey, data, sig []byte) error {
+func (s _ECDSAPSigner) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	hash := s.hash.New()
 	hash.Write(data)
 

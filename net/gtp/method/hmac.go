@@ -33,10 +33,14 @@ func NewHMAC(h gtp.Hash, key []byte) (hash.Hash, error) {
 	switch h {
 	case gtp.Hash_SHA256:
 		return hmac.New(sha256.New, key), nil
-	case gtp.Hash_BLAKE2s:
-		return blake2s.New256(key)
-	case gtp.Hash_BLAKE2b:
+	case gtp.Hash_BLAKE2b256:
 		return blake2b.New256(key)
+	case gtp.Hash_BLAKE2b384:
+		return blake2b.New384(key)
+	case gtp.Hash_BLAKE2b512:
+		return blake2b.New512(key)
+	case gtp.Hash_BLAKE2s256:
+		return blake2s.New256(key)
 	default:
 		return nil, ErrInvalidMethod
 	}
