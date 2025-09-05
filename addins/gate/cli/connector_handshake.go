@@ -78,7 +78,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	if err != nil {
 		return err
 	}
-	cliRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
+	cliRandom = binaryutil.BytesPool.Get(len(n.Bytes()))
 	n.FillBytes(cliRandom)
 
 	cliHello := transport.Event[*gtp.MsgHello]{

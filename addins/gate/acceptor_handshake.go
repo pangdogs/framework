@@ -142,7 +142,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 					Message: err.Error(),
 				}
 			}
-			servRandom = binaryutil.BytesPool.Get(n.BitLen() / 8)
+			servRandom = binaryutil.BytesPool.Get(len(n.Bytes()))
 			n.FillBytes(servRandom)
 
 			encryptionFlow = true
