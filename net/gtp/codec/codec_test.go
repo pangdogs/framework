@@ -25,19 +25,20 @@ import (
 	"fmt"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/method"
+	"math/big"
 	"testing"
 )
 
 func TestCodec(t *testing.T) {
-	key, _ := rand.Prime(rand.Reader, 256)
-	//iv, _ := rand.Prime(rand.Reader, chacha20.NonceSize*8)
+	key, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
+	//iv, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), chacha20.NonceSize*8))
 
 	encrypter, decrypter, err := method.NewCipher(gtp.SymmetricEncryption_AES, gtp.BlockCipherMode_GCM, key.Bytes(), nil, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	nonce, _ := rand.Prime(rand.Reader, encrypter.NonceSize()*8)
+	nonce, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), uint(encrypter.NonceSize())*8))
 
 	compressionStream, err := method.NewCompressionStream(gtp.Compression_Brotli)
 	if err != nil {
@@ -65,8 +66,8 @@ func TestCodec(t *testing.T) {
 		SetCompression(NewCompression(compressionStream))
 
 	for i := 0; i < 10; i++ {
-		sessionId, _ := rand.Prime(rand.Reader, 1024)
-		random, _ := rand.Prime(rand.Reader, 1024)
+		sessionId, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 1024))
+		random, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 1024))
 
 		bs, err := encoder.Encode(gtp.Flags_None(), &gtp.MsgHello{
 			Version:   gtp.Version(i),

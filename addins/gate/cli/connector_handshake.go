@@ -74,7 +74,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}()
 
 	// 生成客户端随机数
-	n, err := rand.Prime(rand.Reader, 256)
+	n, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
 	if err != nil {
 		return err
 	}

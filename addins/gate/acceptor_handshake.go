@@ -135,7 +135,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			copy(cliRandom, cliHello.Msg.Random)
 
 			// 生成服务端随机数
-			n, err := rand.Prime(rand.Reader, 256)
+			n, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
 			if err != nil {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
@@ -601,7 +601,7 @@ func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode)
 		return nil, fmt.Errorf("CipherSuite.BlockCipherMode(%s) needs IV, but CipherSuite.SymmetricEncryption(%s) lacks a fixed block size", bcm, se)
 	}
 
-	iv, err := rand.Prime(rand.Reader, size*8)
+	iv, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), uint(size)*8))
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +622,7 @@ func (acc *_Acceptor) newNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMo
 		}
 	}
 
-	nonce, err := rand.Prime(rand.Reader, size*8)
+	nonce, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), uint(size)*8))
 	if err != nil {
 		return nil, err
 	}
