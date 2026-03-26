@@ -24,5 +24,5 @@ import (
 )
 
 var (
-	AddIn = define.ServiceAddIn(newBroker)
+	AddIn = define.ServiceAddIn(newNatsBroker)
 )

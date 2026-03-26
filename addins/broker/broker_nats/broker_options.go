@@ -29,8 +29,8 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// BrokerOptions 所有选项
-type BrokerOptions struct {
+// NatsBrokerOptions 所有选项
+type NatsBrokerOptions struct {
 	NatsClient      *nats.Conn
 	TopicPrefix     string
 	QueuePrefix     string
@@ -39,13 +39,13 @@ type BrokerOptions struct {
 	CustomPassword  string
 }
 
-var With _BrokerOption
+var With _NatsBrokerOption
 
-type _BrokerOption struct{}
+type _NatsBrokerOption struct{}
 
 // Default 默认选项
-func (_BrokerOption) Default() option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) Default() option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		With.NatsClient(nil).Apply(options)
 		With.TopicPrefix("").Apply(options)
 		With.QueuePrefix("").Apply(options)
@@ -55,15 +55,15 @@ func (_BrokerOption) Default() option.Setting[BrokerOptions] {
 }
 
 // NatsClient nats客户端（优先使用）
-func (_BrokerOption) NatsClient(cli *nats.Conn) option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) NatsClient(cli *nats.Conn) option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		options.NatsClient = cli
 	}
 }
 
 // TopicPrefix 订阅话题前缀
-func (_BrokerOption) TopicPrefix(prefix string) option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) TopicPrefix(prefix string) option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
 		}
@@ -72,8 +72,8 @@ func (_BrokerOption) TopicPrefix(prefix string) option.Setting[BrokerOptions] {
 }
 
 // QueuePrefix 订阅队列组前缀
-func (_BrokerOption) QueuePrefix(prefix string) option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) QueuePrefix(prefix string) option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
 			prefix += "."
 		}
@@ -82,16 +82,16 @@ func (_BrokerOption) QueuePrefix(prefix string) option.Setting[BrokerOptions] {
 }
 
 // CustomAuth 自定义认证信息
-func (_BrokerOption) CustomAuth(username, password string) option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) CustomAuth(username, password string) option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		options.CustomUsername = username
 		options.CustomPassword = password
 	}
 }
 
 // CustomAddresses 自定义地址
-func (_BrokerOption) CustomAddresses(addrs ...string) option.Setting[BrokerOptions] {
-	return func(options *BrokerOptions) {
+func (_NatsBrokerOption) CustomAddresses(addrs ...string) option.Setting[NatsBrokerOptions] {
+	return func(options *NatsBrokerOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
 				exception.Panicf("broker: %w: %w", core.ErrArgs, err)

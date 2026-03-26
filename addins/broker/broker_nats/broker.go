@@ -35,23 +35,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func newBroker(settings ...option.Setting[BrokerOptions]) broker.IBroker {
-	return &_Broker{
+func newNatsBroker(settings ...option.Setting[NatsBrokerOptions]) broker.IBroker {
+	return &_NatsBroker{
 		options: option.New(With.Default(), settings...),
 	}
 }
 
-type _Broker struct {
+type _NatsBroker struct {
 	svcCtx    service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
 	barrier   generic.Barrier
-	options   BrokerOptions
+	options   NatsBrokerOptions
 	client    *nats.Conn
 }
 
 // Init 初始化插件
-func (b *_Broker) Init(svcCtx service.Context) {
+func (b *_NatsBroker) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	b.svcCtx = svcCtx
@@ -77,7 +77,7 @@ func (b *_Broker) Init(svcCtx service.Context) {
 }
 
 // Shut 关闭插件
-func (b *_Broker) Shut(svcCtx service.Context) {
+func (b *_NatsBroker) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	b.terminate()
@@ -94,7 +94,7 @@ func (b *_Broker) Shut(svcCtx service.Context) {
 }
 
 // Publish 发布
-func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error {
+func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) error {
 	if b.options.TopicPrefix != "" {
 		topic = b.options.TopicPrefix + topic
 	}
@@ -108,7 +108,7 @@ func (b *_Broker) Publish(ctx context.Context, topic string, data []byte) error 
 }
 
 // SubscribeEvent 订阅消息事件流
-func (b *_Broker) SubscribeEvent(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscribeOptions]) (<-chan broker.Event, error) {
+func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern string, settings ...option.Setting[broker.SubscribeOptions]) (<-chan broker.Event, error) {
 	eventChan, _, err := b.addSubscriber(ctx, pattern, nil, option.New(broker.With.Default(), settings...))
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (b *_Broker) SubscribeEvent(ctx context.Context, pattern string, settings .
 }
 
 // SubscribeHandler 订阅消息事件回调
-func (b *_Broker) SubscribeHandler(ctx context.Context, pattern string, handler broker.EventHandler, settings ...option.Setting[broker.SubscribeOptions]) (async.Future, error) {
+func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern string, handler broker.EventHandler, settings ...option.Setting[broker.SubscribeOptions]) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
 	}
@@ -129,7 +129,7 @@ func (b *_Broker) SubscribeHandler(ctx context.Context, pattern string, handler 
 }
 
 // Flush 刷新
-func (b *_Broker) Flush(ctx context.Context) error {
+func (b *_NatsBroker) Flush(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -143,16 +143,16 @@ func (b *_Broker) Flush(ctx context.Context) error {
 }
 
 // DeliveryReliability 获取消息投递模式
-func (b *_Broker) DeliveryReliability() broker.DeliveryReliability {
+func (b *_NatsBroker) DeliveryReliability() broker.DeliveryReliability {
 	return broker.DeliveryReliability_AtMostOnce
 }
 
 // MaxPayload 获取最大消息长度
-func (b *_Broker) MaxPayload() int64 {
+func (b *_NatsBroker) MaxPayload() int64 {
 	return b.client.MaxPayload()
 }
 
 // Separator 获取地址分隔符
-func (b *_Broker) Separator() string {
+func (b *_NatsBroker) Separator() string {
 	return "."
 }
