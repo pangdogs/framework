@@ -24,5 +24,5 @@ import (
 )
 
 var (
-	AddIn = define.ServiceAddIn(newRegistry)
+	AddIn = define.ServiceAddIn(newEtcdRegistry)
 )

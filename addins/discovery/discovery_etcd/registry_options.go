@@ -30,8 +30,8 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// RegistryOptions 所有选项
-type RegistryOptions struct {
+// EtcdRegistryOptions 所有选项
+type EtcdRegistryOptions struct {
 	EtcdClient      *clientv3.Client
 	EtcdConfig      *clientv3.Config
 	KeyPrefix       string
@@ -41,13 +41,13 @@ type RegistryOptions struct {
 	CustomTLSConfig *tls.Config
 }
 
-var With _RegistryOption
+var With _EtcdRegistryOption
 
-type _RegistryOption struct{}
+type _EtcdRegistryOption struct{}
 
 // Default 默认值
-func (_RegistryOption) Default() option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) Default() option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		With.EtcdClient(nil).Apply(options)
 		With.EtcdConfig(nil).Apply(options)
 		With.KeyPrefix("/golaxy/svc/").Apply(options)
@@ -58,22 +58,22 @@ func (_RegistryOption) Default() option.Setting[RegistryOptions] {
 }
 
 // EtcdClient etcd客户端，最优先使用
-func (_RegistryOption) EtcdClient(cli *clientv3.Client) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) EtcdClient(cli *clientv3.Client) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		options.EtcdClient = cli
 	}
 }
 
 // EtcdConfig etcd配置，次优先使用
-func (_RegistryOption) EtcdConfig(config *clientv3.Config) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) EtcdConfig(config *clientv3.Config) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		options.EtcdConfig = config
 	}
 }
 
 // KeyPrefix 所有key的前缀
-func (_RegistryOption) KeyPrefix(prefix string) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) KeyPrefix(prefix string) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
@@ -82,16 +82,16 @@ func (_RegistryOption) KeyPrefix(prefix string) option.Setting[RegistryOptions] 
 }
 
 // CustomAuth 自定义设置etcd鉴权信息
-func (_RegistryOption) CustomAuth(username, password string) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) CustomAuth(username, password string) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		options.CustomUsername = username
 		options.CustomPassword = password
 	}
 }
 
 // CustomAddresses 自定义设置etcd服务地址
-func (_RegistryOption) CustomAddresses(addrs ...string) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) CustomAddresses(addrs ...string) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
 				exception.Panicf("registry: %w: %w", core.ErrArgs, err)
@@ -102,8 +102,8 @@ func (_RegistryOption) CustomAddresses(addrs ...string) option.Setting[RegistryO
 }
 
 // CustomTLSConfig 自定义设置加密etcd连接的配置
-func (_RegistryOption) CustomTLSConfig(conf *tls.Config) option.Setting[RegistryOptions] {
-	return func(options *RegistryOptions) {
+func (_EtcdRegistryOption) CustomTLSConfig(conf *tls.Config) option.Setting[EtcdRegistryOptions] {
+	return func(options *EtcdRegistryOptions) {
 		options.CustomTLSConfig = conf
 	}
 }

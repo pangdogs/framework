@@ -31,7 +31,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (r *_Registry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, error) {
+func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

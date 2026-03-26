@@ -41,23 +41,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func newRegistry(settings ...option.Setting[RegistryOptions]) discovery.IRegistry {
-	return &_Registry{
+func newEtcdRegistry(settings ...option.Setting[EtcdRegistryOptions]) discovery.IRegistry {
+	return &_EtcdRegistry{
 		options: option.New(With.Default(), settings...),
 	}
 }
 
-type _Registry struct {
+type _EtcdRegistry struct {
 	svcCtx    service.Context
 	ctx       context.Context
 	terminate context.CancelFunc
 	barrier   generic.Barrier
-	options   RegistryOptions
+	options   EtcdRegistryOptions
 	client    *etcdv3.Client
 }
 
 // Init 初始化插件
-func (r *_Registry) Init(svcCtx service.Context) {
+func (r *_EtcdRegistry) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	r.svcCtx = svcCtx
@@ -86,7 +86,7 @@ func (r *_Registry) Init(svcCtx service.Context) {
 }
 
 // Shut 关闭插件
-func (r *_Registry) Shut(svcCtx service.Context) {
+func (r *_EtcdRegistry) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	r.terminate()
@@ -101,7 +101,7 @@ func (r *_Registry) Shut(svcCtx service.Context) {
 }
 
 // RegisterNode 注册服务节点
-func (r *_Registry) RegisterNode(ctx context.Context, serviceName string, node *discovery.Node, settings ...option.Setting[discovery.RegisterOptions]) (discovery.IRegistration, error) {
+func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, node *discovery.Node, settings ...option.Setting[discovery.RegisterOptions]) (discovery.IRegistration, error) {
 	if serviceName == "" {
 		return nil, fmt.Errorf("registry: %w serviceName is empty", core.ErrArgs)
 	}
@@ -115,7 +115,7 @@ func (r *_Registry) RegisterNode(ctx context.Context, serviceName string, node *
 }
 
 // Get 查询服务
-func (r *_Registry) Get(ctx context.Context, serviceName string) (*discovery.Service, error) {
+func (r *_EtcdRegistry) Get(ctx context.Context, serviceName string) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -163,7 +163,7 @@ func (r *_Registry) Get(ctx context.Context, serviceName string) (*discovery.Ser
 }
 
 // GetNode 查询服务节点
-func (r *_Registry) GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
+func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -194,7 +194,7 @@ func (r *_Registry) GetNode(ctx context.Context, serviceName string, nodeId uid.
 }
 
 // List 查询所有服务
-func (r *_Registry) List(ctx context.Context) ([]*discovery.Service, error) {
+func (r *_EtcdRegistry) List(ctx context.Context) ([]*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -248,12 +248,12 @@ func (r *_Registry) List(ctx context.Context) ([]*discovery.Service, error) {
 }
 
 // WatchEvent 观察服务变化事件流
-func (r *_Registry) WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan discovery.Event, error) {
+func (r *_EtcdRegistry) WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan discovery.Event, error) {
 	return r.addWatcher(ctx, pattern, nil, pie.First(revision))
 }
 
 // WatchHandler 观察服务变化事件回调
-func (r *_Registry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) error {
+func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) error {
 	if handler == nil {
 		return fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)
 	}
@@ -261,7 +261,7 @@ func (r *_Registry) WatchHandler(ctx context.Context, pattern string, handler di
 	return err
 }
 
-func (r *_Registry) configure() etcdv3.Config {
+func (r *_EtcdRegistry) configure() etcdv3.Config {
 	if r.options.EtcdConfig != nil {
 		return *r.options.EtcdConfig
 	}
@@ -286,11 +286,11 @@ func (r *_Registry) configure() etcdv3.Config {
 	return config
 }
 
-func (r *_Registry) newNodeKey(service string, nodeId uid.Id) string {
+func (r *_EtcdRegistry) newNodeKey(service string, nodeId uid.Id) string {
 	return path.Join(r.options.KeyPrefix, service, nodeId.String())
 }
 
-func (r *_Registry) newServiceKey(service string) string {
+func (r *_EtcdRegistry) newServiceKey(service string) string {
 	return path.Join(r.options.KeyPrefix, service)
 }
 

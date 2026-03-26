@@ -32,15 +32,15 @@ import (
 	"go.uber.org/zap"
 )
 
-type _Registration struct {
-	registry    *_Registry
+type _EtcdRegistration struct {
+	registry    *_EtcdRegistry
 	nodeKey     string
 	serviceNode *discovery.Service
 	leaseId     etcdv3.LeaseID
 }
 
 // KeepAliveContinuous 节点持续保活
-func (r *_Registration) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
+func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -112,7 +112,7 @@ func (r *_Registration) KeepAliveContinuous(ctx context.Context) (async.Future, 
 }
 
 // KeepAliveOnce 节点保活一次
-func (r *_Registration) KeepAliveOnce(ctx context.Context) error {
+func (r *_EtcdRegistration) KeepAliveOnce(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -137,7 +137,7 @@ func (r *_Registration) KeepAliveOnce(ctx context.Context) error {
 }
 
 // Deregister 注销服务节点
-func (r *_Registration) Deregister(ctx context.Context) error {
+func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -161,7 +161,7 @@ func (r *_Registration) Deregister(ctx context.Context) error {
 	return nil
 }
 
-func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, options discovery.RegisterOptions) (discovery.IRegistration, error) {
+func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, options discovery.RegisterOptions) (discovery.IRegistration, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -210,7 +210,7 @@ func (r *_Registry) registerNode(ctx context.Context, serviceName string, node *
 
 	serviceNode.Revision = rsp.Header.Revision
 
-	registration := &_Registration{
+	registration := &_EtcdRegistration{
 		registry:    r,
 		nodeKey:     nodeKey,
 		serviceNode: serviceNode,
