@@ -22,9 +22,10 @@
 package cli
 
 import (
-	"git.golaxy.org/core/utils/types"
 	"net"
 	"syscall"
+
+	"git.golaxy.org/core/utils/types"
 )
 
 func newDialer(options *ClientOptions) *net.Dialer {

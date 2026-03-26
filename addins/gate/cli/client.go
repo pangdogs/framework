@@ -23,161 +23,136 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/binaryutil"
-	"git.golaxy.org/framework/utils/concurrent"
-	"go.uber.org/zap"
 	"net"
 	"sync"
+	"sync/atomic"
+
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/uid"
+	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/net/gtp/transport"
+	"git.golaxy.org/framework/utils/concurrent"
+	"go.uber.org/zap"
 )
 
 var (
-	ErrReconnectFailed = errors.New("cli: reconnect failed")
-	ErrInactiveTimeout = errors.New("cli: inactive timeout")
+	ErrAutoReconnectRetriesExhausted = errors.New("cli: auto reconnect retries exhausted")
+	ErrInactiveTimeout               = errors.New("cli: inactive timeout")
 )
+
+// NetAddr 网络地址
+type NetAddr struct {
+	Local, Remote net.Addr
+}
 
 // Client 客户端
 type Client struct {
 	context.Context
-	terminate       context.CancelCauseFunc
-	terminated      chan async.Ret
-	wg              sync.WaitGroup
-	mutex           sync.Mutex
-	options         ClientOptions
-	sessionId       uid.Id
-	endpoint        string
-	transceiver     transport.Transceiver
-	eventDispatcher transport.EventDispatcher
-	trans           transport.TransProtocol
-	ctrl            transport.CtrlProtocol
-	reconnectChan   chan struct{}
-	resumeChan      chan struct{}
-	futures         *concurrent.Futures
-	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
-	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
-	logger          *zap.SugaredLogger
+	close            context.CancelCauseFunc
+	closed           async.FutureVoid
+	options          ClientOptions
+	sessionId        uid.Id
+	endpoint         string
+	netAddr          atomic.Pointer[NetAddr]
+	transceiver      transport.Transceiver
+	eventDispatcher  transport.EventDispatcher
+	trans            transport.TransProtocol
+	ctrl             transport.CtrlProtocol
+	migrationMutex   sync.Mutex
+	migrationChan    chan struct{}
+	migrations       atomic.Int64
+	futureController *concurrent.FutureController
+	dataIO           _ClientDataIO
+	eventIO          _ClientEventIO
+	logger           *zap.Logger
+	sugarLogger      *zap.SugaredLogger
+	stringerOnce     sync.Once
+	stringerCache    string
 }
 
 // String implements fmt.Stringer
 func (c *Client) String() string {
-	return fmt.Sprintf(`{"session_id":%q, "token":%q, "end_point":%q}`, c.GetSessionId(), c.GetToken(), c.GetEndpoint())
+	c.stringerOnce.Do(func() {
+		c.stringerCache = fmt.Sprintf(`{"session_id":%q,"user_id":%q}`, c.SessionId(), c.UserId())
+	})
+	return c.stringerCache
 }
 
-// GetSessionId 获取会话Id
-func (c *Client) GetSessionId() uid.Id {
+// SessionId 获取会话Id
+func (c *Client) SessionId() uid.Id {
 	return c.sessionId
 }
 
-// GetToken 获取token
-func (c *Client) GetToken() string {
+// UserId 获取鉴权用户Id
+func (c *Client) UserId() string {
+	return c.options.AuthUserId
+}
+
+// Token 获取鉴权token
+func (c *Client) Token() string {
 	return c.options.AuthToken
 }
 
-// GetEndpoint 获取服务器地址
-func (c *Client) GetEndpoint() string {
+// Extensions 获取鉴权扩展数据
+func (c *Client) Extensions() []byte {
+	return c.options.AuthExtensions
+}
+
+// Endpoint 获取服务器地址
+func (c *Client) Endpoint() string {
 	return c.endpoint
 }
 
-// GetLocalAddr 获取本地地址
-func (c *Client) GetLocalAddr() net.Addr {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.transceiver.Conn.LocalAddr()
+// NetAddr 获取网络地址
+func (c *Client) NetAddr() NetAddr {
+	return *c.netAddr.Load()
 }
 
-// GetRemoteAddr 获取对端地址
-func (c *Client) GetRemoteAddr() net.Addr {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.transceiver.Conn.RemoteAddr()
+// Migrations 获取连接迁移次数
+func (c *Client) Migrations() int64 {
+	return c.migrations.Load()
 }
 
-// GetFutures 获取异步模型Future控制器
-func (c *Client) GetFutures() *concurrent.Futures {
-	return c.futures
+// FutureController 获取异步模型Future控制器
+func (c *Client) FutureController() *concurrent.FutureController {
+	return c.futureController
 }
 
-// GetLogger 获取logger
-func (c *Client) GetLogger() *zap.SugaredLogger {
+// Logger 获取logger
+func (c *Client) Logger() *zap.Logger {
 	return c.logger
 }
 
-// SendData 发送数据
-func (c *Client) SendData(data []byte) error {
-	select {
-	case <-c.Done():
-		return context.Canceled
-	default:
-		break
-	}
-	return c.trans.SendData(data)
-}
-
-// WatchData 监听数据
-func (c *Client) WatchData(ctx context.Context, handler RecvDataHandler) concurrent.IWatcher {
-	return c.newDataWatcher(ctx, handler)
-}
-
-// SendEvent 发送自定义事件
-func (c *Client) SendEvent(event transport.IEvent) error {
-	select {
-	case <-c.Done():
-		return context.Canceled
-	default:
-		break
-	}
-	return transport.Retry{
-		Transceiver: &c.transceiver,
-		Times:       c.options.IORetryTimes,
-	}.Send(c.transceiver.Send(event.Interface()))
-}
-
-// WatchEvent 监听自定义事件
-func (c *Client) WatchEvent(ctx context.Context, handler RecvEventHandler) concurrent.IWatcher {
-	return c.newEventWatcher(ctx, handler)
-}
-
-// SendDataChan 发送数据的channel
-func (c *Client) SendDataChan() chan<- binaryutil.RecycleBytes {
-	if c.options.SendDataChan == nil {
-		c.logger.Panic("send data channel size less equal 0, can't be used")
-	}
-	return c.options.SendDataChan
-}
-
-// RecvDataChan 接收数据的channel
-func (c *Client) RecvDataChan() <-chan binaryutil.RecycleBytes {
-	if c.options.RecvDataChan == nil {
-		c.logger.Panic("receive data channel size less equal 0, can't be used")
-	}
-	return c.options.RecvDataChan
-}
-
-// SendEventChan 发送自定义事件的channel
-func (c *Client) SendEventChan() chan<- transport.IEvent {
-	if c.options.SendEventChan == nil {
-		c.logger.Panic("send event channel size less equal 0, can't be used")
-	}
-	return c.options.SendEventChan
-}
-
-// RecvEventChan 接收自定义事件的channel
-func (c *Client) RecvEventChan() <-chan transport.IEvent {
-	if c.options.RecvEventChan == nil {
-		c.logger.Panic("receive event channel size less equal 0, can't be used")
-	}
-	return c.options.RecvEventChan
+// SugarLogger 获取SugarLogger
+func (c *Client) SugarLogger() *zap.SugaredLogger {
+	return c.sugarLogger
 }
 
 // Close 关闭
-func (c *Client) Close(err error) async.AsyncRet {
-	c.terminate(err)
-	return c.terminated
+func (c *Client) Close(err error) async.Future {
+	c.close(err)
+	return c.closed.Out()
 }
 
 // Closed 已关闭
-func (c *Client) Closed() async.AsyncRet {
-	return c.terminated
+func (c *Client) Closed() async.Future {
+	return c.closed.Out()
+}
+
+// handleHeartbeat 接收Heartbeat消息事件
+func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
+	if event.Flags.Is(gtp.Flag_Ping) {
+		c.logger.Debug("client receive ping", zap.String("session_id", c.SessionId().String()))
+	} else {
+		c.logger.Debug("client receive pong", zap.String("session_id", c.SessionId().String()))
+	}
+}
+
+// handleRst 接收Rst消息事件
+func (c *Client) handleRst(event transport.Event[*gtp.MsgRst]) {
+	err := transport.CastRstErr(event)
+	c.logger.Debug("client receive rst",
+		zap.String("session_id", c.SessionId().String()),
+		zap.NamedError("rst_error", err))
+	c.Close(err)
 }

@@ -21,9 +21,12 @@ package cli
 
 import (
 	"context"
-	"git.golaxy.org/core/utils/async"
-	"git.golaxy.org/framework/utils/concurrent"
 	"time"
+
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/net/gtp/transport"
+	"go.uber.org/zap"
 )
 
 // ResponseTime 响应同步时间
@@ -49,11 +52,25 @@ func (rt ResponseTime) NowTime() time.Time {
 }
 
 // RequestTime 请求对端同步时间
-func (c *Client) RequestTime(ctx context.Context) async.AsyncRetT[*ResponseTime] {
-	resp := concurrent.MakeRespAsyncRetT[*ResponseTime]()
-	future := c.GetFutures().Make(ctx, resp)
-	if err := c.ctrl.RequestTime(future.Id); err != nil {
-		future.Cancel(err)
+func (c *Client) RequestTime(ctx context.Context) async.Future {
+	handle := c.FutureController().New()
+	if err := c.ctrl.RequestTime(handle.Id); err != nil {
+		handle.Cancel(err)
 	}
-	return resp.ToAsyncRetT()
+	return handle.Future()
+}
+
+// handleSyncTime 接收SyncTime消息事件
+func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) {
+	if event.Flags.Is(gtp.Flag_RespTime) {
+		respTime := &ResponseTime{
+			RequestTime: time.UnixMilli(event.Msg.RemoteTime).Local(),
+			LocalTime:   time.Now(),
+			RemoteTime:  time.UnixMilli(event.Msg.LocalTime).Local(),
+		}
+		err := c.futureController.Resolve(event.Msg.CorrId, async.NewResult(respTime, nil))
+		if err != nil {
+			c.logger.Error("failed to resolve future", zap.Int64("corr_id", event.Msg.CorrId), zap.Error(err))
+		}
+	}
 }

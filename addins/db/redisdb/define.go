@@ -22,9 +22,5 @@ package redisdb
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServiceAddIn(newRedisDB)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.ServiceAddIn(newRedisDB)
 )

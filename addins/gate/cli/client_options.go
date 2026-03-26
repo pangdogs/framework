@@ -22,22 +22,16 @@ package cli
 import (
 	"crypto"
 	"crypto/tls"
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
-	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"go.uber.org/zap"
-	"time"
 )
 
-type (
-	RecvDataHandler  = generic.Delegate1[[]byte, error]
-	RecvEventHandler = transport.EventHandler
-)
-
+// NetProtocol 网络协议
 type NetProtocol int32
 
 const (
@@ -45,49 +39,48 @@ const (
 	WebSocket
 )
 
+// ClientOptions 客户端所有选项
 type ClientOptions struct {
-	NetProtocol                 NetProtocol                  // 使用的网络协议（TCP/WebSocket）
-	TCPNoDelay                  *bool                        // TCP的NoDelay选项，nil表示使用系统默认值
-	TCPQuickAck                 *bool                        // TCP的QuickAck选项，nil表示使用系统默认值
-	TCPRecvBuf                  *int                         // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
-	TCPSendBuf                  *int                         // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
-	TCPLinger                   *int                         // TCP的PLinger选项，nil表示使用系统默认值
-	WebSocketOrigin             string                       // WebSocket的Origin地址，不填将会自动生成
-	TLSConfig                   *tls.Config                  // TLS配置，nil表示不使用TLS加密链路
-	IOTimeout                   time.Duration                // 网络io超时时间
-	IORetryTimes                int                          // 网络io超时后的重试次数
-	IOBufferCap                 int                          // 网络io缓存容量（字节）
-	DecoderMsgCreator           gtp.IMsgCreator              // 消息包解码器的消息构建器
-	EncCipherSuite              gtp.CipherSuite              // 加密通信中的密码学套件
-	EncSignatureAlgorithm       gtp.SignatureAlgorithm       // 加密通信中的签名算法
-	EncSignaturePrivateKey      crypto.PrivateKey            // 加密通信中，签名用的私钥
-	EncVerifyServerSignature    bool                         // 加密通信中，是否验证服务端签名
-	EncVerifySignaturePublicKey crypto.PublicKey             // 加密通信中，验证服务端签名用的公钥
-	Compression                 gtp.Compression              // 通信中的压缩函数
-	CompressedSize              int                          // 通信中启用压缩阀值（字节），<=0表示不开启
-	AutoReconnect               bool                         // 开启自动重连
-	AutoReconnectInterval       time.Duration                // 自动重连的时间间隔
-	AutoReconnectRetryTimes     int                          // 自动重连的重试次数，<=0表示无限重试
-	InactiveTimeout             time.Duration                // 连接不活跃后的超时时间，开启自动重连后无效
-	SendDataChan                chan binaryutil.RecycleBytes // 发送数据的channel
-	RecvDataChan                chan binaryutil.RecycleBytes // 接收数据的channel
-	RecvDataChanRecyclable      bool                         // 接收数据的channel中是否使用可回收字节对象
-	SendEventChan               chan transport.IEvent        // 发送自定义事件的channel
-	RecvEventChan               chan transport.IEvent        // 接收自定义事件的channel
-	RecvDataHandler             RecvDataHandler              // 接收的数据的处理器
-	RecvEventHandler            RecvEventHandler             // 接收的自定义事件的处理器
-	FutureTimeout               time.Duration                // 异步模型Future超时时间
-	AuthUserId                  string                       // 鉴权userid
-	AuthToken                   string                       // 鉴权token
-	AuthExtensions              []byte                       // 鉴权extensions
-	ZapLogger                   *zap.Logger                  // zap日志
+	NetProtocol                 NetProtocol            // 使用的网络协议（TCP/WebSocket）
+	TCPNoDelay                  *bool                  // TCP的NoDelay选项，nil表示使用系统默认值
+	TCPQuickAck                 *bool                  // TCP的QuickAck选项，nil表示使用系统默认值
+	TCPRecvBuf                  *int                   // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+	TCPSendBuf                  *int                   // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+	TCPLinger                   *int                   // TCP的PLinger选项，nil表示使用系统默认值
+	WebSocketOrigin             string                 // WebSocket的Origin地址，不填将会自动生成
+	TLSConfig                   *tls.Config            // TLS配置，nil表示不使用TLS加密链路
+	IOTimeout                   time.Duration          // 网络io超时时间
+	IORetryTimes                int                    // 网络io超时后的重试次数
+	IOBufferCap                 int                    // 网络io缓存容量（字节）
+	MsgCreator                  gtp.IMsgCreator        // 消息包解码器的消息构建器
+	EncCipherSuite              gtp.CipherSuite        // 加密通信中的密码学套件
+	EncSignatureAlgorithm       gtp.SignatureAlgorithm // 加密通信中的签名算法
+	EncSignaturePrivateKey      crypto.PrivateKey      // 加密通信中，签名用的私钥
+	EncVerifyServerSignature    bool                   // 加密通信中，是否验证服务端签名
+	EncVerifySignaturePublicKey crypto.PublicKey       // 加密通信中，验证服务端签名用的公钥
+	Compression                 gtp.Compression        // 通信中的压缩函数
+	CompressionThreshold        int                    // 通信中启用压缩阀值（字节），<=0表示不开启
+	AutoReconnect               bool                   // 开启自动重连
+	AutoReconnectInterval       time.Duration          // 自动重连的时间间隔
+	AutoReconnectRetryTimes     int                    // 自动重连的重试次数，<=0表示无限重试
+	InactiveTimeout             time.Duration          // 连接不活跃后的超时时间，开启自动重连后无效
+	FutureTimeout               time.Duration          // 异步模型Future超时时间
+	AuthUserId                  string                 // 鉴权userid
+	AuthToken                   string                 // 鉴权token
+	AuthExtensions              []byte                 // 鉴权extensions
+	AutoRecover                 bool                   // panic时是否自动恢复
+	ReportError                 chan error             // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
+	DataListenerInboxSize       int                    // 数据监听器inbox缓存大小
+	EventListenerInboxSize      int                    // 事件监听器inbox缓存大小
+	Logger                      *zap.Logger            // 日志
 }
 
-var With _Option
+var With _ClientOption
 
-type _Option struct{}
+type _ClientOption struct{}
 
-func (_Option) Default() option.Setting[ClientOptions] {
+// Default 默认选项
+func (_ClientOption) Default() option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		With.NetProtocol(TCP)(options)
 		With.TCPNoDelay(nil)(options)
@@ -99,8 +92,8 @@ func (_Option) Default() option.Setting[ClientOptions] {
 		With.TLSConfig(nil)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
-		With.IOBufferCap(1024 * 128)(options)
-		With.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
+		With.IOBufferCap(128 * 1024)(options)
+		With.MsgCreator(gtp.DefaultMsgCreator())(options)
 		With.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: gtp.SymmetricEncryption_XChaCha20_Poly1305,
@@ -117,248 +110,246 @@ func (_Option) Default() option.Setting[ClientOptions] {
 		With.EncVerifySignaturePublicKey(nil)(options)
 		With.EncVerifyServerSignature(false)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
-		With.CompressedSize(1024 * 32)(options)
+		With.CompressionThreshold(64 * 1024)(options)
 		With.AutoReconnect(false)(options)
 		With.AutoReconnectInterval(3 * time.Second)(options)
 		With.AutoReconnectRetryTimes(100)(options)
 		With.InactiveTimeout(time.Minute)(options)
-		With.SendDataChanSize(0)(options)
-		With.RecvDataChanSize(0, false)(options)
-		With.SendEventChanSize(0)(options)
-		With.RecvEventChanSize(0)(options)
-		With.RecvDataHandler(nil)(options)
-		With.RecvEventHandler(nil)(options)
 		With.FutureTimeout(5 * time.Second)(options)
 		With.AuthUserId("")(options)
 		With.AuthToken("")(options)
 		With.AuthExtensions(nil)(options)
-		With.ZapLogger(zap.NewExample())(options)
+		With.AutoRecover(false)(options)
+		With.ReportError(nil)(options)
+		With.DataListenerInboxSize(128)(options)
+		With.EventListenerInboxSize(128)(options)
+		With.Logger(nil)(options)
 	}
 }
 
-func (_Option) NetProtocol(p NetProtocol) option.Setting[ClientOptions] {
+// NetProtocol 设置使用的网络协议（TCP/WebSocket）
+func (_ClientOption) NetProtocol(p NetProtocol) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.NetProtocol = p
 	}
 }
 
-func (_Option) TCPNoDelay(b *bool) option.Setting[ClientOptions] {
+// TCPNoDelay 设置TCP的NoDelay选项，nil表示使用系统默认值
+func (_ClientOption) TCPNoDelay(b *bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPNoDelay = b
 	}
 }
 
-func (_Option) TCPQuickAck(b *bool) option.Setting[ClientOptions] {
+// TCPQuickAck 设置TCP的QuickAck选项，nil表示使用系统默认值
+func (_ClientOption) TCPQuickAck(b *bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPQuickAck = b
 	}
 }
 
-func (_Option) TCPRecvBuf(size *int) option.Setting[ClientOptions] {
+// TCPRecvBuf 设置TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+func (_ClientOption) TCPRecvBuf(size *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPRecvBuf = size
 	}
 }
 
-func (_Option) TCPSendBuf(size *int) option.Setting[ClientOptions] {
+// TCPSendBuf 设置TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+func (_ClientOption) TCPSendBuf(size *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPSendBuf = size
 	}
 }
 
-func (_Option) TCPLinger(sec *int) option.Setting[ClientOptions] {
+// TCPLinger 设置TCP的Linger选项，nil表示使用系统默认值
+func (_ClientOption) TCPLinger(sec *int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TCPLinger = sec
 	}
 }
 
-func (_Option) WebSocketOrigin(origin string) option.Setting[ClientOptions] {
+// WebSocketOrigin 设置WebSocket的Origin地址，不填将会自动生成
+func (_ClientOption) WebSocketOrigin(origin string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.WebSocketOrigin = origin
 	}
 }
 
-func (_Option) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptions] {
+// TLSConfig 设置TLS配置，nil表示不使用TLS加密链路
+func (_ClientOption) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.TLSConfig = tlsConfig
 	}
 }
 
-func (_Option) IOTimeout(d time.Duration) option.Setting[ClientOptions] {
+// IOTimeout 设置网络io超时时间
+func (_ClientOption) IOTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IOTimeout = d
 	}
 }
 
-func (_Option) IORetryTimes(times int) option.Setting[ClientOptions] {
+// IORetryTimes 设置网络io超时后的重试次数
+func (_ClientOption) IORetryTimes(times int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IORetryTimes = times
 	}
 }
 
-func (_Option) IOBufferCap(cap int) option.Setting[ClientOptions] {
+// IOBufferCap 设置网络io缓存容量（字节）
+func (_ClientOption) IOBufferCap(cap int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.IOBufferCap = cap
 	}
 }
 
-func (_Option) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
+// MsgCreator 设置消息包解码器的消息构建器
+func (_ClientOption) MsgCreator(mc gtp.IMsgCreator) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		if mc == nil {
-			exception.Panicf("cli: %w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("cli: %w: option MsgCreator can't be assigned to nil", core.ErrArgs)
 		}
-		options.DecoderMsgCreator = mc
+		options.MsgCreator = mc
 	}
 }
 
-func (_Option) EncCipherSuite(cs gtp.CipherSuite) option.Setting[ClientOptions] {
+// EncCipherSuite 设置加密通信中的密码学套件
+func (_ClientOption) EncCipherSuite(cs gtp.CipherSuite) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncCipherSuite = cs
 	}
 }
 
-func (_Option) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) option.Setting[ClientOptions] {
+// EncSignatureAlgorithm 设置加密通信中的签名算法
+func (_ClientOption) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncSignatureAlgorithm = sa
 	}
 }
 
-func (_Option) EncSignaturePrivateKey(priv crypto.PrivateKey) option.Setting[ClientOptions] {
+// EncSignaturePrivateKey 设置加密通信中，签名用的私钥
+func (_ClientOption) EncSignaturePrivateKey(priv crypto.PrivateKey) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncSignaturePrivateKey = priv
 	}
 }
 
-func (_Option) EncVerifyServerSignature(b bool) option.Setting[ClientOptions] {
+// EncVerifyServerSignature 设置加密通信中，是否验证服务端签名
+func (_ClientOption) EncVerifyServerSignature(b bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncVerifyServerSignature = b
 	}
 }
 
-func (_Option) EncVerifySignaturePublicKey(pub crypto.PublicKey) option.Setting[ClientOptions] {
+// EncVerifySignaturePublicKey 设置加密通信中，验证服务端签名用的公钥
+func (_ClientOption) EncVerifySignaturePublicKey(pub crypto.PublicKey) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.EncVerifySignaturePublicKey = pub
 	}
 }
 
-func (_Option) Compression(c gtp.Compression) option.Setting[ClientOptions] {
+// Compression 设置通信中的压缩函数
+func (_ClientOption) Compression(c gtp.Compression) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.Compression = c
 	}
 }
 
-func (_Option) CompressedSize(size int) option.Setting[ClientOptions] {
+// CompressionThreshold 设置通信中启用压缩阀值（字节），<=0表示不开启
+func (_ClientOption) CompressionThreshold(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.CompressedSize = size
+		options.CompressionThreshold = size
 	}
 }
 
-func (_Option) AutoReconnect(b bool) option.Setting[ClientOptions] {
+// AutoReconnect 设置开启自动重连
+func (_ClientOption) AutoReconnect(b bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnect = b
 	}
 }
 
-func (_Option) AutoReconnectInterval(dur time.Duration) option.Setting[ClientOptions] {
+// AutoReconnectInterval 设置自动重连的时间间隔
+func (_ClientOption) AutoReconnectInterval(dur time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnectInterval = dur
 	}
 }
 
-func (_Option) AutoReconnectRetryTimes(times int) option.Setting[ClientOptions] {
+// AutoReconnectRetryTimes 设置自动重连的重试次数，<=0表示无限重试
+func (_ClientOption) AutoReconnectRetryTimes(times int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AutoReconnectRetryTimes = times
 	}
 }
 
-func (_Option) InactiveTimeout(d time.Duration) option.Setting[ClientOptions] {
+// InactiveTimeout 设置连接不活跃后的超时时间，开启自动重连后无效
+func (_ClientOption) InactiveTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.InactiveTimeout = d
 	}
 }
 
-func (_Option) SendDataChanSize(size int) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		if size > 0 {
-			options.SendDataChan = make(chan binaryutil.RecycleBytes, size)
-		} else {
-			options.SendDataChan = nil
-		}
-	}
-}
-
-func (_Option) RecvDataChanSize(size int, recyclable bool) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		if size > 0 {
-			options.RecvDataChan = make(chan binaryutil.RecycleBytes, size)
-		} else {
-			options.RecvDataChan = nil
-		}
-		options.RecvDataChanRecyclable = recyclable
-	}
-}
-
-func (_Option) SendEventChanSize(size int) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		if size > 0 {
-			options.SendEventChan = make(chan transport.IEvent, size)
-		} else {
-			options.SendEventChan = nil
-		}
-	}
-}
-
-func (_Option) RecvEventChanSize(size int) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		if size > 0 {
-			options.RecvEventChan = make(chan transport.IEvent, size)
-		} else {
-			options.RecvEventChan = nil
-		}
-	}
-}
-
-func (_Option) RecvDataHandler(handler RecvDataHandler) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		options.RecvDataHandler = handler
-	}
-}
-
-func (_Option) RecvEventHandler(handler RecvEventHandler) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
-		options.RecvEventHandler = handler
-	}
-}
-
-func (_Option) FutureTimeout(d time.Duration) option.Setting[ClientOptions] {
+// FutureTimeout 设置异步模型Future超时时间
+func (_ClientOption) FutureTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.FutureTimeout = d
 	}
 }
 
-func (_Option) AuthUserId(userId string) option.Setting[ClientOptions] {
+// AuthUserId 设置鉴权userid
+func (_ClientOption) AuthUserId(userId string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AuthUserId = userId
 	}
 }
 
-func (_Option) AuthToken(token string) option.Setting[ClientOptions] {
+// AuthToken 设置鉴权token
+func (_ClientOption) AuthToken(token string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AuthToken = token
 	}
 }
 
-func (_Option) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
+// AuthExtensions 设置鉴权extensions
+func (_ClientOption) AuthExtensions(extensions []byte) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.AuthExtensions = extensions
 	}
 }
 
-func (_Option) ZapLogger(logger *zap.Logger) option.Setting[ClientOptions] {
+// AutoRecover 设置panic时是否自动恢复
+func (_ClientOption) AutoRecover(b bool) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		if logger == nil {
-			exception.Panicf("cli: %w: option ZapLogger can't be assigned to nil", core.ErrArgs)
-		}
-		options.ZapLogger = logger
+		options.AutoRecover = b
+	}
+}
+
+// ReportError 设置error channel，在开启panic时自动恢复时，将会恢复并将错误写入此error channel
+func (_ClientOption) ReportError(reportError chan error) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.ReportError = reportError
+	}
+}
+
+// DataListenerInboxSize 设置数据监听器inbox缓存大小
+func (_ClientOption) DataListenerInboxSize(size int) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.DataListenerInboxSize = size
+	}
+}
+
+// EventListenerInboxSize 设置事件监听器inbox缓存大小
+func (_ClientOption) EventListenerInboxSize(size int) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.EventListenerInboxSize = size
+	}
+}
+
+// Logger 设置日志
+func (_ClientOption) Logger(logger *zap.Logger) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.Logger = logger
 	}
 }

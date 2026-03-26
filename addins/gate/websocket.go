@@ -20,9 +20,10 @@
 package gate
 
 import (
-	"golang.org/x/net/websocket"
 	"net"
 	"strings"
+
+	"golang.org/x/net/websocket"
 )
 
 func DefaultWebSocketLocalAddrResolver(conn *websocket.Conn) net.Addr {

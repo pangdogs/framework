@@ -22,6 +22,10 @@ package db
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+	"unsafe"
+
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/addins/db/mongodb"
@@ -30,9 +34,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
-	"reflect"
-	"strings"
-	"unsafe"
 )
 
 var (
@@ -74,11 +75,11 @@ retry:
 
 			switch field.Type {
 			case gormDBRT:
-				db = sqldb.Using(svcCtx).ReflectedSQLDB(tag)
+				db = sqldb.AddIn.Require(svcCtx).ReflectedDB(tag)
 			case redisClientRT:
-				db = redisdb.Using(svcCtx).ReflectedRedisDB(tag)
+				db = redisdb.AddIn.Require(svcCtx).ReflectedDB(tag)
 			case mongoClientRT:
-				db = mongodb.Using(svcCtx).ReflectedMongoDB(tag)
+				db = mongodb.AddIn.Require(svcCtx).ReflectedDB(tag)
 			}
 
 			if !db.IsValid() {

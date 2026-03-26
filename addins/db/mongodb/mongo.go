@@ -21,24 +21,30 @@ package mongodb
 
 import (
 	"context"
+	"reflect"
+
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db/dbtypes"
+	"git.golaxy.org/framework/addins/db/dsn"
 	"git.golaxy.org/framework/addins/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"reflect"
+	"go.uber.org/zap"
 )
 
 type IMongoDB interface {
-	MongoDB(tag string) *mongo.Client
-	ReflectedMongoDB(tag string) reflect.Value
+	DB(tag string) *mongo.Client
+	ReflectedDB(tag string) reflect.Value
+}
+
+func DB(svcCtx service.Context, tag string) *mongo.Client {
+	return AddIn.Require(svcCtx).DB(tag)
 }
 
 func newMongoDB(settings ...option.Setting[MongoDBOptions]) IMongoDB {
 	return &_MongoDB{
-		options: option.Make(With.Default(), settings...),
+		options: option.New(With.Default(), settings...),
 		dbs:     make(map[string]*_MongoClient),
 	}
 }
@@ -55,7 +61,7 @@ type _MongoDB struct {
 }
 
 func (m *_MongoDB) Init(svcCtx service.Context) {
-	log.Infof(svcCtx, "init addin %q", self.Name)
+	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	m.svcCtx = svcCtx
 
@@ -69,19 +75,19 @@ func (m *_MongoDB) Init(svcCtx service.Context) {
 	}
 
 	if len(m.dbs) <= 0 {
-		log.Warn(svcCtx, "no mongo db has been connected")
+		log.L(svcCtx).Warn("no sql db has been connected")
 	}
 }
 
 func (m *_MongoDB) Shut(svcCtx service.Context) {
-	log.Infof(svcCtx, "shut addin %q", self.Name)
+	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	for _, db := range m.dbs {
 		db.client.Disconnect(context.Background())
 	}
 }
 
-func (m *_MongoDB) MongoDB(tag string) *mongo.Client {
+func (m *_MongoDB) DB(tag string) *mongo.Client {
 	cli := m.dbs[tag]
 	if cli == nil {
 		return nil
@@ -89,7 +95,7 @@ func (m *_MongoDB) MongoDB(tag string) *mongo.Client {
 	return cli.client
 }
 
-func (m *_MongoDB) ReflectedMongoDB(tag string) reflect.Value {
+func (m *_MongoDB) ReflectedDB(tag string) reflect.Value {
 	cli := m.dbs[tag]
 	if cli == nil {
 		return reflect.Value{}
@@ -97,22 +103,33 @@ func (m *_MongoDB) ReflectedMongoDB(tag string) reflect.Value {
 	return cli.reflected
 }
 
-func (m *_MongoDB) connectToDB(info *dbtypes.DBInfo) *mongo.Client {
+func (m *_MongoDB) connectToDB(info *dsn.DBInfo) *mongo.Client {
 	opt := options.Client().ApplyURI(info.ConnStr)
 
 	client, err := mongo.NewClient(opt)
 	if err != nil {
-		log.Panicf(m.svcCtx, "conn to db %q failed, %s", info.ConnStr, err)
+		log.L(m.svcCtx).Panic("conn to db failed",
+			zap.String("db_type", info.Type),
+			zap.String("conn_str", info.ConnStr),
+			zap.Error(err))
 	}
 
 	if err := client.Connect(context.Background()); err != nil {
-		log.Panicf(m.svcCtx, "conn to db %q failed, %s", info.ConnStr, err)
+		log.L(m.svcCtx).Panic("conn to db failed",
+			zap.String("db_type", info.Type),
+			zap.String("conn_str", info.ConnStr),
+			zap.Error(err))
 	}
 
 	if err := client.Ping(context.Background(), readpref.Primary()); err != nil {
-		log.Panicf(m.svcCtx, "ping db %q failed, %s", info.ConnStr, err)
+		log.L(m.svcCtx).Panic("ping db failed",
+			zap.String("db_type", info.Type),
+			zap.String("conn_str", info.ConnStr),
+			zap.Error(err))
 	}
 
-	log.Infof(m.svcCtx, "conn to db %q ok", info.ConnStr)
+	log.L(m.svcCtx).Info("connect to db ok",
+		zap.String("db_type", info.Type),
+		zap.String("conn_str", info.ConnStr))
 	return client
 }

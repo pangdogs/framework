@@ -23,16 +23,16 @@ package gate
 import (
 	"context"
 	"fmt"
-	"git.golaxy.org/core/service"
+	"net"
+	"sync"
+	"sync/atomic"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/log"
+	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/binaryutil"
-	"git.golaxy.org/framework/utils/concurrent"
-	"net"
-	"slices"
-	"sync"
+	"go.uber.org/zap"
 )
 
 // SessionState 客户端会话状态
@@ -40,222 +40,143 @@ type SessionState int32
 
 const (
 	SessionState_Birth     SessionState = iota // 出生
-	SessionState_Handshake                     // 与客户端握手中
 	SessionState_Confirmed                     // 已确认客户端连接
 	SessionState_Active                        // 客户端活跃
-	SessionState_Inactive                      // 客户端不活跃，等待重连恢复中
+	SessionState_Inactive                      // 客户端不活跃，等待重连中
 	SessionState_Death                         // 已过期
 )
+
+// NetAddr 网络地址
+type NetAddr struct {
+	Local, Remote net.Addr
+}
 
 // ISession 会话
 type ISession interface {
 	context.Context
 	fmt.Stringer
-	// GetServiceContext 获取服务上下文
-	GetServiceContext() service.Context
-	// GetId 获取会话Id
-	GetId() uid.Id
-	// GetUserId 获取用户Id
-	GetUserId() string
-	// GetToken 获取token
-	GetToken() string
-	// GetState 获取会话状态
-	GetState() SessionState
-	// GetLocalAddr 获取本地地址
-	GetLocalAddr() net.Addr
-	// GetRemoteAddr 获取对端地址
-	GetRemoteAddr() net.Addr
-	// GetResumeTimes 获取会话恢复次数
-	GetResumeTimes() int
-	// GetSettings 获取配置
-	GetSettings() SessionSettings
-	// SendData 发送数据
-	SendData(data []byte) error
-	// WatchData 监听数据
-	WatchData(ctx context.Context, handler SessionRecvDataHandler) concurrent.IWatcher
-	// SendEvent 发送自定义事件
-	SendEvent(event transport.IEvent) error
-	// WatchEvent 监听自定义事件
-	WatchEvent(ctx context.Context, handler SessionRecvEventHandler) concurrent.IWatcher
-	// SendDataChan 发送数据的channel
-	SendDataChan() chan<- binaryutil.RecycleBytes
-	// RecvDataChan 接收数据的channel
-	RecvDataChan() <-chan binaryutil.RecycleBytes
-	// SendEventChan 发送自定义事件的channel
-	SendEventChan() chan<- transport.IEvent
-	// RecvEventChan 接收自定义事件的channel
-	RecvEventChan() <-chan transport.IEvent
+	// Id 获取会话Id
+	Id() uid.Id
+	// UserId 获取鉴权用户Id
+	UserId() string
+	// Token 获取鉴权token
+	Token() string
+	// Extensions 获取鉴权扩展数据
+	Extensions() []byte
+	// State 获取会话状态
+	State() SessionState
+	// NetAddr 获取网络地址
+	NetAddr() NetAddr
+	// Migrations 获取会话连接迁移次数
+	Migrations() int64
+	// DataIO 获取数据IO
+	DataIO() IDataIO
+	// EventIO 获取事件IO
+	EventIO() IEventIO
 	// Close 关闭
-	Close(err error) async.AsyncRet
+	Close(err error) async.Future
 	// Closed 已关闭
-	Closed() async.AsyncRet
+	Closed() async.Future
 }
 
 type _Session struct {
 	context.Context
-	sync.Mutex
-	terminate       context.CancelCauseFunc
-	terminated      chan async.Ret
-	options         _SessionOptions
+	close           context.CancelCauseFunc
+	closed          async.FutureVoid
 	gate            *_Gate
 	id              uid.Id
 	userId          string
 	token           string
-	state           SessionState
+	extensions      []byte
+	state           atomic.Int32
+	netAddr         atomic.Pointer[NetAddr]
 	transceiver     transport.Transceiver
 	eventDispatcher transport.EventDispatcher
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
-	resumeChan      chan struct{}
-	resumeTimes     int
-	dataWatchers    concurrent.LockedSlice[*_DataWatcher]
-	eventWatchers   concurrent.LockedSlice[*_EventWatcher]
+	migrationMutex  sync.Mutex
+	migrationChan   chan struct{}
+	migrations      atomic.Int64
+	dataIO          _SessionDataIO
+	eventIO         _SessionEventIO
+	stringerOnce    sync.Once
+	stringerCache   string
 }
 
 // String implements fmt.Stringer
 func (s *_Session) String() string {
-	return fmt.Sprintf(`{"id":%q, "user_id":%q, "token":%q, "state":%d}`, s.GetId(), s.GetUserId(), s.GetToken(), s.GetState())
+	s.stringerOnce.Do(func() {
+		s.stringerCache = fmt.Sprintf(`{"id":%q,"user_id":%q}`, s.Id(), s.UserId())
+	})
+	return s.stringerCache
 }
 
-// GetServiceContext 获取服务上下文
-func (s *_Session) GetServiceContext() service.Context {
-	return s.gate.svcCtx
-}
-
-// GetId 获取会话Id
-func (s *_Session) GetId() uid.Id {
+// Id 获取会话Id
+func (s *_Session) Id() uid.Id {
 	return s.id
 }
 
-// GetUserId 获取用户Id
-func (s *_Session) GetUserId() string {
+// UserId 获取鉴权用户Id
+func (s *_Session) UserId() string {
 	return s.userId
 }
 
-// GetToken 获取token
-func (s *_Session) GetToken() string {
+// Token 获取鉴权token
+func (s *_Session) Token() string {
 	return s.token
 }
 
-// GetState 获取会话状态
-func (s *_Session) GetState() SessionState {
-	s.Lock()
-	defer s.Unlock()
-	return s.state
+// Extensions 获取鉴权扩展数据
+func (s *_Session) Extensions() []byte {
+	return s.extensions
 }
 
-// GetLocalAddr 获取本地地址
-func (s *_Session) GetLocalAddr() net.Addr {
-	s.Lock()
-	defer s.Unlock()
-	return s.transceiver.Conn.LocalAddr()
+// State 获取会话状态
+func (s *_Session) State() SessionState {
+	return SessionState(s.state.Load())
 }
 
-// GetRemoteAddr 获取对端地址
-func (s *_Session) GetRemoteAddr() net.Addr {
-	s.Lock()
-	defer s.Unlock()
-	return s.transceiver.Conn.RemoteAddr()
+// NetAddr 获取网络地址
+func (s *_Session) NetAddr() NetAddr {
+	return *s.netAddr.Load()
 }
 
-// GetResumeTimes 获取会话恢复次数
-func (s *_Session) GetResumeTimes() int {
-	s.Lock()
-	defer s.Unlock()
-	return s.resumeTimes
+// Migrations 获取会话连接迁移次数
+func (s *_Session) Migrations() int64 {
+	return s.migrations.Load()
 }
 
-// GetSettings 获取设置
-func (s *_Session) GetSettings() SessionSettings {
-	s.Lock()
-	defer s.Unlock()
-	return SessionSettings{
-		session:                    s,
-		CurrStateChangedHandler:    slices.Clone(s.options.StateChangedHandler),
-		CurrSendDataChanSize:       len(s.options.SendEventChan),
-		CurrRecvDataChanSize:       len(s.options.RecvDataHandler),
-		CurrRecvDataChanRecyclable: s.options.RecvDataChanRecyclable,
-		CurrSendEventChanSize:      len(s.options.SendEventChan),
-		CurrRecvEventChanSize:      len(s.options.RecvEventChan),
-		CurrRecvDataHandler:        slices.Clone(s.options.RecvDataHandler),
-		CurrRecvEventHandler:       slices.Clone(s.options.RecvEventHandler),
-	}
+// DataIO 获取数据IO
+func (s *_Session) DataIO() IDataIO {
+	return &s.dataIO
 }
 
-// SendData 发送数据
-func (s *_Session) SendData(data []byte) error {
-	select {
-	case <-s.Done():
-		return context.Canceled
-	default:
-		break
-	}
-	return s.trans.SendData(data)
-}
-
-// WatchData 监听数据
-func (s *_Session) WatchData(ctx context.Context, handler SessionRecvDataHandler) concurrent.IWatcher {
-	return s.newDataWatcher(ctx, handler)
-}
-
-// SendEvent 发送自定义事件
-func (s *_Session) SendEvent(event transport.IEvent) error {
-	select {
-	case <-s.Done():
-		return context.Canceled
-	default:
-		break
-	}
-	return transport.Retry{
-		Transceiver: &s.transceiver,
-		Times:       s.gate.options.IORetryTimes,
-	}.Send(s.transceiver.Send(event))
-}
-
-// WatchEvent 监听自定义事件
-func (s *_Session) WatchEvent(ctx context.Context, handler SessionRecvEventHandler) concurrent.IWatcher {
-	return s.newEventWatcher(ctx, handler)
-}
-
-// SendDataChan 发送数据的channel
-func (s *_Session) SendDataChan() chan<- binaryutil.RecycleBytes {
-	if s.options.SendDataChan == nil {
-		log.Panicf(s.gate.svcCtx, "send data channel size less equal 0, can't be used")
-	}
-	return s.options.SendDataChan
-}
-
-// RecvDataChan 接收数据的channel
-func (s *_Session) RecvDataChan() <-chan binaryutil.RecycleBytes {
-	if s.options.RecvDataChan == nil {
-		log.Panicf(s.gate.svcCtx, "receive data channel size less equal 0, can't be used")
-	}
-	return s.options.RecvDataChan
-}
-
-// SendEventChan 发送自定义事件的channel
-func (s *_Session) SendEventChan() chan<- transport.IEvent {
-	if s.options.SendEventChan == nil {
-		log.Panicf(s.gate.svcCtx, "send event channel size less equal 0, can't be used")
-	}
-	return s.options.SendEventChan
-}
-
-// RecvEventChan 接收自定义事件的channel
-func (s *_Session) RecvEventChan() <-chan transport.IEvent {
-	if s.options.RecvEventChan == nil {
-		log.Panicf(s.gate.svcCtx, "receive event channel size less equal 0, can't be used")
-	}
-	return s.options.RecvEventChan
+// EventIO 获取事件IO
+func (s *_Session) EventIO() IEventIO {
+	return &s.eventIO
 }
 
 // Close 关闭
-func (s *_Session) Close(err error) async.AsyncRet {
-	s.terminate(err)
-	return s.terminated
+func (s *_Session) Close(err error) async.Future {
+	s.close(err)
+	return s.closed.Out()
 }
 
 // Closed 已关闭
-func (s *_Session) Closed() async.AsyncRet {
-	return s.terminated
+func (s *_Session) Closed() async.Future {
+	return s.closed.Out()
+}
+
+// setState 调整会话状态
+func (s *_Session) setState(state SessionState) {
+	s.state.Store(int32(state))
+}
+
+// handleHeartbeat 处理Heartbeat消息事件
+func (s *_Session) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
+	if event.Flags.Is(gtp.Flag_Ping) {
+		log.L(s.gate.svcCtx).Debug("session receive ping", zap.String("session_id", s.Id().String()))
+	} else {
+		log.L(s.gate.svcCtx).Debug("session receive pong", zap.String("session_id", s.Id().String()))
+	}
 }

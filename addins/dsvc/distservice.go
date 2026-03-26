@@ -23,8 +23,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+	"unique"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/broker"
@@ -35,75 +39,204 @@ import (
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/netpath"
 	"git.golaxy.org/framework/utils/concurrent"
-	"sync"
-	"time"
-	"unique"
+	"go.uber.org/zap"
 )
 
 // IDistService 分布式服务支持
 type IDistService interface {
-	// GetNodeDetails 获取节点地址信息
-	GetNodeDetails() *NodeDetails
-	// GetFutures 获取异步模型Future控制器
-	GetFutures() *concurrent.Futures
-	// SendMsg 发送消息
-	SendMsg(dst string, msg gap.Msg) error
-	// WatchMsg 监听消息（优先级高）
-	WatchMsg(ctx context.Context, handler RecvMsgHandler) concurrent.IWatcher
+	// NodeDetails 获取节点地址信息
+	NodeDetails() *NodeDetails
+	// FutureController 获取异步模型Future控制器
+	FutureController() *concurrent.FutureController
+	// Send 发送消息
+	Send(dst string, msg gap.Msg) error
+	// Listen 监听消息
+	Listen(ctx context.Context, handler MsgHandler) error
 }
 
 func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
 	return &_DistService{
-		options: option.Make(With.Default(), setting...),
+		options: option.New(With.Default(), setting...),
 	}
 }
 
 type _DistService struct {
-	svcCtx       service.Context
-	ctx          context.Context
-	terminate    context.CancelFunc
-	wg           sync.WaitGroup
-	options      DistServiceOptions
-	registry     discovery.IRegistry
-	broker       broker.IBroker
-	dsync        dsync.IDistSync
-	details      *NodeDetails
-	encoder      *codec.Encoder
-	decoder      *codec.Decoder
-	futures      *concurrent.Futures
-	deduplicator *concurrent.Deduplicator
-	msgWatchers  concurrent.LockedSlice[*_MsgWatcher]
-	sendMutex    sync.Mutex
+	svcCtx           service.Context
+	ctx              context.Context
+	terminate        context.CancelFunc
+	barrier          generic.Barrier
+	options          DistServiceOptions
+	registry         discovery.IRegistry
+	broker           broker.IBroker
+	dsync            dsync.IDistSync
+	details          *NodeDetails
+	encoder          *codec.Encoder
+	decoder          *codec.Decoder
+	futureController *concurrent.FutureController
+	listeners        concurrent.Listeners[MsgHandler, _BrokerMsg]
 }
 
 // Init 初始化插件
 func (d *_DistService) Init(svcCtx service.Context) {
-	log.Infof(svcCtx, "init addin %q", self.Name)
+	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	d.svcCtx = svcCtx
 	d.ctx, d.terminate = context.WithCancel(context.Background())
 
 	// 获取依赖的插件
-	d.registry = discovery.Using(d.svcCtx)
-	d.broker = broker.Using(d.svcCtx)
-	d.dsync = dsync.Using(d.svcCtx)
+	d.registry = discovery.AddIn.Require(svcCtx)
+	d.broker = broker.AddIn.Require(svcCtx)
+	d.dsync = dsync.AddIn.Require(svcCtx)
+
+	// 检测broker的交付模式
+	if d.broker.DeliveryReliability() != broker.DeliveryReliability_AtMostOnce {
+		log.L(svcCtx).Panic("broker delivery reliability must be at most once")
+	}
 
 	// 初始化消息包编解码器
-	d.decoder = codec.NewDecoder(d.options.DecoderMsgCreator)
+	d.decoder = codec.NewDecoder(d.options.MsgCreator)
 	d.encoder = codec.NewEncoder()
 
-	// 初始化异步模型Future
-	d.futures = concurrent.NewFutures(d.ctx, d.options.FutureTimeout)
-
-	// 初始化消息去重器
-	d.deduplicator = concurrent.NewDeduplicator()
-
-	// 初始化监听器
-	d.msgWatchers = concurrent.MakeLockedSlice[*_MsgWatcher](0, 0)
+	// 初始化异步模型Future控制器
+	d.futureController = concurrent.NewFutureController(d.ctx, d.options.FutureTimeout)
 
 	// 初始化地址信息
+	d.initNodeDetails()
+
+	log.L(svcCtx).Info("service node is starting",
+		zap.String("service", svcCtx.Name()),
+		zap.String("node", svcCtx.Id().String()),
+		log.JSON("details", d.details))
+
+	// 加分布式锁
+	mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.Id().String()))
+	if err := mutex.Lock(svcCtx); err != nil {
+		log.L(svcCtx).Panic("lock dsync mutex failed", zap.String("name", mutex.Name()), zap.Error(err))
+	}
+	defer mutex.Unlock(context.Background())
+
+	// 检查服务节点是否已被注册
+	_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.Id())
+	if err == nil {
+		log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()))
+	}
+	if !errors.Is(err, discovery.ErrRegistrationNotFound) {
+		log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()), zap.Error(err))
+	}
+
+	// 订阅消息事件
+	subs := []async.Future{
+		// 订阅全服消息事件
+		d.subscribe(d.details.GlobalBroadcastAddr, ""),
+		d.subscribe(d.details.GlobalBalanceAddr, "balance"),
+
+		// 订阅服务类型消息事件
+		d.subscribe(d.details.BroadcastAddr, ""),
+		d.subscribe(d.details.BalanceAddr, "balance"),
+
+		// 订阅服务节点消息事件
+		d.subscribe(d.details.LocalAddr, ""),
+	}
+
+	// 服务节点信息
+	node := &discovery.Node{
+		Id:      svcCtx.Id(),
+		Address: d.details.LocalAddr,
+		Version: d.options.Version,
+		Meta:    d.options.Meta,
+	}
+
+	// 注册服务节点
+	reg, err := d.registry.RegisterNode(svcCtx, svcCtx.Name(), node, discovery.With.TTL(d.options.RegistrationTTL), discovery.With.AutoKeepAlive(true))
+	if err != nil {
+		log.L(svcCtx).Panic("register service node failed",
+			zap.String("service", svcCtx.Name()),
+			zap.String("node", svcCtx.Id().String()),
+			zap.Error(err))
+	}
+
+	log.L(svcCtx).Info("service node is started",
+		zap.String("service", svcCtx.Name()),
+		zap.String("node", svcCtx.Id().String()),
+		log.JSON("details", d.details))
+
+	d.barrier.Join(1)
+	go func() {
+		defer d.barrier.Done()
+		<-d.ctx.Done()
+		// 取消注册服务节点
+		reg.Deregister(context.Background())
+		// 等待消息事件已取消订阅
+		for _, sub := range subs {
+			<-sub.Done()
+		}
+		// 刷新消息中间件缓存
+		d.broker.Flush(context.Background())
+	}()
+}
+
+// Shut 关闭插件
+func (d *_DistService) Shut(svcCtx service.Context) {
+	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
+
+	d.terminate()
+	d.barrier.Close()
+	d.barrier.Wait()
+}
+
+// NodeDetails 获取节点地址信息
+func (d *_DistService) NodeDetails() *NodeDetails {
+	return d.details
+}
+
+// FutureController 获取异步模型Future控制器
+func (d *_DistService) FutureController() *concurrent.FutureController {
+	return d.futureController
+}
+
+// Send 发送消息
+func (d *_DistService) Send(dst string, msg gap.Msg) error {
+	if msg == nil {
+		return fmt.Errorf("dsvc: %w: msg is nil", core.ErrArgs)
+	}
+
+	mpBuf, err := d.encoder.Encode(
+		gap.Origin{Svc: d.svcCtx.Name(), Addr: d.details.LocalAddr, Timestamp: time.Now().UnixMilli()},
+		0,
+		msg,
+	)
+	if err != nil {
+		log.L(d.svcCtx).Error("encode message failed",
+			zap.String("dst", dst),
+			zap.Uint32("msg", msg.MsgId()),
+			zap.Error(err))
+		return fmt.Errorf("dsvc: %w", err)
+	}
+	defer mpBuf.Release()
+
+	err = d.broker.Publish(d.ctx, dst, mpBuf.Payload())
+	if err != nil {
+		log.L(d.svcCtx).Error("publish message failed",
+			zap.String("dst", dst),
+			zap.Uint32("msg", msg.MsgId()),
+			zap.Error(err))
+		return fmt.Errorf("dsvc: %w", err)
+	}
+
+	return nil
+}
+
+// Listen 监听消息
+func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) error {
+	if handler == nil {
+		return errors.New("dsvc: handler is nil")
+	}
+	return d.addListener(ctx, handler)
+}
+
+func (d *_DistService) initNodeDetails() {
 	details := &NodeDetails{}
-	sep := d.broker.GetSeparator()
+	sep := d.broker.Separator()
 
 	details.DomainRoot = netpath.Domain{
 		Path: unique.Make(d.options.DomainRoot).Value(),
@@ -124,131 +257,18 @@ func (d *_DistService) Init(svcCtx service.Context) {
 
 	details.GlobalBroadcastAddr = details.DomainBroadcast.Path
 	details.GlobalBalanceAddr = details.DomainBalance.Path
-	details.BroadcastAddr = details.MakeBroadcastAddr(d.svcCtx.GetName())
-	details.BalanceAddr = details.MakeBalanceAddr(d.svcCtx.GetName())
-	details.LocalAddr, _ = details.MakeNodeAddr(d.svcCtx.GetId())
+	details.BroadcastAddr = details.MakeBroadcastAddr(d.svcCtx.Name())
+	details.BalanceAddr = details.MakeBalanceAddr(d.svcCtx.Name())
+	details.LocalAddr, _ = details.MakeNodeAddr(d.svcCtx.Id())
 
 	d.details = details
-	log.Debugf(d.svcCtx, "service %q node %q details: %+v", d.svcCtx.GetName(), d.svcCtx.GetId(), d.details)
+}
 
-	// 加分布式锁
-	mutex := d.dsync.NewMutexp("service", d.svcCtx.GetName(), "init", d.svcCtx.GetId().String())()
-	if err := mutex.Lock(d.svcCtx); err != nil {
-		log.Panicf(d.svcCtx, "lock dsync mutex %q failed, %s", mutex.Name(), err)
-	}
-	defer mutex.Unlock(context.Background())
-
-	// 检查服务节点是否已被注册
-	_, err := d.registry.GetServiceNode(d.svcCtx, d.svcCtx.GetName(), d.svcCtx.GetId())
-	if err == nil {
-		log.Panicf(d.svcCtx, "check service %q node %q failed, already registered", d.svcCtx.GetName(), d.svcCtx.GetId())
-	}
-	if !errors.Is(err, discovery.ErrNotFound) {
-		log.Panicf(d.svcCtx, "check service %q node %q failed, %s", d.svcCtx.GetName(), d.svcCtx.GetId(), err)
-	}
-
-	// 订阅topic
-	subs := []broker.ISubscriber{
-		// 订阅全服topic
-		d.subscribe(d.details.GlobalBroadcastAddr, ""),
-		d.subscribe(d.details.GlobalBalanceAddr, "balance"),
-		// 订阅服务类型topic
-		d.subscribe(d.details.BroadcastAddr, ""),
-		d.subscribe(d.details.BalanceAddr, "balance"),
-		// 订阅服务节点topic
-		d.subscribe(d.details.LocalAddr, ""),
-	}
-
-	// 服务节点信息
-	serviceNode := &discovery.Service{
-		Name: d.svcCtx.GetName(),
-		Nodes: []discovery.Node{
-			{
-				Id:      d.svcCtx.GetId(),
-				Address: d.details.LocalAddr,
-				Version: d.options.Version,
-				Meta:    d.options.Meta,
-			},
-		},
-	}
-
-	// 注册服务
-	err = d.registry.Register(d.svcCtx, serviceNode, d.options.TTL)
+func (d *_DistService) subscribe(topic, queue string) async.Future {
+	unsubscribed, err := d.broker.SubscribeHandler(d.ctx, topic, generic.CastDelegateVoid1(d.handleEvent), broker.With.Queue(queue))
 	if err != nil {
-		log.Panicf(d.svcCtx, "register service %q node %q failed, %s", d.svcCtx.GetName(), d.svcCtx.GetId(), err)
+		log.L(d.svcCtx).Panic("subscribe service broker event failed", zap.String("topic", topic), zap.String("queue", queue), zap.Error(err))
 	}
-	log.Debugf(d.svcCtx, "register service %q node %q success", d.svcCtx.GetName(), d.svcCtx.GetId())
-
-	// 最少一次交付模式，需要消息去重
-	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
-		// 运行服务节点监听线程
-		d.wg.Add(1)
-		go d.watchingService()
-	}
-
-	// 运行主线程
-	d.wg.Add(1)
-	go d.mainLoop(serviceNode, subs)
-}
-
-// Shut 关闭插件
-func (d *_DistService) Shut(svcCtx service.Context) {
-	log.Infof(svcCtx, "shut addin %q", self.Name)
-
-	d.terminate()
-	d.wg.Wait()
-}
-
-// GetNodeDetails 获取节点地址信息
-func (d *_DistService) GetNodeDetails() *NodeDetails {
-	return d.details
-}
-
-// GetFutures 获取异步模型Future控制器
-func (d *_DistService) GetFutures() *concurrent.Futures {
-	return d.futures
-}
-
-// SendMsg 发送消息
-func (d *_DistService) SendMsg(dst string, msg gap.Msg) error {
-	if msg == nil {
-		return fmt.Errorf("dsvc: %w: msg is nil", core.ErrArgs)
-	}
-
-	var seq int64
-
-	// 最少一次交付模式，需要消息去重
-	if d.broker.GetDeliveryReliability() == broker.AtLeastOnce {
-		d.sendMutex.Lock()
-		defer d.sendMutex.Unlock()
-		seq = d.deduplicator.Make()
-	}
-
-	mpBuf, err := d.encoder.Encode(
-		gap.Origin{Svc: d.svcCtx.GetName(), Addr: d.details.LocalAddr, Timestamp: time.Now().UnixMilli()},
-		seq,
-		msg,
-	)
-	if err != nil {
-		return err
-	}
-	defer mpBuf.Release()
-
-	return d.broker.Publish(d.ctx, dst, mpBuf.Data())
-}
-
-// WatchMsg 监听消息（优先级高）
-func (d *_DistService) WatchMsg(ctx context.Context, handler RecvMsgHandler) concurrent.IWatcher {
-	return d.newMsgWatcher(ctx, handler)
-}
-
-func (d *_DistService) subscribe(topic, queue string) broker.ISubscriber {
-	sub, err := d.broker.Subscribe(d.ctx, topic,
-		broker.With.EventHandler(generic.CastDelegate1(d.handleEvent)),
-		broker.With.Queue(queue))
-	if err != nil {
-		log.Panicf(d.svcCtx, "subscribe topic %q queue %q failed, %s", topic, queue, err)
-	}
-	log.Debugf(d.svcCtx, "subscribe topic %q queue %q success", topic, queue)
-	return sub
+	log.L(d.svcCtx).Info("subscribe service broker event ok", zap.String("topic", topic), zap.String("queue", queue))
+	return unsubscribed
 }

@@ -22,38 +22,38 @@ package redisdb
 import (
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db/dbtypes"
+	"git.golaxy.org/framework/addins/db/dsn"
 	"github.com/elliotchance/pie/v2"
 )
 
 type RedisDBOptions struct {
-	DBInfos []*dbtypes.DBInfo
+	DBInfos []*dsn.DBInfo
 }
 
-var With _Option
+var With _RedisDBOption
 
-type _Option struct{}
+type _RedisDBOption struct{}
 
-func (_Option) Default() option.Setting[RedisDBOptions] {
+func (_RedisDBOption) Default() option.Setting[RedisDBOptions] {
 	return func(options *RedisDBOptions) {
 		With.DBInfos().Apply(options)
 	}
 }
 
-func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[RedisDBOptions] {
+func (_RedisDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[RedisDBOptions] {
 	return func(options *RedisDBOptions) {
-		infos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
+		infos = pie.Filter(infos, func(info *dsn.DBInfo) bool {
 			if info == nil {
 				return false
 			}
 			switch info.Type {
-			case dbtypes.Redis:
+			case dsn.Redis:
 				return true
 			}
 			return false
 		})
 
-		if len(infos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
+		if len(infos) != len(pie.Map(infos, func(info *dsn.DBInfo) string { return info.Tag })) {
 			exception.Panicf("db: %w: tags in db infos must be unique", exception.ErrArgs)
 		}
 

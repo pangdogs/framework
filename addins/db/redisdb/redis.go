@@ -21,22 +21,28 @@ package redisdb
 
 import (
 	"context"
+	"reflect"
+
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db/dbtypes"
+	"git.golaxy.org/framework/addins/db/dsn"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/redis/go-redis/v9"
-	"reflect"
+	"go.uber.org/zap"
 )
 
 type IRedisDB interface {
-	RedisDB(tag string) *redis.Client
-	ReflectedRedisDB(tag string) reflect.Value
+	DB(tag string) *redis.Client
+	ReflectedDB(tag string) reflect.Value
+}
+
+func DB(svcCtx service.Context, tag string) *redis.Client {
+	return AddIn.Require(svcCtx).DB(tag)
 }
 
 func newRedisDB(settings ...option.Setting[RedisDBOptions]) IRedisDB {
 	return &_RedisDB{
-		options: option.Make(With.Default(), settings...),
+		options: option.New(With.Default(), settings...),
 		dbs:     make(map[string]*_RedisClient),
 	}
 }
@@ -53,7 +59,7 @@ type _RedisDB struct {
 }
 
 func (r *_RedisDB) Init(svcCtx service.Context) {
-	log.Infof(svcCtx, "init addin %q", self.Name)
+	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	r.svcCtx = svcCtx
 
@@ -67,19 +73,19 @@ func (r *_RedisDB) Init(svcCtx service.Context) {
 	}
 
 	if len(r.dbs) <= 0 {
-		log.Warn(svcCtx, "no redis db has been connected")
+		log.L(svcCtx).Warn("no sql db has been connected")
 	}
 }
 
 func (r *_RedisDB) Shut(svcCtx service.Context) {
-	log.Infof(svcCtx, "shut addin %q", self.Name)
+	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	for _, db := range r.dbs {
 		db.client.Close()
 	}
 }
 
-func (r *_RedisDB) RedisDB(tag string) *redis.Client {
+func (r *_RedisDB) DB(tag string) *redis.Client {
 	cli := r.dbs[tag]
 	if cli == nil {
 		return nil
@@ -87,7 +93,7 @@ func (r *_RedisDB) RedisDB(tag string) *redis.Client {
 	return cli.client
 }
 
-func (r *_RedisDB) ReflectedRedisDB(tag string) reflect.Value {
+func (r *_RedisDB) ReflectedDB(tag string) reflect.Value {
 	cli := r.dbs[tag]
 	if cli == nil {
 		return reflect.Value{}
@@ -95,19 +101,27 @@ func (r *_RedisDB) ReflectedRedisDB(tag string) reflect.Value {
 	return cli.reflected
 }
 
-func (r *_RedisDB) connectToDB(info *dbtypes.DBInfo) *redis.Client {
+func (r *_RedisDB) connectToDB(info *dsn.DBInfo) *redis.Client {
 	opt, err := redis.ParseURL(info.ConnStr)
 	if err != nil {
-		log.Panicf(r.svcCtx, "parse db conn str %q failed, %v", info.ConnStr, err)
+		log.L(r.svcCtx).Panic("parse db conn str failed",
+			zap.String("db_type", info.Type),
+			zap.String("conn_str", info.ConnStr),
+			zap.Error(err))
 	}
 
 	rdb := redis.NewClient(opt)
 
 	_, err = rdb.Ping(context.Background()).Result()
 	if err != nil {
-		log.Panicf(r.svcCtx, "ping db %q failed, %s", info.ConnStr, err)
+		log.L(r.svcCtx).Panic("ping db failed",
+			zap.String("db_type", info.Type),
+			zap.String("conn_str", info.ConnStr),
+			zap.Error(err))
 	}
 
-	log.Infof(r.svcCtx, "conn to db %q ok", info.ConnStr)
+	log.L(r.svcCtx).Info("connect to db ok",
+		zap.String("db_type", info.Type),
+		zap.String("conn_str", info.ConnStr))
 	return rdb
 }

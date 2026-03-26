@@ -21,22 +21,21 @@ package dsync
 
 import (
 	"errors"
+
 	"git.golaxy.org/core/utils/option"
 )
 
 var (
-	// ErrNotAcquired is an error indicating that the distributed lock was not acquired. It is returned by IDistMutex.Unlock and IDistMutex.Extend when the lock was not successfully acquired or has expired.
+	// ErrNotAcquired 锁未获取
 	ErrNotAcquired = errors.New("dsync: lock is not acquired")
+	// ErrAlreadyAcquired 重复加锁
+	ErrAlreadyAcquired = errors.New("dsync: lock is already acquired")
 )
 
-// IDistSync represents a distributed synchronization mechanism.
+// IDistSync 分布式同步接口
 type IDistSync interface {
-	// NewMutex returns a new distributed mutex with given name.
+	// NewMutex 创建分布式锁
 	NewMutex(name string, settings ...option.Setting[DistMutexOptions]) IDistMutex
-	// NewMutexf returns a new distributed mutex using a formatted string.
-	NewMutexf(format string, args ...any) func(settings ...option.Setting[DistMutexOptions]) IDistMutex
-	// NewMutexp returns a new distributed mutex using elements.
-	NewMutexp(elems ...string) func(settings ...option.Setting[DistMutexOptions]) IDistMutex
-	// GetSeparator return name path separator.
-	GetSeparator() string
+	// Separator 获取分隔符
+	Separator() string
 }

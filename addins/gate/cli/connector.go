@@ -24,16 +24,18 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"strings"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/utils/concurrent"
+	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
-	"net"
-	"net/url"
-	"strings"
 )
 
 // _Connector 网络连接器
@@ -99,14 +101,13 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		}
 	}()
 
-	client = ctor.newClient(ctx, conn, endpoint)
+	client = ctor.newClient(ctx, endpoint)
 
 	err = ctor.handshake(ctx, conn, client)
 	if err != nil {
 		return nil, err
 	}
 
-	client.wg.Add(1)
 	go client.mainLoop()
 
 	return client, nil
@@ -120,7 +121,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 	select {
 	case <-client.Done():
-		return context.Canceled
+		return client.Err()
 	default:
 		break
 	}
@@ -129,7 +130,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 	switch ctor.options.NetProtocol {
 	case WebSocket:
-		ep := client.GetEndpoint()
+		ep := client.Endpoint()
 
 		epURL, err := url.Parse(ep)
 		if err != nil {
@@ -158,7 +159,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 		}
 
 	default:
-		conn, err = newDialer(&ctor.options).DialContext(client, "tcp", client.GetEndpoint())
+		conn, err = newDialer(&ctor.options).DialContext(client, "tcp", client.Endpoint())
 		if err != nil {
 			return err
 		}
@@ -186,40 +187,51 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 }
 
 // newClient 创建客户端
-func (ctor *_Connector) newClient(ctx context.Context, conn net.Conn, endpoint string) *Client {
+func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client {
 	client := &Client{
-		options:  ctor.options,
-		endpoint: endpoint,
-		logger:   ctor.options.ZapLogger.Sugar(),
+		closed:        async.NewFutureVoid(),
+		options:       ctor.options,
+		endpoint:      endpoint,
+		migrationChan: make(chan struct{}),
+		logger:        ctor.options.Logger,
 	}
+	client.Context, client.close = context.WithCancelCause(ctx)
 
-	client.Context, client.terminate = context.WithCancelCause(ctx)
-	client.terminated = async.MakeAsyncRet()
-	client.transceiver.Conn = conn
+	// 初始化日志
+	if client.Logger == nil {
+		client.logger = zap.NewNop()
+	}
+	client.sugarLogger = client.logger.Sugar()
 
 	// 初始化消息事件分发器
+	client.eventDispatcher.AutoRecover = ctor.options.AutoRecover
+	client.eventDispatcher.ReportError = ctor.options.ReportError
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
-	client.eventDispatcher.EventHandler = generic.CastDelegate1(client.trans.HandleRecvEvent, client.ctrl.HandleRecvEvent, client.handleRecvEventChan, client.handleRecvEvent)
+	client.eventDispatcher.EventHandler = generic.CastDelegateVoid1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.eventIO.handleEvent)
 
 	// 初始化传输协议
+	client.trans.AutoRecover = ctor.options.AutoRecover
+	client.trans.ReportError = ctor.options.ReportError
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.options.IORetryTimes
-	client.trans.PayloadHandler = generic.CastDelegate1(client.handleRecvDataChan, client.handleRecvPayload)
+	client.trans.PayloadHandler = generic.CastDelegateVoid1(client.dataIO.handlePayload)
 
 	// 初始化控制协议
+	client.ctrl.AutoRecover = ctor.options.AutoRecover
+	client.ctrl.ReportError = ctor.options.ReportError
 	client.ctrl.Transceiver = &client.transceiver
 	client.ctrl.RetryTimes = ctor.options.IORetryTimes
-	client.ctrl.HeartbeatHandler = generic.CastDelegate1(client.handleRecvHeartbeat)
-	client.ctrl.SyncTimeHandler = generic.CastDelegate1(client.handleRecvSyncTime)
-	client.ctrl.RstHandler = generic.CastDelegate1(client.handleRecvRst)
+	client.ctrl.HeartbeatHandler = generic.CastDelegateVoid1(client.handleHeartbeat)
+	client.ctrl.SyncTimeHandler = generic.CastDelegateVoid1(client.handleSyncTime)
+	client.ctrl.RstHandler = generic.CastDelegateVoid1(client.handleRst)
 
 	// 初始化异步模型Future控制器
-	client.futures = concurrent.NewFutures(client.Context, ctor.options.FutureTimeout)
+	client.futureController = concurrent.NewFutureController(client.Context, ctor.options.FutureTimeout)
 
-	// 初始化监听器
-	client.dataWatchers = concurrent.MakeLockedSlice[*_DataWatcher](0, 0)
-	client.eventWatchers = concurrent.MakeLockedSlice[*_EventWatcher](0, 0)
+	// 初始化IO
+	client.dataIO.init(client)
+	client.eventIO.init(client)
 
 	return client
 }

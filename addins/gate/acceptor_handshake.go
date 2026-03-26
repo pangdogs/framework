@@ -26,23 +26,24 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
+	"math/big"
+	"net"
+	"strings"
+
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
-	"math/big"
-	"net"
-	"strings"
 )
 
 // handshake 握手过程
 func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, error) {
 	// 编解码器构建器
 	acc.encoder = codec.NewEncoder()
-	acc.decoder = codec.NewDecoder(acc.gate.options.DecoderMsgCreator)
+	acc.decoder = codec.NewDecoder(acc.options.MsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
@@ -50,10 +51,10 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			Conn:         conn,
 			Encoder:      acc.encoder,
 			Decoder:      acc.decoder,
-			Timeout:      acc.gate.options.IOTimeout,
+			Timeout:      acc.options.IOTimeout,
 			Synchronizer: transport.NewUnsequencedSynchronizer(),
 		},
-		RetryTimes: acc.gate.options.IORetryTimes,
+		RetryTimes: acc.options.IORetryTimes,
 	}
 	defer handshake.Transceiver.Dispose()
 
@@ -62,7 +63,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	var cliRandom, servRandom []byte
 	var cliHelloHash, servHelloHash [sha256.Size]byte
 	var continueFlow, encryptionFlow, authFlow bool
-	var session *_Session
+	var sessionId uid.Id
+	var userId, token string
+	var extensions []byte
 
 	defer func() {
 		if cliRandom != nil {
@@ -84,42 +87,32 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 
 		// 检查客户端要求的会话是否存在，已存在需要走断线重连流程
-		if cliHello.Msg.SessionId != "" {
-			v, ok := acc.gate.getSession(uid.From(cliHello.Msg.SessionId))
+		continueFlow = cliHello.Msg.SessionId != ""
+		if continueFlow {
+			session, ok := acc.getSession(uid.From(cliHello.Msg.SessionId))
 			if !ok {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,
 					Message: fmt.Sprintf("session %q not exist", cliHello.Msg.SessionId),
 				}
 			}
-
-			session = v
-			continueFlow = true
+			sessionId, userId, token = session.Id(), session.UserId(), session.Token()
 		} else {
-			v, err := acc.newSession(conn)
-			if err != nil {
-				return transport.Event[*gtp.MsgHello]{}, err
-			}
-
-			// 调整会话状态为握手中
-			v.setState(SessionState_Handshake)
-
-			session = v
-			continueFlow = false
+			sessionId = acc.genSessionId()
 		}
 
 		// 检查是否同意使用客户端建议的加密方案
-		if acc.gate.options.AgreeClientEncryptionProposal {
+		if acc.options.AgreeClientEncryptionProposal {
 			cs = cliHello.Msg.CipherSuite
 		} else {
-			cs = acc.gate.options.EncCipherSuite
+			cs = acc.options.EncCipherSuite
 		}
 
 		// 检查是否同意使用客户端建议的压缩方案
-		if acc.gate.options.AgreeClientCompressionProposal {
+		if acc.options.AgreeClientCompressionProposal {
 			cm = cliHello.Msg.Compression
 		} else {
-			cm = acc.gate.options.Compression
+			cm = acc.options.Compression
 		}
 
 		// 开启加密时，需要交换随机数
@@ -153,14 +146,14 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			Flags: gtp.Flags(gtp.Flag_HelloDone),
 			Msg: &gtp.MsgHello{
 				Version:     gtp.Version_V1_0,
-				SessionId:   session.GetId().String(),
+				SessionId:   sessionId.String(),
 				Random:      servRandom,
 				CipherSuite: cs,
 				Compression: cm,
 			},
 		}
 
-		authFlow = len(acc.gate.options.Authenticator) > 0
+		authFlow = len(acc.options.Authenticator) > 0
 
 		// 标记是否开启加密
 		servHello.Flags.Set(gtp.Flag_Encryption, encryptionFlow)
@@ -205,7 +198,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 	// 开启加密时，与客户端交换秘钥
 	if encryptionFlow {
-		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, session.GetId())
+		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
 		if err != nil {
 			return nil, err
 		}
@@ -217,14 +210,12 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		return nil, err
 	}
 
-	var userId, token string
-
 	// 开启鉴权时，鉴权客户端
 	if authFlow {
 		err = handshake.ServerAuth(ctx, func(e transport.Event[*gtp.MsgAuth]) error {
 			// 断线重连流程，检查会话Id与token是否匹配，防止hack客户端猜测会话Id，恶意通过断线重连登录
 			if continueFlow {
-				if e.Msg.UserId != session.GetUserId() || e.Msg.Token != session.GetToken() {
+				if e.Msg.UserId != userId || e.Msg.Token != token {
 					return &transport.RstError{
 						Code:    gtp.Code_AuthFailed,
 						Message: "incorrect token",
@@ -232,9 +223,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
-			err := acc.gate.options.Authenticator.UnsafeCall(func(err, _ error) bool {
+			err := acc.options.Authenticator.UnsafeCall(func(err, _ error) bool {
 				return err != nil
-			}, acc.gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
+			}, acc._Gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_AuthFailed,
@@ -242,8 +233,11 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
-			userId = strings.Clone(e.Msg.UserId)
-			token = strings.Clone(e.Msg.Token)
+			if !continueFlow {
+				userId = strings.Clone(e.Msg.UserId)
+				token = strings.Clone(e.Msg.Token)
+				extensions = bytes.Clone(e.Msg.Extensions)
+			}
 
 			return nil
 		})
@@ -252,18 +246,25 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 	}
 
-	// 暂停会话的收发消息io，等握手结束后恢复
-	session.pauseIO()
-	defer session.continueIO()
-
+	var session *_Session
 	var sendSeq, recvSeq uint32
 
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
 		err = handshake.ServerContinue(ctx, func(e transport.Event[*gtp.MsgContinue]) error {
-			// 恢复会话
+			// 查询旧会话
+			var ok bool
+			session, ok = acc.getSession(sessionId)
+			if !ok {
+				return &transport.RstError{
+					Code:    gtp.Code_ContinueFailed,
+					Message: "session has expired",
+				}
+			}
+
+			// 旧会话迁移连接
 			var err error
-			sendSeq, recvSeq, err = session.resume(handshake.Transceiver.Conn, e.Msg.RecvSeq)
+			sendSeq, recvSeq, err = session.migrateConn(handshake.Transceiver.Conn, e.Msg.RecvSeq)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_ContinueFailed,
@@ -276,9 +277,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			return nil, err
 		}
 	} else {
-		// 初始化会话
-		sendSeq, recvSeq = session.init(handshake.Transceiver.Conn, handshake.Transceiver.Encoder,
-			handshake.Transceiver.Decoder, userId, token)
+		// 创建新会话，并初始化连接
+		session = acc.newSession(sessionId, userId, token, extensions)
+		sendSeq, recvSeq = session.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder)
 	}
 
 	// 通知客户端握手结束
@@ -296,31 +297,37 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		return nil, err
 	}
 
+	sendRst := func(code gtp.Code, message string) error {
+		err := &transport.RstError{
+			Code:    code,
+			Message: message,
+		}
+		ctrl := transport.CtrlProtocol{
+			Transceiver: handshake.Transceiver,
+			RetryTimes:  handshake.RetryTimes,
+		}
+		ctrl.SendRst(err)
+		return err
+	}
+
 	if continueFlow {
 		// 检测会话有效性
-		if !acc.gate.validateSession(session) {
-			err = &transport.RstError{
-				Code:    gtp.Code_ContinueFailed,
-				Message: fmt.Sprintf("session %q has expired", session.GetId()),
-			}
-
-			ctrl := transport.CtrlProtocol{
-				Transceiver: handshake.Transceiver,
-				RetryTimes:  handshake.RetryTimes,
-			}
-			ctrl.SendRst(err)
-
-			return nil, err
+		if !acc.validateSession(session) {
+			return nil, sendRst(gtp.Code_Reject, "session has expired")
 		}
 	} else {
-		// 存储会话
-		acc.gate.storeSession(session)
-
+		// 占用屏障
+		if !acc.barrier.Join(1) {
+			return nil, sendRst(gtp.Code_Shutdown, "service shutdown")
+		}
+		// 添加会话
+		if !acc.addSession(session) {
+			acc.barrier.Done()
+			return nil, sendRst(gtp.Code_Reject, "session can't be confirmed")
+		}
 		// 调整会话状态为已确认
 		session.setState(SessionState_Confirmed)
-
-		// 运行会话
-		session.gate.wg.Add(1)
+		// 启动会话主线程
 		go session.mainLoop()
 	}
 
@@ -352,7 +359,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
 		// 创建曲线
-		curve, err := method.NewNamedCurve(acc.gate.options.EncECDHENamedCurve)
+		curve, err := method.NewNamedCurve(acc.options.EncECDHENamedCurve)
 		if err != nil {
 			return err
 		}
@@ -407,16 +414,16 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 
 		if nonce != nil {
 			nonceBytes = nonce.Bytes()
-			nonceStepBytes = acc.gate.options.EncNonceStep.Bytes()
-			fetchNonce[0] = acc.newFetchNonce(nonce, acc.gate.options.EncNonceStep)
-			fetchNonce[1] = acc.newFetchNonce(nonce, acc.gate.options.EncNonceStep)
+			nonceStepBytes = acc.options.EncNonceStep.Bytes()
+			fetchNonce[0] = acc.newFetchNonce(nonce, acc.options.EncNonceStep)
+			fetchNonce[1] = acc.newFetchNonce(nonce, acc.options.EncNonceStep)
 		}
 
 		// 临时共享秘钥
 		var sharedKeyBytes []byte
 
 		// 加密后的hello消息
-		var encryptedHello binaryutil.RecycleBytes
+		var encryptedHello binaryutil.Bytes
 		defer encryptedHello.Release()
 
 		// 与客户端交换秘钥
@@ -424,18 +431,18 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 			transport.Event[*gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
 				Msg: &gtp.MsgECDHESecretKeyExchange{
-					NamedCurve:         acc.gate.options.EncECDHENamedCurve,
+					NamedCurve:         acc.options.EncECDHENamedCurve,
 					PublicKey:          servPubBytes,
 					IV:                 ivBytes,
 					Nonce:              nonceBytes,
 					NonceStep:          nonceStepBytes,
-					SignatureAlgorithm: acc.gate.options.EncSignatureAlgorithm,
+					SignatureAlgorithm: acc.options.EncSignatureAlgorithm,
 					Signature:          signature,
 				},
 			},
 			func(cliECDHE transport.Event[*gtp.MsgECDHESecretKeyExchange]) (transport.Event[*gtp.MsgChangeCipherSpec], error) {
 				// 检查客户端曲线类型
-				if cliECDHE.Msg.NamedCurve != acc.gate.options.EncECDHENamedCurve {
+				if cliECDHE.Msg.NamedCurve != acc.options.EncECDHENamedCurve {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: fmt.Sprintf("client ECDHESecretKeyExchange 'NamedCurve(%s)' is incorrect", cliECDHE.Msg.NamedCurve),
@@ -443,7 +450,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 
 				// 验证客户端签名
-				if acc.gate.options.EncVerifyClientSignature {
+				if acc.options.EncVerifyClientSignature {
 					if !cliECDHE.Flags.Is(gtp.Flag_Signature) {
 						return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
@@ -501,7 +508,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				return transport.Event[*gtp.MsgChangeCipherSpec]{
 					Flags: gtp.Flags(gtp.Flag_VerifyEncryption),
 					Msg: &gtp.MsgChangeCipherSpec{
-						EncryptedHello: encryptedHello.Data(),
+						EncryptedHello: encryptedHello.Payload(),
 					},
 				}, nil
 			}, func(cliChangeCipherSpec transport.Event[*gtp.MsgChangeCipherSpec]) error {
@@ -523,7 +530,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				}
 				defer decryptedHello.Release()
 
-				if bytes.Compare(decryptedHello.Data(), cliHelloHash[:]) != 0 {
+				if bytes.Compare(decryptedHello.Payload(), cliHelloHash[:]) != 0 {
 					return &transport.RstError{
 						Code:    gtp.Code_EncryptFailed,
 						Message: "verify hello failed",
@@ -699,26 +706,26 @@ func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompre
 		return nil, 0, err
 	}
 
-	return codec.NewCompression(compressionStream), acc.gate.options.CompressedSize, err
+	return codec.NewCompression(compressionStream), acc.options.CompressionThreshold, err
 }
 
 // sign 签名
 func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) ([]byte, error) {
 	// 无需签名
-	if acc.gate.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
+	if acc.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
 
 	// 必须设置私钥才能签名
-	if acc.gate.options.EncSignaturePrivateKey == nil {
+	if acc.options.EncSignaturePrivateKey == nil {
 		return nil, errors.New("option EncSignaturePrivateKey is nil, unable to perform the signing operation")
 	}
 
 	// 创建签名器
 	signer, err := method.NewSigner(
-		acc.gate.options.EncSignatureAlgorithm.AsymmetricEncryption,
-		acc.gate.options.EncSignatureAlgorithm.PaddingMode,
-		acc.gate.options.EncSignatureAlgorithm.Hash)
+		acc.options.EncSignatureAlgorithm.AsymmetricEncryption,
+		acc.options.EncSignatureAlgorithm.PaddingMode,
+		acc.options.EncSignatureAlgorithm.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -733,7 +740,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 	signBuf.Write(servPubBytes)
 
 	// 生成签名
-	signature, err := signer.Sign(acc.gate.options.EncSignaturePrivateKey, signBuf.Bytes())
+	signature, err := signer.Sign(acc.options.EncSignaturePrivateKey, signBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -744,7 +751,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 // verify 验证签名
 func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
-	if acc.gate.options.EncVerifySignaturePublicKey == nil {
+	if acc.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
 	}
 
@@ -766,5 +773,5 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 	signBuf.WriteString(sessionId.String())
 	signBuf.Write(cliPubBytes)
 
-	return signer.Verify(acc.gate.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
+	return signer.Verify(acc.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)
 }

@@ -22,9 +22,10 @@
 package gate
 
 import (
-	"git.golaxy.org/core/utils/types"
 	"net"
 	"syscall"
+
+	"git.golaxy.org/core/utils/types"
 )
 
 func newListenConfig(options *GateOptions) *net.ListenConfig {

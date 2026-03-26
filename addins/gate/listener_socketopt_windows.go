@@ -22,15 +22,16 @@
 package gate
 
 import (
-	"git.golaxy.org/core/utils/types"
 	"net"
 	"syscall"
+
+	"git.golaxy.org/core/utils/types"
 )
 
 func newListenConfig(options *GateOptions) *net.ListenConfig {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = types.NewCopiedT(types.Bool2Int[int](*options.TCPNoDelay))
+		noDelay = types.PointerT(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	recvBuf := options.TCPRecvBuf

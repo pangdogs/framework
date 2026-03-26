@@ -20,11 +20,12 @@
 package conf
 
 import (
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	"github.com/spf13/pflag"
-	"time"
 )
 
 // ConfigOptions 所有选项
@@ -41,12 +42,12 @@ type ConfigOptions struct {
 	AutoHotFixRemoteCheckingIntervalTime time.Duration  // 自动热更新远端配置检测间隔时间
 }
 
-var With _Option
+var With _ConfigOption
 
-type _Option struct{}
+type _ConfigOption struct{}
 
 // Default 默认值
-func (_Option) Default() option.Setting[ConfigOptions] {
+func (_ConfigOption) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		With.Defaults(nil).Apply(options)
 		With.Flags(nil).Apply(options)
@@ -60,42 +61,42 @@ func (_Option) Default() option.Setting[ConfigOptions] {
 }
 
 // Defaults 默认配置
-func (_Option) Defaults(dict map[string]any) option.Setting[ConfigOptions] {
+func (_ConfigOption) Defaults(dict map[string]any) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.Defaults = dict
 	}
 }
 
 // AutomaticEnv 合并环境变量
-func (_Option) AutomaticEnv(b bool) option.Setting[ConfigOptions] {
+func (_ConfigOption) AutomaticEnv(b bool) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.AutomaticEnv = b
 	}
 }
 
 // EnvPrefix 环境变量前缀
-func (_Option) EnvPrefix(prefix string) option.Setting[ConfigOptions] {
+func (_ConfigOption) EnvPrefix(prefix string) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.EnvPrefix = prefix
 	}
 }
 
 // Flags 启动命令参数
-func (_Option) Flags(flags *pflag.FlagSet) option.Setting[ConfigOptions] {
+func (_ConfigOption) Flags(flags *pflag.FlagSet) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.Flags = flags
 	}
 }
 
 // Local 本地配置
-func (_Option) Local(path string) option.Setting[ConfigOptions] {
+func (_ConfigOption) Local(path string) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.LocalPath = path
 	}
 }
 
 // Remote 远端配置
-func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
+func (_ConfigOption) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.RemoteProvider = provider
 		options.RemoteEndpoint = endpoint
@@ -104,17 +105,17 @@ func (_Option) Remote(provider, endpoint, path string) option.Setting[ConfigOpti
 }
 
 // AutoHotFix 是否热更新
-func (_Option) AutoHotFix(b bool) option.Setting[ConfigOptions] {
+func (_ConfigOption) AutoHotFix(b bool) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.AutoHotFix = b
 	}
 }
 
 // AutoHotFixRemoteCheckingIntervalTime 自动热更新远端配置检测间隔时间
-func (_Option) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
+func (_ConfigOption) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		if d < 3*time.Second {
-			exception.Panicf("dentr: %w: option AutoHotFixRemoteCheckingIntervalTime can't be set to a value less than 3 second", core.ErrArgs)
+			exception.Panicf("conf: %w: option AutoHotFixRemoteCheckingIntervalTime can't be set to a value less than 3 seconds", core.ErrArgs)
 		}
 		options.AutoHotFixRemoteCheckingIntervalTime = d
 	}

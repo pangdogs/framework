@@ -21,29 +21,41 @@ package conf
 
 import (
 	"errors"
+	"sync"
+	"time"
+
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
-	"sync"
-	"time"
+	"go.uber.org/zap"
 )
 
 // IConfig 配置接口
 type IConfig interface {
-	// AppConf 当前应用程序配置
-	AppConf() *viper.Viper
-	// ServiceConf 当前服务配置
-	ServiceConf() *viper.Viper
+	// App 当前应用程序配置
+	App() *viper.Viper
+	// Service 当前服务配置
+	Service() *viper.Viper
 	// Hotfix 热更新
 	Hotfix() error
 }
 
+// A 获取当前应用程序配置
+func A(provider service.Context) *viper.Viper {
+	return AddIn.Require(provider).App()
+}
+
+// S 获取当前服务配置
+func S(provider service.Context) *viper.Viper {
+	return AddIn.Require(provider).Service()
+}
+
 func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
 	return &_Config{
-		options: option.Make(With.Default(), settings...),
+		options: option.New(With.Default(), settings...),
 	}
 }
 
@@ -56,7 +68,7 @@ type _Config struct {
 
 // Init 初始化插件
 func (c *_Config) Init(svcCtx service.Context) {
-	log.Infof(svcCtx, "init addin %q", self.Name)
+	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	c.svcCtx = svcCtx
 	c.startupConf = viper.New()
@@ -81,21 +93,32 @@ func (c *_Config) Init(svcCtx service.Context) {
 		c.startupConf.SetConfigFile(c.options.LocalPath)
 
 		if err := c.startupConf.ReadInConfig(); err != nil {
-			log.Panicf(svcCtx, "read local config %q failed, %s", c.options.LocalPath, err)
+			log.L(svcCtx).Panic("read local config failed", zap.String("path", c.options.LocalPath), zap.Error(err))
 		}
 
-		log.Infof(svcCtx, "load local config %q config ok", c.options.LocalPath)
+		log.L(svcCtx).Info("load local config ok", zap.String("path", c.options.LocalPath))
 	}
 
 	if remote {
 		if err := c.startupConf.AddRemoteProvider(c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath); err != nil {
-			log.Panicf(svcCtx, `set remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.L(svcCtx).Panic("add remote provider failed",
+				zap.String("provider", c.options.RemoteProvider),
+				zap.String("endpoint", c.options.RemoteEndpoint),
+				zap.String("path", c.options.RemotePath),
+				zap.Error(err))
 		}
 		if err := c.startupConf.ReadRemoteConfig(); err != nil {
-			log.Panicf(svcCtx, `read remote config "%s - %s - %s" failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+			log.L(svcCtx).Panic("read remote config failed",
+				zap.String("provider", c.options.RemoteProvider),
+				zap.String("endpoint", c.options.RemoteEndpoint),
+				zap.String("path", c.options.RemotePath),
+				zap.Error(err))
 		}
 
-		log.Infof(svcCtx, `load remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+		log.L(svcCtx).Info("load remote config ok",
+			zap.String("provider", c.options.RemoteProvider),
+			zap.String("endpoint", c.options.RemoteEndpoint),
+			zap.String("path", c.options.RemotePath))
 	}
 
 	c.updateConf()
@@ -111,7 +134,7 @@ func (c *_Config) Init(svcCtx service.Context) {
 
 				c.updateConf()
 
-				log.Infof(svcCtx, "auto hotfix reload local config %q ok", c.options.LocalPath)
+				log.L(c.svcCtx).Info("auto hotfix reload local config ok", zap.String("path", c.options.LocalPath))
 			})
 			c.startupConf.WatchConfig()
 		}
@@ -127,13 +150,20 @@ func (c *_Config) Init(svcCtx service.Context) {
 					}
 
 					if err := c.startupConf.WatchRemoteConfig(); err != nil {
-						log.Errorf(svcCtx, `auto hotfix watch remote config "%s - %s - %s" changes failed, %s`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath, err)
+						log.L(c.svcCtx).Error("auto hotfix watch remote config failed",
+							zap.String("provider", c.options.RemoteProvider),
+							zap.String("endpoint", c.options.RemoteEndpoint),
+							zap.String("path", c.options.RemotePath),
+							zap.Error(err))
 						continue
 					}
 
 					c.updateConf()
 
-					log.Infof(svcCtx, `auto hotfix reload remote config "%s - %s - %s" ok`, c.options.RemoteProvider, c.options.RemoteEndpoint, c.options.RemotePath)
+					log.L(c.svcCtx).Info("auto hotfix reload remote config ok",
+						zap.String("provider", c.options.RemoteProvider),
+						zap.String("endpoint", c.options.RemoteEndpoint),
+						zap.String("path", c.options.RemotePath))
 				}
 			}()
 		}
@@ -142,16 +172,16 @@ func (c *_Config) Init(svcCtx service.Context) {
 
 // Shut 关闭插件
 func (c *_Config) Shut(svcCtx service.Context) {
-	log.Infof(svcCtx, "shut addin %q", self.Name)
+	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 }
 
-// AppConf 当前应用程序配置
-func (c *_Config) AppConf() *viper.Viper {
+// App 当前应用程序配置
+func (c *_Config) App() *viper.Viper {
 	return c.appConf
 }
 
-// ServiceConf 当前服务配置
-func (c *_Config) ServiceConf() *viper.Viper {
+// Service 当前服务配置
+func (c *_Config) Service() *viper.Viper {
 	return c.serviceConf
 }
 
@@ -165,6 +195,7 @@ func (c *_Config) Hotfix() error {
 
 	if local {
 		if err := c.startupConf.ReadInConfig(); err != nil {
+			log.L(c.svcCtx).Error("read local config failed", zap.String("path", c.options.LocalPath), zap.Error(err))
 			errs = append(errs, err)
 		} else {
 			update = true
@@ -173,6 +204,11 @@ func (c *_Config) Hotfix() error {
 
 	if remote {
 		if err := c.startupConf.ReadRemoteConfig(); err != nil {
+			log.L(c.svcCtx).Error("read remote config failed",
+				zap.String("provider", c.options.RemoteProvider),
+				zap.String("endpoint", c.options.RemoteEndpoint),
+				zap.String("path", c.options.RemotePath),
+				zap.Error(err))
 			errs = append(errs, err)
 		} else {
 			update = true
@@ -197,7 +233,7 @@ func (c *_Config) updateConf() {
 	appConf := viper.New()
 	appConf.MergeConfigMap(c.startupConf.AllSettings())
 
-	serviceConf := appConf.Sub(c.svcCtx.GetName())
+	serviceConf := appConf.Sub(c.svcCtx.Name())
 	if serviceConf == nil {
 		serviceConf = viper.New()
 	}

@@ -22,17 +22,17 @@ package gate
 import (
 	"context"
 	"errors"
+	"net"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp/codec"
-	"git.golaxy.org/framework/utils/concurrent"
-	"net"
 )
 
 // _Acceptor 网络连接接受器
 type _Acceptor struct {
-	gate    *_Gate
+	*_Gate
 	encoder *codec.Encoder
 	decoder *codec.Decoder
 }
@@ -40,57 +40,56 @@ type _Acceptor struct {
 // accept 接受网络连接
 func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 	select {
-	case <-acc.gate.ctx.Done():
+	case <-acc.ctx.Done():
 		return nil, errors.New("gate: service shutdown")
 	default:
 	}
-
-	ctx, _ := context.WithTimeout(acc.gate.ctx, acc.gate.options.AcceptTimeout)
-
+	ctx, _ := context.WithTimeout(acc.ctx, acc.options.AcceptTimeout)
 	return acc.handshake(ctx, conn)
 }
 
-// newSession 创建会话
-func (acc *_Acceptor) newSession(conn net.Conn) (*_Session, error) {
-	if conn == nil {
-		return nil, errors.New("gate: conn is nil")
-	}
+// genSessionId 生成会话ID
+func (acc *_Acceptor) genSessionId() uid.Id {
+	return uid.New()
+}
 
+// newSession 创建会话，无连接初始状态
+func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []byte) *_Session {
 	session := &_Session{
-		terminated: async.MakeAsyncRet(),
-		gate:       acc.gate,
-		id:         uid.New(),
-		state:      SessionState_Birth,
+		closed:        async.NewFutureVoid(),
+		gate:          acc._Gate,
+		id:            id,
+		userId:        userId,
+		token:         token,
+		extensions:    extensions,
+		migrationChan: make(chan struct{}),
 	}
-
-	session.Context, session.terminate = context.WithCancelCause(acc.gate.ctx)
-	session.transceiver.Conn = conn
-
-	// 初始化会话默认选项
-	sessionWith.Default()(&session.options)
-	sessionWith.SendDataChanSize(acc.gate.options.SessionSendDataChanSize)(&session.options)
-	sessionWith.RecvDataChanSize(acc.gate.options.SessionRecvDataChanSize, acc.gate.options.SessionRecvDataChanRecyclable)(&session.options)
-	sessionWith.SendEventChanSize(acc.gate.options.SessionSendEventChanSize)(&session.options)
-	sessionWith.RecvEventChanSize(acc.gate.options.SessionRecvEventChanSize)(&session.options)
+	session.Context, session.close = context.WithCancelCause(acc.ctx)
 
 	// 初始化消息事件分发器
+	session.eventDispatcher.AutoRecover = acc.svcCtx.AutoRecover()
+	session.eventDispatcher.ReportError = acc.svcCtx.ReportError()
 	session.eventDispatcher.Transceiver = &session.transceiver
-	session.eventDispatcher.RetryTimes = acc.gate.options.IORetryTimes
-	session.eventDispatcher.EventHandler = generic.CastDelegate1(session.trans.HandleRecvEvent, session.ctrl.HandleRecvEvent, session.handleRecvEventChan, session.handleRecvEvent)
+	session.eventDispatcher.RetryTimes = acc.options.IORetryTimes
+	session.eventDispatcher.EventHandler = generic.CastDelegateVoid1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.eventIO.handleEvent)
 
 	// 初始化传输协议
+	session.trans.AutoRecover = acc.svcCtx.AutoRecover()
+	session.trans.ReportError = acc.svcCtx.ReportError()
 	session.trans.Transceiver = &session.transceiver
-	session.trans.RetryTimes = acc.gate.options.IORetryTimes
-	session.trans.PayloadHandler = generic.CastDelegate1(session.handleRecvDataChan, session.handleRecvPayload)
+	session.trans.RetryTimes = acc.options.IORetryTimes
+	session.trans.PayloadHandler = generic.CastDelegateVoid1(session.dataIO.handlePayload)
 
 	// 初始化控制协议
+	session.ctrl.AutoRecover = acc.svcCtx.AutoRecover()
+	session.ctrl.ReportError = acc.svcCtx.ReportError()
 	session.ctrl.Transceiver = &session.transceiver
-	session.ctrl.RetryTimes = acc.gate.options.IORetryTimes
-	session.ctrl.HeartbeatHandler = generic.CastDelegate1(session.handleRecvHeartbeat)
+	session.ctrl.RetryTimes = acc.options.IORetryTimes
+	session.ctrl.HeartbeatHandler = generic.CastDelegateVoid1(session.handleHeartbeat)
 
-	// 初始化监听器
-	session.dataWatchers = concurrent.MakeLockedSlice[*_DataWatcher](0, 0)
-	session.eventWatchers = concurrent.MakeLockedSlice[*_EventWatcher](0, 0)
+	// 初始化IO
+	session.dataIO.init(session)
+	session.eventIO.init(session)
 
-	return session, nil
+	return session
 }

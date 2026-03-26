@@ -20,16 +20,12 @@
 package dsvc
 
 import (
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gap"
-	"time"
-)
-
-type (
-	RecvMsgHandler = generic.Delegate2[string, gap.MsgPacket, error] // 接收消息的处理器
 )
 
 // DistServiceOptions 所有选项
@@ -37,82 +33,86 @@ type DistServiceOptions struct {
 	Version           string            // 服务版本号
 	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
 	DomainRoot        string            // 服务地址根域
-	TTL               time.Duration     // 服务信息TTL
-	RefreshTTL        bool              // 主动刷新服务信息TTL
+	RegistrationTTL   time.Duration     // 服务注册信息TTL
 	FutureTimeout     time.Duration     // 异步模型Future超时时间
-	DecoderMsgCreator gap.IMsgCreator   // 消息包解码器的消息构建器
-	RecvMsgHandler    RecvMsgHandler    // 接收消息的处理器（优先级低于监控器）
+	ListenerInboxSize int               // 消息监听器的inbox缓存大小
+	MsgCreator        gap.IMsgCreator   // 消息包解码器的消息构建器
 }
 
-var With _Option
+var With _DistServiceOption
 
-type _Option struct{}
+type _DistServiceOption struct{}
 
 // Default 默认值
-func (_Option) Default() option.Setting[DistServiceOptions] {
+func (_DistServiceOption) Default() option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		With.Version("").Apply(options)
 		With.Meta(nil).Apply(options)
 		With.DomainRoot("svc").Apply(options)
-		With.TTL(0, false).Apply(options)
+		With.RegistrationTTL(30 * time.Second).Apply(options)
 		With.FutureTimeout(5 * time.Second).Apply(options)
-		With.DecoderMsgCreator(gap.DefaultMsgCreator()).Apply(options)
-		With.RecvMsgHandler(nil).Apply(options)
+		With.ListenerInboxSize(256 * 1024).Apply(options)
+		With.MsgCreator(gap.DefaultMsgCreator()).Apply(options)
 	}
 }
 
 // Version 服务版本号
-func (_Option) Version(version string) option.Setting[DistServiceOptions] {
+func (_DistServiceOption) Version(version string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.Version = version
 	}
 }
 
 // Meta 服务元数据，以键值对的形式保存附加信息
-func (_Option) Meta(meta map[string]string) option.Setting[DistServiceOptions] {
+func (_DistServiceOption) Meta(meta map[string]string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.Meta = meta
 	}
 }
 
 // DomainRoot 服务地址根域
-func (_Option) DomainRoot(path string) option.Setting[DistServiceOptions] {
+func (_DistServiceOption) DomainRoot(path string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.DomainRoot = path
 	}
 }
 
-// TTL 服务信息TTL
-func (_Option) TTL(ttl time.Duration, refresh bool) option.Setting[DistServiceOptions] {
+// RegistrationTTL 服务注册信息TTL
+func (_DistServiceOption) RegistrationTTL(ttl time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
-		options.TTL = ttl
-		options.RefreshTTL = refresh
+		if ttl <= 3*time.Second {
+			exception.Panicf("dsvc: %w: option RegistrationTTL can't be set to a value less equal 3 seconds", core.ErrArgs)
+		}
+		options.RegistrationTTL = ttl
 	}
 }
 
 // FutureTimeout 异步模型Future超时时间
-func (_Option) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
+func (_DistServiceOption) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if d <= 0 {
-			exception.Panicf("dsvc: %w: option FutureTimeout can't be set to a value less equal 0", core.ErrArgs)
+			exception.Panicf("dsvc: %w: option FutureTimeout can't be set to a value less equal 0 seconds", core.ErrArgs)
 		}
 		options.FutureTimeout = d
 	}
 }
 
-// DecoderMsgCreator 消息包解码器的消息构建器
-func (_Option) DecoderMsgCreator(mc gap.IMsgCreator) option.Setting[DistServiceOptions] {
+// ListenerInboxSize 消息监听器的inbox缓存大小
+func (_DistServiceOption) ListenerInboxSize(size int) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
-		if mc == nil {
-			exception.Panicf("dsvc: %w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
+		if size <= 0 {
+			exception.Panicf("dsvc: %w: option ListenerInboxSize can't be set to a value less equal 0", core.ErrArgs)
 		}
-		options.DecoderMsgCreator = mc
+		options.ListenerInboxSize = size
 	}
 }
 
-// RecvMsgHandler 接收消息的处理器
-func (_Option) RecvMsgHandler(handler RecvMsgHandler) option.Setting[DistServiceOptions] {
+// MsgCreator 消息包解码器的消息构建器
+func (_DistServiceOption) MsgCreator(mc gap.IMsgCreator) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
-		options.RecvMsgHandler = handler
+		if mc == nil {
+			exception.Panicf("dsvc: %w: option MsgCreator can't be assigned to nil", core.ErrArgs)
+		}
+		options.MsgCreator = mc
 	}
 }

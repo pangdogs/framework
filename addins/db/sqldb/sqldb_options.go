@@ -22,38 +22,38 @@ package sqldb
 import (
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db/dbtypes"
+	"git.golaxy.org/framework/addins/db/dsn"
 	"github.com/elliotchance/pie/v2"
 )
 
 type SQLDBOptions struct {
-	DBInfos []*dbtypes.DBInfo
+	DBInfos []*dsn.DBInfo
 }
 
-var With _Option
+var With _SQLDBOption
 
-type _Option struct{}
+type _SQLDBOption struct{}
 
-func (_Option) Default() option.Setting[SQLDBOptions] {
+func (_SQLDBOption) Default() option.Setting[SQLDBOptions] {
 	return func(options *SQLDBOptions) {
 		With.DBInfos().Apply(options)
 	}
 }
 
-func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[SQLDBOptions] {
+func (_SQLDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[SQLDBOptions] {
 	return func(options *SQLDBOptions) {
-		infos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
+		infos = pie.Filter(infos, func(info *dsn.DBInfo) bool {
 			if info == nil {
 				return false
 			}
 			switch info.Type {
-			case dbtypes.MySQL, dbtypes.PostgreSQL, dbtypes.SQLServer, dbtypes.SQLite:
+			case dsn.MySQL, dsn.PostgreSQL, dsn.SQLServer, dsn.SQLite:
 				return true
 			}
 			return false
 		})
 
-		if len(infos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
+		if len(infos) != len(pie.Map(infos, func(info *dsn.DBInfo) string { return info.Tag })) {
 			exception.Panicf("db: %w: tags in db infos must be unique", exception.ErrArgs)
 		}
 

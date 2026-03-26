@@ -19,10 +19,10 @@
 
 package log
 
-import "git.golaxy.org/core/define"
+import (
+	"git.golaxy.org/core/define"
+)
 
 var (
-	self  = define.AddInInterface[ILogger]()
-	Name  = self.Name
-	Using = self.Using
+	AddIn = define.AddIn(newLogger)
 )

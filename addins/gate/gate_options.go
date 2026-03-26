@@ -22,71 +22,65 @@ package gate
 import (
 	"crypto"
 	"crypto/tls"
+	"math/big"
+	"net"
+	"net/url"
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/net/gtp"
-	"git.golaxy.org/framework/net/gtp/transport"
 	"golang.org/x/net/websocket"
-	"math/big"
-	"net"
-	"net/url"
-	"time"
 )
 
 type (
-	WebSocketAddrResolver      = generic.Func1[*websocket.Conn, net.Addr]                          // WebSocket的地址解析器
-	Authenticator              = generic.Delegate5[IGate, net.Conn, string, string, []byte, error] // 鉴权客户端处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
-	SessionStateChangedHandler = generic.DelegateVoid3[ISession, SessionState, SessionState]       // 会话状态变化的处理器（args: [session, curState, lastState]）
-	SessionRecvDataHandler     = generic.Delegate2[ISession, []byte, error]                        // 会话接收的数据的处理器
-	SessionRecvEventHandler    = generic.Delegate2[ISession, transport.IEvent, error]              // 会话接收的自定义事件的处理器
+	WebSocketAddrResolver = generic.Func1[*websocket.Conn, net.Addr]                          // WebSocket的地址解析器
+	Authenticator         = generic.Delegate5[IGate, net.Conn, string, string, []byte, error] // 鉴权客户端处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
 )
 
+// GateOptions 网关所有选项
 type GateOptions struct {
-	TCPAddress                     string                     // TCP监听地址
-	TCPNoDelay                     *bool                      // TCP的NoDelay选项，nil表示使用系统默认值
-	TCPQuickAck                    *bool                      // TCP的QuickAck选项，nil表示使用系统默认值
-	TCPRecvBuf                     *int                       // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
-	TCPSendBuf                     *int                       // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
-	TCPLinger                      *int                       // TCP的PLinger选项，nil表示使用系统默认值
-	TCPTLSConfig                   *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
-	WebSocketURL                   *url.URL                   // WebSocket监听地址
-	WebSocketTLSConfig             *tls.Config                // TCP的TLS配置，nil表示不使用TLS加密链路
-	WebSocketLocalAddrResolver     WebSocketAddrResolver      // WebSocket的本地地址解析器
-	WebSocketRemoteAddrResolver    WebSocketAddrResolver      // WebSocket的对端地址解析器
-	IOTimeout                      time.Duration              // 网络io超时时间
-	IORetryTimes                   int                        // 网络io超时后的重试次数
-	IOBufferCap                    int                        // 网络io缓存容量（字节）
-	DecoderMsgCreator              gtp.IMsgCreator            // 消息包解码器的消息构建器
-	AgreeClientEncryptionProposal  bool                       // 是否同意使用客户端建议的加密方案
-	EncCipherSuite                 gtp.CipherSuite            // 加密通信中的密码学套件
-	EncNonceStep                   *big.Int                   // 加密通信中，使用需要nonce的加密算法时，每次加解密自增值
-	EncECDHENamedCurve             gtp.NamedCurve             // 加密通信中，在ECDHE交换秘钥时使用的曲线类型
-	EncSignatureAlgorithm          gtp.SignatureAlgorithm     // 加密通信中的签名算法
-	EncSignaturePrivateKey         crypto.PrivateKey          // 加密通信中，签名用的私钥
-	EncVerifyClientSignature       bool                       // 加密通信中，是否验证客户端签名
-	EncVerifySignaturePublicKey    crypto.PublicKey           // 加密通信中，验证客户端签名用的公钥
-	AgreeClientCompressionProposal bool                       // 是否同意使用客户端建议的压缩方案
-	Compression                    gtp.Compression            // 通信中的压缩函数
-	CompressedSize                 int                        // 通信中启用压缩阀值（字节），<=0表示不开启
-	AcceptTimeout                  time.Duration              // 接受连接超时时间
-	Authenticator                  Authenticator              // 鉴权客户端处理器
-	SessionInactiveTimeout         time.Duration              // 会话不活跃后的超时时间
-	SessionStateChangedHandler     SessionStateChangedHandler // 会话状态变化的处理器（优先级低于会话的处理器）
-	SessionSendDataChanSize        int                        // 会话默认发送数据的channel的大小，<=0表示不使用channel
-	SessionRecvDataChanSize        int                        // 会话默认接收数据的channel的大小，<=0表示不使用channel
-	SessionRecvDataChanRecyclable  bool                       // 会话默认接收数据的channel中是否使用可回收字节对象
-	SessionSendEventChanSize       int                        // 会话默认发送自定义事件的channel的大小，<=0表示不使用channel
-	SessionRecvEventChanSize       int                        // 会话默认接收自定义事件的channel的大小，<=0表示不使用channel
-	SessionRecvDataHandler         SessionRecvDataHandler     // 会话接收的数据的处理器（优先级低于会话的处理器）
-	SessionRecvEventHandler        SessionRecvEventHandler    // 会话接收的自定义事件的处理器（优先级低于会话的处理器）
+	TCPAddress                     string                 // TCP监听地址
+	TCPNoDelay                     *bool                  // TCP的NoDelay选项，nil表示使用系统默认值
+	TCPQuickAck                    *bool                  // TCP的QuickAck选项，nil表示使用系统默认值
+	TCPRecvBuf                     *int                   // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+	TCPSendBuf                     *int                   // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+	TCPLinger                      *int                   // TCP的Linger选项，nil表示使用系统默认值
+	TCPTLSConfig                   *tls.Config            // TCP的TLS配置，nil表示不使用TLS加密链路
+	WebSocketURL                   *url.URL               // WebSocket监听地址
+	WebSocketTLSConfig             *tls.Config            // WebSocket的TLS配置，nil表示不使用TLS加密链路
+	WebSocketLocalAddrResolver     WebSocketAddrResolver  // WebSocket的本地地址解析器
+	WebSocketRemoteAddrResolver    WebSocketAddrResolver  // WebSocket的对端地址解析器
+	IOTimeout                      time.Duration          // 网络io超时时间
+	IORetryTimes                   int                    // 网络io超时后的重试次数
+	IOBufferCap                    int                    // 网络io缓存容量（字节）
+	MsgCreator                     gtp.IMsgCreator        // 消息包解码器的消息构建器
+	AgreeClientEncryptionProposal  bool                   // 是否同意使用客户端建议的加密方案
+	EncCipherSuite                 gtp.CipherSuite        // 加密通信中的密码学套件
+	EncNonceStep                   *big.Int               // 加密通信中，使用需要nonce的加密算法时，每次加解密自增值
+	EncECDHENamedCurve             gtp.NamedCurve         // 加密通信中，在ECDHE交换秘钥时使用的曲线类型
+	EncSignatureAlgorithm          gtp.SignatureAlgorithm // 加密通信中的签名算法
+	EncSignaturePrivateKey         crypto.PrivateKey      // 加密通信中，签名用的私钥
+	EncVerifyClientSignature       bool                   // 加密通信中，是否验证客户端签名
+	EncVerifySignaturePublicKey    crypto.PublicKey       // 加密通信中，验证客户端签名用的公钥
+	AgreeClientCompressionProposal bool                   // 是否同意使用客户端建议的压缩方案
+	Compression                    gtp.Compression        // 通信中的压缩函数
+	CompressionThreshold           int                    // 通信中启用压缩阀值（字节），<=0表示不开启
+	AcceptTimeout                  time.Duration          // 接受连接超时时间
+	Authenticator                  Authenticator          // 鉴权客户端处理器
+	SessionInactiveTimeout         time.Duration          // 会话不活跃后的超时时间
+	SessionWatcherInboxSize        int                    // 会话监听器inbox缓存大小
+	SessionDataListenerInboxSize   int                    // 会话数据监听器inbox缓存大小
+	SessionEventListenerInboxSize  int                    // 会话事件监听器inbox缓存大小
 }
 
 var With _GateOption
 
 type _GateOption struct{}
 
+// Default 默认选项
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		With.TCPAddress("0.0.0.0:9090")(options)
@@ -102,8 +96,8 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.WebSocketRemoteAddrResolver(DefaultWebSocketRemoteAddrResolver)(options)
 		With.IOTimeout(3 * time.Second)(options)
 		With.IORetryTimes(3)(options)
-		With.IOBufferCap(1024 * 128)(options)
-		With.DecoderMsgCreator(gtp.DefaultMsgCreator())(options)
+		With.IOBufferCap(128 * 1024)(options)
+		With.MsgCreator(gtp.DefaultMsgCreator())(options)
 		With.AgreeClientEncryptionProposal(false)(options)
 		With.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
@@ -124,20 +118,17 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.EncVerifySignaturePublicKey(nil)(options)
 		With.AgreeClientCompressionProposal(false)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
-		With.CompressedSize(1024 * 32)(options)
-		With.AcceptTimeout(5 * time.Second)(options)
+		With.CompressionThreshold(64 * 1024)(options)
+		With.AcceptTimeout(10 * time.Second)(options)
 		With.Authenticator(nil)(options)
 		With.SessionInactiveTimeout(time.Minute)(options)
-		With.SessionStateChangedHandler(nil)(options)
-		With.SessionSendDataChanSize(0)(options)
-		With.SessionRecvDataChanSize(0, false)(options)
-		With.SessionSendEventChanSize(0)(options)
-		With.SessionRecvEventChanSize(0)(options)
-		With.SessionRecvDataHandler(nil)(options)
-		With.SessionRecvEventHandler(nil)(options)
+		With.SessionWatcherInboxSize(256 * 1024)(options)
+		With.SessionDataListenerInboxSize(128)(options)
+		With.SessionEventListenerInboxSize(128)(options)
 	}
 }
 
+// TCPAddress 设置TCP监听地址
 func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if addr != "" {
@@ -149,42 +140,49 @@ func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	}
 }
 
+// TCPNoDelay 设置TCP的NoDelay选项，nil表示使用系统默认值
 func (_GateOption) TCPNoDelay(b *bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPNoDelay = b
 	}
 }
 
+// TCPQuickAck 设置TCP的QuickAck选项，nil表示使用系统默认值
 func (_GateOption) TCPQuickAck(b *bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPQuickAck = b
 	}
 }
 
+// TCPRecvBuf 设置TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
 func (_GateOption) TCPRecvBuf(size *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPRecvBuf = size
 	}
 }
 
+// TCPSendBuf 设置TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
 func (_GateOption) TCPSendBuf(size *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPSendBuf = size
 	}
 }
 
+// TCPLinger 设置TCP的Linger选项，nil表示使用系统默认值
 func (_GateOption) TCPLinger(sec *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPLinger = sec
 	}
 }
 
+// TCPTLSConfig 设置TCP的TLS配置，nil表示不使用TLS加密链路
 func (_GateOption) TCPTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPTLSConfig = tlsConfig
 	}
 }
 
+// WebSocketURL WebSocket监听地址
 func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if raw == "" {
@@ -202,174 +200,179 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 	}
 }
 
+// WebSocketTLSConfig 设置WebSocket的TLS配置，nil表示不使用TLS加密链路
 func (_GateOption) WebSocketTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.WebSocketTLSConfig = tlsConfig
 	}
 }
 
+// WebSocketLocalAddrResolver 设置WebSocket的本地地址解析器
 func (_GateOption) WebSocketLocalAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if resolver == nil {
+			exception.Panicf("gate: %w: option WebSocketLocalAddrResolver can't be assigned to nil", core.ErrArgs)
+		}
 		options.WebSocketLocalAddrResolver = resolver
 	}
 }
 
+// WebSocketRemoteAddrResolver 设置WebSocket的对端地址解析器
 func (_GateOption) WebSocketRemoteAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if resolver == nil {
+			exception.Panicf("gate: %w: option WebSocketRemoteAddrResolver can't be assigned to nil", core.ErrArgs)
+		}
 		options.WebSocketRemoteAddrResolver = resolver
 	}
 }
 
+// IOTimeout 设置网络io超时时间
 func (_GateOption) IOTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.IOTimeout = d
 	}
 }
 
+// IORetryTimes 设置网络io超时后的重试次数
 func (_GateOption) IORetryTimes(times int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.IORetryTimes = times
 	}
 }
 
+// IOBufferCap 设置网络io缓存容量（字节）
 func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.IOBufferCap = cap
 	}
 }
 
-func (_GateOption) DecoderMsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
+// MsgCreator 设置消息包解码器的消息构建器
+func (_GateOption) MsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if mc == nil {
-			exception.Panicf("gate: %w: option DecoderMsgCreator can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("gate: %w: option MsgCreator can't be assigned to nil", core.ErrArgs)
 		}
-		options.DecoderMsgCreator = mc
+		options.MsgCreator = mc
 	}
 }
 
+// AgreeClientEncryptionProposal 设置是否同意使用客户端建议的加密方案
 func (_GateOption) AgreeClientEncryptionProposal(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.AgreeClientEncryptionProposal = b
 	}
 }
 
+// EncCipherSuite 设置加密通信中的密码学套件
 func (_GateOption) EncCipherSuite(cs gtp.CipherSuite) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncCipherSuite = cs
 	}
 }
 
+// EncNonceStep 设置加密通信中，使用需要nonce的加密算法时，每次加解密自增值
 func (_GateOption) EncNonceStep(v *big.Int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncNonceStep = v
 	}
 }
 
+// EncECDHENamedCurve 设置加密通信中，在ECDHE交换秘钥时使用的曲线类型
 func (_GateOption) EncECDHENamedCurve(nc gtp.NamedCurve) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncECDHENamedCurve = nc
 	}
 }
 
+// EncSignatureAlgorithm 设置加密通信中的签名算法
 func (_GateOption) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncSignatureAlgorithm = sa
 	}
 }
 
+// EncSignaturePrivateKey 设置加密通信中，签名用的私钥
 func (_GateOption) EncSignaturePrivateKey(priv crypto.PrivateKey) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncSignaturePrivateKey = priv
 	}
 }
 
+// EncVerifyClientSignature 设置加密通信中，是否验证客户端签名
 func (_GateOption) EncVerifyClientSignature(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncVerifyClientSignature = b
 	}
 }
 
+// EncVerifySignaturePublicKey 设置加密通信中，验证客户端签名用的公钥
 func (_GateOption) EncVerifySignaturePublicKey(pub crypto.PublicKey) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncVerifySignaturePublicKey = pub
 	}
 }
 
+// AgreeClientCompressionProposal 设置是否同意使用客户端建议的压缩方案
 func (_GateOption) AgreeClientCompressionProposal(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.AgreeClientCompressionProposal = b
 	}
 }
 
+// Compression 设置通信中的压缩函数
 func (_GateOption) Compression(c gtp.Compression) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.Compression = c
 	}
 }
 
-func (_GateOption) CompressedSize(size int) option.Setting[GateOptions] {
+// CompressionThreshold 设置通信中启用压缩阀值（字节），<=0表示不开启
+func (_GateOption) CompressionThreshold(threshold int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.CompressedSize = size
+		options.CompressionThreshold = threshold
 	}
 }
 
+// AcceptTimeout 设置接受连接超时时间
 func (_GateOption) AcceptTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.AcceptTimeout = d
 	}
 }
 
+// Authenticator 设置鉴权客户端处理器
 func (_GateOption) Authenticator(auth Authenticator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.Authenticator = auth
 	}
 }
 
+// SessionInactiveTimeout 设置会话不活跃后的超时时间
 func (_GateOption) SessionInactiveTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.SessionInactiveTimeout = d
 	}
 }
 
-func (_GateOption) SessionStateChangedHandler(handler SessionStateChangedHandler) option.Setting[GateOptions] {
+// SessionWatcherInboxSize 设置会话监听器inbox缓存大小
+func (_GateOption) SessionWatcherInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.SessionStateChangedHandler = handler
+		options.SessionWatcherInboxSize = size
 	}
 }
 
-func (_GateOption) SessionSendDataChanSize(size int) option.Setting[GateOptions] {
+// SessionDataListenerInboxSize 设置会话数据监听器inbox缓存大小
+func (_GateOption) SessionDataListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.SessionSendDataChanSize = size
+		options.SessionDataListenerInboxSize = size
 	}
 }
 
-func (_GateOption) SessionRecvDataChanSize(size int, recyclable bool) option.Setting[GateOptions] {
+// SessionEventListenerInboxSize 设置会话事件监听器inbox缓存大小
+func (_GateOption) SessionEventListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
-		options.SessionRecvDataChanSize = size
-		options.SessionRecvDataChanRecyclable = recyclable
-	}
-}
-
-func (_GateOption) SessionSendEventChanSize(size int) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		options.SessionSendEventChanSize = size
-	}
-}
-
-func (_GateOption) SessionRecvEventChanSize(size int) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		options.SessionRecvEventChanSize = size
-	}
-}
-
-func (_GateOption) SessionRecvDataHandler(handler SessionRecvDataHandler) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		options.SessionRecvDataHandler = handler
-	}
-}
-
-func (_GateOption) SessionRecvEventHandler(handler SessionRecvEventHandler) option.Setting[GateOptions] {
-	return func(options *GateOptions) {
-		options.SessionRecvEventHandler = handler
+		options.SessionEventListenerInboxSize = size
 	}
 }

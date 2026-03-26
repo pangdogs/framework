@@ -26,23 +26,24 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
+	"math/big"
+	"net"
+	"strings"
+
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/codec"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
-	"math/big"
-	"net"
-	"strings"
 )
 
 // handshake 握手过程
 func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Client) error {
 	// 编解码器构建器
 	ctor.encoder = codec.NewEncoder()
-	ctor.decoder = codec.NewDecoder(ctor.options.DecoderMsgCreator)
+	ctor.decoder = codec.NewDecoder(ctor.options.MsgCreator)
 
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
@@ -84,7 +85,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	cliHello := transport.Event[*gtp.MsgHello]{
 		Msg: &gtp.MsgHello{
 			Version:     gtp.Version_V1_0,
-			SessionId:   client.GetSessionId().String(),
+			SessionId:   client.SessionId().String(),
 			Random:      cliRandom,
 			CipherSuite: cs,
 			Compression: cm,
@@ -176,10 +177,6 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		}
 	}
 
-	// 暂停客户端的收发消息io，等握手结束后恢复
-	client.pauseIO()
-	defer client.continueIO()
-
 	// 断线重连流程，需要交换序号，检测是否能补发消息
 	if continueFlow {
 		err = handshake.ClientContinue(ctx, transport.Event[*gtp.MsgContinue]{
@@ -218,19 +215,14 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}
 
 	if continueFlow {
-		// 恢复客户端
-		_, _, err = client.resume(conn, remoteRecvSeq)
+		// 迁移客户端连接
+		_, _, err = client.migrateConn(conn, remoteRecvSeq)
 		if err != nil {
 			return err
 		}
 	} else {
-		// 初始化客户端
-		client.init(handshake.Transceiver.Conn,
-			handshake.Transceiver.Encoder,
-			handshake.Transceiver.Decoder,
-			remoteSendSeq,
-			remoteRecvSeq,
-			sessionId)
+		// 初始化客户端连接
+		client.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder, remoteSendSeq, remoteRecvSeq, sessionId)
 	}
 
 	return nil
@@ -246,7 +238,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		var sharedKeyBytes []byte
 
 		// 加密后的hello消息
-		var encryptedHello binaryutil.RecycleBytes
+		var encryptedHello binaryutil.Bytes
 		defer encryptedHello.Release()
 
 		// 加密参数
@@ -360,7 +352,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				}
 				defer decryptedHello.Release()
 
-				if bytes.Compare(decryptedHello.Data(), servHelloHash[:]) != 0 {
+				if bytes.Compare(decryptedHello.Payload(), servHelloHash[:]) != 0 {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, errors.New("verify hello failed")
 				}
 			}
@@ -378,7 +370,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, fmt.Errorf("encrypt hello failed, %s", err)
 				}
 
-				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello.Data()
+				cliChangeCipherSpec.Msg.EncryptedHello = encryptedHello.Payload()
 			}
 
 			return cliChangeCipherSpec, nil
@@ -509,7 +501,7 @@ func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.IComp
 		return nil, 0, err
 	}
 
-	return codec.NewCompression(compressionStream), ctor.options.CompressedSize, err
+	return codec.NewCompression(compressionStream), ctor.options.CompressionThreshold, err
 }
 
 // sign 签名

@@ -22,6 +22,7 @@ package cli
 import (
 	"context"
 	"fmt"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/option"
 )
@@ -29,7 +30,7 @@ import (
 // Connect 连接服务端
 func Connect(ctx context.Context, endpoint string, settings ...option.Setting[ClientOptions]) (*Client, error) {
 	connector := _Connector{
-		options: option.Make(With.Default(), settings...),
+		options: option.New(With.Default(), settings...),
 	}
 	return connector.connect(ctx, endpoint)
 }
@@ -39,10 +40,8 @@ func Reconnect(client *Client) error {
 	if client == nil {
 		return fmt.Errorf("cli: %w: client is nil", core.ErrArgs)
 	}
-
 	connector := _Connector{
 		options: client.options,
 	}
-
 	return connector.reconnect(client)
 }

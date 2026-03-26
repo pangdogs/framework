@@ -20,43 +20,44 @@
 package dsync
 
 import (
+	"math/rand"
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
-	"math/rand"
-	"time"
 )
 
 type (
-	// A DelayFunc is used to decide the amount of time to wait between retries.
-	DelayFunc = generic.Func1[int, time.Duration]
-	// GenValueFunc is used to generate a random value.
-	GenValueFunc = generic.FuncPair0[string, error]
+	// RetryDelayFunc 重试延迟函数，用于决定两次重试之间需要等待的时间
+	RetryDelayFunc = generic.Func1[int, time.Duration]
+	// GenUIDFunc 生成唯一ID函数
+	GenUIDFunc = generic.FuncPair0[string, error]
 )
 
-// DistMutexOptions represents the options for acquiring a distributed mutex.
+// DistMutexOptions 所有分布式锁选项
 type DistMutexOptions struct {
-	Expiry        time.Duration
-	Tries         int
-	DelayFunc     DelayFunc
-	DriftFactor   float64
-	TimeoutFactor float64
-	GenValueFunc  GenValueFunc
-	Value         string
+	Expiry         time.Duration
+	Tries          int
+	RetryDelayFunc RetryDelayFunc
+	DriftFactor    float64
+	TimeoutFactor  float64
+	GenUIDFunc     GenUIDFunc
+	UID            string
 }
 
-var With _Option
+var With _DistMutexOption
 
-type _Option struct{}
+type _DistMutexOption struct{}
 
-// Default sets the default options for acquiring a distributed mutex.
-func (_Option) Default() option.Setting[DistMutexOptions] {
+// Default 默认分布式锁选项
+func (_DistMutexOption) Default() option.Setting[DistMutexOptions] {
 	defaultRetryDelayFunc := func(tries int) time.Duration {
 		const (
-			minRetryDelayMilliSec = 10
-			maxRetryDelayMilliSec = 150
+			minRetryDelayMilliSec = 50
+			maxRetryDelayMilliSec = 250
 		)
 		return time.Duration(rand.Intn(maxRetryDelayMilliSec-minRetryDelayMilliSec)+minRetryDelayMilliSec) * time.Millisecond
 	}
@@ -66,77 +67,76 @@ func (_Option) Default() option.Setting[DistMutexOptions] {
 	}
 
 	return func(options *DistMutexOptions) {
-		With.Expiry(3 * time.Second).Apply(options)
-		With.Tries(15).Apply(options)
+		With.Expiry(8 * time.Second).Apply(options)
+		With.Tries(32).Apply(options)
 		With.RetryDelayFunc(defaultRetryDelayFunc).Apply(options)
 		With.DriftFactor(0.01).Apply(options)
 		With.TimeoutFactor(0.10).Apply(options)
-		With.GenValueFunc(defaultGenValueFunc).Apply(options)
-		With.Value("").Apply(options)
+		With.GenUIDFunc(defaultGenValueFunc).Apply(options)
+		With.UID("").Apply(options)
 	}
 }
 
-// Expiry can be used to set the expiry of a mutex to the given value.
-func (_Option) Expiry(expiry time.Duration) option.Setting[DistMutexOptions] {
+// Expiry 用于将分布式锁的过期时间设置为指定值
+func (_DistMutexOption) Expiry(expiry time.Duration) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		options.Expiry = expiry
 	}
 }
 
-// Tries can be used to set the number of times lock acquire is attempted.
-func (_Option) Tries(tries int) option.Setting[DistMutexOptions] {
+// Tries 用于设置获取分布式锁的尝试次数
+func (_DistMutexOption) Tries(tries int) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		options.Tries = tries
 	}
 }
 
-// RetryDelay can be used to set the amount of time to wait between retries.
-func (_Option) RetryDelay(delay time.Duration) option.Setting[DistMutexOptions] {
+// RetryDelay 用于设置两次重试之间需要等待的时间
+func (_DistMutexOption) RetryDelay(delay time.Duration) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
-		options.DelayFunc = func(tries int) time.Duration {
+		options.RetryDelayFunc = func(tries int) time.Duration {
 			return delay
 		}
 	}
 }
 
-// RetryDelayFunc can be used to override default delay behavior.
-func (_Option) RetryDelayFunc(fn DelayFunc) option.Setting[DistMutexOptions] {
+// RetryDelayFunc 用于重写默认的重试延迟逻辑
+func (_DistMutexOption) RetryDelayFunc(fn RetryDelayFunc) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		if fn == nil {
-			exception.Panicf("dsync: %w: option DelayFunc can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("dsync: %w: option RetryDelayFunc can't be assigned to nil", core.ErrArgs)
 		}
-		options.DelayFunc = fn
+		options.RetryDelayFunc = fn
 	}
 }
 
-// DriftFactor can be used to set the clock drift factor.
-func (_Option) DriftFactor(factor float64) option.Setting[DistMutexOptions] {
+// DriftFactor 用于设置时钟漂移系数
+func (_DistMutexOption) DriftFactor(factor float64) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		options.DriftFactor = factor
 	}
 }
 
-// TimeoutFactor can be used to set the timeout factor.
-func (_Option) TimeoutFactor(factor float64) option.Setting[DistMutexOptions] {
+// TimeoutFactor 用于设置超时系数
+func (_DistMutexOption) TimeoutFactor(factor float64) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		options.TimeoutFactor = factor
 	}
 }
 
-// GenValueFunc can be used to set the custom value generator.
-func (_Option) GenValueFunc(fn GenValueFunc) option.Setting[DistMutexOptions] {
+// GenUIDFunc 用于重写默认的唯一ID生成逻辑
+func (_DistMutexOption) GenUIDFunc(fn GenUIDFunc) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
 		if fn == nil {
-			exception.Panicf("dsync: %w: option GenValueFunc can't be assigned to nil", core.ErrArgs)
+			exception.Panicf("dsync: %w: option GenUIDFunc can't be assigned to nil", core.ErrArgs)
 		}
-		options.GenValueFunc = fn
+		options.GenUIDFunc = fn
 	}
 }
 
-// Value can be used to assign the random value without having to call lock.
-// This allows the ownership of a lock to be "transferred" and allows the lock to be unlocked from elsewhere.
-func (_Option) Value(v string) option.Setting[DistMutexOptions] {
+// UID 用于显式指定分布式锁的唯一ID，以便在无需重新加锁的情况下转移锁的所有权
+func (_DistMutexOption) UID(v string) option.Setting[DistMutexOptions] {
 	return func(options *DistMutexOptions) {
-		options.Value = v
+		options.UID = v
 	}
 }

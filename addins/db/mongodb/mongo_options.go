@@ -22,38 +22,38 @@ package mongodb
 import (
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/framework/addins/db/dbtypes"
+	"git.golaxy.org/framework/addins/db/dsn"
 	"github.com/elliotchance/pie/v2"
 )
 
 type MongoDBOptions struct {
-	DBInfos []*dbtypes.DBInfo
+	DBInfos []*dsn.DBInfo
 }
 
-var With _Option
+var With _MongoDBOption
 
-type _Option struct{}
+type _MongoDBOption struct{}
 
-func (_Option) Default() option.Setting[MongoDBOptions] {
+func (_MongoDBOption) Default() option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
 		With.DBInfos().Apply(options)
 	}
 }
 
-func (_Option) DBInfos(infos ...*dbtypes.DBInfo) option.Setting[MongoDBOptions] {
+func (_MongoDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
-		infos = pie.Filter(infos, func(info *dbtypes.DBInfo) bool {
+		infos = pie.Filter(infos, func(info *dsn.DBInfo) bool {
 			if info == nil {
 				return false
 			}
 			switch info.Type {
-			case dbtypes.MongoDB:
+			case dsn.MongoDB:
 				return true
 			}
 			return false
 		})
 
-		if len(infos) != len(pie.Map(infos, func(info *dbtypes.DBInfo) string { return info.Tag })) {
+		if len(infos) != len(pie.Map(infos, func(info *dsn.DBInfo) string { return info.Tag })) {
 			exception.Panicf("db: %w: tags in db infos must be unique", exception.ErrArgs)
 		}
 

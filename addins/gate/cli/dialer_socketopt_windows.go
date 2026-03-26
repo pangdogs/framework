@@ -22,15 +22,16 @@
 package cli
 
 import (
-	"git.golaxy.org/core/utils/types"
 	"net"
 	"syscall"
+
+	"git.golaxy.org/core/utils/types"
 )
 
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = types.NewCopiedT(types.Bool2Int[int](*options.TCPNoDelay))
+		noDelay = types.PointerToT(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	recvBuf := options.TCPRecvBuf

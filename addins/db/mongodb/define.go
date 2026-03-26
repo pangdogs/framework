@@ -22,9 +22,5 @@ package mongodb
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServiceAddIn(newMongoDB)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.ServiceAddIn(newMongoDB)
 )

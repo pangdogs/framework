@@ -17,33 +17,33 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-//go:generate go run k8s.io/code-generator/cmd/deepcopy-gen .
+//go:generate stringer -type EventType
 package discovery
 
 import (
 	"context"
 	"errors"
+
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
-	"time"
 )
 
 var (
-	// ErrNotFound Not found error when IRegistry.GetService or IRegistry.GetServiceNode is called
-	ErrNotFound = errors.New("registry: service not found")
-	// ErrTerminated Stopped watching error when watcher is stopped
-	ErrTerminated = errors.New("registry: watching terminated")
+	// ErrDuplicateRegistration 重复注册信息
+	ErrDuplicateRegistration = errors.New("registry: duplicate registration")
+	// ErrRegistrationNotFound 注册信息不存在
+	ErrRegistrationNotFound = errors.New("registry: registration not found")
 )
 
-// Service 服务配置
-// +k8s:deepcopy-gen=true
+// Service 服务信息
 type Service struct {
 	Name     string `json:"name"`               // 服务名称
-	Nodes    []Node `json:"nodes"`              // 服务节点列表
-	Revision int64  `json:"revision,omitempty"` // 数据版本号
+	Nodes    []Node `json:"nodes"`              // 节点列表
+	Revision int64  `json:"revision,omitempty"` // 查询时的全局数据版本号
 }
 
 // Node 服务节点
-// +k8s:deepcopy-gen=true
 type Node struct {
 	Id      uid.Id            `json:"id"`                // 节点ID
 	Address string            `json:"address"`           // 节点的地址
@@ -51,22 +51,40 @@ type Node struct {
 	Meta    map[string]string `json:"meta,omitempty"`    // 节点元数据，以键值对的形式保存附加信息
 }
 
-// The IRegistry provides an interface for service discovery
-// and an abstraction over varying implementations
-// {consul, etcd, zookeeper, ...}
+// EventType 服务变化事件类型
+type EventType int8
+
+const (
+	EventType_Create EventType = iota // 创建
+	EventType_Delete                  // 删除
+	EventType_Update                  // 更新
+	EventType_Error                   // 错误
+)
+
+// Event 服务变化事件
+type Event struct {
+	Type    EventType // 事件类型
+	Service *Service  // 服务信息
+	Error   error     // 错误
+}
+
+type (
+	// EventHandler 服务事件处理器
+	EventHandler = generic.DelegateVoid1[Event]
+)
+
+// IRegistry 服务注册接口
 type IRegistry interface {
-	// Register 注册服务
-	Register(ctx context.Context, service *Service, ttl time.Duration) error
-	// Deregister 取消注册服务
-	Deregister(ctx context.Context, service *Service) error
-	// RefreshTTL 刷新所有服务TTL
-	RefreshTTL(ctx context.Context) error
-	// GetServiceNode 查询服务节点
-	GetServiceNode(ctx context.Context, serviceName string, nodeId uid.Id) (*Service, error)
-	// GetService 查询服务
-	GetService(ctx context.Context, serviceName string) (*Service, error)
-	// ListServices 查询所有服务
-	ListServices(ctx context.Context) ([]Service, error)
-	// Watch 监听服务变化
-	Watch(ctx context.Context, pattern string, revision ...int64) (IWatcher, error)
+	// RegisterNode 注册服务节点
+	RegisterNode(ctx context.Context, serviceName string, node *Node, settings ...option.Setting[RegisterOptions]) (IRegistration, error)
+	// Get 查询服务
+	Get(ctx context.Context, serviceName string) (*Service, error)
+	// GetNode 查询服务节点
+	GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*Service, error)
+	// List 查询所有服务
+	List(ctx context.Context) ([]*Service, error)
+	// WatchEvent 观察服务变化事件流
+	WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan Event, error)
+	// WatchHandler 观察服务变化事件回调
+	WatchHandler(ctx context.Context, pattern string, handler EventHandler, revision ...int64) error
 }

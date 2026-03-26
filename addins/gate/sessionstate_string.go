@@ -9,20 +9,20 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[SessionState_Birth-0]
-	_ = x[SessionState_Handshake-1]
-	_ = x[SessionState_Confirmed-2]
-	_ = x[SessionState_Active-3]
-	_ = x[SessionState_Inactive-4]
-	_ = x[SessionState_Death-5]
+	_ = x[SessionState_Confirmed-1]
+	_ = x[SessionState_Active-2]
+	_ = x[SessionState_Inactive-3]
+	_ = x[SessionState_Death-4]
 }
 
-const _SessionState_name = "SessionState_BirthSessionState_HandshakeSessionState_ConfirmedSessionState_ActiveSessionState_InactiveSessionState_Death"
+const _SessionState_name = "SessionState_BirthSessionState_ConfirmedSessionState_ActiveSessionState_InactiveSessionState_Death"
 
-var _SessionState_index = [...]uint8{0, 18, 40, 62, 81, 102, 120}
+var _SessionState_index = [...]uint8{0, 18, 40, 59, 80, 98}
 
 func (i SessionState) String() string {
-	if i < 0 || i >= SessionState(len(_SessionState_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_SessionState_index)-1 {
 		return "SessionState(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _SessionState_name[_SessionState_index[i]:_SessionState_index[i+1]]
+	return _SessionState_name[_SessionState_index[idx]:_SessionState_index[idx+1]]
 }

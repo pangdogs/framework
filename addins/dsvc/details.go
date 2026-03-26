@@ -21,20 +21,21 @@ package dsvc
 
 import (
 	"fmt"
+	"unique"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/netpath"
-	"unique"
 )
 
 // NodeDetails 服务节点地址信息
 type NodeDetails struct {
 	netpath.NodeDetails
-	GlobalBroadcastAddr string // 全局广播地址
-	GlobalBalanceAddr   string // 全局负载均衡地址
-	BroadcastAddr       string // 服务广播地址
-	BalanceAddr         string // 服务负载均衡地址
-	LocalAddr           string // 本服务节点地址
+	GlobalBroadcastAddr string `json:"global_broadcast_addr"` // 全局广播地址
+	GlobalBalanceAddr   string `json:"global_balance_addr"`   // 全局负载均衡地址
+	BroadcastAddr       string `json:"broadcast_addr"`        // 服务广播地址
+	BalanceAddr         string `json:"balance_addr"`          // 服务负载均衡地址
+	LocalAddr           string `json:"local_addr"`            // 本服务节点地址
 }
 
 // MakeBroadcastAddr 创建服务广播地址

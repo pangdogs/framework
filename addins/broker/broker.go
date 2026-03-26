@@ -17,39 +17,60 @@
  * Copyright (c) 2024 pangdogs.
  */
 
+//go:generate stringer -type DeliveryReliability
 package broker
 
 import (
 	"context"
+
+	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 )
 
-// DeliveryReliability Message delivery reliability.
-type DeliveryReliability int32
+// DeliveryReliability 消息投递模式
+type DeliveryReliability int8
 
 const (
-	AtMostOnce      DeliveryReliability = iota // At most once
-	AtLeastOnce                                // At last once
-	ExactlyOnce                                // Exactly once
-	EffectivelyOnce                            // Effectively once
+	DeliveryReliability_AtMostOnce  DeliveryReliability = iota // 最多一次
+	DeliveryReliability_AtLeastOnce                            // 最少一次
 )
 
-// IBroker is an interface used for asynchronous messaging.
+// Event 消息事件
+type Event struct {
+	// Pattern 订阅话题模式
+	Pattern string
+	// Topic 订阅话题
+	Topic string
+	// Queue 订阅队列组
+	Queue string
+	// Message 消息数据
+	Message []byte
+	// Ack 确认
+	Ack func(ctx context.Context) error
+	// Nak 拒绝确认
+	Nak func(ctx context.Context) error
+}
+
+type (
+	// EventHandler 消息事件处理器
+	EventHandler = generic.DelegateVoid1[Event]
+)
+
+// IBroker 消息中间件接口
 type IBroker interface {
-	// Publish the data argument to the given topic. The data argument is left untouched and needs to be correctly interpreted on the receiver.
+	// Publish 发布
 	Publish(ctx context.Context, topic string, data []byte) error
-	// Subscribe will express interest in the given topic pattern. Use option EventHandler to handle message events.
-	Subscribe(ctx context.Context, pattern string, settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
-	// Subscribef will express interest in the given topic pattern with a formatted string. Use option EventHandler to handle message events.
-	Subscribef(ctx context.Context, format string, args ...any) func(settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
-	// Subscribep will express interest in the given topic pattern with elements. Use option EventHandler to handle message events.
-	Subscribep(ctx context.Context, elems ...string) func(settings ...option.Setting[SubscriberOptions]) (ISubscriber, error)
-	// Flush will perform a round trip to the server and return when it receives the internal reply.
+	// SubscribeEvent 订阅消息事件流
+	SubscribeEvent(ctx context.Context, pattern string, settings ...option.Setting[SubscribeOptions]) (<-chan Event, error)
+	// SubscribeHandler 订阅消息事件回调
+	SubscribeHandler(ctx context.Context, pattern string, handler EventHandler, settings ...option.Setting[SubscribeOptions]) (async.Future, error)
+	// Flush 刷新
 	Flush(ctx context.Context) error
-	// GetDeliveryReliability return message delivery reliability.
-	GetDeliveryReliability() DeliveryReliability
-	// GetMaxPayload return max payload bytes.
-	GetMaxPayload() int64
-	// GetSeparator return topic path separator.
-	GetSeparator() string
+	// DeliveryReliability 获取消息投递模式
+	DeliveryReliability() DeliveryReliability
+	// MaxPayload 获取最大消息长度
+	MaxPayload() int64
+	// Separator 获取地址分隔符
+	Separator() string
 }

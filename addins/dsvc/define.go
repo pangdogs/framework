@@ -24,9 +24,5 @@ import (
 )
 
 var (
-	self      = define.ServiceAddIn(newDistService)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.ServiceAddIn(newDistService)
 )
