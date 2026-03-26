@@ -105,7 +105,7 @@ func (c *_VariantCreator) Declare(v Value) {
 		}
 
 		if rtype, ok := (m)[v.TypeId()]; ok {
-			exception.Panicf("%w: variant type(%d) has already been declared by %q", ErrVariant, v.TypeId(), types.FullNameRT(rtype))
+			exception.Panicf("%w: variant type(%d) has already been declared by %q; rename the variant type or return a different TypeId", ErrVariant, v.TypeId(), types.FullNameRT(rtype))
 		}
 
 		m[v.TypeId()] = reflect.TypeOf(v).Elem()

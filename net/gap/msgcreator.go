@@ -86,7 +86,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 		}
 
 		if rtype, ok := (m)[msg.MsgId()]; ok {
-			exception.Panicf("%w: msg(%d) has already been declared by %q", ErrGAP, msg.MsgId(), types.FullNameRT(rtype))
+			exception.Panicf("%w: msg(%d) has already been declared by %q; rename the message type or return a different MsgId", ErrGAP, msg.MsgId(), types.FullNameRT(rtype))
 		}
 
 		m[msg.MsgId()] = reflect.TypeOf(msg).Elem()

@@ -56,15 +56,15 @@ func NewFutureController(ctx context.Context, timeout time.Duration) *FutureCont
 }
 
 type FutureController struct {
-	_              noCopy
-	ctx            context.Context
-	terminated     async.FutureVoid
-	barrier        generic.Barrier
-	idGen          atomic.Int64
-	timeout        time.Duration
-	mutex          sync.Mutex
-	pendingResolve map[int64]*FutureHandle
-	pendingTimeout *generic.UnboundedChannel[*FutureHandle]
+	_                noCopy
+	ctx              context.Context
+	terminated       async.FutureVoid
+	barrier          generic.Barrier
+	idGen            atomic.Int64
+	timeout          time.Duration
+	pendingResolveMu sync.Mutex
+	pendingResolve   map[int64]*FutureHandle
+	pendingTimeout   *generic.UnboundedChannel[*FutureHandle]
 }
 
 func (fc *FutureController) New() (*FutureHandle, error) {
@@ -85,9 +85,9 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 		controller: fc,
 	}
 
-	fc.mutex.Lock()
+	fc.pendingResolveMu.Lock()
 	fc.pendingResolve[handle.id] = handle
-	fc.mutex.Unlock()
+	fc.pendingResolveMu.Unlock()
 
 	fc.pendingTimeout.In() <- handle
 
@@ -97,18 +97,18 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 }
 
 func (fc *FutureController) Resolve(id int64, ret async.Result) error {
-	fc.mutex.Lock()
+	fc.pendingResolveMu.Lock()
 	handle := fc.pendingResolve[id]
 	if handle == nil {
-		fc.mutex.Unlock()
+		fc.pendingResolveMu.Unlock()
 		return ErrFutureExceeded
 	}
 	if !time.Now().Before(handle.deadline) {
-		fc.mutex.Unlock()
+		fc.pendingResolveMu.Unlock()
 		return ErrFutureExceeded
 	}
 	delete(fc.pendingResolve, id)
-	fc.mutex.Unlock()
+	fc.pendingResolveMu.Unlock()
 
 	if !handle.Resolved.CompareAndSwap(false, true) {
 		return ErrFutureExceeded
@@ -137,9 +137,9 @@ loop:
 				continue
 			}
 
-			fc.mutex.Lock()
+			fc.pendingResolveMu.Lock()
 			delete(fc.pendingResolve, handle.id)
-			fc.mutex.Unlock()
+			fc.pendingResolveMu.Unlock()
 
 			async.Return(handle.future, async.NewResult(nil, ErrFutureExceeded))
 		}
@@ -151,9 +151,9 @@ loop:
 	fc.pendingTimeout.Close()
 
 	for handle := range fc.pendingTimeout.Out() {
-		fc.mutex.Lock()
+		fc.pendingResolveMu.Lock()
 		delete(fc.pendingResolve, handle.id)
-		fc.mutex.Unlock()
+		fc.pendingResolveMu.Unlock()
 
 		if !handle.Resolved.CompareAndSwap(false, true) {
 			continue
