@@ -65,7 +65,7 @@ type _Gate struct {
 	options        GateOptions
 	tcpListener    net.Listener
 	wsListener     *http.Server
-	sessionMap     sync.Map
+	sessions       sync.Map
 	sessionCount   atomic.Int64
 	sessionWatcher concurrent.Listeners[SessionEstablishedHandler, ISession]
 }

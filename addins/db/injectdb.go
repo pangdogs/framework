@@ -32,7 +32,7 @@ import (
 	"git.golaxy.org/framework/addins/db/redisdb"
 	"git.golaxy.org/framework/addins/db/sqldb"
 	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gorm.io/gorm"
 )
 

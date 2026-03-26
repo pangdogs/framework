@@ -83,7 +83,7 @@ func _NewVariantCreator() IVariantCreator {
 
 // _VariantCreator 可变类型对象构建器
 type _VariantCreator struct {
-	variantTypeMap atomic.Pointer[map[TypeId]reflect.Type]
+	variantTypes atomic.Pointer[map[TypeId]reflect.Type]
 }
 
 // Declare 注册类型
@@ -95,7 +95,7 @@ func (c *_VariantCreator) Declare(v Value) {
 	for {
 		var m map[TypeId]reflect.Type
 
-		old := c.variantTypeMap.Load()
+		old := c.variantTypes.Load()
 		if old != nil {
 			m = maps.Clone(*old)
 		}
@@ -110,7 +110,7 @@ func (c *_VariantCreator) Declare(v Value) {
 
 		m[v.TypeId()] = reflect.TypeOf(v).Elem()
 
-		if c.variantTypeMap.CompareAndSwap(old, &m) {
+		if c.variantTypes.CompareAndSwap(old, &m) {
 			break
 		}
 
@@ -129,7 +129,7 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 
 // NewReflected 创建反射对象指针
 func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
-	m := c.variantTypeMap.Load()
+	m := c.variantTypes.Load()
 	if m == nil || *m == nil {
 		return reflect.Value{}, ErrNotDeclared
 	}

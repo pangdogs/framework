@@ -86,7 +86,7 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 
 // getSession 查询会话
 func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
-	session, ok := g.sessionMap.Load(id)
+	session, ok := g.sessions.Load(id)
 	if !ok {
 		return nil, false
 	}
@@ -95,7 +95,7 @@ func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
 
 // addSession 添加会话
 func (g *_Gate) addSession(session *_Session) bool {
-	if _, loaded := g.sessionMap.LoadOrStore(session.Id(), session); loaded {
+	if _, loaded := g.sessions.LoadOrStore(session.Id(), session); loaded {
 		return false
 	}
 	g.sessionCount.Add(1)
@@ -104,14 +104,14 @@ func (g *_Gate) addSession(session *_Session) bool {
 
 // deleteSession 删除会话
 func (g *_Gate) deleteSession(id uid.Id) {
-	if _, loaded := g.sessionMap.LoadAndDelete(id); loaded {
+	if _, loaded := g.sessions.LoadAndDelete(id); loaded {
 		g.sessionCount.Add(-1)
 	}
 }
 
 // validateSession 校验会话
 func (g *_Gate) validateSession(session *_Session) bool {
-	exists, ok := g.sessionMap.Load(session.Id())
+	exists, ok := g.sessions.Load(session.Id())
 	if !ok {
 		return false
 	}

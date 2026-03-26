@@ -27,9 +27,9 @@ import (
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/db/dsn"
 	"git.golaxy.org/framework/addins/log"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.uber.org/zap"
 )
 

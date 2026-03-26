@@ -64,7 +64,7 @@ func NewMsgCreator() IMsgCreator {
 
 // _MsgCreator 消息对象构建器
 type _MsgCreator struct {
-	msgTypeMap atomic.Pointer[map[MsgId]reflect.Type]
+	msgTypes atomic.Pointer[map[MsgId]reflect.Type]
 }
 
 // Declare 注册消息
@@ -76,7 +76,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 	for {
 		var m map[MsgId]reflect.Type
 
-		old := c.msgTypeMap.Load()
+		old := c.msgTypes.Load()
 		if old != nil {
 			m = maps.Clone(*old)
 		}
@@ -91,7 +91,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 
 		m[msg.MsgId()] = reflect.TypeOf(msg).Elem()
 
-		if c.msgTypeMap.CompareAndSwap(old, &m) {
+		if c.msgTypes.CompareAndSwap(old, &m) {
 			break
 		}
 
@@ -101,7 +101,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 
 // New 创建消息指针
 func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
-	m := c.msgTypeMap.Load()
+	m := c.msgTypes.Load()
 	if m == nil || *m == nil {
 		return nil, ErrNotDeclared
 	}
