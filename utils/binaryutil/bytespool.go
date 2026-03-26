@@ -20,92 +20,110 @@
 package binaryutil
 
 import (
-	"git.golaxy.org/core/utils/exception"
-	"github.com/fufuok/bytespool"
+	"bytes"
 	"math"
 	"reflect"
 	"unsafe"
+
+	"git.golaxy.org/core/utils/exception"
+	"github.com/fufuok/bytespool"
 )
 
 // BytesPool 字节对象池，用于减少GC提高编解码性能
 var BytesPool = bytespool.NewCapacityPools(32, math.MaxInt32)
 
-// NilRecycleBytes 空字节对象
-var NilRecycleBytes = MakeNonRecycleBytes(nil)
+// EmptyBytes 空字节对象
+var EmptyBytes = NewBytes(false, 0)
 
-// MakeRecycleBytes 创建可回收字节对象
-func MakeRecycleBytes(size int) RecycleBytes {
-	return RecycleBytes{
-		data:       BytesPool.Get(size),
+// NewBytes 创建字节对象
+func NewBytes(recyclable bool, size int) Bytes {
+	if size < 0 {
+		size = 0
+	}
+	bs := Bytes{
 		low:        0,
 		high:       size,
-		recyclable: true,
+		recyclable: recyclable,
 	}
+	if recyclable {
+		bs.data = BytesPool.Get(size)
+	} else {
+		bs.data = make([]byte, size)
+	}
+	return bs
 }
 
-// CloneRecycleBytes 克隆并创建可回收字节对象
-func CloneRecycleBytes(bs []byte) RecycleBytes {
-	return RecycleBytes{
-		data:       BytesPool.Clone(bs),
+// CloneBytes 克隆并创建字节对象
+func CloneBytes(recyclable bool, buff []byte) Bytes {
+	bs := Bytes{
 		low:        0,
-		high:       len(bs),
-		recyclable: true,
+		high:       len(buff),
+		recyclable: recyclable,
 	}
+	if recyclable {
+		bs.data = BytesPool.Clone(buff)
+	} else {
+		bs.data = bytes.Clone(buff)
+	}
+	return bs
 }
 
-// MakeNonRecycleBytes 创建不可回收字节对象
-func MakeNonRecycleBytes(bs []byte) RecycleBytes {
-	return RecycleBytes{
-		data:       bs,
+// RefBytes 引用并创建字节对象（不能回收）
+func RefBytes(buff []byte) Bytes {
+	return Bytes{
+		data:       buff,
 		low:        0,
-		high:       len(bs),
+		high:       len(buff),
 		recyclable: false,
 	}
 }
 
-// RecycleBytes 可回收字节对象
-type RecycleBytes struct {
+// Bytes 字节对象
+type Bytes struct {
 	data       []byte
 	low, high  int
 	recyclable bool
 }
 
 // Equal 是否是相同
-func (b RecycleBytes) Equal(other RecycleBytes) bool {
-	refA := (*reflect.SliceHeader)(unsafe.Pointer(&b.data)).Data
+func (bs Bytes) Equal(other Bytes) bool {
+	refA := (*reflect.SliceHeader)(unsafe.Pointer(&bs.data)).Data
 	refB := (*reflect.SliceHeader)(unsafe.Pointer(&other.data)).Data
 	return refA == refB
 }
 
-// Data 数据
-func (b RecycleBytes) Data() []byte {
-	return b.data[b.low:b.high]
+// Payload 载荷数据
+func (bs Bytes) Payload() []byte {
+	return bs.data[bs.low:bs.high]
 }
 
 // Slice 切片
-func (b RecycleBytes) Slice(low, high int) RecycleBytes {
+func (bs Bytes) Slice(low, high int) Bytes {
 	if low < 0 || high < 0 {
 		exception.Panic("negative index")
 	}
-	if high == 0 {
-		high = len(b.data) - b.low
+	if low > high {
+		exception.Panic("low > high")
 	}
-	return RecycleBytes{
-		data:       b.data,
-		low:        b.low + low,
-		high:       b.low + high,
-		recyclable: b.recyclable,
+	if bs.low+high > bs.high {
+		exception.Panic("slice out of range")
+	}
+	return Bytes{
+		data:       bs.data,
+		low:        bs.low + low,
+		high:       bs.low + high,
+		recyclable: bs.recyclable,
 	}
 }
 
 // Recyclable 可否回收
-func (b RecycleBytes) Recyclable() bool {
-	return b.recyclable
+func (bs Bytes) Recyclable() bool {
+	return bs.recyclable
 }
 
-// Release 释放字节对象
-func (b RecycleBytes) Release() {
-	if b.recyclable {
-		BytesPool.Put(b.data)
+// Release 释放字节对象，释放后不可再使用，不能重复释放
+func (bs Bytes) Release() {
+	if bs.recyclable {
+		BytesPool.Put(bs.data)
 	}
 }

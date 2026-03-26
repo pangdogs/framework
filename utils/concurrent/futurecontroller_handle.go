@@ -20,7 +20,6 @@
 package concurrent
 
 import (
-	"context"
 	"sync/atomic"
 	"time"
 
@@ -28,7 +27,7 @@ import (
 )
 
 type FutureHandle struct {
-	context.Context
+	_          noCopy
 	id         int64
 	future     async.FutureChan
 	deadline   time.Time

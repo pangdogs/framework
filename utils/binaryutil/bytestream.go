@@ -23,11 +23,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
-	"io"
-	"math"
 )
 
 var (
@@ -62,7 +63,7 @@ func NewLittleEndianStream(p []byte) ByteStream {
 }
 
 type ByteStream struct {
-	noCopy     noCopy
+	_          noCopy
 	sp, wp, rp []byte
 	endian     binary.ByteOrder
 }
