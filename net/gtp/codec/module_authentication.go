@@ -23,11 +23,12 @@ import (
 	"crypto/hmac"
 	"errors"
 	"fmt"
+	"hash"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"hash"
 )
 
 var (
@@ -38,7 +39,7 @@ var (
 // IAuthentication 认证模块接口，用于防止消息被篡改
 type IAuthentication interface {
 	// Sign 签名
-	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error)
+	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.Bytes, err error)
 	// Auth 认证
 	Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error)
 	// SizeOfAddition 附加数据大小
@@ -63,9 +64,9 @@ type Authentication struct {
 }
 
 // Sign 签名
-func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.RecycleBytes, err error) {
+func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.Bytes, err error) {
 	if m.HMAC == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
 	}
 
 	if len(m.macBuff) <= 0 {
@@ -82,15 +83,15 @@ func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 		MAC:  m.HMAC.Sum(m.macBuff[:0]),
 	}
 
-	buf := binaryutil.MakeRecycleBytes(msgSigned.Size())
+	buf := binaryutil.NewBytes(true, msgSigned.Size())
 	defer func() {
 		if !buf.Equal(dst) {
 			buf.Release()
 		}
 	}()
 
-	if _, err = binaryutil.CopyToBuff(buf.Data(), msgSigned); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrAuthenticate, err)
+	if _, err = binaryutil.CopyToBuff(buf.Payload(), msgSigned); err != nil {
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrAuthenticate, err)
 	}
 
 	return buf, nil

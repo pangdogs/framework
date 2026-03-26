@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgPacket 消息包
@@ -89,5 +90,5 @@ func (m *MsgPacketLen) Write(p []byte) (int, error) {
 
 // Size 大小
 func (MsgPacketLen) Size() int {
-	return binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32
 }

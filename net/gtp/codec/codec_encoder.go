@@ -22,6 +22,7 @@ package codec
 import (
 	"errors"
 	"fmt"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
@@ -64,9 +65,9 @@ func (e *Encoder) SetCompression(compression ICompression, compressionMin int) *
 }
 
 // Encode 编码消息包
-func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.RecycleBytes, err error) {
+func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.Bytes, err error) {
 	if msg == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}
 
 	head := gtp.MsgHead{}
@@ -82,20 +83,20 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 	if e.Encryption != nil {
 		encAddition, err := e.Encryption.SizeOfAddition(msg.Size())
 		if err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: encrypt SizeOfAddition failed, %w", ErrEncode, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: encrypt SizeOfAddition failed, %w", ErrEncode, err)
 		}
 		msgAddition += encAddition
 
 		if e.Authentication != nil {
 			authAddition, err := e.Authentication.SizeOfAddition(msg.Size() + encAddition)
 			if err != nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: authenticate SizeOfAddition failed, %w", ErrEncode, err)
+				return binaryutil.EmptyBytes, fmt.Errorf("%w: authenticate SizeOfAddition failed, %w", ErrEncode, err)
 			}
 			msgAddition += authAddition
 		}
 	}
 
-	mpBuf := binaryutil.MakeRecycleBytes(head.Size() + msg.Size() + msgAddition)
+	mpBuf := binaryutil.NewBytes(true, head.Size()+msg.Size()+msgAddition)
 	defer func() {
 		if !mpBuf.Equal(ret) {
 			mpBuf.Release()
@@ -103,24 +104,24 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 	}()
 
 	// 写入消息
-	mn, err := binaryutil.CopyToBuff(mpBuf.Data()[head.Size():], msg)
+	mn, err := binaryutil.CopyToBuff(mpBuf.Payload()[head.Size():], msg)
 	if err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
 	}
 	end := head.Size() + int(mn)
 
 	// 消息长度达到阀值，需要压缩消息
 	if e.Compression != nil && e.CompressionMin > 0 && msg.Size() >= e.CompressionMin {
-		compressedBuf, compressed, err := e.Compression.Compress(mpBuf.Data()[head.Size():end])
+		compressedBuf, compressed, err := e.Compression.Compress(mpBuf.Payload()[head.Size():end])
 		if err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: compress msg failed, %w", ErrEncode, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: compress msg failed, %w", ErrEncode, err)
 		}
 		defer compressedBuf.Release()
 		if compressed {
 			head.Flags.Set(gtp.Flag_Compressed, true)
 
-			copy(mpBuf.Data()[head.Size():], compressedBuf.Data())
-			end = head.Size() + len(compressedBuf.Data())
+			copy(mpBuf.Payload()[head.Size():], compressedBuf.Payload())
+			end = head.Size() + len(compressedBuf.Payload())
 		}
 	}
 
@@ -132,38 +133,38 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (ret binaryutil.R
 		if e.Authentication != nil {
 			head.Flags.Set(gtp.Flag_Signed, true)
 
-			if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: failed to write msg-packet-head for sign msg-mac, %w", ErrEncode, err)
+			if _, err = binaryutil.CopyToBuff(mpBuf.Payload(), head); err != nil {
+				return binaryutil.EmptyBytes, fmt.Errorf("%w: failed to write msg-packet-head for sign msg-mac, %w", ErrEncode, err)
 			}
 
-			macBuf, err := e.Authentication.Sign(head.MsgId, head.Flags, mpBuf.Data()[head.Size():end])
+			macBuf, err := e.Authentication.Sign(head.MsgId, head.Flags, mpBuf.Payload()[head.Size():end])
 			if err != nil {
-				return binaryutil.NilRecycleBytes, fmt.Errorf("%w: sign msg-mac failed, %w", ErrEncode, err)
+				return binaryutil.EmptyBytes, fmt.Errorf("%w: sign msg-mac failed, %w", ErrEncode, err)
 			}
 			defer macBuf.Release()
 
-			copy(mpBuf.Data()[head.Size():], macBuf.Data())
-			end = head.Size() + len(macBuf.Data())
+			copy(mpBuf.Payload()[head.Size():], macBuf.Payload())
+			end = head.Size() + len(macBuf.Payload())
 		}
 
 		// 加密消息体
-		encryptBuf, err := e.Encryption.Transforming(mpBuf.Data()[head.Size():end], mpBuf.Data()[head.Size():end])
+		encryptBuf, err := e.Encryption.Transforming(mpBuf.Payload()[head.Size():end], mpBuf.Payload()[head.Size():end])
 		if err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: encrypt msg failed, %w", ErrEncode, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: encrypt msg failed, %w", ErrEncode, err)
 		}
 		defer encryptBuf.Release()
 
-		copy(mpBuf.Data()[head.Size():], encryptBuf.Data())
-		end = head.Size() + len(encryptBuf.Data())
+		copy(mpBuf.Payload()[head.Size():], encryptBuf.Payload())
+		end = head.Size() + len(encryptBuf.Payload())
 	}
 
 	// 调整消息大小
 	mpBuf = mpBuf.Slice(0, end)
 
 	// 写入消息头
-	head.Len = uint32(len(mpBuf.Data()))
-	if _, err = binaryutil.CopyToBuff(mpBuf.Data(), head); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg-packet-head failed, %w", ErrEncode, err)
+	head.Len = uint32(len(mpBuf.Payload()))
+	if _, err = binaryutil.CopyToBuff(mpBuf.Payload(), head); err != nil {
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: write msg-packet-head failed, %w", ErrEncode, err)
 	}
 
 	return mpBuf, nil

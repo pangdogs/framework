@@ -22,11 +22,12 @@ package variant
 import (
 	"errors"
 	"fmt"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-func MakeError(err error) *Error {
+func NewError(err error) *Error {
 	if err == nil {
 		return &Error{}
 	}
@@ -91,7 +92,7 @@ func (v *Error) Write(p []byte) (int, error) {
 
 // Size 大小
 func (v Error) Size() int {
-	return binaryutil.SizeofInt32() + binaryutil.SizeofString(v.Message)
+	return binaryutil.SizeofInt32 + binaryutil.SizeofString(v.Message)
 }
 
 // TypeId 类型

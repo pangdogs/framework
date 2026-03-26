@@ -24,25 +24,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.golaxy.org/framework/net/gtp"
-	"git.golaxy.org/framework/net/gtp/codec"
 	"io"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/net/gtp/codec"
 )
 
 var (
-	ErrTrans            = errors.New("gtp-trans")                 // 传输错误
-	ErrNetIO            = fmt.Errorf("%w: net i/o", ErrTrans)     // 网络io错误
-	ErrResume           = fmt.Errorf("%w: resume conn", ErrTrans) // 恢复链路错误
-	ErrDeadlineExceeded = os.ErrDeadlineExceeded                  // 网络io超时
-	ErrClosed           = os.ErrClosed                            // 网络链路已关闭
-	ErrShortBuffer      = io.ErrShortBuffer                       // 缓冲区不足
-	ErrShortWrite       = io.ErrShortWrite                        // 短写
-	ErrUnexpectedEOF    = io.ErrUnexpectedEOF                     // 非预期的io结束
-	EOF                 = io.EOF                                  // io结束
+	ErrTrans            = errors.New("gtp-trans")                  // 传输错误
+	ErrNetIO            = fmt.Errorf("%w: net i/o", ErrTrans)      // 网络io错误
+	ErrMigrateConn      = fmt.Errorf("%w: migrate conn", ErrTrans) // 迁移连接错误
+	ErrDeadlineExceeded = os.ErrDeadlineExceeded                   // 网络io超时
+	ErrClosed           = os.ErrClosed                             // 网络链路已关闭
+	ErrShortBuffer      = io.ErrShortBuffer                        // 缓冲区不足
+	ErrShortWrite       = io.ErrShortWrite                         // 短写
+	ErrUnexpectedEOF    = io.ErrUnexpectedEOF                      // 非预期的io结束
+	EOF                 = io.EOF                                   // io结束
 )
 
 // Transceiver 消息事件收发器，线程安全
@@ -223,19 +224,22 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 	}
 }
 
-// Resume 恢复链路
-func (t *Transceiver) Resume(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
+// Migrate 迁移连接
+func (t *Transceiver) Migrate(conn net.Conn, remoteRecvSeq uint32) (sendReq, recvReq uint32, err error) {
 	if conn == nil {
-		return 0, 0, fmt.Errorf("%w: conn is nil", ErrResume)
+		return 0, 0, fmt.Errorf("%w: conn is nil", ErrMigrateConn)
 	}
 
 	if t.Synchronizer == nil {
-		return 0, 0, fmt.Errorf("%w: Synchronizer is nil", ErrResume)
+		return 0, 0, fmt.Errorf("%w: Synchronizer is nil", ErrMigrateConn)
 	}
+
+	t.pause()
+	defer t.resume()
 
 	// 同步对端时序
 	if err = t.Synchronizer.Synchronize(remoteRecvSeq); err != nil {
-		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrResume, err)
+		return 0, 0, fmt.Errorf("%w: synchronize sequence failed, %s", ErrMigrateConn, err)
 	}
 
 	// 切换连接
@@ -248,18 +252,6 @@ func (t *Transceiver) Resume(conn net.Conn, remoteRecvSeq uint32) (sendReq, recv
 	t.buffer.Reset()
 
 	return t.Synchronizer.SendSeq(), t.Synchronizer.RecvSeq(), nil
-}
-
-// Pause 暂停收发消息
-func (t *Transceiver) Pause() {
-	t.sendMutex.Lock()
-	t.recvMutex.Lock()
-}
-
-// Continue 继续收发消息
-func (t *Transceiver) Continue() {
-	t.recvMutex.Unlock()
-	t.sendMutex.Unlock()
 }
 
 // GC GC
@@ -289,9 +281,19 @@ func (t *Transceiver) writeToSynchronizer(e IEvent) error {
 	defer buf.Release()
 
 	// 写入同步器
-	if _, err = t.Synchronizer.Write(buf.Data()); err != nil {
+	if _, err = t.Synchronizer.Write(buf.Payload()); err != nil {
 		return fmt.Errorf("%w: write msg to synchronizer failed, %w", ErrTrans, err)
 	}
 
 	return nil
+}
+
+func (t *Transceiver) pause() {
+	t.sendMutex.Lock()
+	t.recvMutex.Lock()
+}
+
+func (t *Transceiver) resume() {
+	t.sendMutex.Unlock()
+	t.recvMutex.Unlock()
 }

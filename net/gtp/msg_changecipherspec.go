@@ -21,8 +21,9 @@ package gtp
 
 import (
 	"bytes"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgChangeCipherSpec消息标志位

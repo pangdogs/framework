@@ -20,8 +20,9 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Float builtin float
@@ -49,7 +50,7 @@ func (v *Float) Write(p []byte) (int, error) {
 
 // Size 大小
 func (Float) Size() int {
-	return binaryutil.SizeofFloat()
+	return binaryutil.SizeofFloat
 }
 
 // TypeId 类型

@@ -22,6 +22,7 @@ package codec
 import (
 	"errors"
 	"fmt"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/utils/binaryutil"
@@ -42,9 +43,9 @@ func NewEncoder() *Encoder {
 type Encoder struct{}
 
 // Encode 编码消息包
-func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret binaryutil.RecycleBytes, err error) {
+func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret binaryutil.Bytes, err error) {
 	if msg == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
 	}
 
 	mp := gap.MsgPacket{
@@ -57,15 +58,15 @@ func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret bina
 	}
 	mp.Head.Len = uint32(mp.Size())
 
-	mpBuf := binaryutil.MakeRecycleBytes(int(mp.Head.Len))
+	mpBuf := binaryutil.NewBytes(true, int(mp.Head.Len))
 	defer func() {
 		if !mpBuf.Equal(ret) {
 			mpBuf.Release()
 		}
 	}()
 
-	if _, err := binaryutil.CopyToBuff(mpBuf.Data(), mp); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
+	if _, err := binaryutil.CopyToBuff(mpBuf.Payload(), mp); err != nil {
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: write msg failed, %w", ErrEncode, err)
 	}
 
 	return mpBuf, nil

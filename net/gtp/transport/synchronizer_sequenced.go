@@ -21,12 +21,13 @@ package transport
 
 import (
 	"fmt"
+	"io"
+	"sync/atomic"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
-	"sync/atomic"
 )
 
 // NewSequencedSynchronizer 创建有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息

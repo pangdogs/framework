@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgContinue 重连
@@ -62,7 +63,7 @@ func (m *MsgContinue) Write(p []byte) (int, error) {
 
 // Size 大小
 func (MsgContinue) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
 // MsgId 消息Id

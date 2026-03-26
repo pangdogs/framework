@@ -22,9 +22,10 @@ package gtp
 import (
 	"crypto/aes"
 	"fmt"
+	"strings"
+
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
-	"strings"
 )
 
 // Version 协议版本

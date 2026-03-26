@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Finished消息标志位
@@ -69,7 +70,7 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 
 // Size 大小
 func (MsgFinished) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
 // MsgId 消息Id

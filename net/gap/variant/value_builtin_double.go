@@ -20,8 +20,9 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Double builtin double
@@ -49,7 +50,7 @@ func (v *Double) Write(p []byte) (int, error) {
 
 // Size 大小
 func (Double) Size() int {
-	return binaryutil.SizeofDouble()
+	return binaryutil.SizeofDouble
 }
 
 // TypeId 类型

@@ -20,17 +20,18 @@
 package gap
 
 import (
-	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/types"
 	"hash/fnv"
 	"reflect"
+
+	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/types"
 )
 
 // MsgId 消息Id
 type MsgId = uint32
 
-// MakeMsgId 创建类型Id
-func MakeMsgId(msg Msg) MsgId {
+// GenMsgId 生成消息Id
+func GenMsgId(msg Msg) MsgId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(msg).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
@@ -40,8 +41,8 @@ func MakeMsgId(msg Msg) MsgId {
 	return MsgId(MsgId_Customize + hash.Sum32())
 }
 
-// MakeMsgIdT 创建类型Id
-func MakeMsgIdT[T any]() MsgId {
+// GenMsgIdT 生成消息Id
+func GenMsgIdT[T any]() MsgId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Msg]()) {

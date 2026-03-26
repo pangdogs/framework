@@ -21,8 +21,9 @@ package variant
 
 import (
 	"fmt"
-	"git.golaxy.org/core/utils/generic"
 	"reflect"
+
+	"git.golaxy.org/core/utils/generic"
 )
 
 var (

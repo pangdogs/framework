@@ -23,12 +23,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/method"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"math"
 )
 
 var (
@@ -38,9 +39,9 @@ var (
 // ICompression 压缩模块接口
 type ICompression interface {
 	// Compress 压缩数据
-	Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error)
+	Compress(src []byte) (dst binaryutil.Bytes, compressed bool, err error)
 	// Uncompress 解压缩数据
-	Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error)
+	Uncompress(src []byte) (dst binaryutil.Bytes, err error)
 }
 
 // NewCompression 创建压缩模块
@@ -60,20 +61,20 @@ type Compression struct {
 }
 
 // Compress 压缩数据
-func (c *Compression) Compress(src []byte) (dst binaryutil.RecycleBytes, compressed bool, err error) {
+func (c *Compression) Compress(src []byte) (dst binaryutil.Bytes, compressed bool, err error) {
 	if len(src) <= 0 {
-		return binaryutil.MakeNonRecycleBytes(src), false, nil
+		return binaryutil.EmptyBytes, false, nil
 	}
 
 	if c.CompressionStream == nil {
-		return binaryutil.NilRecycleBytes, false, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
+		return binaryutil.EmptyBytes, false, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
 	}
 
-	compressedBuf := binaryutil.MakeRecycleBytes(len(src))
+	compressedBuf := binaryutil.NewBytes(true, len(src))
 	defer compressedBuf.Release()
 
 	n, err := func() (n int, err error) {
-		bw := binaryutil.NewBytesWriter(compressedBuf.Data())
+		bw := binaryutil.NewBytesWriter(compressedBuf.Payload())
 		w, err := c.CompressionStream.WrapWriter(bw)
 		if err != nil {
 			return 0, err
@@ -93,55 +94,55 @@ func (c *Compression) Compress(src []byte) (dst binaryutil.RecycleBytes, compres
 	}()
 	if err != nil {
 		if errors.Is(err, binaryutil.ErrLimitReached) {
-			return binaryutil.MakeNonRecycleBytes(src), false, nil
+			return binaryutil.RefBytes(src), false, nil
 		}
-		return binaryutil.NilRecycleBytes, false, fmt.Errorf("%w: %w", ErrCompress, err)
+		return binaryutil.EmptyBytes, false, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
 	msgCompressed := gtp.MsgCompressed{
-		Data:         compressedBuf.Data()[:n],
+		Data:         compressedBuf.Payload()[:n],
 		OriginalSize: int64(len(src)),
 	}
 
 	if msgCompressed.Size() >= len(src) {
-		return binaryutil.MakeNonRecycleBytes(src), false, nil
+		return binaryutil.RefBytes(src), false, nil
 	}
 
-	buf := binaryutil.MakeRecycleBytes(msgCompressed.Size())
+	buf := binaryutil.NewBytes(true, msgCompressed.Size())
 	defer func() {
 		if !buf.Equal(dst) {
 			buf.Release()
 		}
 	}()
 
-	if _, err = binaryutil.CopyToBuff(buf.Data(), msgCompressed); err != nil {
-		return binaryutil.NilRecycleBytes, false, fmt.Errorf("%w: %w", ErrCompress, err)
+	if _, err = binaryutil.CopyToBuff(buf.Payload(), msgCompressed); err != nil {
+		return binaryutil.EmptyBytes, false, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
 	return buf, true, nil
 }
 
 // Uncompress 解压缩数据
-func (c *Compression) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err error) {
+func (c *Compression) Uncompress(src []byte) (dst binaryutil.Bytes, err error) {
 	if len(src) <= 0 {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w: src too small", ErrCompress, core.ErrArgs)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: src too small", ErrCompress, core.ErrArgs)
 	}
 
 	if c.CompressionStream == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: CompressionStream is nil", ErrCompress)
 	}
 
 	msgCompressed := gtp.MsgCompressed{}
 
 	if _, err = msgCompressed.Write(src); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
 	if msgCompressed.OriginalSize >= math.MaxInt32 {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: original size too large", ErrCompress)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: original size too large", ErrCompress)
 	}
 
-	buf := binaryutil.MakeRecycleBytes(int(msgCompressed.OriginalSize))
+	buf := binaryutil.NewBytes(true, int(msgCompressed.OriginalSize))
 	defer func() {
 		if !buf.Equal(dst) {
 			buf.Release()
@@ -150,11 +151,11 @@ func (c *Compression) Uncompress(src []byte) (dst binaryutil.RecycleBytes, err e
 
 	r, err := c.CompressionStream.WrapReader(bytes.NewReader(msgCompressed.Data))
 	if err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
-	if _, err = binaryutil.CopyToBuff(buf.Data(), r); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrCompress, err)
+	if _, err = binaryutil.CopyToBuff(buf.Payload(), r); err != nil {
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrCompress, err)
 	}
 
 	return buf, nil

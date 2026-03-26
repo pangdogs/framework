@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgSigned 已签名消息

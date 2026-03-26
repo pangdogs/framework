@@ -22,10 +22,11 @@ package codec
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gap"
-	"io"
 )
 
 var (

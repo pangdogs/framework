@@ -20,21 +20,24 @@
 package transport
 
 import (
-	"errors"
 	"fmt"
+	"time"
+
+	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
-	"time"
 )
 
 type (
-	RstHandler       = generic.Delegate1[Event[*gtp.MsgRst], error]       // Rst消息事件处理器
-	SyncTimeHandler  = generic.Delegate1[Event[*gtp.MsgSyncTime], error]  // SyncTime消息事件处理器
-	HeartbeatHandler = generic.Delegate1[Event[*gtp.MsgHeartbeat], error] // Heartbeat消息事件处理器
+	RstHandler       = generic.DelegateVoid1[Event[*gtp.MsgRst]]       // Rst消息事件处理器
+	SyncTimeHandler  = generic.DelegateVoid1[Event[*gtp.MsgSyncTime]]  // SyncTime消息事件处理器
+	HeartbeatHandler = generic.DelegateVoid1[Event[*gtp.MsgHeartbeat]] // Heartbeat消息事件处理器
 )
 
 // CtrlProtocol 控制协议
 type CtrlProtocol struct {
+	AutoRecover      bool             // panic时是否自动恢复
+	ReportError      chan error       // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
 	Transceiver      *Transceiver     // 消息事件收发器
 	RetryTimes       int              // 网络io超时时的重试次数
 	RstHandler       RstHandler       // Rst消息事件处理器
@@ -105,27 +108,19 @@ func (c *CtrlProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleRecvEvent 消息事件处理器
-func (c *CtrlProtocol) HandleRecvEvent(e IEvent) error {
-	var errs []error
-
-	interrupt := func(err, _ error) bool {
-		if err != nil {
-			errs = append(errs, err)
-		}
-		return false
-	}
+// HandleEvent 消息事件处理器
+func (c *CtrlProtocol) HandleEvent(e IEvent) {
 
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:
-		c.RstHandler.UnsafeCall(interrupt, AssertEvent[*gtp.MsgRst](e))
+		c.RstHandler.Call(c.AutoRecover, c.ReportError, nil, AssertEvent[*gtp.MsgRst](e))
 
 	case gtp.MsgId_SyncTime:
 		syncTime := AssertEvent[*gtp.MsgSyncTime](e)
 
 		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
 			if c.Transceiver == nil {
-				return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
+				exception.Panicf("%w: Transceiver is nil", ErrProtocol)
 			}
 			err := c.retrySend(c.Transceiver.Send(
 				Event[*gtp.MsgSyncTime]{
@@ -138,18 +133,18 @@ func (c *CtrlProtocol) HandleRecvEvent(e IEvent) error {
 				}.Interface(),
 			))
 			if err != nil {
-				return err
+				exception.Panicf("%w: %w", ErrProtocol, err)
 			}
 		}
 
-		c.SyncTimeHandler.UnsafeCall(interrupt, syncTime)
+		c.SyncTimeHandler.Call(c.AutoRecover, c.ReportError, nil, syncTime)
 
 	case gtp.MsgId_Heartbeat:
 		heartbeat := AssertEvent[*gtp.MsgHeartbeat](e)
 
 		if heartbeat.Flags.Is(gtp.Flag_Ping) {
 			if c.Transceiver == nil {
-				return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
+				exception.Panicf("%w: Transceiver is nil", ErrProtocol)
 			}
 			err := c.retrySend(c.Transceiver.Send(
 				Event[*gtp.MsgHeartbeat]{
@@ -158,19 +153,10 @@ func (c *CtrlProtocol) HandleRecvEvent(e IEvent) error {
 				}.Interface(),
 			))
 			if err != nil {
-				return err
+				exception.Panicf("%w: %w", ErrProtocol, err)
 			}
 		}
 
-		c.HeartbeatHandler.UnsafeCall(interrupt, heartbeat)
-
-	default:
-		return nil
+		c.HeartbeatHandler.Call(c.AutoRecover, c.ReportError, nil, heartbeat)
 	}
-
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
 }

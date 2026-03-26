@@ -22,9 +22,10 @@ package transport
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/net/gtp"
-	"io"
 )
 
 // NewUnsequencedSynchronizer 创建无时序同步器，不支持断连重连时同步时序

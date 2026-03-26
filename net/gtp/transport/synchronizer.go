@@ -22,8 +22,9 @@ package transport
 import (
 	"errors"
 	"fmt"
-	"git.golaxy.org/framework/net/gtp/codec"
 	"io"
+
+	"git.golaxy.org/framework/net/gtp/codec"
 )
 
 var (

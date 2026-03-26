@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgCompressed 压缩消息

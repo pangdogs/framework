@@ -20,8 +20,9 @@
 package gap
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // MsgForward 转发
@@ -89,7 +90,7 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgForward) Size() int {
-	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32() + binaryutil.SizeofBytes(m.TransData)
+	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32 + binaryutil.SizeofBytes(m.TransData)
 }
 
 // MsgId 消息Id

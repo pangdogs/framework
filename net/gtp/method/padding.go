@@ -21,6 +21,7 @@ package method
 
 import (
 	"errors"
+
 	"git.golaxy.org/framework/net/gtp"
 )
 

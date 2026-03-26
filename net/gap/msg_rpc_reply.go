@@ -20,9 +20,10 @@
 package gap
 
 import (
+	"io"
+
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
 )
 
 // MsgRPCReply RPC答复

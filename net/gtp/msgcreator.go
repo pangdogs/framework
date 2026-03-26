@@ -21,11 +21,14 @@ package gtp
 
 import (
 	"fmt"
+	"maps"
+	"reflect"
+	"runtime"
+	"sync/atomic"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/utils/concurrent"
-	"reflect"
 )
 
 var (
@@ -36,8 +39,6 @@ var (
 type IMsgCreator interface {
 	// Declare 注册消息
 	Declare(msg Msg)
-	// Undeclare 取消注册消息
-	Undeclare(msgId MsgId)
 	// New 创建消息指针
 	New(msgId MsgId) (Msg, error)
 }
@@ -64,14 +65,12 @@ func init() {
 
 // NewMsgCreator 创建消息对象构建器
 func NewMsgCreator() IMsgCreator {
-	return &_MsgCreator{
-		msgTypeMap: concurrent.MakeLockedMap[MsgId, reflect.Type](0),
-	}
+	return &_MsgCreator{}
 }
 
 // _MsgCreator 消息对象构建器
 type _MsgCreator struct {
-	msgTypeMap concurrent.LockedMap[MsgId, reflect.Type]
+	msgTypeMap atomic.Pointer[map[MsgId]reflect.Type]
 }
 
 // Declare 注册消息
@@ -80,24 +79,43 @@ func (c *_MsgCreator) Declare(msg Msg) {
 		exception.Panicf("%w: %w: msg is nil", ErrGTP, core.ErrArgs)
 	}
 
-	c.msgTypeMap.AutoLock(func(m *map[MsgId]reflect.Type) {
-		if rtype, ok := (*m)[msg.MsgId()]; ok {
+	for {
+		var m map[MsgId]reflect.Type
+
+		old := c.msgTypeMap.Load()
+		if old != nil {
+			m = maps.Clone(*old)
+		}
+
+		if m == nil {
+			m = make(map[MsgId]reflect.Type)
+		}
+
+		if rtype, ok := (m)[msg.MsgId()]; ok {
 			exception.Panicf("%w: msg(%d) has already been declared by %q", ErrGTP, msg.MsgId(), types.FullNameRT(rtype))
 		}
-		(*m)[msg.MsgId()] = reflect.TypeOf(msg).Elem()
-	})
-}
 
-// Undeclare 取消注册消息
-func (c *_MsgCreator) Undeclare(msgId MsgId) {
-	c.msgTypeMap.Delete(msgId)
+		m[msg.MsgId()] = reflect.TypeOf(msg).Elem()
+
+		if c.msgTypeMap.CompareAndSwap(old, &m) {
+			break
+		}
+
+		runtime.Gosched()
+	}
 }
 
 // New 创建消息指针
 func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
-	rtype, ok := c.msgTypeMap.Get(msgId)
+	m := c.msgTypeMap.Load()
+	if m == nil || *m == nil {
+		return nil, ErrNotDeclared
+	}
+
+	rtype, ok := (*m)[msgId]
 	if !ok {
 		return nil, ErrNotDeclared
 	}
+
 	return reflect.New(rtype).Interface().(Msg), nil
 }

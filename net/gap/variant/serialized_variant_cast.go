@@ -20,9 +20,10 @@
 package variant
 
 import (
+	"reflect"
+
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
-	"reflect"
 )
 
 // CastSerializedVariant 转换已序列化可变类型
@@ -30,80 +31,80 @@ func CastSerializedVariant(a any) (ret Variant, err error) {
 retry:
 	switch v := a.(type) {
 	case int:
-		return MakeSerializedVariant(Int(v))
+		return NewSerializedVariant(Int(v))
 	case *int:
-		return MakeSerializedVariant((*Int)(v))
+		return NewSerializedVariant((*Int)(v))
 	case int8:
-		return MakeSerializedVariant(Int8(v))
+		return NewSerializedVariant(Int8(v))
 	case *int8:
-		return MakeSerializedVariant((*Int8)(v))
+		return NewSerializedVariant((*Int8)(v))
 	case int16:
-		return MakeSerializedVariant(Int16(v))
+		return NewSerializedVariant(Int16(v))
 	case *int16:
-		return MakeSerializedVariant((*Int16)(v))
+		return NewSerializedVariant((*Int16)(v))
 	case int32:
-		return MakeSerializedVariant(Int32(v))
+		return NewSerializedVariant(Int32(v))
 	case *int32:
-		return MakeSerializedVariant((*Int32)(v))
+		return NewSerializedVariant((*Int32)(v))
 	case int64:
-		return MakeSerializedVariant(Int64(v))
+		return NewSerializedVariant(Int64(v))
 	case *int64:
-		return MakeSerializedVariant((*Int64)(v))
+		return NewSerializedVariant((*Int64)(v))
 	case uint:
-		return MakeSerializedVariant(Uint(v))
+		return NewSerializedVariant(Uint(v))
 	case *uint:
-		return MakeSerializedVariant((*Uint)(v))
+		return NewSerializedVariant((*Uint)(v))
 	case uint8:
-		return MakeSerializedVariant(Uint8(v))
+		return NewSerializedVariant(Uint8(v))
 	case *uint8:
-		return MakeSerializedVariant((*Uint8)(v))
+		return NewSerializedVariant((*Uint8)(v))
 	case uint16:
-		return MakeSerializedVariant(Uint16(v))
+		return NewSerializedVariant(Uint16(v))
 	case *uint16:
-		return MakeSerializedVariant((*Uint16)(v))
+		return NewSerializedVariant((*Uint16)(v))
 	case uint32:
-		return MakeSerializedVariant(Uint32(v))
+		return NewSerializedVariant(Uint32(v))
 	case *uint32:
-		return MakeSerializedVariant((*Uint32)(v))
+		return NewSerializedVariant((*Uint32)(v))
 	case uint64:
-		return MakeSerializedVariant(Uint64(v))
+		return NewSerializedVariant(Uint64(v))
 	case *uint64:
-		return MakeSerializedVariant((*Uint64)(v))
+		return NewSerializedVariant((*Uint64)(v))
 	case float32:
-		return MakeSerializedVariant(Float(v))
+		return NewSerializedVariant(Float(v))
 	case *float32:
-		return MakeSerializedVariant((*Float)(v))
+		return NewSerializedVariant((*Float)(v))
 	case float64:
-		return MakeSerializedVariant(Double(v))
+		return NewSerializedVariant(Double(v))
 	case *float64:
-		return MakeSerializedVariant((*Double)(v))
+		return NewSerializedVariant((*Double)(v))
 	case bool:
-		return MakeSerializedVariant(Bool(v))
+		return NewSerializedVariant(Bool(v))
 	case *bool:
-		return MakeSerializedVariant((*Bool)(v))
+		return NewSerializedVariant((*Bool)(v))
 	case []byte:
-		return MakeSerializedVariant(Bytes(v))
+		return NewSerializedVariant(Bytes(v))
 	case *[]byte:
-		return MakeSerializedVariant((*Bytes)(v))
+		return NewSerializedVariant((*Bytes)(v))
 	case string:
-		return MakeSerializedVariant(String(v))
+		return NewSerializedVariant(String(v))
 	case *string:
-		return MakeSerializedVariant((*String)(v))
+		return NewSerializedVariant((*String)(v))
 	case uid.Id:
-		return MakeSerializedVariant(String(v))
+		return NewSerializedVariant(String(v))
 	case *uid.Id:
-		return MakeSerializedVariant((*String)(v))
+		return NewSerializedVariant((*String)(v))
 	case nil:
-		return MakeSerializedVariant(Null{})
+		return NewSerializedVariant(Null{})
 	case Array:
-		return MakeSerializedVariant(v)
+		return NewSerializedVariant(v)
 	case *Array:
-		return MakeSerializedVariant(*v)
+		return NewSerializedVariant(*v)
 	case *any:
 		a = *v
 		goto retry
 	case []any:
-		arr, err := MakeSerializedArray(v)
+		arr, err := NewSerializedArray(v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -112,9 +113,9 @@ retry:
 				arr.Release()
 			}
 		}()
-		return MakeSerializedVariant(arr)
+		return NewSerializedVariant(arr)
 	case *[]any:
-		arr, err := MakeSerializedArray(*v)
+		arr, err := NewSerializedArray(*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -123,9 +124,9 @@ retry:
 				arr.Release()
 			}
 		}()
-		return MakeSerializedVariant(arr)
+		return NewSerializedVariant(arr)
 	case []reflect.Value:
-		arr, err := MakeSerializedArray(v)
+		arr, err := NewSerializedArray(v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -134,9 +135,9 @@ retry:
 				arr.Release()
 			}
 		}()
-		return MakeSerializedVariant(arr)
+		return NewSerializedVariant(arr)
 	case *[]reflect.Value:
-		arr, err := MakeSerializedArray(*v)
+		arr, err := NewSerializedArray(*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -145,13 +146,13 @@ retry:
 				arr.Release()
 			}
 		}()
-		return MakeSerializedVariant(arr)
+		return NewSerializedVariant(arr)
 	case Map:
-		return MakeSerializedVariant(v)
+		return NewSerializedVariant(v)
 	case *Map:
-		return MakeSerializedVariant(*v)
+		return NewSerializedVariant(*v)
 	case map[string]any:
-		m, err := MakeSerializedMapFromGoMap[string, any](v)
+		m, err := NewSerializedMapFromGoMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -160,9 +161,9 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case *map[string]any:
-		m, err := MakeSerializedMapFromGoMap[string, any](*v)
+		m, err := NewSerializedMapFromGoMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -171,9 +172,9 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case generic.SliceMap[string, any]:
-		m, err := MakeSerializedMapFromSliceMap[string, any](v)
+		m, err := NewSerializedMapFromSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -182,9 +183,9 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case *generic.SliceMap[string, any]:
-		m, err := MakeSerializedMapFromSliceMap[string, any](*v)
+		m, err := NewSerializedMapFromSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -193,9 +194,9 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case generic.UnorderedSliceMap[string, any]:
-		m, err := MakeSerializedMapFromUnorderedSliceMap[string, any](v)
+		m, err := NewSerializedMapFromUnorderedSliceMap[string, any](v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -204,9 +205,9 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case *generic.UnorderedSliceMap[string, any]:
-		m, err := MakeSerializedMapFromUnorderedSliceMap[string, any](*v)
+		m, err := NewSerializedMapFromUnorderedSliceMap[string, any](*v)
 		if err != nil {
 			return Variant{}, err
 		}
@@ -215,17 +216,17 @@ retry:
 				m.Release()
 			}
 		}()
-		return MakeSerializedVariant(m)
+		return NewSerializedVariant(m)
 	case Error:
-		return MakeSerializedVariant(&v)
+		return NewSerializedVariant(&v)
 	case *Error:
-		return MakeSerializedVariant(v)
+		return NewSerializedVariant(v)
 	case error:
-		return MakeSerializedVariant(MakeError(v))
+		return NewSerializedVariant(NewError(v))
 	case CallChain:
-		return MakeSerializedVariant(v)
+		return NewSerializedVariant(v)
 	case *CallChain:
-		return MakeSerializedVariant(*v)
+		return NewSerializedVariant(*v)
 	case reflect.Value:
 		if !v.CanInterface() {
 			return Variant{}, ErrInvalidCast
@@ -243,7 +244,7 @@ retry:
 	case *Variant:
 		return *v, nil
 	case ReadableValue:
-		return MakeSerializedVariant(v)
+		return NewSerializedVariant(v)
 	default:
 		return Variant{}, ErrInvalidCast
 	}

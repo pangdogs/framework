@@ -20,8 +20,9 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Int16 builtin int16
@@ -49,7 +50,7 @@ func (v *Int16) Write(p []byte) (int, error) {
 
 // Size 大小
 func (Int16) Size() int {
-	return binaryutil.SizeofInt16()
+	return binaryutil.SizeofInt16
 }
 
 // TypeId 类型

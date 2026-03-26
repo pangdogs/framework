@@ -22,9 +22,10 @@ package gtp
 import (
 	"bytes"
 	"fmt"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"strings"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // ECDHESecretKeyExchange消息标志位
@@ -116,7 +117,7 @@ func (sa *SignatureAlgorithm) Write(p []byte) (int, error) {
 
 // Size 大小
 func (SignatureAlgorithm) Size() int {
-	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
+	return binaryutil.SizeofUint8 + binaryutil.SizeofUint8 + binaryutil.SizeofUint8
 }
 
 // MsgECDHESecretKeyExchange ECDHE秘钥交换消息，利用(g^a mod p)^b mod p == (g^b mod p)^a mod p等式，交换秘钥
@@ -202,7 +203,7 @@ func (m *MsgECDHESecretKeyExchange) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgECDHESecretKeyExchange) Size() int {
-	return binaryutil.SizeofUint8() + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
+	return binaryutil.SizeofUint8 + binaryutil.SizeofBytes(m.PublicKey) + binaryutil.SizeofBytes(m.IV) +
 		binaryutil.SizeofBytes(m.Nonce) + binaryutil.SizeofBytes(m.NonceStep) + m.SignatureAlgorithm.Size() +
 		binaryutil.SizeofBytes(m.Signature)
 }

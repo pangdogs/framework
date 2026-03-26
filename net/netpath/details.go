@@ -25,8 +25,8 @@ import (
 
 // Domain 域
 type Domain struct {
-	Path string // 路径
-	Sep  string // 分隔符
+	Path string `json:"path"` // 路径
+	Sep  string `json:"sep"`  // 分隔符
 }
 
 // IsValid 是否有效
@@ -59,9 +59,9 @@ func (d Domain) Relative(path string) (string, bool) {
 
 // NodeDetails 节点地址信息
 type NodeDetails struct {
-	DomainRoot      Domain // 根域
-	DomainBroadcast Domain // 广播地址子域
-	DomainBalance   Domain // 负载均衡地址子域
-	DomainMulticast Domain // 组播地址子域
-	DomainUnicast   Domain // 单播地址子域
+	DomainRoot      Domain `json:"domain_root"`      // 根域
+	DomainBroadcast Domain `json:"domain_broadcast"` // 广播地址子域
+	DomainBalance   Domain `json:"domain_balance"`   // 负载均衡地址子域
+	DomainMulticast Domain `json:"domain_multicast"` // 组播地址子域
+	DomainUnicast   Domain `json:"domain_unicast"`   // 单播地址子域
 }

@@ -21,13 +21,14 @@ package variant
 
 import (
 	"fmt"
+	"io"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
 )
 
-// MakeSerializedValue 创建已序列化值
-func MakeSerializedValue(v ReadableValue) (ret *SerializedValue, err error) {
+// NewSerializedValue 创建已序列化值
+func NewSerializedValue(v ReadableValue) (ret *SerializedValue, err error) {
 	if v == nil {
 		return nil, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
@@ -38,21 +39,21 @@ func MakeSerializedValue(v ReadableValue) (ret *SerializedValue, err error) {
 
 	size := v.Size()
 	if size > 0 {
-		buf := binaryutil.MakeRecycleBytes(size)
+		buf := binaryutil.NewBytes(true, size)
 		defer func() {
 			if ret == nil {
 				buf.Release()
 			}
 		}()
 
-		if _, err := binaryutil.CopyToBuff(buf.Data(), v); err != nil {
+		if _, err := binaryutil.CopyToBuff(buf.Payload(), v); err != nil {
 			return nil, err
 		}
 
 		sv.Data = buf
 
 	} else {
-		sv.Data = binaryutil.NilRecycleBytes
+		sv.Data = binaryutil.EmptyBytes
 	}
 
 	return sv, nil
@@ -60,21 +61,21 @@ func MakeSerializedValue(v ReadableValue) (ret *SerializedValue, err error) {
 
 // SerializedValue 已序列化值
 type SerializedValue struct {
-	Type TypeId                  // 类型Id
-	Data binaryutil.RecycleBytes // 数据
+	Type TypeId           // 类型Id
+	Data binaryutil.Bytes // 数据
 }
 
 // Read implements io.Reader
 func (v *SerializedValue) Read(p []byte) (int, error) {
-	if len(p) < len(v.Data.Data()) {
+	if len(p) < len(v.Data.Payload()) {
 		return 0, io.ErrShortWrite
 	}
-	return copy(p, v.Data.Data()), io.EOF
+	return copy(p, v.Data.Payload()), io.EOF
 }
 
 // Size 大小
 func (v *SerializedValue) Size() int {
-	return len(v.Data.Data())
+	return len(v.Data.Payload())
 }
 
 // TypeId 类型

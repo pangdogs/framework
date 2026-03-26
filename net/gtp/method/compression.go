@@ -22,11 +22,12 @@ package method
 import (
 	"compress/flate"
 	"compress/gzip"
+	"io"
+
 	"git.golaxy.org/framework/net/gtp"
 	"github.com/andybalholm/brotli"
 	"github.com/golang/snappy"
 	"github.com/pierrec/lz4/v4"
-	"io"
 )
 
 var (

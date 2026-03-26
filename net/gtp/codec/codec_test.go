@@ -17,53 +17,55 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package codec
+package codec_test
 
 import (
 	"crypto/rand"
 	"encoding/json"
-	"fmt"
-	"git.golaxy.org/framework/net/gtp"
-	"git.golaxy.org/framework/net/gtp/method"
+	"log"
 	"math/big"
 	"testing"
+
+	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/net/gtp/codec"
+	"git.golaxy.org/framework/net/gtp/method"
 )
 
-func TestCodec(t *testing.T) {
+func Test_Codec(t *testing.T) {
 	key, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
 	//iv, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), chacha20.NonceSize*8))
 
 	encrypter, decrypter, err := method.NewCipher(gtp.SymmetricEncryption_AES, gtp.BlockCipherMode_GCM, key.Bytes(), nil, nil)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	nonce, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), uint(encrypter.NonceSize())*8))
 
 	compressionStream, err := method.NewCompressionStream(gtp.Compression_Brotli)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	//padding, err := method.NewPadding(gtp.PaddingMode_X923)
 	//if err != nil {
-	//	panic(err)
+	//	log.Panic(err)
 	//}
 
 	hmac, err := method.NewHMAC(gtp.Hash_BLAKE2b256, key.Bytes())
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
-	encoder := NewEncoder().
-		SetEncryption(NewEncryption(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetAuthentication(NewAuthentication(hmac)).
-		SetCompression(NewCompression(compressionStream), 1)
+	encoder := codec.NewEncoder().
+		SetEncryption(codec.NewEncryption(encrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetAuthentication(codec.NewAuthentication(hmac)).
+		SetCompression(codec.NewCompression(compressionStream), 1)
 
-	decoder := NewDecoder(gtp.DefaultMsgCreator()).
-		SetEncryption(NewEncryption(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
-		SetAuthentication(NewAuthentication(hmac)).
-		SetCompression(NewCompression(compressionStream))
+	decoder := codec.NewDecoder(gtp.DefaultMsgCreator()).
+		SetEncryption(codec.NewEncryption(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
+		SetAuthentication(codec.NewAuthentication(hmac)).
+		SetCompression(codec.NewCompression(compressionStream))
 
 	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 1024))
@@ -81,15 +83,15 @@ func TestCodec(t *testing.T) {
 			},
 		})
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 
-		mp, _, err := decoder.Decode(bs.Data(), nil)
+		mp, _, err := decoder.Decode(bs.Payload(), nil)
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		v, _ := json.Marshal(mp)
-		fmt.Printf("%s\n", v)
+		log.Printf("%s", v)
 
 		bs.Release()
 	}

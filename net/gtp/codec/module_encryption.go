@@ -22,6 +22,7 @@ package codec
 import (
 	"errors"
 	"fmt"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
@@ -36,7 +37,7 @@ var (
 // IEncryption 加密模块接口
 type IEncryption interface {
 	// Transforming 变换数据
-	Transforming(dst, src []byte) (binaryutil.RecycleBytes, error)
+	Transforming(dst, src []byte) (binaryutil.Bytes, error)
 	// SizeOfAddition 附加数据大小
 	SizeOfAddition(msgLen int) (int, error)
 }
@@ -78,27 +79,27 @@ type Encryption struct {
 }
 
 // Transforming 变换数据
-func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.RecycleBytes, err error) {
+func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.Bytes, err error) {
 	if e.Cipher == nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Cipher is nil", ErrEncrypt)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: Cipher is nil", ErrEncrypt)
 	}
 
 	var in []byte
 
 	is := e.Cipher.InputSize(len(src))
 	if is > len(src) {
-		buf := binaryutil.MakeRecycleBytes(is)
+		buf := binaryutil.NewBytes(true, is)
 		defer buf.Release()
 
-		copy(buf.Data(), src)
-		in = buf.Data()
+		copy(buf.Payload(), src)
+		in = buf.Payload()
 	} else {
 		in = src
 	}
 
 	os := e.Cipher.OutputSize(len(src))
 	if os > len(dst) {
-		buf := binaryutil.MakeRecycleBytes(os)
+		buf := binaryutil.NewBytes(true, os)
 		defer func() {
 			if !buf.Equal(ret) {
 				buf.Release()
@@ -107,15 +108,15 @@ func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.RecycleBytes,
 
 		ret = buf
 	} else {
-		ret = binaryutil.MakeNonRecycleBytes(dst)
+		ret = binaryutil.RefBytes(dst)
 	}
 
 	if e.Cipher.Pad() {
 		if e.Padding == nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
 		}
 		if err = e.Padding.Pad(in, len(src)); err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
 	}
 
@@ -123,27 +124,27 @@ func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.RecycleBytes,
 
 	if e.Cipher.NonceSize() > 0 {
 		if e.FetchNonce == nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: FetchNonce is nil", ErrEncrypt)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: FetchNonce is nil", ErrEncrypt)
 		}
 		nonce, err = generic.FuncPairError(e.FetchNonce.SafeCall())
 		if err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
 	}
 
-	ts, err := e.Cipher.Transforming(ret.Data(), in, nonce)
+	ts, err := e.Cipher.Transforming(ret.Payload(), in, nonce)
 	if err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 	}
 	ret = ret.Slice(0, ts)
 
 	if e.Cipher.Unpad() {
 		if e.Padding == nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
 		}
-		buf, err := e.Padding.Unpad(ret.Data())
+		buf, err := e.Padding.Unpad(ret.Payload())
 		if err != nil {
-			return binaryutil.NilRecycleBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
+			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
 		ret = ret.Slice(0, len(buf))
 	}

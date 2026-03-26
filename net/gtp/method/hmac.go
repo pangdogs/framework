@@ -22,10 +22,11 @@ package method
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"hash"
+
 	"git.golaxy.org/framework/net/gtp"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
-	"hash"
 )
 
 // NewHMAC 创建HMAC

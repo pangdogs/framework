@@ -21,16 +21,17 @@ package variant
 
 import (
 	"fmt"
+
 	"git.golaxy.org/core"
 )
 
-// MakeSerializedVariant 创建已序列化可变类型
-func MakeSerializedVariant(v ReadableValue) (Variant, error) {
+// NewSerializedVariant 创建已序列化可变类型
+func NewSerializedVariant(v ReadableValue) (Variant, error) {
 	if v == nil {
 		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
 
-	sv, err := MakeSerializedValue(v)
+	sv, err := NewSerializedValue(v)
 	if err != nil {
 		return Variant{}, err
 	}

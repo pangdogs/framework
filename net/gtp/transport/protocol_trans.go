@@ -20,18 +20,20 @@
 package transport
 
 import (
-	"errors"
 	"fmt"
+
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
 )
 
 type (
-	PayloadHandler = generic.Delegate1[Event[*gtp.MsgPayload], error] // Payload消息事件处理器
+	PayloadHandler = generic.DelegateVoid1[Event[*gtp.MsgPayload]] // Payload消息事件处理器
 )
 
 // TransProtocol 传输协议
 type TransProtocol struct {
+	AutoRecover    bool           // panic时是否自动恢复
+	ReportError    chan error     // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
 	Transceiver    *Transceiver   // 消息事件收发器
 	RetryTimes     int            // 网络io超时时的重试次数
 	PayloadHandler PayloadHandler // Payload消息事件处理器
@@ -60,26 +62,10 @@ func (t *TransProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleRecvEvent 消息事件处理器
-func (t *TransProtocol) HandleRecvEvent(e IEvent) error {
+// HandleEvent 消息事件处理器
+func (t *TransProtocol) HandleEvent(e IEvent) {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:
-		var errs []error
-
-		t.PayloadHandler.UnsafeCall(func(err, _ error) bool {
-			if err != nil {
-				errs = append(errs, err)
-			}
-			return false
-		}, AssertEvent[*gtp.MsgPayload](e))
-
-		if len(errs) > 0 {
-			return errors.Join(errs...)
-		}
-
-		return nil
-
-	default:
-		return nil
+		t.PayloadHandler.Call(t.AutoRecover, t.ReportError, nil, AssertEvent[*gtp.MsgPayload](e))
 	}
 }

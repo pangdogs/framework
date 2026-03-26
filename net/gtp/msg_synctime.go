@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // SyncTime消息标志位
@@ -77,7 +78,7 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 
 // Size 大小
 func (MsgSyncTime) Size() int {
-	return binaryutil.SizeofInt64() + binaryutil.SizeofInt64() + binaryutil.SizeofInt64()
+	return binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64
 }
 
 // MsgId 消息Id

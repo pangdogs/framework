@@ -20,12 +20,13 @@
 package variant
 
 import (
-	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"hash/fnv"
 	"io"
 	"reflect"
+
+	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/types"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // TypeId 类型Id
@@ -68,8 +69,8 @@ func (t TypeId) NewReflected() (reflect.Value, error) {
 	return variantCreator.NewReflected(t)
 }
 
-// MakeTypeId 创建类型Id
-func MakeTypeId(v any) TypeId {
+// GenTypeId 生成类型Id
+func GenTypeId(v any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
@@ -79,8 +80,8 @@ func MakeTypeId(v any) TypeId {
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
 
-// MakeTypeIdT 创建类型Id
-func MakeTypeIdT[T any]() TypeId {
+// GenTypeIdT 生成类型Id
+func GenTypeIdT[T any]() TypeId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {

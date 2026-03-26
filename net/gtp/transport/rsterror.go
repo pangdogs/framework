@@ -21,6 +21,8 @@ package transport
 
 import (
 	"fmt"
+	"strings"
+
 	"git.golaxy.org/framework/net/gtp"
 )
 
@@ -49,6 +51,6 @@ func (err RstError) ToEvent() Event[*gtp.MsgRst] {
 func CastRstErr(e Event[*gtp.MsgRst]) *RstError {
 	return &RstError{
 		Code:    e.Msg.Code,
-		Message: e.Msg.Message,
+		Message: strings.Clone(e.Msg.Message),
 	}
 }

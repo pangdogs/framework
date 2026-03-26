@@ -20,8 +20,9 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Flags 所有标志位
@@ -133,6 +134,6 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 
 // Size 大小
 func (MsgHead) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
-		binaryutil.SizeofUint32() + binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32 + binaryutil.SizeofUint8 + binaryutil.SizeofUint8 +
+		binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }

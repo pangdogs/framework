@@ -22,11 +22,12 @@ package codec
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
 )
 
 var (
@@ -52,11 +53,11 @@ type IValidation interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator     gtp.IMsgCreator           // 消息对象构建器
-	Encryption     IEncryption               // 加密模块
-	Authentication IAuthentication           // 认证模块
-	Compression    ICompression              // 压缩模块
-	gcList         []binaryutil.RecycleBytes // GC列表
+	MsgCreator     gtp.IMsgCreator    // 消息对象构建器
+	Encryption     IEncryption        // 加密模块
+	Authentication IAuthentication    // 认证模块
+	Compression    ICompression       // 压缩模块
+	gcList         []binaryutil.Bytes // GC列表
 }
 
 // SetEncryption 设置加密模块
@@ -125,20 +126,20 @@ func (d *Decoder) peekLength(data []byte) (int, error) {
 // decode 解码消息包
 func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, error) {
 	// 消息包数据缓存
-	mpBuf := binaryutil.MakeRecycleBytes(len(data))
+	mpBuf := binaryutil.NewBytes(true, len(data))
 	d.gcList = append(d.gcList, mpBuf)
 
 	// 拷贝消息包
-	copy(mpBuf.Data(), data)
+	copy(mpBuf.Payload(), data)
 
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	if _, err := mp.Head.Write(mpBuf.Data()); err != nil {
+	if _, err := mp.Head.Write(mpBuf.Payload()); err != nil {
 		return gtp.MsgPacket{}, fmt.Errorf("%w: read msg-packet-head failed, %w", ErrDecode, err)
 	}
 
-	msgBuf := mpBuf.Data()[mp.Head.Size():]
+	msgBuf := mpBuf.Payload()[mp.Head.Size():]
 
 	// 验证消息包
 	if validation != nil {
@@ -160,7 +161,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 		if dencryptBuf.Recyclable() {
 			d.gcList = append(d.gcList, dencryptBuf)
 		}
-		msgBuf = dencryptBuf.Data()
+		msgBuf = dencryptBuf.Payload()
 
 		// 消息认证
 		if mp.Head.Flags.Is(gtp.Flag_Signed) {
@@ -186,7 +187,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 		if uncompressedBuf.Recyclable() {
 			d.gcList = append(d.gcList, uncompressedBuf)
 		}
-		msgBuf = uncompressedBuf.Data()
+		msgBuf = uncompressedBuf.Payload()
 	}
 
 	// 创建消息体

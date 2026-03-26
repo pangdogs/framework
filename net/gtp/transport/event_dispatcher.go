@@ -21,27 +21,26 @@ package transport
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"git.golaxy.org/core/utils/exception"
+
 	"git.golaxy.org/core/utils/generic"
-	"github.com/elliotchance/pie/v2"
 )
 
 type (
-	EventHandler = generic.Delegate1[IEvent, error] // 消息事件处理器
-	ErrorHandler = generic.DelegateVoid1[error]     // 错误处理器
+	EventHandler = generic.DelegateVoid1[IEvent] // 消息事件处理器
 )
 
 // EventDispatcher 消息事件分发器
 type EventDispatcher struct {
+	AutoRecover  bool         // panic时是否自动恢复
+	ReportError  chan error   // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
 	Transceiver  *Transceiver // 消息事件收发器
 	RetryTimes   int          // 网络io超时时的重试次数
 	EventHandler EventHandler // 消息事件处理器列表
 }
 
-// Dispatching 分发事件
-func (d *EventDispatcher) Dispatching(ctx context.Context) error {
+// Dispatch 分发事件
+func (d *EventDispatcher) Dispatch(ctx context.Context) error {
 	if d.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrEvent)
 	}
@@ -57,48 +56,9 @@ func (d *EventDispatcher) Dispatching(ctx context.Context) error {
 		return fmt.Errorf("%w: %w", ErrEvent, err)
 	}
 
-	var errs []error
-
-	d.EventHandler.SafeCall(func(err, panicErr error) bool {
-		if err := generic.FuncError(err, panicErr); err != nil {
-			errs = append(errs, err)
-		}
-		return panicErr != nil
-	}, e)
-
-	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", ErrEvent, errors.Join(errs...))
-	}
+	d.EventHandler.Call(d.AutoRecover, d.ReportError, nil, e)
 
 	return nil
-}
-
-// Run 运行
-func (d *EventDispatcher) Run(ctx context.Context, errorHandler ...ErrorHandler) {
-	if d.Transceiver == nil {
-		exception.Panicf("%w: Transceiver is nil", ErrEvent)
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	_errorHandler := pie.First(errorHandler)
-
-	defer d.Transceiver.Dispose()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		err := d.Dispatching(ctx)
-		if err != nil {
-			_errorHandler.SafeCall(nil, err)
-		}
-	}
 }
 
 func (d *EventDispatcher) retryRecv(ctx context.Context) (IEvent, error) {

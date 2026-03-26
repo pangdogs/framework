@@ -21,13 +21,14 @@ package variant
 
 import (
 	"cmp"
+	"io"
+
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"io"
 )
 
-// MakeMapFromGoMap 创建map
-func MakeMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
+// NewMapFromGoMap 创建map
+func NewMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	varMap := make(Map, 0, len(m))
 
 	for k, v := range m {
@@ -47,8 +48,8 @@ func MakeMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	return varMap, nil
 }
 
-// MakeMapFromSliceMap 创建map
-func MakeMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
+// NewMapFromSliceMap 创建map
+func NewMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
 	varMap := make(Map, 0, len(m))
 
 	for i := range m {
@@ -70,8 +71,8 @@ func MakeMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, e
 	return varMap, nil
 }
 
-// MakeMapFromUnorderedSliceMap 创建map
-func MakeMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
+// NewMapFromUnorderedSliceMap 创建map
+func NewMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
 	varMap := make(Map, 0, len(m))
 
 	for i := range m {

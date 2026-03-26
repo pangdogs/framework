@@ -20,8 +20,9 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Uint32 builtin uint32
@@ -49,7 +50,7 @@ func (v *Uint32) Write(p []byte) (int, error) {
 
 // Size 大小
 func (Uint32) Size() int {
-	return binaryutil.SizeofUint32()
+	return binaryutil.SizeofUint32
 }
 
 // TypeId 类型

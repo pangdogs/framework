@@ -20,12 +20,13 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MakeArray 创建array
-func MakeArray[T any](arr []T) (Array, error) {
+// NewArray 创建array
+func NewArray[T any](arr []T) (Array, error) {
 	varArr := make(Array, 0, len(arr))
 
 	for i := range arr {

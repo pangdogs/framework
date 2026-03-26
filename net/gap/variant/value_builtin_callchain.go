@@ -20,9 +20,10 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"time"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 type Call struct {
@@ -107,8 +108,8 @@ func (v CallChain) Size() int {
 	for i := range v {
 		n += binaryutil.SizeofString(v[i].Svc)
 		n += binaryutil.SizeofString(v[i].Addr)
-		n += binaryutil.SizeofInt64()
-		n += binaryutil.SizeofBool()
+		n += binaryutil.SizeofInt64
+		n += binaryutil.SizeofBool
 	}
 	return n
 }

@@ -22,18 +22,19 @@ package variant
 import (
 	"errors"
 	"fmt"
-	"git.golaxy.org/core"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"reflect"
+
+	"git.golaxy.org/core"
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 var (
 	ErrVariant = errors.New("gap-variant") // 可变类型错误
 )
 
-// MakeVariant 创建可变类型
-func MakeVariant(v ReadableValue) (Variant, error) {
+// NewVariant 创建可变类型
+func NewVariant(v ReadableValue) (Variant, error) {
 	if v == nil {
 		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}

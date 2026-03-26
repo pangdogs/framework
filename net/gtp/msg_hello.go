@@ -22,9 +22,10 @@ package gtp
 import (
 	"bytes"
 	"fmt"
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"strings"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Hello消息标志位
@@ -149,8 +150,8 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 
 // Size 大小
 func (CipherSuite) Size() int {
-	return binaryutil.SizeofUint8() + binaryutil.SizeofUint8() + binaryutil.SizeofUint8() +
-		binaryutil.SizeofUint8() + binaryutil.SizeofUint8()
+	return binaryutil.SizeofUint8 + binaryutil.SizeofUint8 + binaryutil.SizeofUint8 +
+		binaryutil.SizeofUint8 + binaryutil.SizeofUint8
 }
 
 // MsgHello Hello消息（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
@@ -219,8 +220,8 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgHello) Size() int {
-	return binaryutil.SizeofUint16() + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
-		m.CipherSuite.Size() + binaryutil.SizeofUint8()
+	return binaryutil.SizeofUint16 + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
+		m.CipherSuite.Size() + binaryutil.SizeofUint8
 }
 
 // MsgId 消息Id

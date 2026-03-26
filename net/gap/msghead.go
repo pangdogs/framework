@@ -20,8 +20,9 @@
 package gap
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Origin 来源信息
@@ -71,7 +72,7 @@ func (o *Origin) Write(p []byte) (int, error) {
 
 // Size 大小
 func (o Origin) Size() int {
-	return binaryutil.SizeofString(o.Svc) + binaryutil.SizeofString(o.Addr) + binaryutil.SizeofInt64()
+	return binaryutil.SizeofString(o.Svc) + binaryutil.SizeofString(o.Addr) + binaryutil.SizeofInt64
 }
 
 // MsgHead 消息头
@@ -130,5 +131,5 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgHead) Size() int {
-	return binaryutil.SizeofUint32() + binaryutil.SizeofUint32() + m.Src.Size() + binaryutil.SizeofInt64()
+	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32 + m.Src.Size() + binaryutil.SizeofInt64
 }

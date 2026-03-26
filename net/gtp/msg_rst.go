@@ -20,9 +20,10 @@
 package gtp
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
 	"strings"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Code 错误码
@@ -79,7 +80,7 @@ func (m *MsgRst) Write(p []byte) (int, error) {
 
 // Size 大小
 func (m MsgRst) Size() int {
-	return binaryutil.SizeofInt32() + binaryutil.SizeofString(m.Message)
+	return binaryutil.SizeofInt32 + binaryutil.SizeofString(m.Message)
 }
 
 // MsgId 消息Id

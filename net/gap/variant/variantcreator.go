@@ -21,10 +21,14 @@ package variant
 
 import (
 	"fmt"
+	"maps"
+	"reflect"
+	"runtime"
+	"sync/atomic"
+
+	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
-	"git.golaxy.org/framework/utils/concurrent"
-	"reflect"
 )
 
 var (
@@ -35,8 +39,6 @@ var (
 type IVariantCreator interface {
 	// Declare 注册类型
 	Declare(v Value)
-	// Undeclare 取消注册类型
-	Undeclare(typeId TypeId)
 	// New 创建对象指针
 	New(typeId TypeId) (Value, error)
 	// NewReflected 创建反射对象指针
@@ -76,29 +78,44 @@ func init() {
 
 // _NewVariantCreator 创建可变类型对象构建器
 func _NewVariantCreator() IVariantCreator {
-	return &_VariantCreator{
-		variantTypeMap: concurrent.MakeLockedMap[TypeId, reflect.Type](0),
-	}
+	return &_VariantCreator{}
 }
 
 // _VariantCreator 可变类型对象构建器
 type _VariantCreator struct {
-	variantTypeMap concurrent.LockedMap[TypeId, reflect.Type]
+	variantTypeMap atomic.Pointer[map[TypeId]reflect.Type]
 }
 
 // Declare 注册类型
 func (c *_VariantCreator) Declare(v Value) {
-	c.variantTypeMap.AutoLock(func(m *map[TypeId]reflect.Type) {
-		if rtype, ok := (*m)[v.TypeId()]; ok {
+	if v == nil {
+		exception.Panicf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
+	}
+
+	for {
+		var m map[TypeId]reflect.Type
+
+		old := c.variantTypeMap.Load()
+		if old != nil {
+			m = maps.Clone(*old)
+		}
+
+		if m == nil {
+			m = make(map[TypeId]reflect.Type)
+		}
+
+		if rtype, ok := (m)[v.TypeId()]; ok {
 			exception.Panicf("%w: variant type(%d) has already been declared by %q", ErrVariant, v.TypeId(), types.FullNameRT(rtype))
 		}
-		(*m)[v.TypeId()] = reflect.TypeOf(v).Elem()
-	})
-}
 
-// Undeclare 取消注册类型
-func (c *_VariantCreator) Undeclare(typeId TypeId) {
-	c.variantTypeMap.Delete(typeId)
+		m[v.TypeId()] = reflect.TypeOf(v).Elem()
+
+		if c.variantTypeMap.CompareAndSwap(old, &m) {
+			break
+		}
+
+		runtime.Gosched()
+	}
 }
 
 // New 创建对象指针
@@ -112,9 +129,15 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 
 // NewReflected 创建反射对象指针
 func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
-	rtype, ok := c.variantTypeMap.Get(typeId)
+	m := c.variantTypeMap.Load()
+	if m == nil || *m == nil {
+		return reflect.Value{}, ErrNotDeclared
+	}
+
+	rtype, ok := (*m)[typeId]
 	if !ok {
 		return reflect.Value{}, ErrNotDeclared
 	}
+
 	return reflect.New(rtype), nil
 }

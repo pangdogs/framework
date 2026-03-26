@@ -21,11 +21,12 @@ package variant
 
 import (
 	"cmp"
+
 	"git.golaxy.org/core/utils/generic"
 )
 
-// MakeSerializedMapFromGoMap 创建已序列化map
-func MakeSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret Map, err error) {
+// NewSerializedMapFromGoMap 创建已序列化map
+func NewSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret Map, err error) {
 	varMap := make(Map, 0, len(m))
 	defer func() {
 		if ret == nil {
@@ -50,8 +51,8 @@ func MakeSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret Map, err er
 	return varMap, nil
 }
 
-// MakeSerializedMapFromSliceMap 创建已序列化map
-func MakeSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (ret Map, err error) {
+// NewSerializedMapFromSliceMap 创建已序列化map
+func NewSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (ret Map, err error) {
 	varMap := make(Map, 0, len(m))
 	defer func() {
 		if ret == nil {
@@ -78,8 +79,8 @@ func MakeSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V
 	return varMap, nil
 }
 
-// MakeSerializedMapFromUnorderedSliceMap 创建已序列化map
-func MakeSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (ret Map, err error) {
+// NewSerializedMapFromUnorderedSliceMap 创建已序列化map
+func NewSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (ret Map, err error) {
 	varMap := make(Map, 0, len(m))
 	defer func() {
 		if ret == nil {

@@ -21,20 +21,21 @@ package gtp
 
 import (
 	"fmt"
+
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Marshal 序列化
-func Marshal[T ReadableMsg](msg T) (ret binaryutil.RecycleBytes, err error) {
-	bs := binaryutil.MakeRecycleBytes(msg.Size())
+func Marshal[T ReadableMsg](msg T) (ret binaryutil.Bytes, err error) {
+	bs := binaryutil.NewBytes(true, msg.Size())
 	defer func() {
 		if !bs.Equal(ret) {
 			bs.Release()
 		}
 	}()
 
-	if _, err := binaryutil.CopyToBuff(bs.Data(), msg); err != nil {
-		return binaryutil.NilRecycleBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
+	if _, err := binaryutil.CopyToBuff(bs.Payload(), msg); err != nil {
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
 	}
 
 	return bs, nil

@@ -19,8 +19,8 @@
 
 package variant
 
-// MakeSerializedArray 创建已序列化array
-func MakeSerializedArray[T any](arr []T) (ret Array, err error) {
+// NewSerializedArray 创建已序列化array
+func NewSerializedArray[T any](arr []T) (ret Array, err error) {
 	varArr := make(Array, 0, len(arr))
 	defer func() {
 		if ret == nil {

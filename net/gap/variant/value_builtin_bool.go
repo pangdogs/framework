@@ -20,8 +20,9 @@
 package variant
 
 import (
-	"git.golaxy.org/framework/utils/binaryutil"
 	"io"
+
+	"git.golaxy.org/framework/utils/binaryutil"
 )
 
 // Bool builtin bool
@@ -49,7 +50,7 @@ func (v *Bool) Write(p []byte) (int, error) {
 
 // Size 大小
 func (Bool) Size() int {
-	return binaryutil.SizeofBool()
+	return binaryutil.SizeofBool
 }
 
 // TypeId 类型
