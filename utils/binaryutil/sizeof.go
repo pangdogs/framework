@@ -19,53 +19,27 @@
 
 package binaryutil
 
-func SizeofInt8() int {
-	return 1
-}
-
-func SizeofInt16() int {
-	return 2
-}
-
-func SizeofInt32() int {
-	return 4
-}
-
-func SizeofInt64() int {
-	return 8
-}
-
-func SizeofUint8() int {
-	return 1
-}
-
-func SizeofUint16() int {
-	return 2
-}
-
-func SizeofUint32() int {
-	return 4
-}
-
-func SizeofUint64() int {
-	return 8
-}
-
-func SizeofFloat() int {
-	return SizeofUint32()
-}
-
-func SizeofDouble() int {
-	return SizeofUint64()
-}
-
-func SizeofByte() int {
-	return 1
-}
-
-func SizeofBool() int {
-	return 1
-}
+const (
+	SizeofInt8     = 1
+	SizeofInt16    = 2
+	SizeofInt32    = 4
+	SizeofInt64    = 8
+	SizeofUint8    = 1
+	SizeofUint16   = 2
+	SizeofUint32   = 4
+	SizeofUint64   = 8
+	SizeofFloat    = 4
+	SizeofDouble   = 8
+	SizeofByte     = 1
+	SizeofBool     = 1
+	SizeofBytes16  = 16
+	SizeofBytes32  = 32
+	SizeofBytes64  = 64
+	SizeofBytes128 = 128
+	SizeofBytes160 = 160
+	SizeofBytes256 = 256
+	SizeofBytes512 = 512
+)
 
 func SizeofBytes(v []byte) int {
 	l := uint64(len(v))
@@ -75,34 +49,6 @@ func SizeofBytes(v []byte) int {
 func SizeofString(v string) int {
 	l := uint64(len(v))
 	return SizeofUvarint(l) + len(v)
-}
-
-func SizeofBytes16() int {
-	return 16
-}
-
-func SizeofBytes32() int {
-	return 32
-}
-
-func SizeofBytes64() int {
-	return 64
-}
-
-func SizeofBytes128() int {
-	return 128
-}
-
-func SizeofBytes160() int {
-	return 160
-}
-
-func SizeofBytes256() int {
-	return 256
-}
-
-func SizeofBytes512() int {
-	return 512
 }
 
 func SizeofVarint(v int64) int {

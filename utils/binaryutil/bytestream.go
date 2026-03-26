@@ -125,56 +125,56 @@ func (s *ByteStream) WriteInt64(v int64) error {
 }
 
 func (s *ByteStream) WriteUint8(v uint8) error {
-	if len(s.wp) < SizeofInt8() {
+	if len(s.wp) < SizeofInt8 {
 		return io.ErrShortWrite
 	}
 	s.wp[0] = v
-	s.wp = s.wp[SizeofInt8():]
+	s.wp = s.wp[SizeofInt8:]
 	return nil
 }
 
 func (s *ByteStream) WriteUint16(v uint16) error {
-	if len(s.wp) < SizeofUint16() {
+	if len(s.wp) < SizeofUint16 {
 		return io.ErrShortWrite
 	}
 	s.endian.PutUint16(s.wp, v)
-	s.wp = s.wp[SizeofUint16():]
+	s.wp = s.wp[SizeofUint16:]
 	return nil
 }
 
 func (s *ByteStream) WriteUint32(v uint32) error {
-	if len(s.wp) < SizeofUint32() {
+	if len(s.wp) < SizeofUint32 {
 		return io.ErrShortWrite
 	}
 	s.endian.PutUint32(s.wp, v)
-	s.wp = s.wp[SizeofUint32():]
+	s.wp = s.wp[SizeofUint32:]
 	return nil
 }
 
 func (s *ByteStream) WriteUint64(v uint64) error {
-	if len(s.wp) < SizeofUint64() {
+	if len(s.wp) < SizeofUint64 {
 		return io.ErrShortWrite
 	}
 	s.endian.PutUint64(s.wp, v)
-	s.wp = s.wp[SizeofUint64():]
+	s.wp = s.wp[SizeofUint64:]
 	return nil
 }
 
 func (s *ByteStream) WriteFloat(v float32) error {
-	if len(s.wp) < SizeofFloat() {
+	if len(s.wp) < SizeofFloat {
 		return io.ErrShortWrite
 	}
 	s.endian.PutUint32(s.wp, math.Float32bits(v))
-	s.wp = s.wp[SizeofFloat():]
+	s.wp = s.wp[SizeofFloat:]
 	return nil
 }
 
 func (s *ByteStream) WriteDouble(v float64) error {
-	if len(s.wp) < SizeofDouble() {
+	if len(s.wp) < SizeofDouble {
 		return io.ErrShortWrite
 	}
 	s.endian.PutUint64(s.wp, math.Float64bits(v))
-	s.wp = s.wp[SizeofDouble():]
+	s.wp = s.wp[SizeofDouble:]
 	return nil
 }
 
@@ -223,114 +223,114 @@ func (s *ByteStream) WriteString(v string) error {
 }
 
 func (s *ByteStream) WriteBytes16(v []byte) error {
-	if len(s.wp) < SizeofBytes16() {
+	if len(s.wp) < SizeofBytes16 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes16() {
+	if len(v) < SizeofBytes16 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes16(); i++ {
+		for i := len(v); i < SizeofBytes16; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes16()])
+		copy(s.wp, v[:SizeofBytes16])
 	}
-	s.wp = s.wp[SizeofBytes16():]
+	s.wp = s.wp[SizeofBytes16:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes32(v []byte) error {
-	if len(s.wp) < SizeofBytes32() {
+	if len(s.wp) < SizeofBytes32 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes32() {
+	if len(v) < SizeofBytes32 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes32(); i++ {
+		for i := len(v); i < SizeofBytes32; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes32()])
+		copy(s.wp, v[:SizeofBytes32])
 	}
-	s.wp = s.wp[SizeofBytes32():]
+	s.wp = s.wp[SizeofBytes32:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes64(v []byte) error {
-	if len(s.wp) < SizeofBytes64() {
+	if len(s.wp) < SizeofBytes64 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes64() {
+	if len(v) < SizeofBytes64 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes64(); i++ {
+		for i := len(v); i < SizeofBytes64; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes64()])
+		copy(s.wp, v[:SizeofBytes64])
 	}
-	s.wp = s.wp[SizeofBytes64():]
+	s.wp = s.wp[SizeofBytes64:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes128(v []byte) error {
-	if len(s.wp) < SizeofBytes128() {
+	if len(s.wp) < SizeofBytes128 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes128() {
+	if len(v) < SizeofBytes128 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes128(); i++ {
+		for i := len(v); i < SizeofBytes128; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes128()])
+		copy(s.wp, v[:SizeofBytes128])
 	}
-	s.wp = s.wp[SizeofBytes128():]
+	s.wp = s.wp[SizeofBytes128:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes160(v []byte) error {
-	if len(s.wp) < SizeofBytes160() {
+	if len(s.wp) < SizeofBytes160 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes160() {
+	if len(v) < SizeofBytes160 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes160(); i++ {
+		for i := len(v); i < SizeofBytes160; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes160()])
+		copy(s.wp, v[:SizeofBytes160])
 	}
-	s.wp = s.wp[SizeofBytes160():]
+	s.wp = s.wp[SizeofBytes160:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes256(v []byte) error {
-	if len(s.wp) < SizeofBytes256() {
+	if len(s.wp) < SizeofBytes256 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes256() {
+	if len(v) < SizeofBytes256 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes256(); i++ {
+		for i := len(v); i < SizeofBytes256; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes256()])
+		copy(s.wp, v[:SizeofBytes256])
 	}
-	s.wp = s.wp[SizeofBytes256():]
+	s.wp = s.wp[SizeofBytes256:]
 	return nil
 }
 
 func (s *ByteStream) WriteBytes512(v []byte) error {
-	if len(s.wp) < SizeofBytes512() {
+	if len(s.wp) < SizeofBytes512 {
 		return io.ErrShortWrite
 	}
-	if len(v) < SizeofBytes512() {
+	if len(v) < SizeofBytes512 {
 		copy(s.wp, v)
-		for i := len(v); i < SizeofBytes512(); i++ {
+		for i := len(v); i < SizeofBytes512; i++ {
 			s.wp[i] = 0
 		}
 	} else {
-		copy(s.wp, v[:SizeofBytes512()])
+		copy(s.wp, v[:SizeofBytes512])
 	}
-	s.wp = s.wp[SizeofBytes512():]
+	s.wp = s.wp[SizeofBytes512:]
 	return nil
 }
 
@@ -397,56 +397,56 @@ func (s *ByteStream) ReadInt64() (int64, error) {
 }
 
 func (s *ByteStream) ReadUint8() (uint8, error) {
-	if len(s.rp) < SizeofUint8() {
+	if len(s.rp) < SizeofUint8 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := s.rp[0]
-	s.rp = s.rp[SizeofUint8():]
+	s.rp = s.rp[SizeofUint8:]
 	return v, nil
 }
 
 func (s *ByteStream) ReadUint16() (uint16, error) {
-	if len(s.rp) < SizeofUint16() {
+	if len(s.rp) < SizeofUint16 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := s.endian.Uint16(s.rp)
-	s.rp = s.rp[SizeofUint16():]
+	s.rp = s.rp[SizeofUint16:]
 	return v, nil
 }
 
 func (s *ByteStream) ReadUint32() (uint32, error) {
-	if len(s.rp) < SizeofUint32() {
+	if len(s.rp) < SizeofUint32 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := s.endian.Uint32(s.rp)
-	s.rp = s.rp[SizeofUint32():]
+	s.rp = s.rp[SizeofUint32:]
 	return v, nil
 }
 
 func (s *ByteStream) ReadUint64() (uint64, error) {
-	if len(s.rp) < SizeofUint64() {
+	if len(s.rp) < SizeofUint64 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := s.endian.Uint64(s.rp)
-	s.rp = s.rp[SizeofUint64():]
+	s.rp = s.rp[SizeofUint64:]
 	return v, nil
 }
 
 func (s *ByteStream) ReadFloat() (float32, error) {
-	if len(s.rp) < SizeofFloat() {
+	if len(s.rp) < SizeofFloat {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := math.Float32frombits(s.endian.Uint32(s.rp))
-	s.rp = s.rp[SizeofFloat():]
+	s.rp = s.rp[SizeofFloat:]
 	return v, nil
 }
 
 func (s *ByteStream) ReadDouble() (float64, error) {
-	if len(s.rp) < SizeofDouble() {
+	if len(s.rp) < SizeofDouble {
 		return 0, io.ErrUnexpectedEOF
 	}
 	v := math.Float64frombits(s.endian.Uint64(s.rp))
-	s.rp = s.rp[SizeofDouble():]
+	s.rp = s.rp[SizeofDouble:]
 	return v, nil
 }
 
@@ -501,64 +501,64 @@ func (s *ByteStream) ReadBytesRef() ([]byte, error) {
 
 func (s *ByteStream) ReadBytes16() ([16]byte, error) {
 	var v [16]byte
-	if len(s.rp) < SizeofBytes16() {
+	if len(s.rp) < SizeofBytes16 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes16()])
+	copy(v[:], s.rp[:SizeofBytes16])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes32() ([32]byte, error) {
 	var v [32]byte
-	if len(s.rp) < SizeofBytes32() {
+	if len(s.rp) < SizeofBytes32 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes32()])
+	copy(v[:], s.rp[:SizeofBytes32])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes64() ([64]byte, error) {
 	var v [64]byte
-	if len(s.rp) < SizeofBytes64() {
+	if len(s.rp) < SizeofBytes64 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes64()])
+	copy(v[:], s.rp[:SizeofBytes64])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes128() ([128]byte, error) {
 	var v [128]byte
-	if len(s.rp) < SizeofBytes128() {
+	if len(s.rp) < SizeofBytes128 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes128()])
+	copy(v[:], s.rp[:SizeofBytes128])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes160() ([160]byte, error) {
 	var v [160]byte
-	if len(s.rp) < SizeofBytes160() {
+	if len(s.rp) < SizeofBytes160 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes160()])
+	copy(v[:], s.rp[:SizeofBytes160])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes256() ([256]byte, error) {
 	var v [256]byte
-	if len(s.rp) < SizeofBytes256() {
+	if len(s.rp) < SizeofBytes256 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes256()])
+	copy(v[:], s.rp[:SizeofBytes256])
 	return v, nil
 }
 
 func (s *ByteStream) ReadBytes512() ([512]byte, error) {
 	var v [512]byte
-	if len(s.rp) < SizeofBytes512() {
+	if len(s.rp) < SizeofBytes512 {
 		return v, io.ErrUnexpectedEOF
 	}
-	copy(v[:], s.rp[:SizeofBytes512()])
+	copy(v[:], s.rp[:SizeofBytes512])
 	return v, nil
 }
 
