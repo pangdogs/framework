@@ -106,15 +106,8 @@ func (m *_MongoDB) ReflectedDB(tag string) reflect.Value {
 func (m *_MongoDB) connectToDB(info *dsn.DBInfo) *mongo.Client {
 	opt := options.Client().ApplyURI(info.ConnStr)
 
-	client, err := mongo.NewClient(opt)
+	client, err := mongo.Connect(opt)
 	if err != nil {
-		log.L(m.svcCtx).Panic("conn to db failed",
-			zap.String("db_type", info.Type),
-			zap.String("conn_str", info.ConnStr),
-			zap.Error(err))
-	}
-
-	if err := client.Connect(context.Background()); err != nil {
 		log.L(m.svcCtx).Panic("conn to db failed",
 			zap.String("db_type", info.Type),
 			zap.String("conn_str", info.ConnStr),

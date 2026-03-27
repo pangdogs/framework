@@ -47,7 +47,7 @@ func (_MongoDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[MongoDBOption
 				return false
 			}
 			switch info.Type {
-			case dsn.MongoDB:
+			case dsn.Mongo:
 				return true
 			}
 			return false

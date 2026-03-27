@@ -25,7 +25,7 @@ const (
 	SQLServer  = "sqlserver"
 	SQLite     = "sqlite"
 	Redis      = "redis"
-	MongoDB    = "mongodb"
+	Mongo      = "mongo"
 )
 
 type DBInfo struct {
