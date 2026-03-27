@@ -147,7 +147,7 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	}
 
 	// 注册服务节点
-	reg, err := d.registry.RegisterNode(svcCtx, svcCtx.Name(), node, discovery.With.TTL(d.options.RegistrationTTL), discovery.With.AutoKeepAlive(true))
+	reg, err := d.registry.RegisterNode(svcCtx, svcCtx.Name(), node, d.options.RegistrationTTL, true)
 	if err != nil {
 		log.L(svcCtx).Panic("register service node failed",
 			zap.String("service", svcCtx.Name()),
@@ -265,7 +265,7 @@ func (d *_DistService) initNodeDetails() {
 }
 
 func (d *_DistService) subscribe(topic, queue string) async.Future {
-	unsubscribed, err := d.broker.SubscribeHandler(d.ctx, topic, generic.CastDelegateVoid1(d.handleEvent), broker.With.Queue(queue))
+	unsubscribed, err := d.broker.SubscribeHandler(d.ctx, topic, queue, generic.CastDelegateVoid1(d.handleEvent))
 	if err != nil {
 		log.L(d.svcCtx).Panic("subscribe service broker event failed", zap.String("topic", topic), zap.String("queue", queue), zap.Error(err))
 	}

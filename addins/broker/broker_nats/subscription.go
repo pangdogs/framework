@@ -33,7 +33,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern string, handler broker.EventHandler, options broker.SubscribeOptions) (<-chan broker.Event, async.Future, error) {
+func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, handler broker.EventHandler) (<-chan broker.Event, async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -53,7 +53,6 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern string, handler
 		natsPattern = b.options.TopicPrefix + natsPattern
 	}
 
-	queue := options.Queue
 	natsQueue := queue
 	if natsQueue != "" {
 		if b.options.QueuePrefix != "" {

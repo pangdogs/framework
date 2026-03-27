@@ -20,7 +20,6 @@
 package cli
 
 import (
-	"context"
 	"time"
 
 	"git.golaxy.org/core/utils/async"
@@ -52,9 +51,12 @@ func (rt ResponseTime) NowTime() time.Time {
 }
 
 // RequestTime 请求对端同步时间
-func (c *Client) RequestTime(ctx context.Context) async.Future {
-	handle := c.FutureController().New()
-	if err := c.ctrl.RequestTime(handle.Id); err != nil {
+func (c *Client) RequestTime() async.Future {
+	handle, err := c.FutureController().New()
+	if err != nil {
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+	}
+	if err := c.ctrl.RequestTime(handle.Id()); err != nil {
 		handle.Cancel(err)
 	}
 	return handle.Future()

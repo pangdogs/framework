@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"time"
 
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/discovery"
@@ -161,14 +162,14 @@ func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 	return nil
 }
 
-func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, options discovery.RegisterOptions) (discovery.IRegistration, error) {
+func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration, autoKeepAlive bool) (discovery.IRegistration, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	nodeKey := r.newNodeKey(serviceName, node.Id)
 
-	grantRsp, err := r.client.Grant(ctx, int64(math.Ceil(options.TTL.Seconds())))
+	grantRsp, err := r.client.Grant(ctx, int64(math.Ceil(max(ttl.Seconds(), 3))))
 	if err != nil {
 		log.L(r.svcCtx).Error("grant new etcd lease failed",
 			zap.String("service", serviceName),
@@ -217,9 +218,8 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 		leaseId:     leaseId,
 	}
 
-	if options.AutoKeepAlive {
-		_, err := registration.KeepAliveContinuous(r.ctx)
-		if err != nil {
+	if autoKeepAlive {
+		if _, err := registration.KeepAliveContinuous(r.ctx); err != nil {
 			registration.Deregister(context.Background())
 			return nil, err
 		}

@@ -25,7 +25,6 @@ import (
 
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
-	"git.golaxy.org/core/utils/option"
 )
 
 // DeliveryReliability 消息投递模式
@@ -62,9 +61,9 @@ type IBroker interface {
 	// Publish 发布
 	Publish(ctx context.Context, topic string, data []byte) error
 	// SubscribeEvent 订阅消息事件流
-	SubscribeEvent(ctx context.Context, pattern string, settings ...option.Setting[SubscribeOptions]) (<-chan Event, error)
+	SubscribeEvent(ctx context.Context, pattern, queue string, autoAck ...bool) (<-chan Event, error)
 	// SubscribeHandler 订阅消息事件回调
-	SubscribeHandler(ctx context.Context, pattern string, handler EventHandler, settings ...option.Setting[SubscribeOptions]) (async.Future, error)
+	SubscribeHandler(ctx context.Context, pattern, queue string, handler EventHandler, autoAck ...bool) (async.Future, error)
 	// Flush 刷新
 	Flush(ctx context.Context) error
 	// DeliveryReliability 获取消息投递模式
