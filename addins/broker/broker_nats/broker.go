@@ -108,7 +108,7 @@ func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) er
 }
 
 // SubscribeEvent 订阅消息事件流
-func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string, autoAck ...bool) (<-chan broker.Event, error) {
+func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string, _ ...bool) (<-chan broker.Event, error) {
 	eventChan, _, err := b.addSubscriber(ctx, pattern, queue, nil)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string,
 }
 
 // SubscribeHandler 订阅消息事件回调
-func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue string, handler broker.EventHandler, autoAck ...bool) (async.Future, error) {
+func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue string, handler broker.EventHandler, _ ...bool) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
 	}

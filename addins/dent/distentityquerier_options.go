@@ -91,6 +91,9 @@ func (_DistEntityQuerierOption) KeyPrefix(prefix string) option.Setting[DistEnti
 // CacheNumCounters 缓存LFU计数器数量
 func (_DistEntityQuerierOption) CacheNumCounters(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
+		if n <= 0 {
+			exception.Panicf("dent: %w: option CacheNumCounters can't be set to a value less equal 0", core.ErrArgs)
+		}
 		options.CacheNumCounters = n
 	}
 }
@@ -98,6 +101,9 @@ func (_DistEntityQuerierOption) CacheNumCounters(n int64) option.Setting[DistEnt
 // CacheMaxCost 缓存容量限制，超过将触发LFU淘汰
 func (_DistEntityQuerierOption) CacheMaxCost(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
+		if n <= 0 {
+			exception.Panicf("dent: %w: option CacheMaxCost can't be set to a value less equal 0", core.ErrArgs)
+		}
 		options.CacheMaxCost = n
 	}
 }
@@ -105,6 +111,9 @@ func (_DistEntityQuerierOption) CacheMaxCost(n int64) option.Setting[DistEntityQ
 // CacheBufferItems 缓存并发缓冲大小
 func (_DistEntityQuerierOption) CacheBufferItems(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
+		if n <= 0 {
+			exception.Panicf("dent: %w: option CacheBufferItems can't be set to a value less equal 0", core.ErrArgs)
+		}
 		options.CacheBufferItems = n
 	}
 }
@@ -112,6 +121,9 @@ func (_DistEntityQuerierOption) CacheBufferItems(n int64) option.Setting[DistEnt
 // CacheTTL 缓存TTL
 func (_DistEntityQuerierOption) CacheTTL(ttl time.Duration) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
+		if ttl < 3*time.Second {
+			exception.Panicf("dent: %w: option CacheTTL can't be set to a value less than 3 seconds", core.ErrArgs)
+		}
 		options.CacheTTL = ttl
 	}
 }
