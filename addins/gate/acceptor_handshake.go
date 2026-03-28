@@ -118,7 +118,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		// 开启加密时，需要交换随机数
 		if cs.SecretKeyExchange != gtp.SecretKeyExchange_None {
 			// 记录客户端随机数
-			if len(cliHello.Msg.Random) < 0 {
+			if len(cliHello.Msg.Random) <= 0 {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
 					Message: "client Hello 'random' is empty",

@@ -22,6 +22,8 @@ package cli
 import (
 	"crypto"
 	"crypto/tls"
+	"net/url"
+	"strings"
 	"time"
 
 	"git.golaxy.org/core"
@@ -172,6 +174,20 @@ func (_ClientOption) TCPLinger(sec *int) option.Setting[ClientOptions] {
 // WebSocketOrigin 设置WebSocket的Origin地址，不填将会自动生成
 func (_ClientOption) WebSocketOrigin(origin string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if origin != "" {
+			url, err := url.Parse(origin)
+			if err != nil {
+				exception.Panicf("cli: %w: %w", core.ErrArgs, err)
+			}
+			switch strings.ToLower(url.Scheme) {
+			case "http", "https", "ws", "wss":
+			default:
+				exception.Panicf("cli: %w: option WebSocketOrigin has unsupported scheme %q", core.ErrArgs, url.Scheme)
+			}
+			if url.Host == "" {
+				exception.Panicf("cli: %w: option WebSocketOrigin host can't be empty", core.ErrArgs)
+			}
+		}
 		options.WebSocketOrigin = origin
 	}
 }
@@ -186,6 +202,9 @@ func (_ClientOption) TLSConfig(tlsConfig *tls.Config) option.Setting[ClientOptio
 // IOTimeout 设置网络io超时时间
 func (_ClientOption) IOTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if d < 100*time.Millisecond {
+			exception.Panicf("cli: %w: option IOTimeout must be >= 0.1 seconds", core.ErrArgs)
+		}
 		options.IOTimeout = d
 	}
 }
@@ -193,6 +212,9 @@ func (_ClientOption) IOTimeout(d time.Duration) option.Setting[ClientOptions] {
 // IORetryTimes 设置网络io超时后的重试次数
 func (_ClientOption) IORetryTimes(times int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if times < 0 {
+			exception.Panicf("cli: %w: option IORetryTimes must be >= 0", core.ErrArgs)
+		}
 		options.IORetryTimes = times
 	}
 }
@@ -200,6 +222,9 @@ func (_ClientOption) IORetryTimes(times int) option.Setting[ClientOptions] {
 // IOBufferCap 设置网络io缓存容量（字节）
 func (_ClientOption) IOBufferCap(cap int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if cap < 1024 {
+			exception.Panicf("cli: %w: option IOBufferCap must be >= 1024 bytes", core.ErrArgs)
+		}
 		options.IOBufferCap = cap
 	}
 }
@@ -273,6 +298,9 @@ func (_ClientOption) AutoReconnect(b bool) option.Setting[ClientOptions] {
 // AutoReconnectInterval 设置自动重连的时间间隔
 func (_ClientOption) AutoReconnectInterval(dur time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if dur < 0 {
+			exception.Panicf("cli: %w: option AutoReconnectInterval must be >= 0 seconds", core.ErrArgs)
+		}
 		options.AutoReconnectInterval = dur
 	}
 }
@@ -287,6 +315,9 @@ func (_ClientOption) AutoReconnectRetryTimes(times int) option.Setting[ClientOpt
 // InactiveTimeout 设置连接不活跃后的超时时间，开启自动重连后无效
 func (_ClientOption) InactiveTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if d < 0 {
+			exception.Panicf("cli: %w: option InactiveTimeout must be >= 0 seconds", core.ErrArgs)
+		}
 		options.InactiveTimeout = d
 	}
 }
@@ -294,6 +325,9 @@ func (_ClientOption) InactiveTimeout(d time.Duration) option.Setting[ClientOptio
 // FutureTimeout 设置异步模型Future超时时间
 func (_ClientOption) FutureTimeout(d time.Duration) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if d < 300*time.Millisecond {
+			exception.Panicf("cli: %w: option FutureTimeout must be >= 0.3 seconds", core.ErrArgs)
+		}
 		options.FutureTimeout = d
 	}
 }
@@ -336,6 +370,9 @@ func (_ClientOption) ReportError(reportError chan error) option.Setting[ClientOp
 // DataListenerInboxSize 设置数据监听器inbox缓存大小
 func (_ClientOption) DataListenerInboxSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if size <= 0 {
+			exception.Panicf("cli: %w: option DataListenerInboxSize must be > 0", core.ErrArgs)
+		}
 		options.DataListenerInboxSize = size
 	}
 }
@@ -343,6 +380,9 @@ func (_ClientOption) DataListenerInboxSize(size int) option.Setting[ClientOption
 // EventListenerInboxSize 设置事件监听器inbox缓存大小
 func (_ClientOption) EventListenerInboxSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
+		if size <= 0 {
+			exception.Panicf("cli: %w: option EventListenerInboxSize must be > 0", core.ErrArgs)
+		}
 		options.EventListenerInboxSize = size
 	}
 }

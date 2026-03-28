@@ -97,8 +97,7 @@ type _Session struct {
 	migrationMutex  sync.Mutex
 	migrationChan   chan struct{}
 	migrations      atomic.Int64
-	dataIO          _SessionDataIO
-	eventIO         _SessionEventIO
+	io              _SessionIO
 	stringerOnce    sync.Once
 	stringerCache   string
 }
@@ -148,12 +147,12 @@ func (s *_Session) Migrations() int64 {
 
 // DataIO 获取数据IO
 func (s *_Session) DataIO() IDataIO {
-	return &s.dataIO
+	return (*_SessionDataIO)(&s.io)
 }
 
 // EventIO 获取事件IO
 func (s *_Session) EventIO() IEventIO {
-	return &s.eventIO
+	return (*_SessionEventIO)(&s.io)
 }
 
 // Close 关闭

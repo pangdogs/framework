@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"git.golaxy.org/core"
@@ -193,6 +194,14 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 		if err != nil {
 			exception.Panicf("gate: %w: %w", core.ErrArgs, err)
 		}
+		switch strings.ToLower(url.Scheme) {
+		case "http", "https", "ws", "wss":
+		default:
+			exception.Panicf("gate: %w: option WebSocketURL has unsupported scheme %q", core.ErrArgs, url.Scheme)
+		}
+		if url.Host == "" {
+			exception.Panicf("gate: %w: option WebSocketURL host can't be empty", core.ErrArgs)
+		}
 		if url.Path == "" {
 			url.Path = "/"
 		}
@@ -230,6 +239,9 @@ func (_GateOption) WebSocketRemoteAddrResolver(resolver WebSocketAddrResolver) o
 // IOTimeout 设置网络io超时时间
 func (_GateOption) IOTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if d < 100*time.Millisecond {
+			exception.Panicf("gate: %w: option IOTimeout must be >= 0.1 seconds", core.ErrArgs)
+		}
 		options.IOTimeout = d
 	}
 }
@@ -237,6 +249,9 @@ func (_GateOption) IOTimeout(d time.Duration) option.Setting[GateOptions] {
 // IORetryTimes 设置网络io超时后的重试次数
 func (_GateOption) IORetryTimes(times int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if times < 0 {
+			exception.Panicf("gate: %w: option IORetryTimes must be >= 0", core.ErrArgs)
+		}
 		options.IORetryTimes = times
 	}
 }
@@ -244,6 +259,9 @@ func (_GateOption) IORetryTimes(times int) option.Setting[GateOptions] {
 // IOBufferCap 设置网络io缓存容量（字节）
 func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if cap < 1024 {
+			exception.Panicf("gate: %w: option IOBufferCap must be >= 1024 bytes", core.ErrArgs)
+		}
 		options.IOBufferCap = cap
 	}
 }
@@ -338,6 +356,9 @@ func (_GateOption) CompressionThreshold(threshold int) option.Setting[GateOption
 // AcceptTimeout 设置接受连接超时时间
 func (_GateOption) AcceptTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if d < 300*time.Millisecond {
+			exception.Panicf("gate: %w: option AcceptTimeout must be >= 0.3 seconds", core.ErrArgs)
+		}
 		options.AcceptTimeout = d
 	}
 }
@@ -352,6 +373,9 @@ func (_GateOption) Authenticator(auth Authenticator) option.Setting[GateOptions]
 // SessionInactiveTimeout 设置会话不活跃后的超时时间
 func (_GateOption) SessionInactiveTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if d < 0 {
+			exception.Panicf("gate: %w: option SessionInactiveTimeout must be >= 0 seconds", core.ErrArgs)
+		}
 		options.SessionInactiveTimeout = d
 	}
 }
@@ -359,6 +383,9 @@ func (_GateOption) SessionInactiveTimeout(d time.Duration) option.Setting[GateOp
 // SessionWatcherInboxSize 设置会话监听器inbox缓存大小
 func (_GateOption) SessionWatcherInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if size <= 0 {
+			exception.Panicf("gate: %w: option SessionWatcherInboxSize must be > 0", core.ErrArgs)
+		}
 		options.SessionWatcherInboxSize = size
 	}
 }
@@ -366,6 +393,9 @@ func (_GateOption) SessionWatcherInboxSize(size int) option.Setting[GateOptions]
 // SessionDataListenerInboxSize 设置会话数据监听器inbox缓存大小
 func (_GateOption) SessionDataListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if size <= 0 {
+			exception.Panicf("gate: %w: option SessionDataListenerInboxSize must be > 0", core.ErrArgs)
+		}
 		options.SessionDataListenerInboxSize = size
 	}
 }
@@ -373,6 +403,9 @@ func (_GateOption) SessionDataListenerInboxSize(size int) option.Setting[GateOpt
 // SessionEventListenerInboxSize 设置会话事件监听器inbox缓存大小
 func (_GateOption) SessionEventListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
+		if size <= 0 {
+			exception.Panicf("gate: %w: option SessionEventListenerInboxSize must be > 0", core.ErrArgs)
+		}
 		options.SessionEventListenerInboxSize = size
 	}
 }

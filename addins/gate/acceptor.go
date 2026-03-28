@@ -71,14 +71,14 @@ func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []b
 	session.eventDispatcher.ReportError = acc.svcCtx.ReportError()
 	session.eventDispatcher.Transceiver = &session.transceiver
 	session.eventDispatcher.RetryTimes = acc.options.IORetryTimes
-	session.eventDispatcher.EventHandler = generic.CastDelegateVoid1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.eventIO.handleEvent)
+	session.eventDispatcher.EventHandler = generic.CastDelegateVoid1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.io.handleEvent)
 
 	// 初始化传输协议
 	session.trans.AutoRecover = acc.svcCtx.AutoRecover()
 	session.trans.ReportError = acc.svcCtx.ReportError()
 	session.trans.Transceiver = &session.transceiver
 	session.trans.RetryTimes = acc.options.IORetryTimes
-	session.trans.PayloadHandler = generic.CastDelegateVoid1(session.dataIO.handlePayload)
+	session.trans.PayloadHandler = generic.CastDelegateVoid1(session.io.handlePayload)
 
 	// 初始化控制协议
 	session.ctrl.AutoRecover = acc.svcCtx.AutoRecover()
@@ -88,8 +88,7 @@ func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []b
 	session.ctrl.HeartbeatHandler = generic.CastDelegateVoid1(session.handleHeartbeat)
 
 	// 初始化IO
-	session.dataIO.init(session)
-	session.eventIO.init(session)
+	session.io.init(session)
 
 	return session
 }

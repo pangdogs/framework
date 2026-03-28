@@ -116,7 +116,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 			// 开启加密流程
 			if encryptionFlow {
 				// 记录服务端随机数
-				if len(servHello.Msg.Random) < 0 {
+				if len(servHello.Msg.Random) <= 0 {
 					return errors.New("cli: server Hello 'random' is empty")
 				}
 				servRandom = binaryutil.BytesPool.Get(len(servHello.Msg.Random))

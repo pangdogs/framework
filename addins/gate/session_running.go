@@ -52,6 +52,9 @@ func (s *_Session) mainLoop() {
 	pinged := false
 	var timeout time.Time
 
+	// 启动i/o发送线程
+	go s.io.sendLoop()
+
 loop:
 	for {
 		select {
@@ -146,12 +149,14 @@ loop:
 		pinged = false
 	}
 
+	// 关闭会话
+	s.close(nil)
+	// 等待i/o线程结束
+	<-s.io.terminated
 	// 调整会话状态为已过期
 	s.setState(SessionState_Death)
 	// 发送关闭原因
 	s.ctrl.SendRst(context.Cause(s))
-	// 关闭会话
-	s.close(nil)
 	// 删除会话
 	s.gate.deleteSession(s.Id())
 	// 返回关闭结果

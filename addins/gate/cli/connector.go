@@ -198,7 +198,7 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	client.Context, client.close = context.WithCancelCause(ctx)
 
 	// 初始化日志
-	if client.Logger == nil {
+	if client.logger == nil {
 		client.logger = zap.NewNop()
 	}
 	client.sugarLogger = client.logger.Sugar()
@@ -208,14 +208,14 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	client.eventDispatcher.ReportError = ctor.options.ReportError
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
-	client.eventDispatcher.EventHandler = generic.CastDelegateVoid1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.eventIO.handleEvent)
+	client.eventDispatcher.EventHandler = generic.CastDelegateVoid1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.io.handleEvent)
 
 	// 初始化传输协议
 	client.trans.AutoRecover = ctor.options.AutoRecover
 	client.trans.ReportError = ctor.options.ReportError
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.options.IORetryTimes
-	client.trans.PayloadHandler = generic.CastDelegateVoid1(client.dataIO.handlePayload)
+	client.trans.PayloadHandler = generic.CastDelegateVoid1(client.io.handlePayload)
 
 	// 初始化控制协议
 	client.ctrl.AutoRecover = ctor.options.AutoRecover
@@ -230,8 +230,7 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	client.futureController = concurrent.NewFutureController(client.Context, ctor.options.FutureTimeout)
 
 	// 初始化IO
-	client.dataIO.init(client)
-	client.eventIO.init(client)
+	client.io.init(client)
 
 	return client
 }

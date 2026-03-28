@@ -49,6 +49,9 @@ func (c *Client) mainLoop() {
 	pinged := false
 	var timeout time.Time
 
+	// 启动i/o线程
+	go c.io.sendLoop()
+
 	autoReconnect := func() {
 		c.logger.Debug("client auto reconnect started", zap.String("session_id", c.SessionId().String()))
 
@@ -182,6 +185,8 @@ loop:
 
 	// 关闭客户端
 	c.close(nil)
+	// 等待i/o线程结束
+	<-c.io.terminated
 	// 返回关闭结果
 	async.ReturnVoid(c.closed)
 

@@ -62,8 +62,7 @@ type Client struct {
 	migrationChan    chan struct{}
 	migrations       atomic.Int64
 	futureController *concurrent.FutureController
-	dataIO           _ClientDataIO
-	eventIO          _ClientEventIO
+	io               _ClientIO
 	logger           *zap.Logger
 	sugarLogger      *zap.SugaredLogger
 	stringerOnce     sync.Once
@@ -111,6 +110,16 @@ func (c *Client) NetAddr() NetAddr {
 // Migrations 获取连接迁移次数
 func (c *Client) Migrations() int64 {
 	return c.migrations.Load()
+}
+
+// DataIO 获取数据IO
+func (c *Client) DataIO() IDataIO {
+	return (*_ClientDataIO)(&c.io)
+}
+
+// EventIO 获取事件IO
+func (c *Client) EventIO() IEventIO {
+	return (*_ClientEventIO)(&c.io)
 }
 
 // FutureController 获取异步模型Future控制器
