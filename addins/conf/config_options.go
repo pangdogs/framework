@@ -115,7 +115,7 @@ func (_ConfigOption) AutoHotFix(b bool) option.Setting[ConfigOptions] {
 func (_ConfigOption) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		if d < 3*time.Second {
-			exception.Panicf("conf: %w: option AutoHotFixRemoteCheckingIntervalTime can't be set to a value less than 3 seconds", core.ErrArgs)
+			exception.Panicf("conf: %w: option AutoHotFixRemoteCheckingIntervalTime must be >= 3 seconds", core.ErrArgs)
 		}
 		options.AutoHotFixRemoteCheckingIntervalTime = d
 	}

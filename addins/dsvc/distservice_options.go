@@ -81,7 +81,7 @@ func (_DistServiceOption) DomainRoot(path string) option.Setting[DistServiceOpti
 func (_DistServiceOption) RegistrationTTL(ttl time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("dsvc: %w: option RegistrationTTL can't be set to a value less than 3 seconds", core.ErrArgs)
+			exception.Panicf("dsvc: %w: option RegistrationTTL must be >= 3 seconds", core.ErrArgs)
 		}
 		options.RegistrationTTL = ttl
 	}
@@ -91,7 +91,7 @@ func (_DistServiceOption) RegistrationTTL(ttl time.Duration) option.Setting[Dist
 func (_DistServiceOption) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if d < 300*time.Millisecond {
-			exception.Panicf("dsvc: %w: option FutureTimeout can't be set to a value less than 0.3 seconds", core.ErrArgs)
+			exception.Panicf("dsvc: %w: option FutureTimeout must be >= 0.3 seconds", core.ErrArgs)
 		}
 		options.FutureTimeout = d
 	}
@@ -101,7 +101,7 @@ func (_DistServiceOption) FutureTimeout(d time.Duration) option.Setting[DistServ
 func (_DistServiceOption) ListenerInboxSize(size int) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if size <= 0 {
-			exception.Panicf("dsvc: %w: option ListenerInboxSize can't be set to a value less equal 0", core.ErrArgs)
+			exception.Panicf("dsvc: %w: option ListenerInboxSize must be > 0", core.ErrArgs)
 		}
 		options.ListenerInboxSize = size
 	}

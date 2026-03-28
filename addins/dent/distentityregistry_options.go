@@ -86,7 +86,7 @@ func (_DistEntityRegistryOption) KeyPrefix(prefix string) option.Setting[DistEnt
 func (_DistEntityRegistryOption) RegistrationTTL(ttl time.Duration) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("dent: %w: option RegistrationTTL can't be set to a value less than 3 seconds", core.ErrArgs)
+			exception.Panicf("dent: %w: option RegistrationTTL must be >= 3 seconds", core.ErrArgs)
 		}
 		options.RegistrationTTL = ttl
 	}

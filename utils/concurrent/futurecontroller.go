@@ -77,6 +77,7 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 	if !fc.barrier.Join(1) {
 		return nil, ErrFutureControllerClosed
 	}
+	defer fc.barrier.Done()
 
 	handle := &FutureHandle{
 		id:         fc.genId(),
@@ -90,8 +91,6 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 	fc.pendingResolveMu.Unlock()
 
 	fc.pendingTimeout.In() <- handle
-
-	fc.barrier.Done()
 
 	return handle, nil
 }

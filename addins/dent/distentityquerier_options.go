@@ -92,7 +92,7 @@ func (_DistEntityQuerierOption) KeyPrefix(prefix string) option.Setting[DistEnti
 func (_DistEntityQuerierOption) CacheNumCounters(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
 		if n <= 0 {
-			exception.Panicf("dent: %w: option CacheNumCounters can't be set to a value less equal 0", core.ErrArgs)
+			exception.Panicf("dent: %w: option CacheNumCounters must be > 0", core.ErrArgs)
 		}
 		options.CacheNumCounters = n
 	}
@@ -102,7 +102,7 @@ func (_DistEntityQuerierOption) CacheNumCounters(n int64) option.Setting[DistEnt
 func (_DistEntityQuerierOption) CacheMaxCost(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
 		if n <= 0 {
-			exception.Panicf("dent: %w: option CacheMaxCost can't be set to a value less equal 0", core.ErrArgs)
+			exception.Panicf("dent: %w: option CacheMaxCost must be > 0", core.ErrArgs)
 		}
 		options.CacheMaxCost = n
 	}
@@ -112,7 +112,7 @@ func (_DistEntityQuerierOption) CacheMaxCost(n int64) option.Setting[DistEntityQ
 func (_DistEntityQuerierOption) CacheBufferItems(n int64) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
 		if n <= 0 {
-			exception.Panicf("dent: %w: option CacheBufferItems can't be set to a value less equal 0", core.ErrArgs)
+			exception.Panicf("dent: %w: option CacheBufferItems must be > 0", core.ErrArgs)
 		}
 		options.CacheBufferItems = n
 	}
@@ -122,7 +122,7 @@ func (_DistEntityQuerierOption) CacheBufferItems(n int64) option.Setting[DistEnt
 func (_DistEntityQuerierOption) CacheTTL(ttl time.Duration) option.Setting[DistEntityQuerierOptions] {
 	return func(options *DistEntityQuerierOptions) {
 		if ttl < 3*time.Second {
-			exception.Panicf("dent: %w: option CacheTTL can't be set to a value less than 3 seconds", core.ErrArgs)
+			exception.Panicf("dent: %w: option CacheTTL must be >= 3 seconds", core.ErrArgs)
 		}
 		options.CacheTTL = ttl
 	}
