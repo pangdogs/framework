@@ -147,9 +147,15 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	}
 
 	// 注册服务节点
-	reg, err := d.registry.RegisterNode(svcCtx, svcCtx.Name(), node, d.options.RegistrationTTL, true)
+	reg, err := d.registry.RegisterNode(d.ctx, svcCtx.Name(), node, d.options.RegistrationTTL)
 	if err != nil {
 		log.L(svcCtx).Panic("register service node failed",
+			zap.String("service", svcCtx.Name()),
+			zap.String("node", svcCtx.Id().String()),
+			zap.Error(err))
+	}
+	if _, err = reg.KeepAliveContinuous(d.ctx); err != nil {
+		log.L(svcCtx).Panic("keepalive service node failed",
 			zap.String("service", svcCtx.Name()),
 			zap.String("node", svcCtx.Id().String()),
 			zap.Error(err))

@@ -76,7 +76,7 @@ type (
 // IRegistry 服务注册接口
 type IRegistry interface {
 	// RegisterNode 注册服务节点
-	RegisterNode(ctx context.Context, serviceName string, node *Node, ttl time.Duration, autoKeepAlive bool) (IRegistration, error)
+	RegisterNode(ctx context.Context, serviceName string, node *Node, ttl time.Duration) (IRegistration, error)
 	// Get 查询服务
 	Get(ctx context.Context, serviceName string) (*Service, error)
 	// GetNode 查询服务节点

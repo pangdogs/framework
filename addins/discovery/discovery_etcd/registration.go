@@ -162,7 +162,7 @@ func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 	return nil
 }
 
-func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration, autoKeepAlive bool) (discovery.IRegistration, error) {
+func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration) (discovery.IRegistration, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -216,13 +216,6 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 		nodeKey:     nodeKey,
 		serviceNode: serviceNode,
 		leaseId:     leaseId,
-	}
-
-	if autoKeepAlive {
-		if _, err := registration.KeepAliveContinuous(r.ctx); err != nil {
-			registration.Deregister(context.Background())
-			return nil, err
-		}
 	}
 
 	log.L(r.svcCtx).Debug("register service node ok",

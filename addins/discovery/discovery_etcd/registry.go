@@ -101,7 +101,7 @@ func (r *_EtcdRegistry) Shut(svcCtx service.Context) {
 }
 
 // RegisterNode 注册服务节点
-func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration, autoKeepAlive bool) (discovery.IRegistration, error) {
+func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration) (discovery.IRegistration, error) {
 	if serviceName == "" {
 		return nil, fmt.Errorf("registry: %w serviceName is empty", core.ErrArgs)
 	}
@@ -111,7 +111,7 @@ func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, no
 	if node.Id == "" {
 		return nil, fmt.Errorf("registry: %w node.id is empty", core.ErrArgs)
 	}
-	return r.registerNode(ctx, serviceName, node, ttl, autoKeepAlive)
+	return r.registerNode(ctx, serviceName, node, ttl)
 }
 
 // Get 查询服务
