@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/log"
@@ -31,19 +32,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, error) {
+func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-r.ctx.Done():
-		return nil, errors.New("registry: registry is terminating")
+		return nil, async.Future{}, errors.New("registry: registry is terminating")
 	default:
 	}
 
 	if !r.barrier.Join(1) {
-		return nil, errors.New("registry: registry is terminating")
+		return nil, async.Future{}, errors.New("registry: registry is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -82,12 +83,15 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 		}
 	}
 
+	stopped := async.NewFutureVoid()
+
 	go func() {
 		defer func() {
 			cancel()
 			if eventChan != nil {
 				eventChan.Close()
 			}
+			async.ReturnVoid(stopped)
 			r.barrier.Done()
 		}()
 
@@ -151,7 +155,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	}()
 
 	if eventChan != nil {
-		return eventChan.Out(), nil
+		return eventChan.Out(), stopped.Out(), nil
 	}
-	return nil, nil
+	return nil, stopped.Out(), nil
 }

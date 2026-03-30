@@ -31,6 +31,7 @@ import (
 
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -249,16 +250,23 @@ func (r *_EtcdRegistry) List(ctx context.Context) ([]*discovery.Service, error) 
 
 // WatchEvent 观察服务变化事件流
 func (r *_EtcdRegistry) WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan discovery.Event, error) {
-	return r.addWatcher(ctx, pattern, nil, pie.First(revision))
+	eventChan, _, err := r.addWatcher(ctx, pattern, nil, pie.First(revision))
+	if err != nil {
+		return nil, err
+	}
+	return eventChan, nil
 }
 
 // WatchHandler 观察服务变化事件回调
-func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) error {
+func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) (async.Future, error) {
 	if handler == nil {
-		return fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)
+		return async.Future{}, fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)
 	}
-	_, err := r.addWatcher(ctx, pattern, handler, pie.First(revision))
-	return err
+	_, stopped, err := r.addWatcher(ctx, pattern, handler, pie.First(revision))
+	if err != nil {
+		return async.Future{}, err
+	}
+	return stopped, err
 }
 
 func (r *_EtcdRegistry) configure() etcdv3.Config {

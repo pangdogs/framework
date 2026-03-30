@@ -25,6 +25,7 @@ import (
 	"errors"
 	"time"
 
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 )
@@ -86,5 +87,5 @@ type IRegistry interface {
 	// WatchEvent 观察服务变化事件流
 	WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan Event, error)
 	// WatchHandler 观察服务变化事件回调
-	WatchHandler(ctx context.Context, pattern string, handler EventHandler, revision ...int64) error
+	WatchHandler(ctx context.Context, pattern string, handler EventHandler, revision ...int64) (async.Future, error)
 }

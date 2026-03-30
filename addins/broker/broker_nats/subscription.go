@@ -112,13 +112,14 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 		return nil, async.Future{}, fmt.Errorf("broker: %w", err)
 	}
 
-	future := async.NewFutureVoid()
+	unsubscribed := async.NewFutureVoid()
 
 	go func() {
 		defer func() {
 			if eventChan != nil {
 				eventChan.Close()
 			}
+			async.ReturnVoid(unsubscribed)
 			b.barrier.Done()
 		}()
 
@@ -132,16 +133,14 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 		} else {
 			log.L(b.svcCtx).Debug("unsubscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 		}
-
-		async.ReturnVoid(future)
 	}()
 
 	log.L(b.svcCtx).Debug("subscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 
 	if eventChan != nil {
-		return eventChan.Out(), future.Out(), nil
+		return eventChan.Out(), unsubscribed.Out(), nil
 	}
-	return nil, future.Out(), nil
+	return nil, unsubscribed.Out(), nil
 }
 
 func unsupportedAck(ctx context.Context) error {

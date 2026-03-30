@@ -121,11 +121,11 @@ func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue strin
 	if handler == nil {
 		return async.Future{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
 	}
-	_, future, err := b.addSubscriber(ctx, pattern, queue, handler)
+	_, unsubscribed, err := b.addSubscriber(ctx, pattern, queue, handler)
 	if err != nil {
 		return async.Future{}, err
 	}
-	return future, nil
+	return unsubscribed, nil
 }
 
 // Flush 刷新
