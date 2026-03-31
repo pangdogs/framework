@@ -418,7 +418,7 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 }
 
 // CliRPC 向客户端发送RPC
-func (p EntityProxied) CliRPC(proc, method string, args ...any) async.Future {
+func (p EntityProxied) CliRPC(script, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
@@ -435,7 +435,7 @@ func (p EntityProxied) CliRPC(proc, method string, args ...any) async.Future {
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Client,
-		Script:     proc,
+		Script:     script,
 		Method:     method,
 	}
 
@@ -443,7 +443,7 @@ func (p EntityProxied) CliRPC(proc, method string, args ...any) async.Future {
 }
 
 // CliOnewayRPC 向客户端发送单向RPC
-func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
+func (p EntityProxied) CliOnewayRPC(script, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
@@ -460,7 +460,7 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Client,
-		Script:     proc,
+		Script:     script,
 		Method:     method,
 	}
 
