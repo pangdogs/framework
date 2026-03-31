@@ -32,13 +32,11 @@ import (
 )
 
 // ProxyService 创建服务代理，用于向服务发送RPC
-func ProxyService(provider runtime.CurrentContextProvider) ServiceProxied {
+func ProxyService(provider any) ServiceProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
-	p := ServiceProxied{
-		svcCtx: service.Current(provider),
-	}
+	p := ServiceProxied{}
 	switch x := provider.(type) {
 	case runtime.CurrentContextProvider:
 		p.svcCtx = service.Current(x)
