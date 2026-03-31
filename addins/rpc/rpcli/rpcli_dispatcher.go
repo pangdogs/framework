@@ -244,7 +244,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 }
 
 func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.Array, err error) {
-	scr, ok := c.scripts.Get(script)
+	scr, ok := c.GetScript(script)
 	if !ok {
 		return nil, ErrScriptNotFound
 	}

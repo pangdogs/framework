@@ -294,7 +294,12 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 	}
 
 	for name, scriptType := range ctor.scriptTypes {
-		rpcli.scripts.Add(name, reflect.New(scriptType).Interface().(IScript))
+		script := reflect.New(scriptType).Interface().(IScript)
+
+		script.init(rpcli, name, script)
+		cacheCallPath(name, script.Reflected().Type())
+
+		rpcli.scripts.Add(name, script)
 	}
 
 	rpcli.DataIO().Listen(context.Background(), generic.CastDelegateVoid1(rpcli.handleData))
