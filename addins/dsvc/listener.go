@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/broker"
 	"git.golaxy.org/framework/addins/log"
@@ -40,19 +41,19 @@ type _BrokerMsg struct {
 	msgPacket gap.MsgPacket
 }
 
-func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) error {
+func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-d.ctx.Done():
-		return errors.New("dsvc: dsvc is terminating")
+		return async.Future{}, errors.New("dsvc: dsvc is terminating")
 	default:
 	}
 
 	if !d.barrier.Join(1) {
-		return errors.New("dsvc: dsvc is terminating")
+		return async.Future{}, errors.New("dsvc: dsvc is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -65,9 +66,13 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) erro
 	}()
 
 	listener := d.listeners.Add(handler, d.options.ListenerInboxSize)
+	stopped := async.NewFutureVoid()
 
 	go func() {
-		defer d.barrier.Done()
+		defer func() {
+			async.ReturnVoid(stopped)
+			d.barrier.Done()
+		}()
 
 		for {
 			select {
@@ -90,7 +95,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) erro
 	}()
 
 	log.L(d.svcCtx).Debug("add a broker message listener")
-	return nil
+	return stopped.Out(), nil
 }
 
 func (d *_DistService) handleEvent(e broker.Event) {

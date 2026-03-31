@@ -21,11 +21,12 @@ package rpc
 
 import (
 	"errors"
+	"reflect"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gap/variant"
-	"reflect"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
 )
 
-func parseRet[T any](retArr variant.Array, idx int) (T, error) {
+func parseResult[T any](retArr variant.Array, idx int) (T, error) {
 	v := retArr[idx]
 
 	ret, ok := v.Value.Indirect().(T)
@@ -73,7 +74,7 @@ func (rvs ResultValues) ensure(skip int) []any {
 	return rvs.Values
 }
 
-func Results(ret async.Ret) (rvs ResultValues) {
+func Results(ret async.Result) (rvs ResultValues) {
 	if !ret.OK() {
 		rvs.Error = ret.Error
 		return
@@ -116,7 +117,7 @@ func (rtp ResultTuple0) ensure(skip int) {
 	}
 }
 
-func ResultVoid(ret async.Ret) (rtp ResultTuple0) {
+func ResultVoid(ret async.Result) (rtp ResultTuple0) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -144,7 +145,7 @@ func (rtp ResultTuple1[T1]) ensure(skip int) T1 {
 	return rtp.R1
 }
 
-func Result1[T1 any](ret async.Ret) (rtp ResultTuple1[T1]) {
+func Result1[T1 any](ret async.Result) (rtp ResultTuple1[T1]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -161,7 +162,7 @@ func Result1[T1 any](ret async.Ret) (rtp ResultTuple1[T1]) {
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -192,7 +193,7 @@ func (rtp ResultTuple2[T1, T2]) ensure(skip int) (T1, T2) {
 	return rtp.R1, rtp.R2
 }
 
-func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
+func Result2[T1, T2 any](ret async.Result) (rtp ResultTuple2[T1, T2]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -209,13 +210,13 @@ func Result2[T1, T2 any](ret async.Ret) (rtp ResultTuple2[T1, T2]) {
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -248,7 +249,7 @@ func (rtp ResultTuple3[T1, T2, T3]) ensure(skip int) (T1, T2, T3) {
 	return rtp.R1, rtp.R2, rtp.R3
 }
 
-func Result3[T1, T2, T3 any](ret async.Ret) (rtp ResultTuple3[T1, T2, T3]) {
+func Result3[T1, T2, T3 any](ret async.Result) (rtp ResultTuple3[T1, T2, T3]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -265,19 +266,19 @@ func Result3[T1, T2, T3 any](ret async.Ret) (rtp ResultTuple3[T1, T2, T3]) {
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -312,7 +313,7 @@ func (rtp ResultTuple4[T1, T2, T3, T4]) ensure(skip int) (T1, T2, T3, T4) {
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4
 }
 
-func Result4[T1, T2, T3, T4 any](ret async.Ret) (rtp ResultTuple4[T1, T2, T3, T4]) {
+func Result4[T1, T2, T3, T4 any](ret async.Result) (rtp ResultTuple4[T1, T2, T3, T4]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -329,25 +330,25 @@ func Result4[T1, T2, T3, T4 any](ret async.Ret) (rtp ResultTuple4[T1, T2, T3, T4
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -384,7 +385,7 @@ func (rtp ResultTuple5[T1, T2, T3, T4, T5]) ensure(skip int) (T1, T2, T3, T4, T5
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5
 }
 
-func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
+func Result5[T1, T2, T3, T4, T5 any](ret async.Result) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -401,31 +402,31 @@ func Result5[T1, T2, T3, T4, T5 any](ret async.Ret) (rtp ResultTuple5[T1, T2, T3
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -464,7 +465,7 @@ func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) ensure(skip int) (T1, T2, T3, T4
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6
 }
 
-func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
+func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Result) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -481,37 +482,37 @@ func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Ret) (rtp ResultTuple6[T1, T2
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -552,7 +553,7 @@ func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) ensure(skip int) (T1, T2, T3
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7
 }
 
-func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
+func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Result) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -569,43 +570,43 @@ func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Ret) (rtp ResultTuple7[T1
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -648,7 +649,7 @@ func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) ensure(skip int) (T1, T2
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8
 }
 
-func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
+func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Result) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -665,49 +666,49 @@ func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Ret) (rtp ResultTuple
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -752,7 +753,7 @@ func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) ensure(skip int) (T1
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9
 }
 
-func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
+func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Result) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -769,55 +770,55 @@ func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Ret) (rtp ResultT
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -864,7 +865,7 @@ func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) ensure(skip in
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10
 }
 
-func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
+func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Result) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -881,61 +882,61 @@ func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Ret) (rtp R
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -984,7 +985,7 @@ func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) ensure(sk
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11
 }
 
-func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
+func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Result) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1001,67 +1002,67 @@ func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Ret) (
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -1112,7 +1113,7 @@ func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) ensu
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12
 }
 
-func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Ret) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
+func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Result) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1124,73 +1125,73 @@ func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.R
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r12, err := parseRet[T12](retArr, 11)
+	r12, err := parseResult[T12](retArr, 11)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -1243,7 +1244,7 @@ func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13])
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13
 }
 
-func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Ret) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
+func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Result) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1255,79 +1256,79 @@ func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret as
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r12, err := parseRet[T12](retArr, 11)
+	r12, err := parseResult[T12](retArr, 11)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r13, err := parseRet[T13](retArr, 12)
+	r13, err := parseResult[T13](retArr, 12)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -1382,7 +1383,7 @@ func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14
 }
 
-func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Ret) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
+func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Result) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1394,85 +1395,85 @@ func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](r
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r12, err := parseRet[T12](retArr, 11)
+	r12, err := parseResult[T12](retArr, 11)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r13, err := parseRet[T13](retArr, 12)
+	r13, err := parseResult[T13](retArr, 12)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r14, err := parseRet[T14](retArr, 13)
+	r14, err := parseResult[T14](retArr, 13)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -1529,7 +1530,7 @@ func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15
 }
 
-func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Ret) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
+func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Result) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1541,91 +1542,91 @@ func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 a
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r12, err := parseRet[T12](retArr, 11)
+	r12, err := parseResult[T12](retArr, 11)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r13, err := parseRet[T13](retArr, 12)
+	r13, err := parseResult[T13](retArr, 12)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r14, err := parseRet[T14](retArr, 13)
+	r14, err := parseResult[T14](retArr, 13)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r15, err := parseRet[T15](retArr, 14)
+	r15, err := parseResult[T15](retArr, 14)
 	if err != nil {
 		rtp.Error = err
 		return
@@ -1684,7 +1685,7 @@ func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.R16
 }
 
-func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Ret) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
+func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Result) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1696,97 +1697,97 @@ func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, 
 		return
 	}
 
-	r1, err := parseRet[T1](retArr, 0)
+	r1, err := parseResult[T1](retArr, 0)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r2, err := parseRet[T2](retArr, 1)
+	r2, err := parseResult[T2](retArr, 1)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r3, err := parseRet[T3](retArr, 2)
+	r3, err := parseResult[T3](retArr, 2)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r4, err := parseRet[T4](retArr, 3)
+	r4, err := parseResult[T4](retArr, 3)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r5, err := parseRet[T5](retArr, 4)
+	r5, err := parseResult[T5](retArr, 4)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r6, err := parseRet[T6](retArr, 5)
+	r6, err := parseResult[T6](retArr, 5)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r7, err := parseRet[T7](retArr, 6)
+	r7, err := parseResult[T7](retArr, 6)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r8, err := parseRet[T8](retArr, 7)
+	r8, err := parseResult[T8](retArr, 7)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r9, err := parseRet[T9](retArr, 8)
+	r9, err := parseResult[T9](retArr, 8)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r10, err := parseRet[T10](retArr, 9)
+	r10, err := parseResult[T10](retArr, 9)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r11, err := parseRet[T11](retArr, 10)
+	r11, err := parseResult[T11](retArr, 10)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r12, err := parseRet[T12](retArr, 11)
+	r12, err := parseResult[T12](retArr, 11)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r13, err := parseRet[T13](retArr, 12)
+	r13, err := parseResult[T13](retArr, 12)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r14, err := parseRet[T14](retArr, 13)
+	r14, err := parseResult[T14](retArr, 13)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r15, err := parseRet[T15](retArr, 14)
+	r15, err := parseResult[T15](retArr, 14)
 	if err != nil {
 		rtp.Error = err
 		return
 	}
 
-	r16, err := parseRet[T16](retArr, 15)
+	r16, err := parseResult[T16](retArr, 15)
 	if err != nil {
 		rtp.Error = err
 		return

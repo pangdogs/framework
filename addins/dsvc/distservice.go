@@ -51,7 +51,7 @@ type IDistService interface {
 	// Send 发送消息
 	Send(dst string, msg gap.Msg) error
 	// Listen 监听消息
-	Listen(ctx context.Context, handler MsgHandler) error
+	Listen(ctx context.Context, handler MsgHandler) (async.Future, error)
 }
 
 func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
@@ -233,9 +233,9 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 }
 
 // Listen 监听消息
-func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) error {
+func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) (async.Future, error) {
 	if handler == nil {
-		return errors.New("dsvc: handler is nil")
+		return async.Future{}, errors.New("dsvc: handler is nil")
 	}
 	return d.addListener(ctx, handler)
 }

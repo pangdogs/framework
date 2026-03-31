@@ -24,9 +24,5 @@ import (
 )
 
 var (
-	self      = define.ServiceAddIn(newRPC)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.ServiceAddIn(newRPC)
 )

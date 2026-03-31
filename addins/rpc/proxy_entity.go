@@ -20,40 +20,41 @@
 package rpc
 
 import (
+	"math/rand"
+	"slices"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/addins/dentq"
+	"git.golaxy.org/framework/addins/dent"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/gate"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/addins/rpcstack"
-	"math/rand"
-	"slices"
 )
 
 // ProxyEntity 创建实体代理，用于向实体发送RPC
-func ProxyEntity(provider runtime.CurrentContextProvider, id uid.Id) EntityProxied {
+func ProxyEntity(provider any, id uid.Id) EntityProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
-	return EntityProxied{
-		svcCtx: service.Current(provider),
-		rtCtx:  runtime.Current(provider),
-		id:     id,
+	p := EntityProxied{
+		id: id,
 	}
-}
-
-// UntrackedProxyEntity 创建实体代理，不继承RPC调用链，用于向实体发送RPC
-func UntrackedProxyEntity(svcCtx service.Context, id uid.Id) EntityProxied {
-	return EntityProxied{
-		svcCtx: svcCtx,
-		id:     id,
+	switch x := provider.(type) {
+	case runtime.CurrentContextProvider:
+		p.svcCtx = service.Current(x)
+		p.rtCtx = runtime.Current(x)
+	case service.Context:
+		p.svcCtx = x
+	default:
+		exception.Panicf("rpc: %w: invalid provider type", core.ErrArgs)
 	}
+	return p
 }
 
 // EntityProxied 实体代理，用于向实体发送RPC
@@ -63,58 +64,53 @@ type EntityProxied struct {
 	id     uid.Id
 }
 
-// GetId 获取实体id
-func (p EntityProxied) GetId() uid.Id {
-	return p.id
-}
-
 // RPC 向分布式实体目标服务发送RPC
-func (p EntityProxied) RPC(service, comp, method string, args ...any) async.AsyncRet {
+func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
-		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dent.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
 	}
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
-func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) async.AsyncRet {
+func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
-		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
 	}
 
 	// 统计节点数量
@@ -125,7 +121,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 		}
 	}
 	if count <= 0 {
-		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
 	}
 
 	// 随机目标节点
@@ -145,30 +141,30 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
-func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.AsyncRet {
+func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
-		return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
 	}
 
 	// 随机目标节点
@@ -176,10 +172,10 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 
 	if excludeSelf {
 		if len(distEntity.Nodes) <= 1 {
-			return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+			return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
 		}
 
-		localAddr := dsvc.Using(p.svcCtx).GetNodeDetails().LocalAddr
+		localAddr := dsvc.AddIn.Require(p.svcCtx).NodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -190,7 +186,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 
 	} else {
 		if len(distEntity.Nodes) <= 0 {
-			return async.Return(async.MakeAsyncRet(), async.MakeRet(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+			return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
 		}
 		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}
@@ -198,18 +194,18 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // OnewayRPC 向分布式实体目标服务发送单向RPC
@@ -219,13 +215,13 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dent.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
@@ -235,18 +231,18 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
 // BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
@@ -256,7 +252,7 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -289,18 +285,18 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
@@ -310,7 +306,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -323,7 +319,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 			return rpcpcsr.ErrDistEntityNodeNotFound
 		}
 
-		localAddr := dsvc.Using(p.svcCtx).GetNodeDetails().LocalAddr
+		localAddr := dsvc.AddIn.Require(p.svcCtx).NodeDetails().LocalAddr
 		idx := rand.Intn(len(distEntity.Nodes))
 
 		if distEntity.Nodes[idx].RemoteAddr == localAddr {
@@ -342,18 +338,18 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Id:       p.id,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Id:         p.id,
+		Script:     comp,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
@@ -363,13 +359,13 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dentq.Using(p.svcCtx).GetDistEntity(p.id)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.id)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
 
 	// 查询分布式实体目标服务节点
-	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dent.Node) bool {
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
@@ -379,19 +375,19 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:   callpath.Entity,
+		TargetKind: callpath.Entity,
 		ExcludeSrc: excludeSelf,
 		Id:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
 }
 
 // GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
@@ -401,49 +397,49 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 	}
 
 	// 全局广播地址
-	dst := dsvc.Using(p.svcCtx).GetNodeDetails().GlobalBroadcastAddr
+	dst := dsvc.AddIn.Require(p.svcCtx).NodeDetails().GlobalBroadcastAddr
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category:   callpath.Entity,
+		TargetKind: callpath.Entity,
 		ExcludeSrc: excludeSelf,
 		Id:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // CliRPC 向客户端发送RPC
-func (p EntityProxied) CliRPC(proc, method string, args ...any) async.AsyncRet {
+func (p EntityProxied) CliRPC(proc, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.DomainUnicast.Join(p.id.String())
+	dst := gate.ClientDetails.DomainUnicast.Join(p.id.String())
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Client,
-		Script:   proc,
-		Method:   method,
+		TargetKind: callpath.Client,
+		Script:     proc,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).RPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
 // CliOnewayRPC 向客户端发送单向RPC
@@ -453,22 +449,22 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.DomainUnicast.Join(p.id.String())
+	dst := gate.ClientDetails.DomainUnicast.Join(p.id.String())
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Client,
-		Script:   proc,
-		Method:   method,
+		TargetKind: callpath.Client,
+		Script:     proc,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
 // BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
@@ -478,20 +474,20 @@ func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) e
 	}
 
 	// 客户端地址
-	dst := gate.CliDetails.DomainBroadcast.Join(p.id.String())
+	dst := gate.ClientDetails.DomainBroadcast.Join(p.id.String())
 
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Client,
-		Script:   proc,
-		Method:   method,
+		TargetKind: callpath.Client,
+		Script:     proc,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }

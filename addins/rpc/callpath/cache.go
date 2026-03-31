@@ -20,10 +20,13 @@
 package callpath
 
 import (
+	"hash/fnv"
+	"maps"
+	"runtime"
+	"sync/atomic"
+
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/types"
-	"hash/fnv"
-	"sync"
 )
 
 type _Cached struct {
@@ -32,8 +35,7 @@ type _Cached struct {
 }
 
 var (
-	mutex sync.RWMutex
-	cache = map[uint32]*_Cached{}
+	cache atomic.Pointer[map[uint32]*_Cached]
 )
 
 // Cache using Hash-based Transmission to reduce network transmission overhead
@@ -47,36 +49,37 @@ func Cache(script, method string) uint32 {
 
 	idx := hash.Sum32()
 
-	mutex.RLock()
-	if exists, ok := cache[idx]; ok {
-		if exists.Script == script && exists.Method == method {
-			mutex.RUnlock()
+	for {
+		old := cache.Load()
+		if old != nil {
+			if exists, ok := (*old)[idx]; ok {
+				if exists.Script == script && exists.Method == method {
+					return idx
+				}
+				exception.Panicf("rpc: cached index %d conflict: existing %+v vs new %+v; rename the script or method to change the generated call path id", idx, *exists, _Cached{Script: script, Method: method})
+			}
+		}
+
+		cached := &_Cached{
+			Script: script,
+			Method: method,
+		}
+
+		var next map[uint32]*_Cached
+		if old != nil {
+			next = maps.Clone(*old)
+		} else {
+			next = make(map[uint32]*_Cached)
+		}
+
+		next[idx] = cached
+
+		if cache.CompareAndSwap(old, &next) {
 			return idx
 		}
-		mutex.RUnlock()
-		exception.Panicf("rpc: cached index %d conflict: existing %+v vs new %+v", idx, *exists, _Cached{Script: script, Method: method})
+
+		runtime.Gosched()
 	}
-	mutex.RUnlock()
-
-	mutex.Lock()
-	cached := &_Cached{
-		Script: script,
-		Method: method,
-	}
-
-	if exists, ok := cache[idx]; ok {
-		if *exists == *cached {
-			mutex.Unlock()
-			return idx
-		}
-		mutex.Unlock()
-		exception.Panicf("rpc: cached index %d conflict: existing %+v vs new %+v", idx, *exists, *cached)
-	}
-
-	cache[idx] = cached
-	mutex.Unlock()
-
-	return idx
 }
 
 func reduce(script, method string) uint32 {
@@ -91,11 +94,9 @@ func reduce(script, method string) uint32 {
 }
 
 func inflate(idx uint32) *_Cached {
-	mutex.RLock()
-	cached, ok := cache[idx]
-	mutex.RUnlock()
-	if !ok {
+	m := cache.Load()
+	if m == nil {
 		return nil
 	}
-	return cached
+	return (*m)[idx]
 }

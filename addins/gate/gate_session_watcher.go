@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/log"
 	"go.uber.org/zap"
@@ -32,7 +33,7 @@ type (
 	SessionEstablishedHandler = generic.DelegateVoid1[ISession] // 会话建立完成处理器
 )
 
-func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishedHandler) error {
+func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

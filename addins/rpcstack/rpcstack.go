@@ -21,8 +21,19 @@ package rpcstack
 
 import (
 	"git.golaxy.org/core/runtime"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/log"
+	"git.golaxy.org/framework/net/gap/variant"
+	"go.uber.org/zap"
 )
+
+type (
+	Call      = variant.Call
+	CallChain = variant.CallChain
+	Variables = generic.UnorderedSliceMap[string, any]
+)
+
+var EmptyCallChain = CallChain{}
 
 // IRPCStack RPC调用堆栈支持
 type IRPCStack interface {
@@ -52,12 +63,12 @@ type _RPCStack struct {
 }
 
 func (r *_RPCStack) Init(rtCtx runtime.Context) {
-	log.Debugf(rtCtx, "init addin %q", self.Name)
+	log.L(rtCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 	r.rtCtx = rtCtx
 }
 
 func (r *_RPCStack) Shut(rtCtx runtime.Context) {
-	log.Debugf(rtCtx, "shut addin %q", self.Name)
+	log.L(rtCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 }
 
 // CallChain 调用链

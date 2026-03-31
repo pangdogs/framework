@@ -30,23 +30,23 @@ import (
 )
 
 // ProxyGroup 创建分组代理，用于向分组发送RPC
-func ProxyGroup(provider runtime.CurrentContextProvider, name string) GroupProxied {
+func ProxyGroup(provider any, name string) GroupProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
-	return GroupProxied{
-		svcCtx: service.Current(provider),
-		rtCtx:  runtime.Current(provider),
-		addr:   gate.CliDetails.DomainMulticast.Join(name),
+	p := GroupProxied{
+		addr: gate.ClientDetails.DomainMulticast.Join(name),
 	}
-}
-
-// UntrackedProxyGroup 创建分组代理，不继承RPC调用链，用于向分组发送RPC
-func UntrackedProxyGroup(svcCtx service.Context, name string) GroupProxied {
-	return GroupProxied{
-		svcCtx: svcCtx,
-		addr:   gate.CliDetails.DomainMulticast.Join(name),
+	switch x := provider.(type) {
+	case runtime.CurrentContextProvider:
+		p.svcCtx = service.Current(x)
+		p.rtCtx = runtime.Current(x)
+	case service.Context:
+		p.svcCtx = x
+	default:
+		exception.Panicf("rpc: %w: invalid provider type", core.ErrArgs)
 	}
+	return p
 }
 
 // GroupProxied 分组代理，用于向分组发送RPC
@@ -54,17 +54,6 @@ type GroupProxied struct {
 	svcCtx service.Context
 	rtCtx  runtime.Context
 	addr   string
-}
-
-// GetName 获取分组名称
-func (p GroupProxied) GetName() string {
-	name, _ := gate.CliDetails.DomainMulticast.Relative(p.addr)
-	return name
-}
-
-// GetAddr 获取分组地址
-func (p GroupProxied) GetAddr() string {
-	return p.addr
 }
 
 // CliOnewayRPC 向分组发送单向RPC
@@ -76,15 +65,15 @@ func (p GroupProxied) CliOnewayRPC(proc, method string, args ...any) error {
 	// 调用链
 	cc := rpcstack.EmptyCallChain
 	if p.rtCtx != nil {
-		cc = rpcstack.Using(p.rtCtx).CallChain()
+		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
 	}
 
 	// 调用路径
 	cp := callpath.CallPath{
-		Category: callpath.Client,
-		Script:   proc,
-		Method:   method,
+		TargetKind: callpath.Client,
+		Script:     proc,
+		Method:     method,
 	}
 
-	return Using(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)
+	return AddIn.Require(p.svcCtx).OnewayRPC(p.addr, cc, cp, args...)
 }

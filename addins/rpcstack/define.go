@@ -24,9 +24,5 @@ import (
 )
 
 var (
-	self      = define.RuntimeAddIn(newRPCStack)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.RuntimeAddIn(newRPCStack)
 )

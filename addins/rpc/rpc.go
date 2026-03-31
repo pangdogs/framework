@@ -22,39 +22,39 @@ package rpc
 import (
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpc/rpcpcsr"
 	"git.golaxy.org/framework/addins/rpcstack"
-	"git.golaxy.org/framework/utils/concurrent"
-	"sync/atomic"
+	"go.uber.org/zap"
 )
 
 // IRPC RPC支持
 type IRPC interface {
 	// RPC RPC调用
-	RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.AsyncRet
+	RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.Future
 	// OnewayRPC 单向RPC调用
 	OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error
 }
 
 func newRPC(settings ...option.Setting[RPCOptions]) IRPC {
 	return &_RPC{
-		options: option.Make(With.Default(), settings...),
+		options: option.New(With.Default(), settings...),
 	}
 }
 
 type _RPC struct {
 	svcCtx     service.Context
 	options    RPCOptions
-	terminated atomic.Bool
+	barrier    generic.Barrier
 	deliverers []rpcpcsr.IDeliverer
 }
 
 // Init 初始化插件
 func (r *_RPC) Init(svcCtx service.Context) {
-	log.Infof(svcCtx, "init addin %q", self.Name)
+	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	r.svcCtx = svcCtx
 
@@ -73,9 +73,10 @@ func (r *_RPC) Init(svcCtx service.Context) {
 
 // Shut 关闭插件
 func (r *_RPC) Shut(svcCtx service.Context) {
-	log.Infof(svcCtx, "shut addin %q", self.Name)
+	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
-	r.terminated.Store(true)
+	r.barrier.Close()
+	r.barrier.Wait()
 
 	for _, p := range r.options.Processors {
 		if cb, ok := p.(rpcpcsr.LifecycleShut); ok {
@@ -85,12 +86,11 @@ func (r *_RPC) Shut(svcCtx service.Context) {
 }
 
 // RPC RPC调用
-func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.AsyncRet {
-	if r.terminated.Load() {
-		ret := concurrent.MakeRespAsyncRet()
-		ret.Push(async.MakeRet(nil, rpcpcsr.ErrTerminated))
-		return ret.ToAsyncRet()
+func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.Future {
+	if !r.barrier.Join(1) {
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrTerminated))
 	}
+	defer r.barrier.Done()
 
 	if cc == nil {
 		cc = rpcstack.EmptyCallChain
@@ -106,16 +106,15 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args
 		return deliverer.Request(r.svcCtx, dst, cc, cp, args)
 	}
 
-	ret := concurrent.MakeRespAsyncRet()
-	ret.Push(async.MakeRet(nil, rpcpcsr.ErrUndeliverable))
-	return ret.ToAsyncRet()
+	return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrUndeliverable))
 }
 
 // OnewayRPC 单向RPC调用
 func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error {
-	if r.terminated.Load() {
+	if !r.barrier.Join(1) {
 		return rpcpcsr.ErrTerminated
 	}
+	defer r.barrier.Done()
 
 	if cc == nil {
 		cc = rpcstack.EmptyCallChain

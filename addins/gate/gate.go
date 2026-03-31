@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -48,7 +49,7 @@ type IGate interface {
 	// Count 会话数量
 	Count() int64
 	// Watch 监听建立会话
-	Watch(ctx context.Context, handler SessionEstablishedHandler) error
+	Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error)
 }
 
 func newGate(settings ...option.Setting[GateOptions]) IGate {
@@ -193,9 +194,13 @@ func (g *_Gate) Count() int64 {
 }
 
 // Watch 监听建立会话
-func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) error {
+func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
 	if handler == nil {
-		return errors.New("gate: handler is nil")
+		return async.Future{}, errors.New("gate: handler is nil")
 	}
-	return g.addSessionWatcher(ctx, handler)
+	stopped, err := g.addSessionWatcher(ctx, handler)
+	if err != nil {
+		return async.Future{}, err
+	}
+	return stopped, nil
 }

@@ -24,21 +24,22 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/core/utils/uid"
 )
 
-type Category uint8
+type TargetKind uint8
 
 const (
-	Service Category = 'S'
-	Runtime Category = 'R'
-	Entity  Category = 'E'
-	Client  Category = 'C'
+	Service TargetKind = 'S'
+	Runtime TargetKind = 'R'
+	Entity  TargetKind = 'E'
+	Client  TargetKind = 'C'
 )
 
 type CallPath struct {
-	Category   Category
+	TargetKind TargetKind
 	ExcludeSrc bool
 	Id         uid.Id
 	Script     string
@@ -48,17 +49,17 @@ type CallPath struct {
 func (cp CallPath) Encode(short bool) ([]byte, error) {
 	var sb bytes.Buffer
 
-	sb.WriteByte(byte(cp.Category))
+	sb.WriteByte(byte(cp.TargetKind))
 	sb.WriteByte(types.Bool2Int[uint8](short)<<0 + types.Bool2Int[uint8](cp.ExcludeSrc)<<1)
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case Service, Client:
 		break
 	case Runtime, Entity:
 		sb.WriteString(cp.Id.String())
 		sb.WriteByte(0)
 	default:
-		return nil, errors.New("rpc: invalid call path category")
+		return nil, fmt.Errorf("rpc: invalid call path target kind: %c", cp.TargetKind)
 	}
 
 	if short {
@@ -76,15 +77,15 @@ func (cp CallPath) Encode(short bool) ([]byte, error) {
 }
 
 func (cp CallPath) String() string {
-	switch cp.Category {
+	switch cp.TargetKind {
 	case Service:
-		return fmt.Sprintf("%c[%d]>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Script, cp.Method)
+		return fmt.Sprintf("%c-%d>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Script, cp.Method)
 	case Runtime:
-		return fmt.Sprintf("%c[%d]>%s>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
+		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
 	case Entity:
-		return fmt.Sprintf("%c[%d]>%s>%s>%s", cp.Category, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
+		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
 	case Client:
-		return fmt.Sprintf("%c>%s>%s", cp.Category, cp.Script, cp.Method)
+		return fmt.Sprintf("%c>%s.%s", cp.TargetKind, cp.Script, cp.Method)
 	}
 	return ""
 }
@@ -97,7 +98,7 @@ func Parse(data []byte) (CallPath, error) {
 	var cp CallPath
 	offset := 0
 
-	cp.Category = Category(data[offset])
+	cp.TargetKind = TargetKind(data[offset])
 	offset++
 
 	cp.ExcludeSrc = (uint8(data[offset]>>1) & 0x1) != 0
@@ -121,7 +122,7 @@ func Parse(data []byte) (CallPath, error) {
 		return s, nil
 	}
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case Service, Client:
 		break
 	case Runtime, Entity:
@@ -133,7 +134,7 @@ func Parse(data []byte) (CallPath, error) {
 			cp.Id = uid.Id(str)
 		}
 	default:
-		return CallPath{}, errors.New("rpc: invalid call path category")
+		return CallPath{}, fmt.Errorf("rpc: invalid call path target kind: %c", cp.TargetKind)
 	}
 
 	if short {
