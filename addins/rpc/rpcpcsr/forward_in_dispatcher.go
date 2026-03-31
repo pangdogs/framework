@@ -256,6 +256,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 		p.reply(transit, src, req.CorrId, nil, err)
 		return
 	}
+	cp.Id = uid.From(dst)
 
 	cc := rpcstack.CallChain{
 		{
