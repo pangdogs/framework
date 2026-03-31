@@ -31,7 +31,7 @@ type FutureHandle struct {
 	id         int64
 	future     async.FutureChan
 	deadline   time.Time
-	Resolved   atomic.Bool
+	resolved   atomic.Bool
 	controller *FutureController
 }
 

@@ -23,16 +23,20 @@ import (
 	"context"
 	"crypto"
 	"crypto/tls"
+	"fmt"
+	"reflect"
+	"time"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/gate/cli"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gtp"
 	"go.uber.org/zap"
-	"time"
 )
 
 // BuildRPCli 创建RPC客户端
@@ -41,6 +45,7 @@ func BuildRPCli() *RPCliCreator {
 		rttSampling:    3,
 		msgCreator:     gap.DefaultMsgCreator(),
 		reduceCallPath: true,
+		scriptTypes:    make(map[string]reflect.Type),
 	}
 }
 
@@ -50,7 +55,7 @@ type RPCliCreator struct {
 	rttSampling    int
 	msgCreator     gap.IMsgCreator
 	reduceCallPath bool
-	mainProc       IProcedure
+	scriptTypes    map[string]reflect.Type
 }
 
 func (ctor *RPCliCreator) SetNetProtocol(p cli.NetProtocol) *RPCliCreator {
@@ -109,7 +114,7 @@ func (ctor *RPCliCreator) SetIOBufferCap(cap int) *RPCliCreator {
 }
 
 func (ctor *RPCliCreator) SetGTPDecoderMsgCreator(mc gtp.IMsgCreator) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.DecoderMsgCreator(mc))
+	ctor.settings = append(ctor.settings, cli.With.MsgCreator(mc))
 	return ctor
 }
 
@@ -144,7 +149,7 @@ func (ctor *RPCliCreator) SetGTPCompression(c gtp.Compression) *RPCliCreator {
 }
 
 func (ctor *RPCliCreator) SetGTPCompressedSize(size int) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.CompressedSize(size))
+	ctor.settings = append(ctor.settings, cli.With.CompressionThreshold(size))
 	return ctor
 }
 
@@ -165,36 +170,6 @@ func (ctor *RPCliCreator) SetGTPAutoReconnectRetryTimes(times int) *RPCliCreator
 
 func (ctor *RPCliCreator) SetGTPInactiveTimeout(d time.Duration) *RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.InactiveTimeout(d))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPSendDataChanSize(size int) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.SendDataChanSize(size))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPRecvDataChanSize(size int, recyclable bool) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.RecvDataChanSize(size, recyclable))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPSendEventChanSize(size int) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.SendEventChanSize(size))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPRecvEventChanSize(size int) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.RecvEventChanSize(size))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPRecvDataHandler(handler cli.RecvDataHandler) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.RecvDataHandler(handler))
-	return ctor
-}
-
-func (ctor *RPCliCreator) SetGTPRecvEventHandler(handler cli.RecvEventHandler) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.RecvEventHandler(handler))
 	return ctor
 }
 
@@ -231,22 +206,51 @@ func (ctor *RPCliCreator) SetAuthExtensions(extensions []byte) *RPCliCreator {
 	return ctor
 }
 
+func (ctor *RPCliCreator) SetPanicHandling(autoRecover bool, reportError chan error) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.PanicHandling(autoRecover, reportError))
+	return ctor
+}
+
+func (ctor *RPCliCreator) SetDataListenerInboxSize(size int) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.DataListenerInboxSize(size))
+	return ctor
+}
+
+func (ctor *RPCliCreator) SetEventListenerInboxSize(size int) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.EventListenerInboxSize(size))
+	return ctor
+}
+
 func (ctor *RPCliCreator) SetReduceCallPath(b bool) *RPCliCreator {
 	ctor.reduceCallPath = b
 	return ctor
 }
 
-func (ctor *RPCliCreator) SetMainProcedure(proc any) *RPCliCreator {
-	_proc, ok := proc.(IProcedure)
-	if !ok {
-		exception.Panicf("rpcli: %w: incorrect proc type", core.ErrArgs)
+func (ctor *RPCliCreator) SetScripts(scripts map[string]any) *RPCliCreator {
+	for name, script := range scripts {
+		if script == nil {
+			exception.Panicf("rpcli: %w: script %q can't be nil", core.ErrArgs, name)
+		}
+		if _, ok := ctor.scriptTypes[name]; ok {
+			exception.Panicf("rpcli: %w: script %q has been registered", core.ErrArgs, name)
+		}
+		scriptType, _ := script.(reflect.Type)
+		if scriptType == nil {
+			scriptType = reflect.TypeOf(script)
+		}
+		for scriptType.Kind() == reflect.Pointer {
+			scriptType = scriptType.Elem()
+		}
+		if !reflect.PointerTo(scriptType).Implements(reflect.TypeFor[IScript]()) {
+			exception.Panicf("rpcli: %w: script %q instance %q not implement rpcli.IScript", core.ErrArgs, name, types.FullNameRT(scriptType))
+		}
+		ctor.scriptTypes[name] = scriptType
 	}
-	ctor.mainProc = _proc
 	return ctor
 }
 
-func (ctor *RPCliCreator) SetZapLogger(logger *zap.Logger) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.ZapLogger(logger))
+func (ctor *RPCliCreator) SetLogger(logger *zap.Logger) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.Logger(logger))
 	return ctor
 }
 
@@ -259,17 +263,25 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 	var remoteTime *cli.ResponseTime
 
 	for range ctor.rttSampling {
-		respTime := <-client.RequestTime(ctx)
+		respTime := client.RequestTime().Wait(ctx)
 		if !respTime.OK() {
+			client.Close(respTime.Error)
 			return nil, respTime.Error
 		}
 
+		current, ok := respTime.Value.(*cli.ResponseTime)
+		if !ok {
+			err := fmt.Errorf("rpcli: unexpected response time type %T", respTime.Value)
+			client.Close(err)
+			return nil, err
+		}
+
 		if remoteTime != nil {
-			if respTime.Value.RTT() < remoteTime.RTT() {
-				remoteTime = respTime.Value
+			if current.RTT() < remoteTime.RTT() {
+				remoteTime = current
 			}
 		} else {
-			remoteTime = respTime.Value
+			remoteTime = current
 		}
 	}
 
@@ -281,11 +293,11 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 		reduceCallPath: ctor.reduceCallPath,
 	}
 
-	if ctor.mainProc != nil {
-		rpcli.AddProcedure(Main, ctor.mainProc)
+	for name, scriptType := range ctor.scriptTypes {
+		rpcli.scripts.Add(name, reflect.New(scriptType).Interface().(IScript))
 	}
 
-	rpcli.WatchData(context.Background(), generic.CastDelegate1(rpcli.handleRecvData))
+	rpcli.DataIO().Listen(context.Background(), generic.CastDelegateVoid1(rpcli.handleData))
 
 	return rpcli, nil
 }

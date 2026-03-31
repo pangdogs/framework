@@ -22,6 +22,8 @@ package rpcpcsr
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/extension"
@@ -32,7 +34,6 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap/variant"
-	"reflect"
 )
 
 type ICallee interface {
@@ -43,7 +44,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, method string, args variant.Array) (_ variant.Array, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
@@ -52,19 +53,19 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, metho
 
 	var scriptRV reflect.Value
 
-	if addInName == "" {
-		scriptRV = service.UnsafeContext(svcCtx).GetReflected()
+	if addIn == "" {
+		scriptRV = service.UnsafeContext(svcCtx).Reflected()
 	} else {
-		ps, ok := svcCtx.GetAddInManager().Get(addInName)
+		status, ok := svcCtx.AddInManager().GetStatusByName(addIn)
 		if !ok {
 			return nil, ErrAddInNotFound
 		}
 
-		if ps.State() != extension.AddInState_Active {
+		if status.State() != extension.AddInState_Running {
 			return nil, ErrAddInInactive
 		}
 
-		scriptRV = ps.Reflected()
+		scriptRV = status.Reflected()
 	}
 
 	methodRV := scriptRV.MethodByName(method)
@@ -85,139 +86,139 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addInName, metho
 		return nil, err
 	}
 
-	return variant.MakeSerializedArray(methodRV.Call(argsRV))
+	return variant.NewSerializedArray(methodRV.Call(argsRV))
 }
 
-func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addInName, method string, args variant.Array) (_ async.AsyncRet, err error) {
-	defer func() {
-		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
-		}
-	}()
-
-	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addIn, method string, args variant.Array) (_ async.Future, err error) {
+	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
 
-		if addInName == "" {
-			scriptRV = runtime.UnsafeContext(runtime.Current(entity)).GetReflected()
+		if addIn == "" {
+			scriptRV = runtime.UnsafeContext(runtime.Current(entity)).Reflected()
 		} else {
-			ps, ok := runtime.Current(entity).GetAddInManager().Get(addInName)
+			status, ok := runtime.Current(entity).AddInManager().GetStatusByName(addIn)
 			if !ok {
-				return async.MakeRet(nil, ErrAddInNotFound)
+				return async.NewResult(nil, ErrAddInNotFound)
 			}
 
-			if ps.State() != extension.AddInState_Active {
-				return async.MakeRet(nil, ErrAddInInactive)
+			if status.State() != extension.AddInState_Running {
+				return async.NewResult(nil, ErrAddInInactive)
 			}
 
-			scriptRV = ps.Reflected()
+			scriptRV = status.Reflected()
 		}
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
 			callee, ok := scriptRV.Interface().(ICallee)
 			if !ok {
-				return async.MakeRet(nil, ErrMethodNotFound)
+				return async.NewResult(nil, ErrMethodNotFound)
 			}
 
 			methodRV = callee.Callee(method)
 			if !methodRV.IsValid() {
-				return async.MakeRet(nil, ErrMethodNotFound)
+				return async.NewResult(nil, ErrMethodNotFound)
 			}
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
 		if err != nil {
-			return async.MakeRet(nil, err)
+			return async.NewResult(nil, err)
 		}
 
-		stack := rpcstack.Using(runtime.Current(entity))
+		stack := rpcstack.AddIn.Require(runtime.Current(entity))
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
 		retsRV := methodRV.Call(argsRV)
 		if len(retsRV) == 1 {
-			if asyncRet, ok := retsRV[0].Interface().(async.AsyncRet); ok {
-				return async.MakeRet(asyncRet, nil)
+			if future, ok := retsRV[0].Interface().(async.Future); ok {
+				return async.NewResult(future, nil)
 			}
 		}
 
-		return async.MakeRet(variant.MakeSerializedArray(retsRV))
+		return async.NewResult(variant.NewSerializedArray(retsRV))
 	}), nil
 }
 
-func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.AsyncRet, err error) {
-	defer func() {
-		if panicErr := types.Panic2Err(recover()); panicErr != nil {
-			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
-		}
-	}()
-
-	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Ret {
+func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.Future, err error) {
+	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
 
 		if component == "" {
-			scriptRV = entity.GetReflected()
+			scriptRV = entity.Reflected()
 		} else {
 			comp := entity.GetComponent(component)
 			if comp == nil {
-				return async.MakeRet(nil, ErrComponentNotFound)
+				return async.NewResult(nil, ErrComponentNotFound)
 			}
-			scriptRV = comp.GetReflected()
+			scriptRV = comp.Reflected()
 		}
 
 		methodRV := scriptRV.MethodByName(method)
 		if !methodRV.IsValid() {
 			callee, ok := scriptRV.Interface().(ICallee)
 			if !ok {
-				return async.MakeRet(nil, ErrMethodNotFound)
+				return async.NewResult(nil, ErrMethodNotFound)
 			}
 
 			methodRV = callee.Callee(method)
 			if !methodRV.IsValid() {
-				return async.MakeRet(nil, ErrMethodNotFound)
+				return async.NewResult(nil, ErrMethodNotFound)
 			}
 		}
 
 		argsRV, err := parseArgs(methodRV, cc, args)
 		if err != nil {
-			return async.MakeRet(nil, err)
+			return async.NewResult(nil, err)
 		}
 
-		stack := rpcstack.Using(runtime.Current(entity))
+		stack := rpcstack.AddIn.Require(runtime.Current(entity))
 		rpcstack.UnsafeRPCStack(stack).PushCallChain(cc)
 		defer rpcstack.UnsafeRPCStack(stack).PopCallChain()
 
 		retsRV := methodRV.Call(argsRV)
 		if len(retsRV) == 1 {
-			if asyncRet, ok := retsRV[0].Interface().(async.AsyncRet); ok {
-				return async.MakeRet(asyncRet, nil)
+			if future, ok := retsRV[0].Interface().(async.Future); ok {
+				return async.NewResult(future, nil)
 			}
 		}
 
-		return async.MakeRet(variant.MakeSerializedArray(retsRV))
+		return async.NewResult(variant.NewSerializedArray(retsRV))
 	}), nil
 }
 
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
+	ccPos := -1
 
-	switch methodRT.NumIn() {
-	case len(args), len(args) + 1:
-		break
-	default:
+	for i := range methodRT.NumIn() {
+		if !callChainRT.AssignableTo(methodRT.In(i)) {
+			continue
+		}
+		if ccPos >= 0 {
+			return nil, ErrMethodParameterCountMismatch
+		}
+		ccPos = i
+	}
+
+	switch {
+	case ccPos < 0 && methodRT.NumIn() != len(args):
+		return nil, ErrMethodParameterCountMismatch
+	case ccPos >= 0 && methodRT.NumIn() != len(args)+1:
 		return nil, ErrMethodParameterCountMismatch
 	}
 
 	argsRV := make([]reflect.Value, methodRT.NumIn())
-	injectCC := len(argsRV) > len(args)
 	j := 0
 
 	for i := range argsRV {
-		if injectCC && callChainRT.AssignableTo(methodRT.In(i)) {
+		if i == ccPos {
 			argsRV[i] = reflect.ValueOf(cc)
-			injectCC = false
 			continue
+		}
+		if j >= len(args) {
+			return nil, ErrMethodParameterCountMismatch
 		}
 
 		argRV, err := args[j].Convert(methodRT.In(i))
@@ -232,17 +233,17 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	return argsRV, nil
 }
 
-func waitAsyncRet(ctx context.Context, asyncRet async.AsyncRet) (variant.Array, error) {
+func waitAsyncResult(ctx context.Context, future async.Future) (variant.Array, error) {
 	for {
-		ret := asyncRet.Wait(ctx)
+		ret := future.Wait(ctx)
 		if !ret.OK() {
 			return nil, ret.Error
 		}
 
 		var ok bool
-		asyncRet, ok = ret.Value.(async.AsyncRet)
+		future, ok = ret.Value.(async.Future)
 		if ok {
-			if asyncRet == nil {
+			if future.IsNil() {
 				return nil, ErrAsyncMethodReturnedNil
 			}
 			continue
@@ -252,7 +253,7 @@ func waitAsyncRet(ctx context.Context, asyncRet async.AsyncRet) (variant.Array, 
 			return rets, nil
 		}
 
-		rets, err := variant.MakeSerializedArray([]any{ret.Value})
+		rets, err := variant.NewSerializedArray([]any{ret.Value})
 		if err != nil {
 			return nil, err
 		}

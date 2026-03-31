@@ -20,11 +20,12 @@
 package rpcpcsr
 
 import (
+	"strings"
+
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/gate"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
-	"strings"
 )
 
 // PermissionValidator 权限验证器
@@ -32,7 +33,7 @@ type PermissionValidator = generic.Delegate2[rpcstack.CallChain, callpath.CallPa
 
 // DefaultValidateCliPermission 默认的客户端RPC请求权限验证函数，限制客户端RPC只能调用前缀为C_的函数
 func DefaultValidateCliPermission(cc rpcstack.CallChain, cp callpath.CallPath) bool {
-	if !gate.CliDetails.DomainRoot.Contains(cc.First().Addr) {
+	if !gate.ClientDetails.DomainRoot.Contains(cc.First().Addr) {
 		return true
 	}
 	return strings.HasPrefix(cp.Method, "C_")

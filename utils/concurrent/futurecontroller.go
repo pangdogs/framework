@@ -109,7 +109,7 @@ func (fc *FutureController) Resolve(id int64, ret async.Result) error {
 	delete(fc.pendingResolve, id)
 	fc.pendingResolveMu.Unlock()
 
-	if !handle.Resolved.CompareAndSwap(false, true) {
+	if !handle.resolved.CompareAndSwap(false, true) {
 		return ErrFutureExceeded
 	}
 
@@ -132,7 +132,7 @@ loop:
 				time.Sleep(delta)
 			}
 
-			if !handle.Resolved.CompareAndSwap(false, true) {
+			if !handle.resolved.CompareAndSwap(false, true) {
 				continue
 			}
 
@@ -154,7 +154,7 @@ loop:
 		delete(fc.pendingResolve, handle.id)
 		fc.pendingResolveMu.Unlock()
 
-		if !handle.Resolved.CompareAndSwap(false, true) {
+		if !handle.resolved.CompareAndSwap(false, true) {
 			continue
 		}
 

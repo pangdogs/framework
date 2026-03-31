@@ -21,84 +21,162 @@ package rpcli
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"reflect"
-	"time"
+	"go.uber.org/zap"
 )
 
 var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func (c *RPCli) handleRecvData(data []byte) error {
+func (c *RPCli) handleData(data []byte) {
 	mp, err := c.decoder.Decode(data)
 	if err != nil {
-		return err
+		c.Logger().Error("decode data failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.Error(err))
+		return
 	}
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OnewayRPC:
-		return c.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
+		c.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
-		return c.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		c.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
-		return c.resolve(mp.Msg.(*gap.MsgRPCReply))
+		c.resolveReply(mp.Msg.(*gap.MsgRPCReply))
 	}
-
-	return nil
 }
 
-func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
+func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("rpcli: parse rpc notify path:%q failed, %s", req.Path, err)
+		c.Logger().Error("accept rpc notify failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Error(fmt.Errorf("parse call path failed: %w", err)))
+		return
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: true})
+	cc := append(req.CallChain,
+		rpcstack.Call{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   true,
+		},
+	)
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Client:
-		if rets, err := c.callProc(cc, cp.Script, cp.Method, req.Args); err != nil {
-			c.GetLogger().Errorf("rpc notify entity:%q, method:%q calls failed, %s", cp.Id, cp.Method, err)
+		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
+		if err != nil {
+			c.Logger().Error("accept rpc notify failed",
+				zap.String("session_id", c.SessionId().String()),
+				zap.String("local", c.NetAddr().Local.String()),
+				zap.String("remote", c.NetAddr().Remote.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
 		} else {
-			c.GetLogger().Debugf("rpc notify entity:%q, method:%q calls finished", cp.Id, cp.Method)
+			c.Logger().Debug("accept rpc notify finished",
+				zap.String("session_id", c.SessionId().String()),
+				zap.String("local", c.NetAddr().Local.String()),
+				zap.String("remote", c.NetAddr().Remote.String()),
+				zap.String("call_path", cp.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method))
 			rets.Release()
 		}
-		return nil
 	}
-
-	return nil
 }
 
-func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) error {
+func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("rpcli: parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
-		go c.reply(src, req.CorrId, nil, err)
-		return err
+		err = fmt.Errorf("parse call path failed: %w", err)
+		c.Logger().Error("accept rpc request failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Int64("corr_id", req.CorrId),
+			zap.Error(err))
+		c.reply(src, req.CorrId, nil, err)
+		return
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: true})
+	cc := append(req.CallChain,
+		rpcstack.Call{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   true,
+		},
+	)
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Client:
-		rets, err := c.callProc(cc, cp.Script, cp.Method, req.Args)
+		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			c.GetLogger().Errorf("rpc request(%d) entity:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Method, err)
+			c.Logger().Error("accept rpc request failed",
+				zap.String("session_id", c.SessionId().String()),
+				zap.String("local", c.NetAddr().Local.String()),
+				zap.String("remote", c.NetAddr().Remote.String()),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
 		} else {
-			c.GetLogger().Debugf("rpc request(%d) entity:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Method)
+			c.Logger().Debug("accept rpc request finished",
+				zap.String("session_id", c.SessionId().String()),
+				zap.String("local", c.NetAddr().Local.String()),
+				zap.String("remote", c.NetAddr().Remote.String()),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method))
 		}
-		go c.reply(src, req.CorrId, rets, err)
-		return nil
+		c.reply(src, req.CorrId, rets, err)
+	}
+}
+
+func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
+	ret := async.Result{}
+
+	if reply.Error.OK() {
+		if len(reply.Rets) > 0 {
+			ret.Value = reply.Rets
+		}
+	} else {
+		ret.Error = &reply.Error
 	}
 
-	return nil
+	if err := c.FutureController().Resolve(reply.CorrId, ret); err != nil {
+		c.Logger().Error("resolve rpc reply failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Int64("corr_id", reply.CorrId),
+			zap.Error(err))
+		return
+	}
+
+	c.Logger().Debug("rpc reply resolved",
+		zap.String("session_id", c.SessionId().String()),
+		zap.String("local", c.NetAddr().Local.String()),
+		zap.String("remote", c.NetAddr().Remote.String()),
+		zap.Int64("corr_id", reply.CorrId))
 }
 
 func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
@@ -114,12 +192,17 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 	}
 
 	if retErr != nil {
-		msg.Error = *variant.MakeError(retErr)
+		msg.Error = *variant.NewError(retErr)
 	}
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+		c.Logger().Error("marshal rpc reply failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 	defer msgBuf.Release()
@@ -128,45 +211,45 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 		Dst:       src.Addr,
 		CorrId:    msg.CorrId,
 		TransId:   msg.MsgId(),
-		TransData: msgBuf.Data(),
+		TransData: msgBuf.Payload(),
 	}
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
-		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+		c.Logger().Error("encode rpc reply failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 	defer mpBuf.Release()
 
-	if err = c.SendData(mpBuf.Data()); err != nil {
-		c.GetLogger().Errorf("rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+	if err = c.DataIO().Send(mpBuf.Payload()); err != nil {
+		c.Logger().Error("send rpc reply failed",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("local", c.NetAddr().Local.String()),
+			zap.String("remote", c.NetAddr().Remote.String()),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 
-	c.GetLogger().Debugf("rpc reply(%d) to src:%q ok", corrId, src.Addr)
+	c.Logger().Debug("rpc reply sent",
+		zap.String("session_id", c.SessionId().String()),
+		zap.String("local", c.NetAddr().Local.String()),
+		zap.String("remote", c.NetAddr().Remote.String()),
+		zap.Int64("corr_id", corrId))
 }
 
-func (c *RPCli) resolve(reply *gap.MsgRPCReply) error {
-	ret := async.Ret{}
-
-	if reply.Error.OK() {
-		if len(reply.Rets) > 0 {
-			ret.Value = reply.Rets
-		}
-	} else {
-		ret.Error = &reply.Error
-	}
-
-	return c.GetFutures().Resolve(reply.CorrId, ret)
-}
-
-func (c *RPCli) callProc(cc rpcstack.CallChain, procedure, method string, args variant.Array) (rets variant.Array, err error) {
-	proc, ok := c.procs.Get(procedure)
+func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.Array, err error) {
+	scr, ok := c.scripts.Get(script)
 	if !ok {
-		return nil, ErrProcedureNotFound
+		return nil, ErrScriptNotFound
 	}
 
-	methodRV := proc.GetReflected().MethodByName(method)
+	methodRV := scr.Reflected().MethodByName(method)
 	if !methodRV.IsValid() {
 		return nil, ErrMethodNotFound
 	}
@@ -176,28 +259,40 @@ func (c *RPCli) callProc(cc rpcstack.CallChain, procedure, method string, args v
 		return nil, err
 	}
 
-	return variant.MakeSerializedArray(methodRV.Call(argsRV))
+	return variant.NewSerializedArray(methodRV.Call(argsRV))
 }
 
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
+	ccPos := -1
 
-	switch methodRT.NumIn() {
-	case len(args), len(args) + 1:
-		break
-	default:
+	for i := range methodRT.NumIn() {
+		if !callChainRT.AssignableTo(methodRT.In(i)) {
+			continue
+		}
+		if ccPos >= 0 {
+			return nil, ErrMethodParameterCountMismatch
+		}
+		ccPos = i
+	}
+
+	switch {
+	case ccPos < 0 && methodRT.NumIn() != len(args):
+		return nil, ErrMethodParameterCountMismatch
+	case ccPos >= 0 && methodRT.NumIn() != len(args)+1:
 		return nil, ErrMethodParameterCountMismatch
 	}
 
 	argsRV := make([]reflect.Value, methodRT.NumIn())
-	injectCC := len(argsRV) > len(args)
 	j := 0
 
 	for i := range argsRV {
-		if injectCC && callChainRT.AssignableTo(methodRT.In(i)) {
+		if i == ccPos {
 			argsRV[i] = reflect.ValueOf(cc)
-			injectCC = false
 			continue
+		}
+		if j >= len(args) {
+			return nil, ErrMethodParameterCountMismatch
 		}
 
 		argRV, err := args[j].Convert(methodRT.In(i))

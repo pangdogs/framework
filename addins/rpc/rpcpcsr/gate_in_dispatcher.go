@@ -20,130 +20,148 @@
 package rpcpcsr
 
 import (
-	"git.golaxy.org/framework/addins/dentq"
+	"slices"
+	"time"
+
+	"git.golaxy.org/core/utils/generic"
+	"git.golaxy.org/framework/addins/dent"
 	"git.golaxy.org/framework/addins/gate"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"slices"
-	"time"
+	"go.uber.org/zap"
 )
 
-func (p *_GateProcessor) handleSessionChanged(session gate.ISession, curState gate.SessionState, lastState gate.SessionState) {
-	switch curState {
-	case gate.SessionState_Confirmed:
-		err := session.GetSettings().
-			SetRecvDataHandler(append(session.GetSettings().CurrRecvDataHandler, p.handleRecvData)).
-			Change()
-		if err != nil {
-			log.Errorf(p.svcCtx, "change session %q settings failed, %s", session.GetId(), err)
-			return
-		}
+func (p *_GateProcessor) handleSessionEstablished(session gate.ISession) {
+	err := session.DataIO().Listen(p.stoppingCtx, generic.CastDelegateVoid2(p.handleSessionData))
+	if err != nil {
+		log.L(p.svcCtx).Error("listen session data failed",
+			zap.String("session_id", session.Id().String()),
+			zap.Error(err))
+		return
 	}
+	log.L(p.svcCtx).Debug("listen session data started", zap.String("session_id", session.Id().String()))
 }
 
-func (p *_GateProcessor) handleRecvData(session gate.ISession, data []byte) error {
+func (p *_GateProcessor) handleSessionData(session gate.ISession, data []byte) {
 	mp, err := p.decoder.Decode(data)
 	if err != nil {
-		return err
+		log.L(p.svcCtx).Error("decode session data failed",
+			zap.String("session_id", session.Id().String()),
+			zap.Error(err))
+		return
 	}
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		return p.acceptInbound(session, mp.Head.Src.Timestamp, mp.Msg.(*gap.MsgForward))
+		p.acceptInbound(session, mp.Head.Src.Timestamp, mp.Msg.(*gap.MsgForward))
 	}
-
-	return nil
 }
 
-func (p *_GateProcessor) acceptInbound(session gate.ISession, timestamp int64, req *gap.MsgForward) error {
+func (p *_GateProcessor) acceptInbound(session gate.ISession, timestamp int64, req *gap.MsgForward) {
 	switch req.TransId {
-	case gap.MsgId_RPC_Request, gap.MsgId_RPC_Reply, gap.MsgId_OnewayRPC:
+	case gap.MsgId_RPC_Request, gap.MsgId_OnewayRPC, gap.MsgId_RPC_Reply:
 		break
 	default:
-		return nil
+		return
 	}
 
-	entity, cliAddr, ok := p.router.LookupEntity(session.GetId())
+	mapping, ok := p.router.Lookup(session.Id())
 	if !ok {
-		go p.finishInbound(session, req.Dst, req.CorrId, ErrEntityNotFound)
-		return ErrEntityNotFound
+		p.finishInbound(session, "", req.Dst, req.CorrId, ErrEntityNotFound, req.TransId == gap.MsgId_RPC_Request)
+		return
 	}
 
-	distEntity, ok := p.dentq.GetDistEntity(entity.GetId())
+	distEntity, ok := p.dentq.GetDistEntity(mapping.Entity().Id())
 	if !ok {
-		go p.finishInbound(session, req.Dst, req.CorrId, ErrDistEntityNotFound)
-		return ErrDistEntityNotFound
+		p.finishInbound(session, mapping.ClientAddr(), req.Dst, req.CorrId, ErrDistEntityNotFound, req.TransId == gap.MsgId_RPC_Request)
+		return
 	}
 
-	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dentq.Node) bool {
+	nodeIdx := slices.IndexFunc(distEntity.Nodes, func(node dent.Node) bool {
 		return node.Service == req.Dst || node.RemoteAddr == req.Dst
 	})
 	if nodeIdx < 0 {
-		go p.finishInbound(session, req.Dst, req.CorrId, ErrDistEntityNodeNotFound)
-		return ErrDistEntityNodeNotFound
+		p.finishInbound(session, mapping.ClientAddr(), req.Dst, req.CorrId, ErrDistEntityNodeNotFound, req.TransId == gap.MsgId_RPC_Request)
+		return
 	}
 	node := distEntity.Nodes[nodeIdx]
 
 	msg := &gap.MsgForward{
 		Src: gap.Origin{
-			Svc:       gate.CliDetails.DomainRoot.Path,
-			Addr:      cliAddr,
+			Svc:       gate.ClientDetails.DomainRoot.Path,
+			Addr:      mapping.ClientAddr(),
 			Timestamp: timestamp,
 		},
-		Dst:       entity.GetId().String(), // 目标实体
+		Dst:       mapping.Entity().Id().String(), // 目标实体
 		CorrId:    req.CorrId,
 		TransId:   req.TransId,
 		TransData: req.TransData,
 	}
 
-	if err := p.dist.SendMsg(node.RemoteAddr, msg); err != nil {
-		go p.finishInbound(session, node.RemoteAddr, req.CorrId, err)
-		return err
-	}
-
-	go p.finishInbound(session, req.Dst, req.CorrId, nil)
-	return nil
-}
-
-func (p *_GateProcessor) finishInbound(session gate.ISession, dst string, corrId int64, err error) {
-	if err == nil {
-		if corrId != 0 {
-			log.Debugf(p.svcCtx, "inbound forwarding session:%q rpc request(%d) to dst:%q finish", session.GetId(), corrId, dst)
-		} else {
-			log.Debugf(p.svcCtx, "inbound forwarding session:%q rpc notify to dst:%q finish", session.GetId(), dst)
-		}
-	} else {
-		if corrId != 0 {
-			log.Errorf(p.svcCtx, "inbound forwarding session:%q rpc request(%d) to dst:%q failed, %s", session.GetId(), corrId, dst, err)
-			p.replyInboundFailed(session, corrId, err)
-		} else {
-			log.Errorf(p.svcCtx, "inbound forwarding session:%q rpc notify to dst:%q failed, %s", session.GetId(), dst, err)
-		}
-	}
-}
-
-func (p *_GateProcessor) replyInboundFailed(session gate.ISession, corrId int64, retErr error) {
-	if corrId == 0 || retErr == nil {
+	if err := p.dsvc.Send(node.RemoteAddr, msg); err != nil {
+		p.finishInbound(session, mapping.ClientAddr(), node.RemoteAddr, req.CorrId, err, req.TransId == gap.MsgId_RPC_Request)
 		return
 	}
 
-	bs, err := p.encoder.Encode(
-		gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+	p.finishInbound(session, mapping.ClientAddr(), req.Dst, req.CorrId, nil, req.TransId == gap.MsgId_RPC_Request)
+}
+
+func (p *_GateProcessor) finishInbound(session gate.ISession, src, dst string, corrId int64, err error, replyReject bool) {
+	if err == nil {
+		log.L(p.svcCtx).Debug("inbound rpc request/notify/reply forwarded",
+			zap.String("session_id", session.Id().String()),
+			zap.String("local", session.NetAddr().Local.String()),
+			zap.String("remote", session.NetAddr().Remote.String()),
+			zap.String("src", src),
+			zap.String("dst", dst),
+			zap.Int64("corr_id", corrId))
+	} else {
+		log.L(p.svcCtx).Error("inbound rpc request/notify/reply forwarding failed",
+			zap.String("session_id", session.Id().String()),
+			zap.String("local", session.NetAddr().Local.String()),
+			zap.String("remote", session.NetAddr().Remote.String()),
+			zap.String("src", src),
+			zap.String("dst", dst),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
+		if replyReject {
+			p.rejectInbound(session, corrId, err)
+		}
+	}
+}
+
+func (p *_GateProcessor) rejectInbound(session gate.ISession, corrId int64, rejectedErr error) {
+	if corrId == 0 || rejectedErr == nil {
+		return
+	}
+
+	mpBuf, err := p.encoder.Encode(
+		gap.Origin{Svc: p.svcCtx.Name(), Addr: p.dsvc.NodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
 		0,
-		&gap.MsgRPCReply{CorrId: corrId, Error: *variant.MakeError(retErr)},
+		&gap.MsgRPCReply{CorrId: corrId, Error: *variant.NewError(rejectedErr)},
 	)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q failed, %s", corrId, session.GetId(), err)
+		log.L(p.svcCtx).Error("encode inbound rpc rejected reply failed",
+			zap.String("session_id", session.Id().String()),
+			zap.Int64("corr_id", corrId),
+			zap.NamedError("rejected_err", rejectedErr),
+			zap.Error(err))
 		return
 	}
-	defer bs.Release()
+	defer mpBuf.Release()
 
-	err = session.SendData(bs.Data())
-	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q failed, %s", corrId, session.GetId(), err)
+	if err := session.DataIO().Send(mpBuf.Payload()); err != nil {
+		log.L(p.svcCtx).Error("send inbound rpc rejected reply failed",
+			zap.String("session_id", session.Id().String()),
+			zap.Int64("corr_id", corrId),
+			zap.NamedError("rejected_err", rejectedErr),
+			zap.Error(err))
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) inbound failed to session:%q ok", corrId, session.GetId())
+	log.L(p.svcCtx).Debug("inbound rpc rejected reply sent",
+		zap.String("session_id", session.Id().String()),
+		zap.Int64("corr_id", corrId),
+		zap.NamedError("rejected_err", rejectedErr))
 }

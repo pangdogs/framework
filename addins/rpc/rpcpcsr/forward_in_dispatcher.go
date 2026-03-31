@@ -21,6 +21,8 @@ package rpcpcsr
 
 import (
 	"fmt"
+	"time"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/gate"
@@ -29,223 +31,414 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"time"
+	"go.uber.org/zap"
 )
 
-func (p *_ForwardProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error {
+func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
 		req := mp.Msg.(*gap.MsgForward)
 
 		// 只支持来源于客户端域的转入消息
-		if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.CliDetails.DomainRoot.Contains(req.Src.Addr) {
-			return nil
+		if !p.dsvc.NodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.ClientDetails.DomainRoot.Contains(req.Src.Addr) {
+			return
 		}
 
-		return p.acceptForward(mp.Head.Src, req)
+		p.acceptForward(mp.Head.Src, req)
 	}
-
-	return nil
 }
 
-func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForward) error {
+func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForward) {
 	switch req.TransId {
 	case gap.MsgId_OnewayRPC:
 		msg := &gap.MsgOnewayRPC{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
-			return err
+			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", req.Src.Addr),
+				zap.String("dst", req.Dst),
+				zap.Error(err))
+			return
 		}
-		return p.acceptNotify(req.Src, transit, req.Dst, msg)
+		p.acceptNotify(transit, req.Src, req.Dst, msg)
 
 	case gap.MsgId_RPC_Request:
 		msg := &gap.MsgRPCRequest{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
-			go p.reply(req.Src, transit, req.CorrId, nil, err)
-			return err
+			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", req.Src.Addr),
+				zap.String("dst", req.Dst),
+				zap.Error(err))
+			p.reply(transit, req.Src, req.CorrId, nil, err)
+			return
 		}
-		return p.acceptRequest(req.Src, transit, req.Dst, msg)
+		p.acceptRequest(transit, req.Src, req.Dst, msg)
 
 	case gap.MsgId_RPC_Reply:
 		msg := &gap.MsgRPCReply{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
-			return err
+			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", req.Src.Addr),
+				zap.String("dst", req.Dst),
+				zap.Error(err))
+			return
 		}
-		return p.resolve(msg)
+		p.resolveReply(transit, req.Src, msg)
 	}
-
-	return nil
 }
 
-func (p *_ForwardProcessor) acceptNotify(src, transit gap.Origin, dst string, req *gap.MsgOnewayRPC) error {
+func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("rpc: parse rpc notify failed, src:%q, dst:%q, transit:%q, path:%q, %s", src.Addr, dst, transit.Addr, req.Path, err)
+		log.L(p.svcCtx).Error("accept forwarded rpc notify failed",
+			zap.String("transit", transit.Addr),
+			zap.String("src", src.Addr),
+			zap.String("dst", dst),
+			zap.Error(fmt.Errorf("parse call path failed: %w", err)))
+		return
 	}
 	cp.Id = uid.From(dst)
 
 	cc := rpcstack.CallChain{
-		{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false},
-		{Svc: transit.Svc, Addr: transit.Addr, Timestamp: time.UnixMilli(transit.Timestamp).Local(), Transit: true},
+		{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   false,
+		},
+		{
+			Svc:       transit.Svc,
+			Addr:      transit.Addr,
+			Timestamp: time.UnixMilli(transit.Timestamp).Local(),
+			Transit:   true,
+		},
 	}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
-		if !passed && err == nil {
+		if err != nil {
+			err = fmt.Errorf("%w: %w", ErrPermissionDenied, err)
+		} else if !passed {
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", src.Addr, dst, transit.Addr, req.Path, err)
-			return nil
+			log.L(p.svcCtx).Error("accept forwarded rpc notify failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.String("call_path", cp.String()),
+				zap.Error(fmt.Errorf("permission verification failed: %w", err)))
+			return
 		}
 	}
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Service:
 		go func() {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify service addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc notify to service failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify service addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
+				log.L(p.svcCtx).Debug("accept forwarded rpc notify to service finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-			return nil
+			log.L(p.svcCtx).Error("accept forwarded rpc notify to runtime failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc notify to runtime failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q,", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
+				log.L(p.svcCtx).Debug("accept forwarded rpc notify to runtime finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-			return nil
+			log.L(p.svcCtx).Error("accept forwarded rpc notify to entity failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc notify to entity failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
+				log.L(p.svcCtx).Debug("accept forwarded rpc notify to entity finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 	}
-
-	return nil
 }
 
-func (p *_ForwardProcessor) acceptRequest(src, transit gap.Origin, dst string, req *gap.MsgRPCRequest) error {
+func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("rpc: parse rpc request(%d) failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src.Addr, dst, transit.Addr, req.Path, err)
-		go p.reply(src, transit, req.CorrId, nil, err)
-		return err
+		err = fmt.Errorf("parse call path failed: %w", err)
+		log.L(p.svcCtx).Error("accept forwarded rpc request failed",
+			zap.String("transit", transit.Addr),
+			zap.String("src", src.Addr),
+			zap.String("dst", dst),
+			zap.Int64("corr_id", req.CorrId),
+			zap.Error(err))
+		p.reply(transit, src, req.CorrId, nil, err)
+		return
 	}
-	cp.Id = uid.From(dst)
 
 	cc := rpcstack.CallChain{
-		{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false},
-		{Svc: transit.Svc, Addr: transit.Addr, Timestamp: time.UnixMilli(transit.Timestamp).Local(), Transit: true},
+		{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   false,
+		},
+		{
+			Svc:       transit.Svc,
+			Addr:      transit.Addr,
+			Timestamp: time.UnixMilli(transit.Timestamp).Local(),
+			Transit:   true,
+		},
 	}
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
-		if !passed && err == nil {
+		if err != nil {
+			err = fmt.Errorf("%w: %w", ErrPermissionDenied, err)
+		} else if !passed {
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, src.Addr, dst, transit.Addr, req.Path, err)
-			go p.reply(src, transit, req.CorrId, nil, err)
-			return nil
+			err = fmt.Errorf("permission verification failed: %w", err)
+			log.L(p.svcCtx).Error("accept forwarded rpc request failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.Error(err))
+			p.reply(transit, src, req.CorrId, nil, err)
+			return
 		}
 	}
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Service:
 		go func() {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) service addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc request to service failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) service addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
+				log.L(p.svcCtx).Debug("accept forwarded rpc request to service finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
-			p.reply(src, transit, req.CorrId, rets, err)
+			p.reply(transit, src, req.CorrId, rets, err)
 		}()
-
-		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-			go p.reply(src, transit, req.CorrId, nil, err)
-			return nil
+			log.L(p.svcCtx).Error("accept forwarded rpc request to runtime failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			p.reply(transit, src, req.CorrId, nil, err)
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-				p.reply(src, transit, req.CorrId, nil, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc request to runtime failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
-				p.reply(src, transit, req.CorrId, rets, nil)
+				log.L(p.svcCtx).Debug("accept forwarded rpc request to runtime finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
+			p.reply(transit, src, req.CorrId, rets, err)
 		}()
-
-		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-			go p.reply(src, transit, req.CorrId, nil, err)
-			return nil
+			log.L(p.svcCtx).Error("accept forwarded rpc request to entity failed",
+				zap.String("transit", transit.Addr),
+				zap.String("src", src.Addr),
+				zap.String("dst", dst),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			p.reply(transit, src, req.CorrId, nil, err)
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, src:%q, dst:%q, transit:%q, path:%q, %s", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path, err)
-				p.reply(src, transit, req.CorrId, nil, err)
+				log.L(p.svcCtx).Error("accept forwarded rpc request to entity failed",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished, src:%q, dst:%q, transit:%q, path:%q", req.CorrId, cp.Id, cp.Script, cp.Method, src.Addr, dst, transit.Addr, req.Path)
-				p.reply(src, transit, req.CorrId, rets, nil)
+				log.L(p.svcCtx).Debug("accept forwarded rpc request to entity finished",
+					zap.String("transit", transit.Addr),
+					zap.String("src", src.Addr),
+					zap.String("dst", dst),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
+			p.reply(transit, src, req.CorrId, rets, err)
 		}()
-
-		return nil
 	}
-
-	return nil
 }
 
-func (p *_ForwardProcessor) reply(src, transit gap.Origin, corrId int64, rets variant.Array, retErr error) {
+func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.MsgRPCReply) {
+	ret := async.Result{}
+
+	if reply.Error.OK() {
+		if len(reply.Rets) > 0 {
+			ret.Value = reply.Rets
+		}
+	} else {
+		ret.Error = &reply.Error
+	}
+
+	if err := p.dsvc.FutureController().Resolve(reply.CorrId, ret); err != nil {
+		log.L(p.svcCtx).Error("resolve forwarded rpc reply failed",
+			zap.String("transit", transit.Addr),
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", reply.CorrId),
+			zap.Error(err))
+		return
+	}
+
+	log.L(p.svcCtx).Debug("forwarded rpc reply resolved",
+		zap.String("transit", transit.Addr),
+		zap.String("src", src.Addr),
+		zap.Int64("corr_id", reply.CorrId))
+}
+
+func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	defer rets.Release()
 
 	if corrId == 0 {
@@ -258,12 +451,16 @@ func (p *_ForwardProcessor) reply(src, transit gap.Origin, corrId int64, rets va
 	}
 
 	if retErr != nil {
-		msg.Error = *variant.MakeError(retErr)
+		msg.Error = *variant.NewError(retErr)
 	}
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+		log.L(p.svcCtx).Error("marshal rpc reply failed",
+			zap.String("transit", transit.Addr),
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 	defer msgBuf.Release()
@@ -272,28 +469,19 @@ func (p *_ForwardProcessor) reply(src, transit gap.Origin, corrId int64, rets va
 		Dst:       src.Addr,
 		CorrId:    corrId,
 		TransId:   msg.MsgId(),
-		TransData: msgBuf.Data(),
+		TransData: msgBuf.Payload(),
 	}
 
-	err = p.dist.SendMsg(transit.Addr, forwardMsg)
-	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+	if err := p.dsvc.Send(transit.Addr, forwardMsg); err != nil {
+		log.L(p.svcCtx).Error("forward rpc reply failed",
+			zap.String("transit", transit.Addr),
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src.Addr)
-}
-
-func (p *_ForwardProcessor) resolve(reply *gap.MsgRPCReply) error {
-	ret := async.Ret{}
-
-	if reply.Error.OK() {
-		if len(reply.Rets) > 0 {
-			ret.Value = reply.Rets
-		}
-	} else {
-		ret.Error = &reply.Error
-	}
-
-	return p.dist.GetFutures().Resolve(reply.CorrId, ret)
+	log.L(p.svcCtx).Debug("rpc reply forwarded",
+		zap.String("src", src.Addr),
+		zap.Int64("corr_id", corrId))
 }

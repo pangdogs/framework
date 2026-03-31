@@ -21,6 +21,8 @@ package rpcli
 
 import (
 	"errors"
+	"sync"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/gate/cli"
@@ -28,12 +30,11 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/utils/concurrent"
+	"go.uber.org/zap"
 )
 
 var (
-	ErrProcedureExists              = errors.New("rpcli: procedure exists")                // 过程已存在
-	ErrProcedureNotFound            = errors.New("rpcli: procedure not found")             // 找不到过程
+	ErrScriptNotFound               = errors.New("rpcli: script not found")                // 找不到脚本
 	ErrMethodNotFound               = errors.New("rpcli: method not found")                // 找不到方法
 	ErrMethodParameterCountMismatch = errors.New("rpcli: method parameter count mismatch") // 方法参数数量不匹配
 	ErrMethodParameterTypeMismatch  = errors.New("rpcli: method parameter type mismatch")  // 方法参数类型不匹配
@@ -46,47 +47,50 @@ type RPCli struct {
 	decoder        *codec.Decoder
 	remoteTime     cli.ResponseTime
 	reduceCallPath bool
-	procs          generic.SliceMap[string, IProcedure]
+	scriptsMu      sync.RWMutex
+	scripts        generic.SliceMap[string, IScript]
 }
 
-// GetRemoteTime 获取对端时间
-func (c *RPCli) GetRemoteTime() cli.ResponseTime {
+// RemoteTime 获取对端时间
+func (c *RPCli) RemoteTime() cli.ResponseTime {
 	return c.remoteTime
 }
 
 // RPC RPC调用
-func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
-	ret := concurrent.MakeRespAsyncRet()
-	future := concurrent.MakeFuture(c.GetFutures(), nil, ret)
-
-	vargs, err := variant.MakeArray(args)
+func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
+	handle, err := c.FutureController().New()
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+	}
+
+	vargs, err := variant.NewArray(args)
+	if err != nil {
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Script:     comp,
+		Method:     method,
 	}
 
 	cpBuf, err := cp.Encode(c.reduceCallPath)
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId: future.Id,
+		CorrId: handle.Id(),
 		Path:   cpBuf,
 		Args:   vargs,
 	}
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		handle.Cancel(err)
+		return handle.Future()
 	}
 	defer msgBuf.Release()
 
@@ -94,35 +98,42 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.AsyncRet {
 		Dst:       service,
 		CorrId:    msg.CorrId,
 		TransId:   msg.MsgId(),
-		TransData: msgBuf.Data(),
+		TransData: msgBuf.Payload(),
 	}
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		handle.Cancel(err)
+		return handle.Future()
 	}
 	defer mpBuf.Release()
 
-	if err = c.SendData(mpBuf.Data()); err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+	if err := c.DataIO().Send(mpBuf.Payload()); err != nil {
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
-	return ret.ToAsyncRet()
+	c.Logger().Debug("rpc sent",
+		zap.String("session_id", c.SessionId().String()),
+		zap.String("local", c.NetAddr().Local.String()),
+		zap.String("remote", c.NetAddr().Remote.String()),
+		zap.String("dst", service),
+		zap.Int64("corr_id", handle.Id()),
+		zap.String("call_path", cp.String()))
+	return handle.Future()
 }
 
 // OnewayRPC 单向RPC调用
 func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
-	vargs, err := variant.MakeArray(args)
+	vargs, err := variant.NewArray(args)
 	if err != nil {
 		return err
 	}
 
 	cp := callpath.CallPath{
-		Category: callpath.Entity,
-		Script:   comp,
-		Method:   method,
+		TargetKind: callpath.Entity,
+		Script:     comp,
+		Method:     method,
 	}
 
 	cpBuf, err := cp.Encode(c.reduceCallPath)
@@ -144,7 +155,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 	forwardMsg := &gap.MsgForward{
 		Dst:       service,
 		TransId:   msg.MsgId(),
-		TransData: msgBuf.Data(),
+		TransData: msgBuf.Payload(),
 	}
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
@@ -153,9 +164,15 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 	}
 	defer mpBuf.Release()
 
-	if err = c.SendData(mpBuf.Data()); err != nil {
+	if err := c.DataIO().Send(mpBuf.Payload()); err != nil {
 		return err
 	}
 
+	c.Logger().Debug("oneway rpc sent",
+		zap.String("session_id", c.SessionId().String()),
+		zap.String("local", c.NetAddr().Local.String()),
+		zap.String("remote", c.NetAddr().Remote.String()),
+		zap.String("dst", service),
+		zap.String("call_path", cp.String()))
 	return nil
 }

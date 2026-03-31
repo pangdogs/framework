@@ -21,198 +21,334 @@ package rpcpcsr
 
 import (
 	"fmt"
+	"time"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/rpc/callpath"
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"time"
+	"go.uber.org/zap"
 )
 
-func (p *_ServiceProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error {
+func (p *_ServiceProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	// 只支持服务域通信
-	if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
-		return nil
+	if !p.dsvc.NodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
+		return
 	}
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OnewayRPC:
-		return p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
+		p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
-		return p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
-		return p.resolve(mp.Msg.(*gap.MsgRPCReply))
+		p.resolveReply(mp.Head.Src, mp.Msg.(*gap.MsgRPCReply))
 	}
-
-	return nil
 }
 
-func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) error {
+func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		return fmt.Errorf("rpc: parse rpc notify path:%q failed, %s", req.Path, err)
+		log.L(p.svcCtx).Error("accept rpc notify failed",
+			zap.String("src", src.Addr),
+			zap.Error(fmt.Errorf("parse call path failed: %w", err)))
+		return
 	}
 
-	if cp.ExcludeSrc && src.Addr == p.dist.GetNodeDetails().LocalAddr {
-		return nil
+	if cp.ExcludeSrc && src.Addr == p.dsvc.NodeDetails().LocalAddr {
+		log.L(p.svcCtx).Debug("accept rpc notify skipped, source excluded",
+			zap.String("src", src.Addr),
+			zap.String("call_path", cp.String()))
+		return
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false})
+	cc := append(req.CallChain,
+		rpcstack.Call{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   false,
+		},
+	)
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
-		if !passed && err == nil {
+		if err != nil {
+			err = fmt.Errorf("%w: %w", ErrPermissionDenied, err)
+		} else if !passed {
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify permission verification failed, src:%q, path:%q, %s", src.Addr, req.Path, err)
-			return nil
+			log.L(p.svcCtx).Error("accept rpc notify failed",
+				zap.String("src", src.Addr),
+				zap.String("call_path", cp.String()),
+				zap.Error(fmt.Errorf("permission verification failed: %w", err)))
+			return
 		}
 	}
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Service:
 		go func() {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify service addIn:%q, method:%q calls failed, %s", cp.Script, cp.Method, err)
+				log.L(p.svcCtx).Error("accept rpc notify to service failed",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify service addIn:%q, method:%q calls finished", cp.Script, cp.Method)
+				log.L(p.svcCtx).Debug("accept rpc notify to service finished",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
-			return nil
+			log.L(p.svcCtx).Error("accept rpc notify to runtime failed",
+				zap.String("src", src.Addr),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
+				log.L(p.svcCtx).Error("accept rpc notify to runtime failed",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify entity:%q, runtime addIn:%q, method:%q calls finished", cp.Id, cp.Script, cp.Method)
+				log.L(p.svcCtx).Debug("accept rpc notify to runtime finished",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
-			return nil
+			log.L(p.svcCtx).Error("accept rpc notify to entity failed",
+				zap.String("src", src.Addr),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls failed, %s", cp.Id, cp.Script, cp.Method, err)
+				log.L(p.svcCtx).Error("accept rpc notify to entity failed",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc notify entity:%q, component:%q, method:%q calls finished", cp.Id, cp.Script, cp.Method)
+				log.L(p.svcCtx).Debug("accept rpc notify to entity finished",
+					zap.String("src", src.Addr),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 				rets.Release()
 			}
 		}()
-
-		return nil
 	}
-
-	return nil
 }
 
-func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) error {
+func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		err = fmt.Errorf("rpc: parse rpc request(%d) path %q failed, %s", req.CorrId, req.Path, err)
-		go p.reply(src, req.CorrId, nil, err)
-		return err
+		err = fmt.Errorf("parse call path failed: %w", err)
+		log.L(p.svcCtx).Error("accept rpc request failed",
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", req.CorrId),
+			zap.Error(err))
+		p.reply(src, req.CorrId, nil, err)
+		return
 	}
 
-	cc := append(req.CallChain, rpcstack.Call{Svc: src.Svc, Addr: src.Addr, Timestamp: time.UnixMilli(src.Timestamp).Local(), Transit: false})
+	cc := append(req.CallChain,
+		rpcstack.Call{
+			Svc:       src.Svc,
+			Addr:      src.Addr,
+			Timestamp: time.UnixMilli(src.Timestamp).Local(),
+			Transit:   false,
+		},
+	)
 
 	if len(p.permValidator) > 0 {
 		passed, err := p.permValidator.SafeCall(func(passed bool, err error) bool {
 			return !passed || err != nil
 		}, cc, cp)
-		if !passed && err == nil {
+		if err != nil {
+			err = fmt.Errorf("%w: %w", ErrPermissionDenied, err)
+		} else if !passed {
 			err = ErrPermissionDenied
 		}
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) permission verification failed, src:%q, path:%q, %s", req.CorrId, src.Addr, req.Path, err)
-			go p.reply(src, req.CorrId, nil, err)
-			return nil
+			err = fmt.Errorf("permission verification failed: %w", err)
+			log.L(p.svcCtx).Error("accept rpc request failed",
+				zap.String("src", src.Addr),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.Error(err))
+			p.reply(src, req.CorrId, nil, err)
+			return
 		}
 	}
 
-	switch cp.Category {
+	switch cp.TargetKind {
 	case callpath.Service:
 		go func() {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) service addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Script, cp.Method, err)
+				log.L(p.svcCtx).Error("accept rpc request to service failed",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) service addIn:%q, method:%q calls finished", req.CorrId, cp.Script, cp.Method)
+				log.L(p.svcCtx).Debug("accept rpc request to service finished",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
 			p.reply(src, req.CorrId, rets, err)
 		}()
 
-		return nil
-
 	case callpath.Runtime:
-		asyncRet, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
-			go p.reply(src, req.CorrId, nil, err)
-			return nil
+			log.L(p.svcCtx).Error("accept rpc request to runtime failed",
+				zap.String("src", src.Addr),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			p.reply(src, req.CorrId, nil, err)
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
-				p.reply(src, req.CorrId, nil, err)
+				log.L(p.svcCtx).Error("accept rpc request to runtime failed",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, runtime addIn:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Script, cp.Method)
-				p.reply(src, req.CorrId, rets, nil)
+				log.L(p.svcCtx).Debug("accept rpc request to runtime finished",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
+			p.reply(src, req.CorrId, rets, err)
 		}()
-
-		return nil
 
 	case callpath.Entity:
-		asyncRet, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
-			go p.reply(src, req.CorrId, nil, err)
-			return nil
+			log.L(p.svcCtx).Error("accept rpc request to entity failed",
+				zap.String("src", src.Addr),
+				zap.Int64("corr_id", req.CorrId),
+				zap.String("call_path", cp.String()),
+				zap.String("id", cp.Id.String()),
+				zap.String("script", cp.Script),
+				zap.String("method", cp.Method),
+				zap.Error(err))
+			p.reply(src, req.CorrId, nil, err)
+			return
 		}
 
 		go func() {
-			rets, err := waitAsyncRet(p.svcCtx, asyncRet)
+			rets, err := waitAsyncResult(p.svcCtx, future)
 			if err != nil {
-				log.Errorf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls failed, %s", req.CorrId, cp.Id, cp.Script, cp.Method, err)
-				p.reply(src, req.CorrId, nil, err)
+				log.L(p.svcCtx).Error("accept rpc request to entity failed",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method),
+					zap.Error(err))
 			} else {
-				log.Debugf(p.svcCtx, "rpc request(%d) entity:%q, component:%q, method:%q calls finished", req.CorrId, cp.Id, cp.Script, cp.Method)
-				p.reply(src, req.CorrId, rets, nil)
+				log.L(p.svcCtx).Debug("accept rpc request to entity finished",
+					zap.String("src", src.Addr),
+					zap.Int64("corr_id", req.CorrId),
+					zap.String("call_path", cp.String()),
+					zap.String("id", cp.Id.String()),
+					zap.String("script", cp.Script),
+					zap.String("method", cp.Method))
 			}
+			p.reply(src, req.CorrId, rets, err)
 		}()
+	}
+}
 
-		return nil
+func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply) {
+	ret := async.Result{}
+
+	if reply.Error.OK() {
+		if len(reply.Rets) > 0 {
+			ret.Value = reply.Rets
+		}
+	} else {
+		ret.Error = &reply.Error
 	}
 
-	return nil
+	if err := p.dsvc.FutureController().Resolve(reply.CorrId, ret); err != nil {
+		log.L(p.svcCtx).Error("resolve rpc reply failed",
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", reply.CorrId),
+			zap.Error(err))
+		return
+	}
+
+	log.L(p.svcCtx).Debug("rpc reply resolved",
+		zap.String("src", src.Addr),
+		zap.Int64("corr_id", reply.CorrId))
 }
 
 func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
@@ -228,28 +364,18 @@ func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Arr
 	}
 
 	if retErr != nil {
-		msg.Error = *variant.MakeError(retErr)
+		msg.Error = *variant.NewError(retErr)
 	}
 
-	err := p.dist.SendMsg(src.Addr, msg)
-	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) to src:%q failed, %s", corrId, src.Addr, err)
+	if err := p.dsvc.Send(src.Addr, msg); err != nil {
+		log.L(p.svcCtx).Error("rpc reply failed",
+			zap.String("src", src.Addr),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) to src:%q ok", corrId, src.Addr)
-}
-
-func (p *_ServiceProcessor) resolve(reply *gap.MsgRPCReply) error {
-	ret := async.Ret{}
-
-	if reply.Error.OK() {
-		if len(reply.Rets) > 0 {
-			ret.Value = reply.Rets
-		}
-	} else {
-		ret.Error = &reply.Error
-	}
-
-	return p.dist.GetFutures().Resolve(reply.CorrId, ret)
+	log.L(p.svcCtx).Debug("rpc reply sent",
+		zap.String("src", src.Addr),
+		zap.Int64("corr_id", corrId))
 }

@@ -466,28 +466,3 @@ func (p EntityProxied) CliOnewayRPC(proc, method string, args ...any) error {
 
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
-
-// BroadcastCliOnewayRPC 向包含实体的所有分组发送单向RPC
-func (p EntityProxied) BroadcastCliOnewayRPC(proc, method string, args ...any) error {
-	if p.svcCtx == nil {
-		exception.Panic("rpc: svcCtx is nil")
-	}
-
-	// 客户端地址
-	dst := gate.ClientDetails.DomainBroadcast.Join(p.id.String())
-
-	// 调用链
-	cc := rpcstack.EmptyCallChain
-	if p.rtCtx != nil {
-		cc = rpcstack.AddIn.Require(p.rtCtx).CallChain()
-	}
-
-	// 调用路径
-	cp := callpath.CallPath{
-		TargetKind: callpath.Client,
-		Script:     proc,
-		Method:     method,
-	}
-
-	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
-}

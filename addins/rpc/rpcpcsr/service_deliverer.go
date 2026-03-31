@@ -27,12 +27,12 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"git.golaxy.org/framework/utils/concurrent"
+	"go.uber.org/zap"
 )
 
 // Match 是否匹配
 func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
-	details := p.dist.GetNodeDetails()
+	details := p.dsvc.NodeDetails()
 
 	// 只支持服务域通信
 	if !details.DomainRoot.Contains(dst) {
@@ -49,41 +49,46 @@ func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 }
 
 // Request 请求
-func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet {
-	ret := concurrent.MakeRespAsyncRet()
-	future := concurrent.MakeFuture(p.dist.GetFutures(), nil, ret)
-
-	vargs, err := variant.MakeArray(args)
+func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
+	handle, err := p.dsvc.FutureController().New()
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+	}
+
+	vargs, err := variant.NewArray(args)
+	if err != nil {
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
 	cpBuf, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId:    future.Id,
+		CorrId:    handle.Id(),
 		CallChain: cc,
 		Path:      cpBuf,
 		Args:      vargs,
 	}
 
-	if err = p.dist.SendMsg(dst, msg); err != nil {
-		future.Cancel(err)
-		return ret.ToAsyncRet()
+	if err = p.dsvc.Send(dst, msg); err != nil {
+		handle.Cancel(err)
+		return handle.Future()
 	}
 
-	log.Debugf(p.svcCtx, "rpc request(%d) to dst:%q, path:%q ok", future.Id, dst, cp)
-	return ret.ToAsyncRet()
+	log.L(p.svcCtx).Debug("rpc request sent",
+		zap.String("dst", dst),
+		zap.Int64("corr_id", handle.Id()),
+		zap.String("call_path", cp.String()))
+	return handle.Future()
 }
 
 // Notify 通知
 func (p *_ServiceProcessor) Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
-	vargs, err := variant.MakeArray(args)
+	vargs, err := variant.NewArray(args)
 	if err != nil {
 		return err
 	}
@@ -99,10 +104,12 @@ func (p *_ServiceProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 		Args:      vargs,
 	}
 
-	if err = p.dist.SendMsg(dst, msg); err != nil {
+	if err := p.dsvc.Send(dst, msg); err != nil {
 		return err
 	}
 
-	log.Debugf(p.svcCtx, "rpc notify to dst:%q, path:%q ok", dst, cp)
+	log.L(p.svcCtx).Debug("rpc notify sent",
+		zap.String("dst", dst),
+		zap.String("call_path", cp.String()))
 	return nil
 }

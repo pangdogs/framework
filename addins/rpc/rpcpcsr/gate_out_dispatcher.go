@@ -20,155 +20,132 @@
 package rpcpcsr
 
 import (
-	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/utils/async"
+	"time"
+
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/gate"
 	"git.golaxy.org/framework/addins/log"
-	"git.golaxy.org/framework/addins/router"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
-	"time"
+	"go.uber.org/zap"
 )
 
-func (p *_GateProcessor) handleRecvMsg(topic string, mp gap.MsgPacket) error {
+func (p *_GateProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
 		req := mp.Msg.(*gap.MsgForward)
 
 		// 只支持来源于服务域的转出消息
-		if !p.dist.GetNodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.CliDetails.DomainRoot.Contains(req.Dst) {
-			return nil
+		if !p.dsvc.NodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.ClientDetails.DomainRoot.Contains(req.Dst) {
+			return
 		}
 
 		p.acceptOutbound(mp.Head.Src, req)
 	}
 
-	return nil
 }
 
 func (p *_GateProcessor) acceptOutbound(src gap.Origin, req *gap.MsgForward) {
-	// 目标为单播地址，为了保持消息时序，在实体线程中，向对端发送消息
-	entId, ok := gate.CliDetails.DomainUnicast.Relative(req.Dst)
-	if ok {
-		asyncRet := p.svcCtx.CallAsync(uid.From(entId), func(entity ec.Entity, _ ...any) async.Ret {
-			session, ok := p.router.LookupSession(entity.GetId())
-			if !ok {
-				return async.MakeRet(nil, ErrSessionNotFound)
-			}
-
-			mpBuf, err := p.encoder.Encode(
-				gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
-				0,
-				&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
-			)
-			if err != nil {
-				return async.MakeRet(nil, err)
-			}
-			defer mpBuf.Release()
-
-			err = session.SendData(mpBuf.Data())
-			if err != nil {
-				return async.MakeRet(nil, err)
-			}
-
-			return async.MakeRet(nil, nil)
-		})
-		go func() { p.finishOutbound(src, req, (<-asyncRet).Error) }()
-		return
-	}
-
-	// 目标为广播地址，遍历包含实体的所有分组，向每个分组发送消息
-	entId, ok = gate.CliDetails.DomainBroadcast.Relative(req.Dst)
-	if ok {
-		p.router.EachGroups(p.svcCtx, uid.From(entId), func(group router.IGroup) {
-			mpBuf, err := p.encoder.Encode(
-				gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
-				0,
-				&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
-			)
-			if err != nil {
-				go p.finishOutbound(src, req, err)
-				return
-			}
-
-			// 为了保持消息时序，使用分组发送数据的channel
-			select {
-			case group.SendDataChan() <- mpBuf:
-				go p.finishOutbound(src, req, nil)
-			default:
-				mpBuf.Release()
-				go p.finishOutbound(src, req, ErrGroupChanIsFull)
-			}
-		})
-		return
-	}
-
-	// 目标为组播地址，向分组发送消息
-	if gate.CliDetails.DomainMulticast.Contains(req.Dst) {
-		group, ok := p.router.GetGroupByAddr(p.svcCtx, req.Dst)
+	// 目标为单播地址，向对端发送消息
+	if entityId, ok := gate.ClientDetails.DomainUnicast.Relative(req.Dst); ok {
+		mapping, ok := p.router.Lookup(uid.From(entityId))
 		if !ok {
-			go p.finishOutbound(src, req, ErrGroupNotFound)
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, ErrSessionNotFound, req.TransId == gap.MsgId_RPC_Request)
 			return
 		}
 
 		mpBuf, err := p.encoder.Encode(
-			gap.Origin{Svc: p.svcCtx.GetName(), Addr: p.dist.GetNodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+			gap.Origin{Svc: p.svcCtx.Name(), Addr: p.dsvc.NodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
 			0,
 			&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
 		)
 		if err != nil {
-			go p.finishOutbound(src, req, err)
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, err, req.TransId == gap.MsgId_RPC_Request)
+			return
+		}
+		defer mpBuf.Release()
+
+		if err := mapping.Session().DataIO().Send(mpBuf.Payload()); err != nil {
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, err, req.TransId == gap.MsgId_RPC_Request)
 			return
 		}
 
-		// 为了保持消息时序，使用分组发送数据的channel
-		select {
-		case group.SendDataChan() <- mpBuf:
-			go p.finishOutbound(src, req, nil)
-		default:
-			mpBuf.Release()
-			go p.finishOutbound(src, req, ErrGroupChanIsFull)
+		p.finishOutbound(src.Addr, req.Dst, req.CorrId, nil, req.TransId == gap.MsgId_RPC_Request)
+		return
+	}
+
+	// 目标为组播地址，向分组发送消息
+	if gate.ClientDetails.DomainMulticast.Contains(req.Dst) {
+		group, ok := p.router.GetGroupByAddr(p.svcCtx, req.Dst)
+		if !ok {
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, ErrGroupNotFound, req.TransId == gap.MsgId_RPC_Request)
+			return
 		}
+
+		mpBuf, err := p.encoder.Encode(
+			gap.Origin{Svc: p.svcCtx.Name(), Addr: p.dsvc.NodeDetails().LocalAddr, Timestamp: time.Now().UnixMilli()},
+			0,
+			&gap.SerializedMsg{Id: req.TransId, Data: req.TransData},
+		)
+		if err != nil {
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, err, req.TransId == gap.MsgId_RPC_Request)
+			return
+		}
+		defer mpBuf.Release()
+
+		if err := group.DataIO().Send(mpBuf.Payload()); err != nil {
+			p.finishOutbound(src.Addr, req.Dst, req.CorrId, err, req.TransId == gap.MsgId_RPC_Request)
+			return
+		}
+
+		p.finishOutbound(src.Addr, req.Dst, req.CorrId, nil, req.TransId == gap.MsgId_RPC_Request)
 		return
 	}
 
 	// 目的地址错误
-	go p.finishOutbound(src, req, ErrIncorrectDestAddress)
+	p.finishOutbound(src.Addr, req.Dst, req.CorrId, ErrIncorrectDestAddress, req.TransId == gap.MsgId_RPC_Request)
 }
 
-func (p *_GateProcessor) finishOutbound(src gap.Origin, req *gap.MsgForward, err error) {
+func (p *_GateProcessor) finishOutbound(src, dst string, corrId int64, err error, replyReject bool) {
 	if err == nil {
-		if req.CorrId != 0 {
-			log.Debugf(p.svcCtx, "outbound forwarding src:%q rpc request(%d) to remote:%q finish", src.Addr, req.CorrId, req.Dst)
-		} else {
-			log.Debugf(p.svcCtx, "outbound forwarding src:%q rpc notify to remote:%q finish", src.Addr, req.Dst)
-		}
+		log.L(p.svcCtx).Debug("outbound rpc request/notify/reply forwarded",
+			zap.String("src", src),
+			zap.String("dst", dst),
+			zap.Int64("corr_id", corrId))
 	} else {
-		if req.CorrId != 0 {
-			log.Errorf(p.svcCtx, "outbound forwarding src:%q rpc request(%d) to remote:%q failed, %s", src.Addr, req.CorrId, req.Dst, err)
-			p.replyOutboundFailed(src, req.CorrId, err)
-		} else {
-			log.Errorf(p.svcCtx, "outbound forwarding src:%q rpc notify to remote:%q failed, %s", src.Addr, req.Dst, err)
+		log.L(p.svcCtx).Error("outbound rpc request/notify/reply forwarding failed",
+			zap.String("src", src),
+			zap.String("dst", dst),
+			zap.Int64("corr_id", corrId),
+			zap.Error(err))
+		if replyReject {
+			p.rejectOutbound(src, corrId, err)
 		}
 	}
 }
 
-func (p *_GateProcessor) replyOutboundFailed(src gap.Origin, corrId int64, retErr error) {
-	if corrId == 0 || retErr == nil {
+func (p *_GateProcessor) rejectOutbound(src string, corrId int64, rejectedErr error) {
+	if corrId == 0 || rejectedErr == nil {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-		Error:  *variant.MakeError(retErr),
+		Error:  *variant.NewError(rejectedErr),
 	}
 
-	err := p.dist.SendMsg(src.Addr, msg)
+	err := p.dsvc.Send(src, msg)
 	if err != nil {
-		log.Errorf(p.svcCtx, "rpc reply(%d) outbound failed to src:%q failed, %s", corrId, src.Addr, err)
+		log.L(p.svcCtx).Error("send outbound rpc rejected reply failed",
+			zap.String("src", src),
+			zap.Int64("corr_id", corrId),
+			zap.NamedError("rejected_err", rejectedErr),
+			zap.Error(err))
 		return
 	}
 
-	log.Debugf(p.svcCtx, "rpc reply(%d) outbound failed to src:%q ok", corrId, src.Addr)
+	log.L(p.svcCtx).Debug("outbound rpc rejected reply sent",
+		zap.String("src", src),
+		zap.Int64("corr_id", corrId),
+		zap.NamedError("rejected_err", rejectedErr))
 }

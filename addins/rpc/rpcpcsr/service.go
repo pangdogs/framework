@@ -21,12 +21,14 @@ package rpcpcsr
 
 import (
 	"context"
+
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/log"
-	"git.golaxy.org/framework/utils/concurrent"
+	"go.uber.org/zap"
 )
 
 // NewServiceProcessor 创建分布式服务间的RPC处理器
@@ -40,8 +42,9 @@ func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool)
 // _ServiceProcessor 分布式服务间的RPC处理器
 type _ServiceProcessor struct {
 	svcCtx         service.Context
-	dist           dsvc.IDistService
-	msgWatcher     concurrent.IWatcher
+	dsvc           dsvc.IDistService
+	stopping       async.FutureVoid
+	stopped        async.Future
 	permValidator  PermissionValidator
 	reduceCallPath bool
 }
@@ -49,15 +52,23 @@ type _ServiceProcessor struct {
 // Init 初始化
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
-	p.dist = dsvc.Using(svcCtx)
-	p.msgWatcher = p.dist.WatchMsg(context.Background(), generic.CastDelegate2(p.handleRecvMsg))
+	p.dsvc = dsvc.AddIn.Require(svcCtx)
+	p.stopping = async.NewFutureVoid()
 
-	log.Debugf(p.svcCtx, "rpc processor %q started", types.FullName(*p))
+	var err error
+	p.stopped, err = p.dsvc.Listen(p.stopping.Out().Context(context.Background()), generic.CastDelegateVoid2(p.handleServiceMsg))
+	if err != nil {
+		log.L(svcCtx).Panic("listen rpc message failed", zap.Error(err), zap.String("processor", types.FullName(*p)))
+	}
+
+	log.L(p.svcCtx).Debug("rpc processor started", zap.String("processor", types.FullName(*p)))
 }
 
 // Shut 结束
 func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
-	<-p.msgWatcher.Terminate()
+	async.ReturnVoid(p.stopping)
 
-	log.Debugf(p.svcCtx, "rpc processor %q stopped", types.FullName(*p))
+	<-p.stopped.Done()
+
+	log.L(p.svcCtx).Debug("rpc processor stopped", zap.String("processor", types.FullName(*p)))
 }

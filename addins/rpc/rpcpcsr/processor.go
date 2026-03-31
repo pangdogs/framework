@@ -21,6 +21,7 @@ package rpcpcsr
 
 import (
 	"errors"
+
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/rpc/callpath"
@@ -37,8 +38,8 @@ var (
 	ErrDistEntityNotFound           = errors.New("rpc: distributed entity not found")      // 找不到分布式实体
 	ErrDistEntityNodeNotFound       = errors.New("rpc: distributed entity node not found") // 找不到分布式实体的服务节点
 	ErrIncorrectDestAddress         = errors.New("rpc: incorrect destination Address")     // 错误的目的地址
-	ErrAddInNotFound                = errors.New("rpc: addIn not found")                   // 找不到插件
-	ErrAddInInactive                = errors.New("rpc: addIn is inactive")                 // 插件未激活
+	ErrAddInNotFound                = errors.New("rpc: add-in not found")                  // 找不到插件
+	ErrAddInInactive                = errors.New("rpc: add-in is inactive")                // 插件未激活
 	ErrMethodNotFound               = errors.New("rpc: method not found")                  // 找不到方法
 	ErrComponentNotFound            = errors.New("rpc: component not found")               // 找不到组件
 	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")   // 方法参数数量不匹配
@@ -52,7 +53,7 @@ type IDeliverer interface {
 	// Match 是否匹配
 	Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool
 	// Request 请求
-	Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.AsyncRet
+	Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future
 	// Notify 通知
 	Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error
 }

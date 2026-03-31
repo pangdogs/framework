@@ -121,8 +121,7 @@ func (_ClientOption) Default() option.Setting[ClientOptions] {
 		With.AuthUserId("")(options)
 		With.AuthToken("")(options)
 		With.AuthExtensions(nil)(options)
-		With.AutoRecover(false)(options)
-		With.ReportError(nil)(options)
+		With.PanicHandling(false, nil)(options)
 		With.DataListenerInboxSize(128)(options)
 		With.EventListenerInboxSize(128)(options)
 		With.Logger(nil)(options)
@@ -353,16 +352,10 @@ func (_ClientOption) AuthExtensions(extensions []byte) option.Setting[ClientOpti
 	}
 }
 
-// AutoRecover 设置panic时是否自动恢复
-func (_ClientOption) AutoRecover(b bool) option.Setting[ClientOptions] {
+// PanicHandling 设置panic时的处理方式
+func (_ClientOption) PanicHandling(autoRecover bool, reportError chan error) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.AutoRecover = b
-	}
-}
-
-// ReportError 设置error channel，在开启panic时自动恢复时，将会恢复并将错误写入此error channel
-func (_ClientOption) ReportError(reportError chan error) option.Setting[ClientOptions] {
-	return func(options *ClientOptions) {
+		options.AutoRecover = autoRecover
 		options.ReportError = reportError
 	}
 }

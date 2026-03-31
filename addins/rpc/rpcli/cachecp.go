@@ -20,8 +20,9 @@
 package rpcli
 
 import (
-	"git.golaxy.org/framework/addins/rpc/callpath"
 	"reflect"
+
+	"git.golaxy.org/framework/addins/rpc/callpath"
 )
 
 func cacheCallPath(script string, rt reflect.Type) {
