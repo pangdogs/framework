@@ -40,12 +40,12 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 
 	select {
 	case <-g.ctx.Done():
-		return errors.New("gate: gate is terminating")
+		return async.Future{}, errors.New("gate: gate is terminating")
 	default:
 	}
 
 	if !g.barrier.Join(1) {
-		return errors.New("gate: gate is terminating")
+		return async.Future{}, errors.New("gate: gate is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -58,9 +58,13 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 	}()
 
 	watcher := g.sessionWatcher.Add(handler, g.options.SessionWatcherInboxSize)
+	stopped := async.NewFutureVoid()
 
 	go func() {
-		defer g.barrier.Done()
+		defer func() {
+			async.ReturnVoid(stopped)
+			g.barrier.Done()
+		}()
 
 		for {
 			select {
@@ -88,5 +92,5 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 	}()
 
 	log.L(g.svcCtx).Debug("add a session established watcher")
-	return nil
+	return stopped.Out(), nil
 }
