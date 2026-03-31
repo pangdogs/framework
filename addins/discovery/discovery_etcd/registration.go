@@ -79,7 +79,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 		return async.Future{}, fmt.Errorf("registry: %w", err)
 	}
 
-	terminated := async.NewFutureVoid()
+	stopped := async.NewFutureVoid()
 
 	go func() {
 		defer func() {
@@ -101,7 +101,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 			zap.String("key", r.nodeKey),
 			zap.Int64("lease_id", int64(r.leaseId)))
 
-		async.ReturnVoid(terminated)
+		async.ReturnVoid(stopped)
 	}()
 
 	log.L(r.registry.svcCtx).Debug("keep alive etcd lease ok",
@@ -109,7 +109,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 		zap.String("node", r.serviceNode.Nodes[0].Id.String()),
 		zap.String("key", r.nodeKey),
 		zap.Int64("lease_id", int64(r.leaseId)))
-	return terminated.Out(), nil
+	return stopped.Out(), nil
 }
 
 // KeepAliveOnce 节点保活一次
