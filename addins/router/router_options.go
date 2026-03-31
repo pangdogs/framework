@@ -21,68 +21,55 @@ package router
 
 import (
 	"crypto/tls"
+	"net"
+	"strings"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"net"
-	"strings"
-	"time"
 )
 
 type RouterOptions struct {
-	EtcdClient             *clientv3.Client
-	EtcdConfig             *clientv3.Config
-	GroupKeyPrefix         string
-	GroupTTL               time.Duration
-	GroupAutoRefreshTTL    bool
-	GroupSendDataChanSize  int
-	GroupSendEventChanSize int
-	EntityGroupsKeyPrefix  string
-	EntityGroupsCacheTTL   time.Duration
-	CustomUsername         string
-	CustomPassword         string
-	CustomAddresses        []string
-	CustomTLSConfig        *tls.Config
+	EtcdClient      *clientv3.Client
+	EtcdConfig      *clientv3.Config
+	GroupKeyPrefix  string
+	EntityKeyPrefix string
+	CustomUsername  string
+	CustomPassword  string
+	CustomAddresses []string
+	CustomTLSConfig *tls.Config
 }
 
-var With _Option
+var With _RouterOption
 
-type _Option struct{}
+type _RouterOption struct{}
 
-// Default 默认值
-func (_Option) Default() option.Setting[RouterOptions] {
+func (_RouterOption) Default() option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		With.EtcdClient(nil)(options)
 		With.EtcdConfig(nil)(options)
-		With.GroupKeyPrefix("/golaxy/groups/")(options)
-		With.GroupTTL(30*time.Second, true)(options)
-		With.GroupSendDataChanSize(128)(options)
-		With.GroupSendEventChanSize(0)(options)
-		With.EntityGroupsKeyPrefix("/golaxy/entity_groups/")(options)
-		With.EntityGroupCacheTTL(30 * time.Second)(options)
+		With.GroupKeyPrefix("/golaxy/router/group/")(options)
+		With.EntityKeyPrefix("/golaxy/router/entity/")(options)
 		With.CustomAuth("", "")(options)
 		With.CustomAddresses("127.0.0.1:2379")(options)
 		With.CustomTLSConfig(nil)(options)
 	}
 }
 
-// EtcdClient etcd客户端，最优先使用
-func (_Option) EtcdClient(cli *clientv3.Client) option.Setting[RouterOptions] {
+func (_RouterOption) EtcdClient(cli *clientv3.Client) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		options.EtcdClient = cli
 	}
 }
 
-// EtcdConfig etcd配置，次优先使用
-func (_Option) EtcdConfig(config *clientv3.Config) option.Setting[RouterOptions] {
+func (_RouterOption) EtcdConfig(config *clientv3.Config) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		options.EtcdConfig = config
 	}
 }
 
-// GroupKeyPrefix 所有分组key的前缀
-func (_Option) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
+func (_RouterOption) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
@@ -91,61 +78,23 @@ func (_Option) GroupKeyPrefix(prefix string) option.Setting[RouterOptions] {
 	}
 }
 
-// GroupTTL 分组默认TTL
-func (_Option) GroupTTL(ttl time.Duration, auto bool) option.Setting[RouterOptions] {
-	return func(options *RouterOptions) {
-		if ttl < 3*time.Second {
-			exception.Panicf("router: %w: option GroupTTL can't be set to a value less than 3 second", core.ErrArgs)
-		}
-		options.GroupTTL = ttl
-		options.GroupAutoRefreshTTL = auto
-	}
-}
-
-// GroupSendDataChanSize 分组默认发送数据的channel的大小，<=0表示不使用channel
-func (_Option) GroupSendDataChanSize(size int) option.Setting[RouterOptions] {
-	return func(options *RouterOptions) {
-		options.GroupSendDataChanSize = size
-	}
-}
-
-// GroupSendEventChanSize 分组默认发送自定义事件的channel的大小，<=0表示不使用channel
-func (_Option) GroupSendEventChanSize(size int) option.Setting[RouterOptions] {
-	return func(options *RouterOptions) {
-		options.GroupSendEventChanSize = size
-	}
-}
-
-// EntityGroupsKeyPrefix 实体的分组key的前缀
-func (_Option) EntityGroupsKeyPrefix(prefix string) option.Setting[RouterOptions] {
+func (_RouterOption) EntityKeyPrefix(prefix string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
-		options.EntityGroupsKeyPrefix = prefix
+		options.EntityKeyPrefix = prefix
 	}
 }
 
-// EntityGroupCacheTTL 实体的分组缓存默认TTL
-func (_Option) EntityGroupCacheTTL(ttl time.Duration) option.Setting[RouterOptions] {
-	return func(options *RouterOptions) {
-		if ttl < 3*time.Second {
-			exception.Panicf("router: %w: option EntityGroupCacheTTL can't be set to a value less than 3 second", core.ErrArgs)
-		}
-		options.EntityGroupsCacheTTL = ttl
-	}
-}
-
-// CustomAuth 自定义设置etcd鉴权信息
-func (_Option) CustomAuth(username, password string) option.Setting[RouterOptions] {
+func (_RouterOption) CustomAuth(username, password string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		options.CustomUsername = username
 		options.CustomPassword = password
 	}
 }
 
-// CustomAddresses 自定义设置etcd服务地址
-func (_Option) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
+func (_RouterOption) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		for _, addr := range addrs {
 			if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -156,8 +105,7 @@ func (_Option) CustomAddresses(addrs ...string) option.Setting[RouterOptions] {
 	}
 }
 
-// CustomTLSConfig 自定义设置加密etcd连接的配置
-func (_Option) CustomTLSConfig(conf *tls.Config) option.Setting[RouterOptions] {
+func (_RouterOption) CustomTLSConfig(conf *tls.Config) option.Setting[RouterOptions] {
 	return func(options *RouterOptions) {
 		options.CustomTLSConfig = conf
 	}

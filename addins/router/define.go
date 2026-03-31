@@ -22,9 +22,5 @@ package router
 import "git.golaxy.org/core/define"
 
 var (
-	self      = define.ServiceAddIn(newRouter)
-	Name      = self.Name
-	Using     = self.Using
-	Install   = self.Install
-	Uninstall = self.Uninstall
+	AddIn = define.ServiceAddIn(newRouter)
 )

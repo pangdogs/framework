@@ -20,53 +20,79 @@
 package router
 
 import (
-	"context"
+	"sync"
+
 	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/gate"
 )
 
-// IMapping 映射
+// IMapping 路由映射接口
 type IMapping interface {
-	context.Context
-	// GetEntity 获取实体
-	GetEntity() ec.ConcurrentEntity
-	// GetSession 获取会话
-	GetSession() gate.ISession
-	// GetCliAddr 获取客户端地址
-	GetCliAddr() string
+	// ClientAddr 获取客户端地址
+	ClientAddr() string
+	// Entity 获取实体
+	Entity() ec.ConcurrentEntity
+	// Session 获取会话
+	Session() gate.ISession
+	// Unmap 取消映射
+	Unmap()
+	// Unmapped 已取消映射
+	Unmapped() async.Future
 }
 
 type _Mapping struct {
-	context.Context
-	terminate context.CancelFunc
-	router    *_Router
-	entity    ec.ConcurrentEntity
-	session   gate.ISession
-	cliAddr   string
+	router     *_Router
+	clientAddr string
+	entity     ec.ConcurrentEntity
+	session    gate.ISession
+	unmapOnce  sync.Once
+	replaced   async.FutureVoid
+	unmapped   async.FutureVoid
 }
 
-// GetEntity 获取实体
-func (m *_Mapping) GetEntity() ec.ConcurrentEntity {
+// ClientAddr 获取客户端地址
+func (m *_Mapping) ClientAddr() string {
+	return m.clientAddr
+}
+
+// Entity 获取实体
+func (m *_Mapping) Entity() ec.ConcurrentEntity {
 	return m.entity
 }
 
-// GetSession 获取会话
-func (m *_Mapping) GetSession() gate.ISession {
+// Session 获取会话
+func (m *_Mapping) Session() gate.ISession {
 	return m.session
 }
 
-// GetCliAddr 获取客户端地址
-func (m *_Mapping) GetCliAddr() string {
-	return m.cliAddr
+// Unmap 取消映射
+func (m *_Mapping) Unmap() {
+	m.unmapOnce.Do(func() {
+		if m.router.removeMappingLocked(m) {
+			async.ReturnVoid(m.replaced)
+		}
+	})
 }
 
-func (m *_Mapping) mainLoop() {
+// Unmapped 已取消映射
+func (m *_Mapping) Unmapped() async.Future {
+	return m.unmapped.Out()
+}
+
+func (m *_Mapping) waitForExpire() {
+	defer func() {
+		async.ReturnVoid(m.unmapped)
+		m.router.barrier.Done()
+	}()
+
 	select {
-	case <-m.Done():
+	case <-m.router.ctx.Done():
+	case <-m.entity.Terminated().Done():
+	case <-m.session.Closed().Done():
+	case <-m.replaced:
 		return
-	case <-m.entity.Done():
-		m.router.ClearEntity(m.entity.GetId())
-	case <-m.session.Done():
-		m.router.ClearSession(m.session.GetId())
 	}
+
+	m.Unmap()
 }
