@@ -152,17 +152,17 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 	groupAddr := gate.ClientDetails.DomainMulticast.Join(name)
 	rsp, err := r.client.Get(ctx, r.groupIdKey(groupAddr), etcdv3.WithKeysOnly())
 	if err != nil {
-		log.L(r.svcCtx).Error("get group lease failed",
+		log.L(r.svcCtx).Error("get group keys lease failed",
 			zap.String("group_name", name),
 			zap.String("group_addr", groupAddr),
 			zap.Error(err))
 		return
 	}
 	if len(rsp.Kvs) <= 0 {
-		log.L(r.svcCtx).Error("get group lease failed",
+		log.L(r.svcCtx).Info("delete group keys, group not found",
 			zap.String("group_name", name),
 			zap.String("group_addr", groupAddr),
-			zap.Error(errors.New("key not found")))
+		)
 		return
 	}
 
