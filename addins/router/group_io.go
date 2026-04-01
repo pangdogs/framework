@@ -22,6 +22,7 @@ package router
 import (
 	"errors"
 
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -40,14 +41,16 @@ type IEventIO interface {
 }
 
 type _GroupIO struct {
-	group     *_Group
-	barrier   generic.Barrier
-	dataChan  *generic.UnboundedChannel[binaryutil.Bytes]
-	eventChan *generic.UnboundedChannel[transport.IEvent]
+	group      *_Group
+	barrier    generic.Barrier
+	terminated async.FutureVoid
+	dataChan   *generic.UnboundedChannel[binaryutil.Bytes]
+	eventChan  *generic.UnboundedChannel[transport.IEvent]
 }
 
 func (io *_GroupIO) init(group *_Group) {
 	io.group = group
+	io.terminated = async.NewFutureVoid()
 	io.dataChan = generic.NewUnboundedChannel[binaryutil.Bytes]()
 	io.eventChan = generic.NewUnboundedChannel[transport.IEvent]()
 }
@@ -102,6 +105,8 @@ loop:
 				zap.Error(err))
 		}
 	}
+
+	async.ReturnVoid(io.terminated)
 }
 
 type _GroupDataIO _GroupIO

@@ -348,11 +348,7 @@ func (g *_Group) markDeleted() {
 }
 
 func (g *_Group) watchingForChanges() {
-	defer func() {
-		g.router.uncacheGroup(g)
-		g.markExpired()
-		g.router.barrier.Done()
-	}()
+	defer g.router.barrier.Done()
 
 	go g.io.sendLoop()
 
@@ -363,8 +359,8 @@ func (g *_Group) watchingForChanges() {
 	revision := g.createdRevision + 1
 	groupIdKey := g.router.groupIdKey(g.clientAddr)
 	groupEntitiesPrefix := g.router.groupEntitiesPrefix(g.clientAddr)
-	groupIdWatchChan := g.router.client.Watch(ctx, groupIdKey, etcdv3.WithPrevKV(), etcdv3.WithRev(revision))
-	groupEntitiesWatchChan := g.router.client.Watch(ctx, groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithPrevKV(), etcdv3.WithRev(revision))
+	groupIdWatchChan := g.router.client.Watch(ctx, groupIdKey, etcdv3.WithRev(revision))
+	groupEntitiesWatchChan := g.router.client.Watch(ctx, groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithRev(revision))
 
 	log.L(g.router.svcCtx).Debug("watching for group changes started",
 		zap.String("group_name", g.Name()),
@@ -379,15 +375,15 @@ func (g *_Group) watchingForChanges() {
 				continue
 			}
 			if watchRsp.Canceled {
-				groupIdWatchChan = nil
 				log.L(g.router.svcCtx).Debug("watching for group changes canceled",
 					zap.String("group_name", g.Name()),
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
+				groupIdWatchChan = nil
 				continue
 			}
 			if watchRsp.Err() != nil {
-				log.L(g.router.svcCtx).Error("watching for group changes unexpectedly interrupted",
+				log.L(g.router.svcCtx).Panic("watching for group changes unexpectedly interrupted",
 					zap.String("group_name", g.Name()),
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
@@ -403,8 +399,11 @@ func (g *_Group) watchingForChanges() {
 				}
 
 				deleted = true
-				g.latestRevision = watchRsp.Header.Revision
+				g.latestRevision = max(g.latestRevision, watchRsp.Header.Revision)
+
 				cancel()
+				groupIdWatchChan = nil
+				groupEntitiesWatchChan = nil
 				break
 			}
 
@@ -414,15 +413,15 @@ func (g *_Group) watchingForChanges() {
 				continue
 			}
 			if watchRsp.Canceled {
-				groupEntitiesWatchChan = nil
 				log.L(g.router.svcCtx).Debug("watching for group changes canceled",
 					zap.String("group_name", g.Name()),
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
+				groupEntitiesWatchChan = nil
 				continue
 			}
 			if watchRsp.Err() != nil {
-				log.L(g.router.svcCtx).Error("watching for group changes unexpectedly interrupted",
+				log.L(g.router.svcCtx).Panic("watching for group changes unexpectedly interrupted",
 					zap.String("group_name", g.Name()),
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
@@ -438,7 +437,7 @@ func (g *_Group) watchingForChanges() {
 			}
 
 			for _, event := range watchRsp.Events {
-				groupAddr, entityId, ok := g.router.parseGroupEntitiesKey(eventKey(event))
+				groupAddr, entityId, ok := g.router.parseGroupEntitiesKey(string(event.Kv.Key))
 				if !ok || groupAddr != g.clientAddr {
 					continue
 				}
@@ -459,13 +458,16 @@ func (g *_Group) watchingForChanges() {
 			}
 
 			g.storeEntities(entities)
-			g.latestRevision = watchRsp.Header.Revision
+			g.latestRevision = max(g.latestRevision, watchRsp.Header.Revision)
 		}
 	}
 
+	g.router.uncacheGroup(g)
+	g.markExpired()
 	if deleted {
 		g.markDeleted()
 	}
+	<-g.io.terminated
 
 	log.L(g.router.svcCtx).Debug("watching for group changes stopped",
 		zap.String("group_name", g.Name()),
@@ -490,17 +492,4 @@ func (g *_Group) storeEntities(entities generic.SliceMap[uid.Id, int64]) {
 
 	cloned := slices.Clone(entities)
 	g.entities.Store(&cloned)
-}
-
-func eventKey(event *etcdv3.Event) string {
-	if event == nil {
-		return ""
-	}
-	if event.Kv != nil && len(event.Kv.Key) > 0 {
-		return string(event.Kv.Key)
-	}
-	if event.PrevKv != nil && len(event.PrevKv.Key) > 0 {
-		return string(event.PrevKv.Key)
-	}
-	return ""
 }

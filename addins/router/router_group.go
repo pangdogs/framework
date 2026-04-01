@@ -149,19 +149,19 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 		return
 	}
 
-	addr := gate.ClientDetails.DomainMulticast.Join(name)
-	rsp, err := r.client.Get(ctx, r.groupIdKey(addr), etcdv3.WithKeysOnly())
+	groupAddr := gate.ClientDetails.DomainMulticast.Join(name)
+	rsp, err := r.client.Get(ctx, r.groupIdKey(groupAddr), etcdv3.WithKeysOnly())
 	if err != nil {
 		log.L(r.svcCtx).Error("get group lease failed",
 			zap.String("group_name", name),
-			zap.String("group_addr", addr),
+			zap.String("group_addr", groupAddr),
 			zap.Error(err))
 		return
 	}
 	if len(rsp.Kvs) <= 0 {
 		log.L(r.svcCtx).Error("get group lease failed",
 			zap.String("group_name", name),
-			zap.String("group_addr", addr),
+			zap.String("group_addr", groupAddr),
 			zap.Error(errors.New("key not found")))
 		return
 	}
@@ -170,7 +170,7 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 	if err := r.revokeGroupLease(ctx, leaseId); err != nil {
 		log.L(r.svcCtx).Error("revoke group lease failed",
 			zap.String("group_name", name),
-			zap.String("group_addr", addr),
+			zap.String("group_addr", groupAddr),
 			zap.Int64("lease_id", int64(leaseId)),
 			zap.Error(err))
 		return
@@ -178,13 +178,13 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 
 	log.L(r.svcCtx).Info("delete group keys, not cached locally",
 		zap.String("group_name", name),
-		zap.String("group_addr", addr),
+		zap.String("group_addr", groupAddr),
 		zap.Int64("lease_id", int64(leaseId)))
 }
 
 // GetGroupByName 使用名称查询路由组
 func (r *_Router) GetGroupByName(ctx context.Context, name string) (IGroup, bool) {
-	return r.getGroupByName(ctx, name, gate.ClientDetails.DomainMulticast.Join(name))
+	return r.getGroupByName(ctx, name)
 }
 
 // GetGroupByAddr 使用地址查询路由组
@@ -193,15 +193,15 @@ func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool
 	if !ok {
 		return nil, false
 	}
-	return r.getGroupByName(ctx, name, addr)
+	return r.getGroupByName(ctx, name)
 }
 
-func (r *_Router) getGroupByName(ctx context.Context, name, addr string) (IGroup, bool) {
+func (r *_Router) getGroupByName(ctx context.Context, groupName string) (IGroup, bool) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if cached, ok := r.groups.Load(name); ok {
+	if cached, ok := r.groups.Load(groupName); ok {
 		return cached.(*_Group), true
 	}
 
@@ -215,8 +215,9 @@ func (r *_Router) getGroupByName(ctx context.Context, name, addr string) (IGroup
 		return nil, false
 	}
 
-	groupIdKey := r.groupIdKey(addr)
-	groupEntitiesPrefix := r.groupEntitiesPrefix(addr)
+	groupAddr := gate.ClientDetails.DomainMulticast.Join(groupName)
+	groupIdKey := r.groupIdKey(groupAddr)
+	groupEntitiesPrefix := r.groupEntitiesPrefix(groupAddr)
 
 	tr, err := r.client.Txn(ctx).
 		If(etcdv3.Compare(etcdv3.Version(groupIdKey), "!=", 0)).
@@ -227,8 +228,8 @@ func (r *_Router) getGroupByName(ctx context.Context, name, addr string) (IGroup
 		Commit()
 	if err != nil {
 		log.L(r.svcCtx).Error("get group keys failed",
-			zap.String("group_name", name),
-			zap.String("group_addr", addr),
+			zap.String("group_name", groupName),
+			zap.String("group_addr", groupAddr),
 			zap.Error(err))
 		r.barrier.Done()
 		return nil, false
@@ -256,7 +257,7 @@ func (r *_Router) getGroupByName(ctx context.Context, name, addr string) (IGroup
 		}
 	}
 
-	group, loaded := r.cacheGroup(name, addr, etcdv3.LeaseID(groupIdRsp.Kvs[0].Lease), tr.Header.Revision, ids)
+	group, loaded := r.cacheGroup(groupName, groupAddr, etcdv3.LeaseID(groupIdRsp.Kvs[0].Lease), tr.Header.Revision, ids)
 	if loaded {
 		r.barrier.Done()
 		return group, true
@@ -327,8 +328,8 @@ func (r *_Router) watchingForGroups() {
 	log.L(r.svcCtx).Debug("watching for groups stopped", zap.String("key", r.groupIdKeyPrefix), zap.Int64("revision", revision))
 }
 
-func (r *_Router) cacheGroup(name, addr string, leaseId etcdv3.LeaseID, revision int64, ids []uid.Id) (*_Group, bool) {
-	if cached, ok := r.groups.Load(name); ok {
+func (r *_Router) cacheGroup(groupName, groupAddr string, leaseId etcdv3.LeaseID, revision int64, ids []uid.Id) (*_Group, bool) {
+	if cached, ok := r.groups.Load(groupName); ok {
 		exists := cached.(*_Group)
 		if exists.leaseId == leaseId {
 			return exists, true
@@ -336,9 +337,9 @@ func (r *_Router) cacheGroup(name, addr string, leaseId etcdv3.LeaseID, revision
 	}
 
 	group := &_Group{}
-	group.init(r, addr, leaseId, revision, ids)
+	group.init(r, groupAddr, leaseId, revision, ids)
 
-	cached, loaded := r.groups.LoadOrStore(name, group)
+	cached, loaded := r.groups.LoadOrStore(groupName, group)
 	if !loaded {
 		log.L(r.svcCtx).Info("group cached",
 			zap.String("group_name", group.Name()),
@@ -354,9 +355,9 @@ func (r *_Router) cacheGroup(name, addr string, leaseId etcdv3.LeaseID, revision
 		return exists, true
 	}
 
-	if r.groups.CompareAndSwap(name, exists, group) {
+	if exists.latestRevision < revision && r.groups.CompareAndSwap(groupName, exists, group) {
 		log.L(r.svcCtx).Info("group cache replaced",
-			zap.String("group_name", name),
+			zap.String("group_name", groupName),
 			zap.String("group_addr", group.ClientAddr()),
 			zap.Int64("prev_lease_id", int64(exists.leaseId)),
 			zap.Int64("curr_lease_id", int64(group.leaseId)))
@@ -366,7 +367,10 @@ func (r *_Router) cacheGroup(name, addr string, leaseId etcdv3.LeaseID, revision
 	}
 
 	group.markExpired()
-	return r.cacheGroup(name, addr, leaseId, revision, ids)
+	if exists.latestRevision < revision {
+		return r.cacheGroup(groupName, groupAddr, leaseId, revision, ids)
+	}
+	return exists, true
 }
 
 func (r *_Router) uncacheGroup(group *_Group) {
