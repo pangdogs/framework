@@ -95,7 +95,7 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 	}
 	d.leaseId = grantRsp.ID
 
-	log.L(rtCtx).Debug("grant etcd lease ok", zap.Int64("lease_id", int64(grantRsp.ID)))
+	log.L(rtCtx).Debug("grant etcd lease ok", zap.Int64("lease_id", int64(d.leaseId)))
 
 	go func() {
 		for range keepAliveChan {
@@ -159,10 +159,10 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) {
 
 	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithIgnoreValue(), etcdv3.WithLease(d.leaseId))
 	if err != nil {
-		log.L(d.rtCtx).Error("put etcd key with lease failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
+		log.L(d.rtCtx).Error("put distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
 		return
 	}
-	log.L(d.rtCtx).Debug("put etcd key with lease ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
+	log.L(d.rtCtx).Debug("put distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
 
 	// 通知分布式实体上线
 	_EmitEventDistEntityOnline(d, entity)
@@ -182,9 +182,9 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 
 		_, err := d.client.Delete(d.rtCtx, key)
 		if err != nil {
-			log.L(d.rtCtx).Error("delete etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
+			log.L(d.rtCtx).Error("delete distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
 		} else {
-			log.L(d.rtCtx).Debug("delete etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
+			log.L(d.rtCtx).Debug("delete distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
 		}
 	}
 

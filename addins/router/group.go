@@ -20,375 +20,487 @@
 package router
 
 import (
-	"bytes"
 	"context"
-	"git.golaxy.org/core/ec"
+	"errors"
+	"fmt"
+	"path"
+	"slices"
+	"sync"
+	"sync/atomic"
+
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/gate"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/binaryutil"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"path"
-	"slices"
-	"strings"
-	"sync"
+	"go.uber.org/zap"
 )
 
-// IGroup 分组接口
+// IGroup 路由组接口
 type IGroup interface {
-	context.Context
-	// GetName 获取分组名称
-	GetName() string
-	// GetAddr 获取分组地址
-	GetAddr() string
-	// Add 添加实体
-	Add(ctx context.Context, entIds ...uid.Id) error
-	// Remove 删除实体
-	Remove(ctx context.Context, entIds ...uid.Id) error
-	// Range 遍历所有实体
-	Range(fun generic.Func1[uid.Id, bool])
-	// Each 遍历所有实体
-	Each(fun generic.Action1[uid.Id])
-	// Count 获取实体数量
-	Count() int
-	// RefreshTTL 刷新TTL
-	RefreshTTL(ctx context.Context) error
-	// SendData 发送数据
-	SendData(data []byte)
-	// SendEvent 发送自定义事件
-	SendEvent(event transport.IEvent)
-	// SendDataChan 发送数据的channel
-	SendDataChan() chan<- binaryutil.RecycleBytes
-	// SendEventChan 发送自定义事件的channel
-	SendEventChan() chan<- transport.IEvent
+	// Name 获取名称
+	Name() string
+	// ClientAddr 获取客户端地址
+	ClientAddr() string
+	// KeepAliveContinuous 路由组持续保活
+	KeepAliveContinuous(ctx context.Context) (async.Future, error)
+	// KeepAliveOnce 路由组保活一次
+	KeepAliveOnce(ctx context.Context) error
+	// Deleted 等待路由组被删除
+	Deleted() async.Future
+	// Add 添加成员实体id
+	Add(ctx context.Context, ids []uid.Id) error
+	// Remove 移除成员实体id
+	Remove(ctx context.Context, ids []uid.Id) error
+	// List 列出成员实体id
+	List() []uid.Id
+	// DataIO 获取数据IO
+	DataIO() IDataIO
+	// EventIO 获取事件IO
+	EventIO() IEventIO
 }
 
 type _Group struct {
-	context.Context
-	sync.RWMutex
-	terminate     context.CancelFunc
-	router        *_Router
-	groupKey      string
-	leaseId       etcdv3.LeaseID
-	revision      int64
-	entities      []uid.Id
-	sendDataChan  chan binaryutil.RecycleBytes
-	sendEventChan chan transport.IEvent
+	router          *_Router
+	clientAddr      string
+	leaseId         etcdv3.LeaseID
+	createdRevision int64
+	latestRevision  int64
+	entities        atomic.Pointer[generic.SliceMap[uid.Id, int64]]
+	io              _GroupIO
+	expired         async.FutureVoid
+	deleted         async.FutureVoid
+	expireOnce      sync.Once
+	deleteOnce      sync.Once
 }
 
-// GetName 获取分组名称
-func (g *_Group) GetName() string {
-	name, _ := gate.CliDetails.DomainMulticast.Relative(g.GetAddr())
+// Name 获取名称
+func (g *_Group) Name() string {
+	name, _ := gate.ClientDetails.DomainMulticast.Relative(g.clientAddr)
 	return name
 }
 
-// GetAddr 获取分组地址
-func (g *_Group) GetAddr() string {
-	return strings.TrimPrefix(g.groupKey, g.router.options.GroupKeyPrefix)
+// ClientAddr 获取客户端地址
+func (g *_Group) ClientAddr() string {
+	return g.clientAddr
 }
 
-// Add 添加实体
-func (g *_Group) Add(ctx context.Context, entIds ...uid.Id) error {
+// KeepAliveContinuous 路由组持续保活
+func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
-	case <-g.Done():
-		return context.Canceled
+	case <-g.router.ctx.Done():
+		return async.Future{}, errors.New("router: router is terminating")
 	default:
-		break
 	}
 
-	if len(entIds) <= 0 {
-		return nil
+	if !g.router.barrier.Join(1) {
+		return async.Future{}, errors.New("router: router is terminating")
 	}
 
-	opsPut := make([]etcdv3.Op, 0, len(entIds)*2)
-	for _, entId := range entIds {
-		opsPut = append(opsPut,
-			etcdv3.OpPut(path.Join(g.groupKey, entId.String()), "", etcdv3.WithLease(g.leaseId)),
-			etcdv3.OpPut(path.Join(g.router.options.EntityGroupsKeyPrefix, entId.String(), g.GetAddr()), "", etcdv3.WithLease(g.leaseId)),
-		)
-	}
-
-	_, err := g.router.client.Txn(ctx).
-		Then(opsPut...).
-		Commit()
-
-	return err
-}
-
-// Remove 删除实体
-func (g *_Group) Remove(ctx context.Context, entIds ...uid.Id) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	select {
-	case <-g.Done():
-		return context.Canceled
-	default:
-		break
-	}
-
-	if len(entIds) <= 0 {
-		return nil
-	}
-
-	opsDel := make([]etcdv3.Op, 0, len(entIds)*2)
-	for _, entId := range entIds {
-		opsDel = append(opsDel,
-			etcdv3.OpDelete(path.Join(g.groupKey, entId.String())),
-			etcdv3.OpDelete(path.Join(g.router.options.EntityGroupsKeyPrefix, entId.String(), g.GetAddr())),
-		)
-	}
-
-	_, err := g.router.client.Txn(ctx).
-		Then(opsDel...).
-		Commit()
-
-	return err
-}
-
-// Range 遍历所有实体
-func (g *_Group) Range(fun generic.Func1[uid.Id, bool]) {
-	g.RLock()
-	copied := slices.Clone(g.entities)
-	g.RUnlock()
-
-	for i := range copied {
-		if !fun.UnsafeCall(copied[i]) {
-			return
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-g.expired:
 		}
+		cancel()
+	}()
+
+	keepAliveChan, err := g.router.client.KeepAlive(ctx, g.leaseId)
+	if err != nil {
+		cancel()
+		g.router.barrier.Done()
+
+		log.L(g.router.svcCtx).Error("keep alive group lease failed",
+			zap.String("group_name", g.Name()),
+			zap.String("group_addr", g.ClientAddr()),
+			zap.Int64("lease_id", int64(g.leaseId)),
+			zap.Error(err))
+		return async.Future{}, fmt.Errorf("router: %w", err)
 	}
+
+	stopped := async.NewFutureVoid()
+
+	go func() {
+		defer func() {
+			cancel()
+			g.router.barrier.Done()
+		}()
+
+		for range keepAliveChan {
+			log.L(g.router.svcCtx).Debug("keep alive group lease heartbeat ok",
+				zap.String("group_name", g.Name()),
+				zap.String("group_addr", g.ClientAddr()),
+				zap.Int64("lease_id", int64(g.leaseId)))
+		}
+
+		log.L(g.router.svcCtx).Debug("keep alive group lease heartbeat closed",
+			zap.String("group_name", g.Name()),
+			zap.String("group_addr", g.ClientAddr()),
+			zap.Int64("lease_id", int64(g.leaseId)))
+
+		async.ReturnVoid(stopped)
+	}()
+
+	log.L(g.router.svcCtx).Debug("keep alive group lease ok",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Int64("lease_id", int64(g.leaseId)))
+	return stopped.Out(), nil
 }
 
-// Each 遍历所有实体
-func (g *_Group) Each(fun generic.Action1[uid.Id]) {
-	g.RLock()
-	copied := slices.Clone(g.entities)
-	g.RUnlock()
-
-	for i := range copied {
-		fun.UnsafeCall(copied[i])
-	}
-}
-
-// Count 获取实体数量
-func (g *_Group) Count() int {
-	g.RLock()
-	defer g.Unlock()
-	return len(g.entities)
-}
-
-// RefreshTTL 刷新TTL
-func (g *_Group) RefreshTTL(ctx context.Context) error {
+// KeepAliveOnce 路由组保活一次
+func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-
-	select {
-	case <-g.Done():
-		return context.Canceled
-	default:
-		break
 	}
 
 	_, err := g.router.client.KeepAliveOnce(ctx, g.leaseId)
-	return err
-}
-
-// SendData 发送数据
-func (g *_Group) SendData(data []byte) {
-	g.RLock()
-	defer g.RUnlock()
-
-	select {
-	case <-g.Done():
-		return
-	default:
-		break
+	if err != nil {
+		log.L(g.router.svcCtx).Error("keep alive group lease once failed",
+			zap.String("group_name", g.Name()),
+			zap.String("group_addr", g.ClientAddr()),
+			zap.Int64("lease_id", int64(g.leaseId)),
+			zap.Error(err))
+		return fmt.Errorf("router: %w", err)
 	}
 
-	for i := range g.entities {
-		entId := g.entities[i]
+	log.L(g.router.svcCtx).Debug("keep alive group lease once ok",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Int64("lease_id", int64(g.leaseId)))
+	return nil
+}
 
-		g.router.svcCtx.CallVoidAsync(entId, func(entity ec.Entity, _ ...any) {
-			session, ok := g.router.LookupSession(entity.GetId())
+// Deleted 等待路由组被删除
+func (g *_Group) Deleted() async.Future {
+	return g.deleted.Out()
+}
+
+// Add 添加成员实体id
+func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if len(ids) <= 0 {
+		return nil
+	}
+
+	ops := make([]etcdv3.Op, 0, len(ids)*2)
+
+	for _, id := range ids {
+		ops = append(ops,
+			etcdv3.OpPut(path.Join(g.router.groupEntitiesKeyPrefix, g.clientAddr, id.String()), "", etcdv3.WithLease(g.leaseId)),
+			etcdv3.OpPut(path.Join(g.router.entityGroupsKeyPrefix, id.String(), g.clientAddr), "", etcdv3.WithLease(g.leaseId)),
+		)
+	}
+
+	_, err := g.router.client.Txn(ctx).Then(ops...).Commit()
+	if err != nil {
+		log.L(g.router.svcCtx).Error("add group members failed",
+			zap.String("group_name", g.Name()),
+			zap.String("group_addr", g.ClientAddr()),
+			zap.Any("entity_ids", ids),
+			zap.Error(err))
+		return fmt.Errorf("router: %w", err)
+	}
+
+	log.L(g.router.svcCtx).Info("group members added",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Any("entity_ids", ids))
+	return nil
+}
+
+// Remove 移除成员实体id
+func (g *_Group) Remove(ctx context.Context, ids []uid.Id) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if len(ids) <= 0 {
+		return nil
+	}
+
+	ops := make([]etcdv3.Op, 0, len(ids)*2)
+	for _, id := range ids {
+		ops = append(ops,
+			etcdv3.OpDelete(path.Join(g.router.groupEntitiesKeyPrefix, g.clientAddr, id.String())),
+			etcdv3.OpDelete(path.Join(g.router.entityGroupsKeyPrefix, id.String(), g.clientAddr)),
+		)
+	}
+
+	_, err := g.router.client.Txn(ctx).Then(ops...).Commit()
+	if err != nil {
+		log.L(g.router.svcCtx).Error("remove group members failed",
+			zap.String("group_name", g.Name()),
+			zap.String("group_addr", g.ClientAddr()),
+			zap.Any("entity_ids", ids),
+			zap.Error(err))
+		return fmt.Errorf("router: %w", err)
+	}
+
+	log.L(g.router.svcCtx).Info("group members removed",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Any("entity_ids", ids))
+	return nil
+}
+
+// List 列出成员实体id
+func (g *_Group) List() []uid.Id {
+	entities := g.getEntities()
+	if len(entities) == 0 {
+		return nil
+	}
+	return entities.Keys()
+}
+
+// DataIO 获取数据IO
+func (g *_Group) DataIO() IDataIO {
+	return (*_GroupDataIO)(&g.io)
+}
+
+// EventIO 获取事件IO
+func (g *_Group) EventIO() IEventIO {
+	return (*_GroupEventIO)(&g.io)
+}
+
+func (g *_Group) init(r *_Router, addr string, leaseId etcdv3.LeaseID, revision int64, ids []uid.Id) {
+	g.router = r
+	g.clientAddr = addr
+	g.leaseId = leaseId
+	g.createdRevision = revision
+	g.latestRevision = revision
+	g.expired = async.NewFutureVoid()
+	g.deleted = async.NewFutureVoid()
+
+	if len(ids) > 0 {
+		entities := generic.NewSliceMap[uid.Id, int64]()
+		for _, id := range ids {
+			entities.Add(id, revision)
+		}
+		g.entities.Store(&entities)
+	} else {
+		g.entities.Store(nil)
+	}
+
+	g.io.init(g)
+}
+
+func (g *_Group) sendData(data []byte) error {
+	var retErr []error
+
+	g.getEntities().Each(func(id uid.Id, _ int64) {
+		mapping, ok := g.router.Lookup(id)
+		if !ok {
+			return
+		}
+		if err := mapping.Session().DataIO().Send(data); err != nil {
+			retErr = append(retErr, err)
+		}
+	})
+
+	if len(retErr) > 0 {
+		return errors.Join(retErr...)
+	}
+
+	return nil
+}
+
+func (g *_Group) sendEvent(event transport.IEvent) error {
+	var retErr []error
+
+	g.getEntities().Each(func(id uid.Id, _ int64) {
+		mapping, ok := g.router.Lookup(id)
+		if !ok {
+			return
+		}
+		if err := mapping.Session().EventIO().Send(event); err != nil {
+			retErr = append(retErr, err)
+		}
+	})
+
+	if len(retErr) > 0 {
+		return errors.Join(retErr...)
+	}
+
+	return nil
+}
+
+func (g *_Group) markExpired() {
+	g.expireOnce.Do(func() {
+		async.ReturnVoid(g.expired)
+	})
+}
+
+func (g *_Group) markDeleted() {
+	g.deleteOnce.Do(func() {
+		async.ReturnVoid(g.deleted)
+	})
+}
+
+func (g *_Group) watchingForChanges() {
+	defer func() {
+		g.router.uncacheGroup(g)
+		g.markExpired()
+		g.router.barrier.Done()
+	}()
+
+	go g.io.sendLoop()
+
+	ctx, cancel := context.WithCancel(g.router.ctx)
+	defer cancel()
+
+	var deleted bool
+	revision := g.createdRevision + 1
+	groupIdKey := g.router.groupIdKey(g.clientAddr)
+	groupEntitiesPrefix := g.router.groupEntitiesPrefix(g.clientAddr)
+	groupIdWatchChan := g.router.client.Watch(ctx, groupIdKey, etcdv3.WithPrevKV(), etcdv3.WithRev(revision))
+	groupEntitiesWatchChan := g.router.client.Watch(ctx, groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithPrevKV(), etcdv3.WithRev(revision))
+
+	log.L(g.router.svcCtx).Debug("watching for group changes started",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Int64("revision", revision))
+
+	for groupIdWatchChan != nil || groupEntitiesWatchChan != nil {
+		select {
+		case watchRsp, ok := <-groupIdWatchChan:
 			if !ok {
-				return
-			}
-
-			err := session.SendData(data)
-			if err != nil {
-				log.Errorf(g.router.svcCtx, "group %q send data to session %q remote %q failed, %s", g.GetName(), session.GetId(), session.GetRemoteAddr(), err)
-			}
-		})
-	}
-}
-
-// SendEvent 发送自定义事件
-func (g *_Group) SendEvent(event transport.IEvent) {
-	g.RLock()
-	defer g.RUnlock()
-
-	select {
-	case <-g.Done():
-		return
-	default:
-		break
-	}
-
-	for i := range g.entities {
-		entId := g.entities[i]
-
-		g.router.svcCtx.CallVoidAsync(entId, func(entity ec.Entity, _ ...any) {
-			session, ok := g.router.LookupSession(entity.GetId())
-			if !ok {
-				return
-			}
-
-			err := session.SendEvent(event)
-			if err != nil {
-				log.Errorf(g.router.svcCtx, "group %q send event(%d) to session %q remote %q failed, %s", g.GetName(), event.Msg.MsgId(), session.GetId(), session.GetRemoteAddr(), err)
-			}
-		})
-	}
-}
-
-// SendDataChan 发送数据的channel
-func (g *_Group) SendDataChan() chan<- binaryutil.RecycleBytes {
-	if g.sendDataChan == nil {
-		log.Panicf(g.router.svcCtx, "group %q send data channel size less equal 0, can't be used", g.GetName())
-	}
-	return g.sendDataChan
-}
-
-// SendEventChan 发送自定义事件的channel
-func (g *_Group) SendEventChan() chan<- transport.IEvent {
-	if g.sendEventChan == nil {
-		log.Panicf(g.router.svcCtx, "group %q send event channel size less equal 0, can't be used", g.GetName())
-	}
-	return g.sendEventChan
-}
-
-func (g *_Group) mainLoop() {
-	ctx, cancel := context.WithCancel(g)
-
-	if g.router.options.GroupAutoRefreshTTL {
-		rspChan, err := g.router.client.KeepAlive(ctx, g.leaseId)
-		if err != nil {
-			log.Errorf(g.router.svcCtx, "keep alive groupKey %q lease %q failed, %s", g.groupKey, g.leaseId, err)
-			goto watch
-		}
-
-		go func() {
-			for range rspChan {
-				log.Debugf(g.router.svcCtx, "refresh groupKey %q ttl success", g.groupKey)
-			}
-		}()
-	}
-
-	if g.sendDataChan != nil {
-		go func() {
-			defer func() {
-				for bs := range g.sendDataChan {
-					bs.Release()
-				}
-			}()
-			for {
-				select {
-				case bs := <-g.sendDataChan:
-					g.SendData(bytes.Clone(bs.Data()))
-					bs.Release()
-				case <-g.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	if g.sendEventChan != nil {
-		go func() {
-			for {
-				select {
-				case event := <-g.sendEventChan:
-					g.SendEvent(event)
-				case <-g.Done():
-					return
-				}
-			}
-		}()
-	}
-
-watch:
-	watchChan := g.router.client.Watch(ctx, g.groupKey, etcdv3.WithRev(g.revision), etcdv3.WithPrefix(), etcdv3.WithIgnoreValue())
-
-	log.Debugf(g.router.svcCtx, "start watch groupKey %q", g.groupKey)
-
-	for watchRsp := range watchChan {
-		if watchRsp.Canceled {
-			log.Debugf(g.router.svcCtx, "stop watch groupKey %q", g.groupKey)
-			goto end
-		}
-		if watchRsp.Err() != nil {
-			log.Errorf(g.router.svcCtx, "interrupt watch groupKey %q, %s", g.groupKey, watchRsp.Err())
-			goto end
-		}
-
-		g.Lock()
-		for _, event := range watchRsp.Events {
-			switch event.Type {
-			case etcdv3.EventTypePut:
-				key := string(event.Kv.Key)
-				if key == g.groupKey {
-					continue
-				}
-
-				entId := uid.From(path.Base(key))
-
-				if !slices.Contains(g.entities, entId) {
-					g.entities = append(g.entities, entId)
-				}
-
-				g.router.entityGroupsCache.Del(entId, watchRsp.Header.Revision)
-
-			case etcdv3.EventTypeDelete:
-				key := string(event.Kv.Key)
-				if key == g.groupKey {
-					cancel()
-					continue
-				}
-
-				entId := uid.From(path.Base(key))
-
-				idx := slices.Index(g.entities, entId)
-				if idx >= 0 {
-					g.entities = slices.Delete(g.entities, idx, idx+1)
-				}
-
-				g.router.entityGroupsCache.Del(entId, watchRsp.Header.Revision)
-
-			default:
-				log.Errorf(g.router.svcCtx, "unknown event type %q", event.Type)
+				groupIdWatchChan = nil
 				continue
 			}
-		}
+			if watchRsp.Canceled {
+				groupIdWatchChan = nil
+				log.L(g.router.svcCtx).Debug("watching for group changes canceled",
+					zap.String("group_name", g.Name()),
+					zap.String("group_addr", g.ClientAddr()),
+					zap.Error(watchRsp.Err()))
+				continue
+			}
+			if watchRsp.Err() != nil {
+				log.L(g.router.svcCtx).Error("watching for group changes unexpectedly interrupted",
+					zap.String("group_name", g.Name()),
+					zap.String("group_addr", g.ClientAddr()),
+					zap.Error(watchRsp.Err()))
+				cancel()
+				groupIdWatchChan = nil
+				groupEntitiesWatchChan = nil
+				continue
+			}
 
-		if g.revision < watchRsp.Header.Revision {
-			g.revision = watchRsp.Header.Revision
+			for _, event := range watchRsp.Events {
+				if event.Type != etcdv3.EventTypeDelete {
+					continue
+				}
+
+				deleted = true
+				g.latestRevision = watchRsp.Header.Revision
+				cancel()
+				break
+			}
+
+		case watchRsp, ok := <-groupEntitiesWatchChan:
+			if !ok {
+				groupEntitiesWatchChan = nil
+				continue
+			}
+			if watchRsp.Canceled {
+				groupEntitiesWatchChan = nil
+				log.L(g.router.svcCtx).Debug("watching for group changes canceled",
+					zap.String("group_name", g.Name()),
+					zap.String("group_addr", g.ClientAddr()),
+					zap.Error(watchRsp.Err()))
+				continue
+			}
+			if watchRsp.Err() != nil {
+				log.L(g.router.svcCtx).Error("watching for group changes unexpectedly interrupted",
+					zap.String("group_name", g.Name()),
+					zap.String("group_addr", g.ClientAddr()),
+					zap.Error(watchRsp.Err()))
+				cancel()
+				groupIdWatchChan = nil
+				groupEntitiesWatchChan = nil
+				continue
+			}
+
+			entities := g.getEntities()
+			if len(entities) > 0 {
+				entities = slices.Clone(entities)
+			}
+
+			for _, event := range watchRsp.Events {
+				groupAddr, entityId, ok := g.router.parseGroupEntitiesKey(eventKey(event))
+				if !ok || groupAddr != g.clientAddr {
+					continue
+				}
+
+				switch event.Type {
+				case etcdv3.EventTypePut:
+					entities.Add(entityId, watchRsp.Header.Revision)
+
+				case etcdv3.EventTypeDelete:
+					entities.Delete(entityId)
+
+				default:
+					log.L(g.router.svcCtx).Warn("unknown group changes event type",
+						zap.String("group_name", g.Name()),
+						zap.String("group_addr", g.ClientAddr()),
+						zap.String("type", event.Type.String()))
+				}
+			}
+
+			g.storeEntities(entities)
+			g.latestRevision = watchRsp.Header.Revision
 		}
-		g.Unlock()
 	}
 
-end:
-	g.RLock()
-	for _, entId := range g.entities {
-		g.router.entityGroupsCache.Del(entId, g.revision)
+	if deleted {
+		g.markDeleted()
 	}
-	g.router.groupCache.Del(g.GetName(), g.revision)
-	g.RUnlock()
+
+	log.L(g.router.svcCtx).Debug("watching for group changes stopped",
+		zap.String("group_name", g.Name()),
+		zap.String("group_addr", g.ClientAddr()),
+		zap.Bool("deleted", deleted),
+		zap.Int64("revision", g.latestRevision))
+}
+
+func (g *_Group) getEntities() generic.SliceMap[uid.Id, int64] {
+	entities := g.entities.Load()
+	if entities == nil {
+		return nil
+	}
+	return *entities
+}
+
+func (g *_Group) storeEntities(entities generic.SliceMap[uid.Id, int64]) {
+	if len(entities) == 0 {
+		g.entities.Store(nil)
+		return
+	}
+
+	cloned := slices.Clone(entities)
+	g.entities.Store(&cloned)
+}
+
+func eventKey(event *etcdv3.Event) string {
+	if event == nil {
+		return ""
+	}
+	if event.Kv != nil && len(event.Kv.Key) > 0 {
+		return string(event.Kv.Key)
+	}
+	if event.PrevKv != nil && len(event.PrevKv.Key) > 0 {
+		return string(event.PrevKv.Key)
+	}
+	return ""
 }

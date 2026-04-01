@@ -151,7 +151,7 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 		etcdv3.WithPrefix(),
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend))
 	if err != nil {
-		log.L(d.svcCtx).Error("get etcd key failed", zap.String("key", entityKey), zap.Error(err))
+		log.L(d.svcCtx).Error("get distributed entity etcd key failed", zap.String("key", entityKey), zap.Error(err))
 		return nil, false
 	}
 	if len(rsp.Kvs) <= 0 {
@@ -202,7 +202,7 @@ func (d *_DistEntityQuerier) watchingForEntitiesChanges() {
 			break
 		}
 		if watchRsp.Err() != nil {
-			log.L(d.svcCtx).Fatal("watching etcd key unexpectedly interrupted", zap.String("key", d.options.KeyPrefix), zap.Error(watchRsp.Err()))
+			log.L(d.svcCtx).Panic("watching etcd key unexpectedly interrupted", zap.String("key", d.options.KeyPrefix), zap.Error(watchRsp.Err()))
 		}
 
 		for _, event := range watchRsp.Events {

@@ -22,249 +22,403 @@ package router
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core/utils/generic"
-	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/addins/gate"
-	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/binaryutil"
-	etcdv3 "go.etcd.io/etcd/client/v3"
+	"fmt"
 	"math"
 	"path"
-	"strconv"
 	"strings"
+	"time"
+
+	"git.golaxy.org/core/utils/uid"
+	"git.golaxy.org/framework/addins/gate"
+	"git.golaxy.org/framework/addins/log"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	etcdv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 )
 
-// AddGroup 添加分组
-func (r *_Router) AddGroup(ctx context.Context, name string) (IGroup, error) {
+// AddGroup 创建路由组
+func (r *_Router) AddGroup(ctx context.Context, name string, ids []uid.Id, ttl time.Duration) (IGroup, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	lgr, err := r.client.Grant(ctx, int64(math.Ceil(r.options.GroupTTL.Seconds())))
-	if err != nil {
-		return nil, err
+	select {
+	case <-r.ctx.Done():
+		return nil, errors.New("router: router is terminating")
+	default:
 	}
-	leaseId := lgr.ID
 
-	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
-	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
+	if !r.barrier.Join(1) {
+		return nil, errors.New("router: router is terminating")
+	}
+
+	groupAddr := gate.ClientDetails.DomainMulticast.Join(name)
+	grantRsp, err := r.client.Grant(ctx, int64(math.Ceil(max(ttl.Seconds(), 3))))
+	if err != nil {
+		log.L(r.svcCtx).Error("grant group lease failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", groupAddr),
+			zap.Stringers("entity_ids", ids),
+			zap.Duration("ttl", ttl),
+			zap.Error(err))
+		r.barrier.Done()
+		return nil, fmt.Errorf("router: %w", err)
+	}
+	leaseId := grantRsp.ID
+
+	groupIdKey := r.groupIdKey(groupAddr)
+	ops := make([]etcdv3.Op, 0, 1+len(ids)*2)
+	ops = append(ops, etcdv3.OpPut(groupIdKey, "", etcdv3.WithLease(leaseId)))
+
+	for _, id := range ids {
+		ops = append(ops,
+			etcdv3.OpPut(path.Join(r.groupEntitiesKeyPrefix, groupAddr, id.String()), "", etcdv3.WithLease(leaseId)),
+			etcdv3.OpPut(path.Join(r.entityGroupsKeyPrefix, id.String(), groupAddr), "", etcdv3.WithLease(leaseId)),
+		)
+	}
 
 	tr, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "=", 0)).
-		Then(
-			etcdv3.OpPut(groupKey, strconv.Itoa(int(leaseId)), etcdv3.WithLease(leaseId)),
-		).
-		Else(
-			etcdv3.OpGet(groupKey),
-			etcdv3.OpGet(groupKey+"/",
-				etcdv3.WithPrefix(),
-				etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-				etcdv3.WithIgnoreValue(),
-			),
-		).
+		If(etcdv3.Compare(etcdv3.Version(groupIdKey), "=", 0)).
+		Then(ops...).
+		Else(etcdv3.OpGet(groupIdKey)).
 		Commit()
 	if err != nil {
-		return nil, err
+		r.revokeGroupLease(context.Background(), leaseId)
+
+		log.L(r.svcCtx).Error("put group keys failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", groupAddr),
+			zap.Stringers("entity_ids", ids),
+			zap.Duration("ttl", ttl),
+			zap.Int64("lease_id", int64(leaseId)),
+			zap.Error(err))
+
+		r.barrier.Done()
+		return nil, fmt.Errorf("router: %w", err)
 	}
-
-	var entIds []uid.Id
-
 	if !tr.Succeeded {
-		if len(tr.Responses[0].GetResponseRange().Kvs) <= 0 {
-			return nil, errors.New("router: missing groupKey")
-		}
+		r.revokeGroupLease(context.Background(), leaseId)
 
-		l, err := strconv.Atoi(string(tr.Responses[0].GetResponseRange().Kvs[0].Value))
-		if err != nil {
-			return nil, errors.New("router: missing groupKey leaseId")
-		}
-		leaseId = etcdv3.LeaseID(l)
+		log.L(r.svcCtx).Error("put group keys failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", groupAddr),
+			zap.Stringers("entity_ids", ids),
+			zap.Duration("ttl", ttl),
+			zap.Int64("lease_id", int64(leaseId)),
+			zap.Error(ErrGroupExists))
 
-		entIds = make([]uid.Id, 0, len(tr.Responses[1].GetResponseRange().Kvs))
-		for _, kv := range tr.Responses[1].GetResponseRange().Kvs {
-			entIds = append(entIds, uid.From(path.Base(string(kv.Key))))
-		}
+		r.barrier.Done()
+		return nil, ErrGroupExists
 	}
 
-	group := r.newGroup(groupKey, leaseId, tr.Header.Revision, entIds)
-
-	cached := r.groupCache.Set(group.GetName(), group, tr.Header.Revision, 0)
-	if cached == group {
-		go group.mainLoop()
+	group, loaded := r.cacheGroup(name, groupAddr, leaseId, tr.Header.Revision, ids)
+	if loaded {
+		r.barrier.Done()
+		return group, nil
 	}
 
-	return cached, nil
+	return group, nil
 }
 
-// DeleteGroup 删除分组
+// DeleteGroup 删除路由组
 func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
-	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
+	if cached, ok := r.groups.Load(name); ok {
+		group := cached.(*_Group)
 
-	gr, err := r.client.Get(ctx, groupKey)
+		if err := r.revokeGroupLease(ctx, group.leaseId); err != nil {
+			log.L(r.svcCtx).Error("revoke group lease failed",
+				zap.String("group_name", name),
+				zap.String("group_addr", group.ClientAddr()),
+				zap.Int64("lease_id", int64(group.leaseId)),
+				zap.Error(err))
+			return
+		}
+
+		r.uncacheGroup(group)
+		group.markExpired()
+		group.markDeleted()
+
+		log.L(r.svcCtx).Info("delete group keys, local cache deleted",
+			zap.String("group_name", name),
+			zap.String("group_addr", group.ClientAddr()),
+			zap.Int64("lease_id", int64(group.leaseId)))
+		return
+	}
+
+	addr := gate.ClientDetails.DomainMulticast.Join(name)
+	rsp, err := r.client.Get(ctx, r.groupIdKey(addr), etcdv3.WithKeysOnly())
 	if err != nil {
+		log.L(r.svcCtx).Error("get group lease failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", addr),
+			zap.Error(err))
+		return
+	}
+	if len(rsp.Kvs) <= 0 {
+		log.L(r.svcCtx).Error("get group lease failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", addr),
+			zap.Error(errors.New("key not found")))
 		return
 	}
 
-	if len(gr.Kvs) <= 0 {
+	leaseId := etcdv3.LeaseID(rsp.Kvs[0].Lease)
+	if err := r.revokeGroupLease(ctx, leaseId); err != nil {
+		log.L(r.svcCtx).Error("revoke group lease failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", addr),
+			zap.Int64("lease_id", int64(leaseId)),
+			zap.Error(err))
 		return
 	}
 
-	l, err := strconv.Atoi(string(gr.Kvs[0].Value))
-	if err != nil {
-		return
-	}
-	leaseId := etcdv3.LeaseID(l)
-
-	_, err = r.client.Revoke(context.Background(), leaseId)
-	if err != nil {
-		return
-	}
+	log.L(r.svcCtx).Info("delete group keys, not cached locally",
+		zap.String("group_name", name),
+		zap.String("group_addr", addr),
+		zap.Int64("lease_id", int64(leaseId)))
 }
 
-// GetGroup 查询分组
-func (r *_Router) GetGroup(ctx context.Context, name string) (IGroup, bool) {
+// GetGroupByName 使用名称查询路由组
+func (r *_Router) GetGroupByName(ctx context.Context, name string) (IGroup, bool) {
+	return r.getGroupByName(ctx, name, gate.ClientDetails.DomainMulticast.Join(name))
+}
+
+// GetGroupByAddr 使用地址查询路由组
+func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
+	name, ok := gate.ClientDetails.DomainMulticast.Relative(addr)
+	if !ok {
+		return nil, false
+	}
+	return r.getGroupByName(ctx, name, addr)
+}
+
+func (r *_Router) getGroupByName(ctx context.Context, name, addr string) (IGroup, bool) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	group, ok := r.groupCache.Get(name)
-	if ok {
-		return group, true
+	if cached, ok := r.groups.Load(name); ok {
+		return cached.(*_Group), true
 	}
 
-	groupAddr := gate.CliDetails.DomainMulticast.Join(name)
-	groupKey := path.Join(r.options.GroupKeyPrefix, groupAddr)
+	select {
+	case <-r.ctx.Done():
+		return nil, false
+	default:
+	}
+
+	if !r.barrier.Join(1) {
+		return nil, false
+	}
+
+	groupIdKey := r.groupIdKey(addr)
+	groupEntitiesPrefix := r.groupEntitiesPrefix(addr)
 
 	tr, err := r.client.Txn(ctx).
-		If(etcdv3.Compare(etcdv3.Version(groupKey), "!=", 0)).
+		If(etcdv3.Compare(etcdv3.Version(groupIdKey), "!=", 0)).
 		Then(
-			etcdv3.OpGet(groupKey),
-			etcdv3.OpGet(groupKey+"/",
-				etcdv3.WithPrefix(),
-				etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-				etcdv3.WithIgnoreValue(),
-			),
+			etcdv3.OpGet(groupIdKey),
+			etcdv3.OpGet(groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithIgnoreValue()),
 		).
 		Commit()
 	if err != nil {
+		log.L(r.svcCtx).Error("get group keys failed",
+			zap.String("group_name", name),
+			zap.String("group_addr", addr),
+			zap.Error(err))
+		r.barrier.Done()
+		return nil, false
+	}
+	if !tr.Succeeded || len(tr.Responses) < 2 {
+		r.barrier.Done()
 		return nil, false
 	}
 
-	if !tr.Succeeded || len(tr.Responses[0].GetResponseRange().Kvs) <= 0 {
+	groupIdRsp := tr.Responses[0].GetResponseRange()
+	if groupIdRsp == nil || len(groupIdRsp.Kvs) <= 0 {
+		r.barrier.Done()
 		return nil, false
 	}
 
-	l, err := strconv.Atoi(string(tr.Responses[0].GetResponseRange().Kvs[0].Value))
-	if err != nil {
-		return nil, false
-	}
-	leaseId := etcdv3.LeaseID(l)
-
-	entIds := make([]uid.Id, 0, len(tr.Responses[1].GetResponseRange().Kvs))
-	for _, kv := range tr.Responses[1].GetResponseRange().Kvs {
-		entIds = append(entIds, uid.From(path.Base(string(kv.Key))))
-	}
-
-	group = r.newGroup(groupKey, leaseId, tr.Header.Revision, entIds)
-
-	cached := r.groupCache.Set(group.GetName(), group, tr.Header.Revision, 0)
-	if cached == group {
-		go group.mainLoop()
-	}
-
-	return cached, true
-}
-
-// GetGroupByAddr 使用分组地址查询分组
-func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
-	name, ok := gate.CliDetails.DomainMulticast.Relative(addr)
-	if !ok {
-		return nil, false
-	}
-	return r.GetGroup(ctx, name)
-}
-
-// RangeGroups 遍历包含实体的所有分组
-func (r *_Router) RangeGroups(ctx context.Context, entityId uid.Id, fun generic.Func1[IGroup, bool]) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	if _, ok := r.svcCtx.GetEntityManager().GetEntity(entityId); !ok {
-		return
-	}
-
-	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
-		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
-			if !fun.UnsafeCall(group) {
-				return
+	var ids []uid.Id
+	entityRsp := tr.Responses[1].GetResponseRange()
+	if entityRsp != nil {
+		ids = make([]uid.Id, 0, len(entityRsp.Kvs))
+		for _, kv := range entityRsp.Kvs {
+			_, entityId, ok := r.parseGroupEntitiesKey(string(kv.Key))
+			if ok {
+				ids = append(ids, entityId)
 			}
 		}
 	}
-}
 
-// EachGroups 遍历包含实体的所有分组
-func (r *_Router) EachGroups(ctx context.Context, entityId uid.Id, fun generic.Action1[IGroup]) {
-	if ctx == nil {
-		ctx = context.Background()
+	group, loaded := r.cacheGroup(name, addr, etcdv3.LeaseID(groupIdRsp.Kvs[0].Lease), tr.Header.Revision, ids)
+	if loaded {
+		r.barrier.Done()
+		return group, true
 	}
 
-	if _, ok := r.svcCtx.GetEntityManager().GetEntity(entityId); !ok {
+	return group, true
+}
+
+func (r *_Router) watchingForGroups() {
+	defer r.barrier.Done()
+
+	rsp, err := r.client.Get(r.ctx, r.groupIdKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
+	if err != nil {
+		log.L(r.svcCtx).Panic("get groups keys failed", zap.Error(err))
 		return
 	}
 
-	for _, groupAddr := range r.getEntityGroupAddrs(ctx, entityId) {
-		if group, ok := r.GetGroupByAddr(ctx, groupAddr); ok {
-			fun.UnsafeCall(group)
+	for _, kv := range rsp.Kvs {
+		groupAddr, ok := r.parseGroupIdKey(string(kv.Key))
+		if !ok {
+			log.L(r.svcCtx).Warn("invalid group id key", zap.ByteString("key", kv.Key))
+			continue
 		}
+		if _, ok := r.GetGroupByAddr(r.ctx, groupAddr); !ok {
+			log.L(r.svcCtx).Warn("group not cached", zap.String("group_addr", groupAddr))
+			continue
+		}
+	}
+
+	revision := rsp.Header.Revision + 1
+
+	log.L(r.svcCtx).Debug("watching for groups started", zap.String("key", r.groupIdKeyPrefix), zap.Int64("revision", revision))
+
+	for watchRsp := range r.client.Watch(r.ctx, r.groupIdKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithRev(revision)) {
+		if watchRsp.Canceled {
+			log.L(r.svcCtx).Debug("watching for groups canceled",
+				zap.String("key", r.groupIdKeyPrefix),
+				zap.Int64("revision", revision),
+				zap.Error(watchRsp.Err()))
+			break
+		}
+		if watchRsp.Err() != nil {
+			log.L(r.svcCtx).Panic("watching for groups unexpectedly interrupted",
+				zap.String("key", r.groupIdKeyPrefix),
+				zap.Int64("revision", revision),
+				zap.Error(watchRsp.Err()))
+			break
+		}
+
+		for _, event := range watchRsp.Events {
+			if event.Type != etcdv3.EventTypePut {
+				continue
+			}
+
+			groupIdKey := string(event.Kv.Key)
+			groupAddr, ok := r.parseGroupIdKey(groupIdKey)
+			if !ok {
+				log.L(r.svcCtx).Warn("invalid group id key", zap.String("key", groupIdKey))
+				continue
+			}
+
+			if _, ok := r.GetGroupByAddr(r.ctx, groupAddr); !ok {
+				log.L(r.svcCtx).Warn("group not cached", zap.String("group_addr", groupAddr))
+			}
+		}
+	}
+
+	log.L(r.svcCtx).Debug("watching for groups stopped", zap.String("key", r.groupIdKeyPrefix), zap.Int64("revision", revision))
+}
+
+func (r *_Router) cacheGroup(name, addr string, leaseId etcdv3.LeaseID, revision int64, ids []uid.Id) (*_Group, bool) {
+	if cached, ok := r.groups.Load(name); ok {
+		exists := cached.(*_Group)
+		if exists.leaseId == leaseId {
+			return exists, true
+		}
+	}
+
+	group := &_Group{}
+	group.init(r, addr, leaseId, revision, ids)
+
+	cached, loaded := r.groups.LoadOrStore(name, group)
+	if !loaded {
+		log.L(r.svcCtx).Info("group cached",
+			zap.String("group_name", group.Name()),
+			zap.String("group_addr", group.ClientAddr()))
+		r.groupCount.Add(1)
+		go group.watchingForChanges()
+		return group, false
+	}
+
+	exists := cached.(*_Group)
+	if exists == group || exists.leaseId == leaseId {
+		group.markExpired()
+		return exists, true
+	}
+
+	if r.groups.CompareAndSwap(name, exists, group) {
+		log.L(r.svcCtx).Info("group cache replaced",
+			zap.String("group_name", name),
+			zap.String("group_addr", group.ClientAddr()),
+			zap.Int64("prev_lease_id", int64(exists.leaseId)),
+			zap.Int64("curr_lease_id", int64(group.leaseId)))
+		exists.markExpired()
+		go group.watchingForChanges()
+		return group, false
+	}
+
+	group.markExpired()
+	return r.cacheGroup(name, addr, leaseId, revision, ids)
+}
+
+func (r *_Router) uncacheGroup(group *_Group) {
+	if group == nil {
+		return
+	}
+	if r.groups.CompareAndDelete(group.Name(), group) {
+		log.L(r.svcCtx).Info("group uncached",
+			zap.String("group_name", group.Name()),
+			zap.String("group_addr", group.ClientAddr()))
+		r.groupCount.Add(-1)
 	}
 }
 
-func (r *_Router) newGroup(groupKey string, leaseId etcdv3.LeaseID, revision int64, entIds []uid.Id) *_Group {
-	group := &_Group{
-		router:   r,
-		groupKey: groupKey,
-		leaseId:  leaseId,
-		revision: revision,
-		entities: entIds,
+func (r *_Router) revokeGroupLease(ctx context.Context, leaseID etcdv3.LeaseID) error {
+	_, err := r.client.Revoke(ctx, leaseID)
+	if err != nil && !errors.Is(err, rpctypes.ErrLeaseNotFound) {
+		return err
 	}
-
-	group.Context, group.terminate = context.WithCancel(r.svcCtx)
-
-	if r.options.GroupSendDataChanSize > 0 {
-		group.sendDataChan = make(chan binaryutil.RecycleBytes, r.options.GroupSendDataChanSize)
-	}
-
-	if r.options.GroupSendEventChanSize > 0 {
-		group.sendEventChan = make(chan transport.IEvent, r.options.GroupSendEventChanSize)
-	}
-
-	return group
+	return nil
 }
 
-func (r *_Router) getEntityGroupAddrs(ctx context.Context, entityId uid.Id) []string {
-	groupAddrs, ok := r.entityGroupsCache.Get(entityId)
-	if !ok {
-		gr, err := r.client.Get(ctx, path.Join(r.options.EntityGroupsKeyPrefix, entityId.String())+"/",
-			etcdv3.WithPrefix(),
-			etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend),
-			etcdv3.WithIgnoreValue())
-		if err != nil || len(gr.Kvs) <= 0 {
-			return nil
-		}
+func (r *_Router) groupIdKey(groupAddr string) string {
+	return path.Join(r.groupIdKeyPrefix, groupAddr)
+}
 
-		groupAddrs = make([]string, 0, len(gr.Kvs))
+func (r *_Router) groupEntitiesPrefix(groupAddr string) string {
+	return path.Join(r.groupEntitiesKeyPrefix, groupAddr) + "/"
+}
 
-		for _, kv := range gr.Kvs {
-			groupAddrs = append(groupAddrs, strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(string(kv.Key), r.options.EntityGroupsKeyPrefix), entityId.String()), "/"))
-		}
+func (r *_Router) entityGroupsPrefix(entityId uid.Id) string {
+	return path.Join(r.entityGroupsKeyPrefix, entityId.String()) + "/"
+}
 
-		groupAddrs = r.entityGroupsCache.Set(entityId, groupAddrs, gr.Header.Revision, r.options.EntityGroupsCacheTTL)
+func (r *_Router) parseGroupIdKey(key string) (string, bool) {
+	groupAddr := strings.TrimPrefix(key, r.groupIdKeyPrefix)
+	if groupAddr == key || groupAddr == "" {
+		return "", false
 	}
-	return groupAddrs
+	return groupAddr, true
+}
+
+func (r *_Router) parseGroupEntitiesKey(key string) (groupAddr string, entityId uid.Id, ok bool) {
+	trimmed := strings.TrimPrefix(key, r.groupEntitiesKeyPrefix)
+	if trimmed == key {
+		return "", uid.Nil, false
+	}
+
+	idx := strings.LastIndex(trimmed, "/")
+	if idx <= 0 || idx >= len(trimmed)-1 {
+		return "", uid.Nil, false
+	}
+
+	return trimmed[:idx], uid.From(trimmed[idx+1:]), true
 }

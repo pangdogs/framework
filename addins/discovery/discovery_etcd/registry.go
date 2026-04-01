@@ -131,7 +131,7 @@ func (r *_EtcdRegistry) Get(ctx context.Context, serviceName string) (*discovery
 		etcdv3.WithPrefix(),
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend))
 	if err != nil {
-		log.L(r.svcCtx).Error("get etcd key failed", zap.String("key", serviceKey), zap.Error(err))
+		log.L(r.svcCtx).Error("get service etcd keys failed", zap.String("key", serviceKey), zap.Error(err))
 		return nil, fmt.Errorf("registry: %w", err)
 	}
 
@@ -177,7 +177,7 @@ func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeId 
 
 	rsp, err := r.client.Get(ctx, nodeKey)
 	if err != nil {
-		log.L(r.svcCtx).Error("get etcd key failed", zap.String("key", nodeKey), zap.Error(err))
+		log.L(r.svcCtx).Error("get service node etcd key failed", zap.String("key", nodeKey), zap.Error(err))
 		return nil, fmt.Errorf("registry: %w", err)
 	}
 
@@ -204,7 +204,7 @@ func (r *_EtcdRegistry) List(ctx context.Context) ([]*discovery.Service, error) 
 		etcdv3.WithPrefix(),
 		etcdv3.WithSort(etcdv3.SortByModRevision, etcdv3.SortDescend))
 	if err != nil {
-		log.L(r.svcCtx).Error("get etcd key failed", zap.String("key", r.options.KeyPrefix), zap.Error(err))
+		log.L(r.svcCtx).Error("get services etcd keys failed", zap.String("key", r.options.KeyPrefix), zap.Error(err))
 		return nil, fmt.Errorf("registry: %w", err)
 	}
 

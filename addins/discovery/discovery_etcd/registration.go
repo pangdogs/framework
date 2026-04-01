@@ -171,7 +171,7 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 
 	grantRsp, err := r.client.Grant(ctx, int64(math.Ceil(max(ttl.Seconds(), 3))))
 	if err != nil {
-		log.L(r.svcCtx).Error("grant new etcd lease failed",
+		log.L(r.svcCtx).Error("grant etcd lease failed",
 			zap.String("service", serviceName),
 			zap.String("node", node.Id.String()),
 			zap.String("key", nodeKey),
@@ -191,21 +191,27 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 		Then(etcdv3.OpPut(nodeKey, serviceNodeData, etcdv3.WithLease(leaseId))).
 		Commit()
 	if err != nil {
-		log.L(r.svcCtx).Error("put etcd key failed",
+		r.client.Revoke(context.Background(), leaseId)
+
+		log.L(r.svcCtx).Error("put service node etcd key failed",
 			zap.String("service", serviceName),
 			zap.String("node", node.Id.String()),
 			zap.String("key", nodeKey),
 			zap.Int64("lease_id", int64(leaseId)),
 			zap.Error(err))
+
 		return nil, fmt.Errorf("registry: %w", err)
 	}
 	if !rsp.Succeeded {
-		log.L(r.svcCtx).Error("put etcd key failed",
+		r.client.Revoke(context.Background(), leaseId)
+
+		log.L(r.svcCtx).Error("put service node etcd key failed",
 			zap.String("service", serviceName),
 			zap.String("node", node.Id.String()),
 			zap.String("key", nodeKey),
 			zap.Int64("lease_id", int64(leaseId)),
 			zap.Error(discovery.ErrDuplicateRegistration))
+
 		return nil, discovery.ErrDuplicateRegistration
 	}
 
