@@ -25,6 +25,8 @@ import (
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/gate"
+	"git.golaxy.org/framework/addins/log"
+	"go.uber.org/zap"
 )
 
 // IMapping 路由映射接口
@@ -47,7 +49,7 @@ type _Mapping struct {
 	entity     ec.ConcurrentEntity
 	session    gate.ISession
 	unmapOnce  sync.Once
-	replaced   async.FutureVoid
+	removed    async.FutureVoid
 	unmapped   async.FutureVoid
 }
 
@@ -70,7 +72,7 @@ func (m *_Mapping) Session() gate.ISession {
 func (m *_Mapping) Unmap() {
 	m.unmapOnce.Do(func() {
 		if m.router.removeMappingLocked(m) {
-			async.ReturnVoid(m.replaced)
+			async.ReturnVoid(m.removed)
 		}
 	})
 }
@@ -80,17 +82,28 @@ func (m *_Mapping) Unmapped() async.Future {
 	return m.unmapped.Out()
 }
 
-func (m *_Mapping) waitForExpire() {
+func (m *_Mapping) waitForUnmap() {
+	var reason string
+
 	defer func() {
+		log.L(m.router.svcCtx).Info("mapping unmapped",
+			zap.String("entity_id", m.entity.Id().String()),
+			zap.String("session_id", m.session.Id().String()),
+			zap.String("reason", reason))
+
 		async.ReturnVoid(m.unmapped)
 		m.router.barrier.Done()
 	}()
 
 	select {
 	case <-m.router.ctx.Done():
+		reason = "router_terminating"
 	case <-m.entity.Terminated().Done():
+		reason = "entity_destroyed"
 	case <-m.session.Closed().Done():
-	case <-m.replaced:
+		reason = "session_closed"
+	case <-m.removed:
+		reason = "mapping_removed"
 		return
 	}
 

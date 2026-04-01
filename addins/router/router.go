@@ -41,7 +41,6 @@ import (
 var (
 	ErrEntityNotFound  = errors.New("router: entity not found")
 	ErrSessionNotFound = errors.New("router: session not found")
-	ErrGroupNotFound   = errors.New("router: group not found")
 	ErrGroupExists     = errors.New("router: group already exists")
 )
 
@@ -81,7 +80,7 @@ type _Router struct {
 	client                 *etcdv3.Client
 	mappingMu              sync.RWMutex
 	mappings               map[uid.Id]*_Mapping
-	groups                 sync.Map // map[string]*_Group, key is group name
+	groups                 sync.Map
 	groupCount             atomic.Int64
 }
 
@@ -118,6 +117,9 @@ func (r *_Router) Init(svcCtx service.Context) {
 			}
 		}(ep)
 	}
+
+	r.barrier.Join(1)
+	go r.watchingForGroups()
 }
 
 // Shut 关闭插件

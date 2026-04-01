@@ -58,7 +58,7 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 		clientAddr: gate.ClientDetails.DomainUnicast.Join(entity.Id().String()),
 		entity:     entity,
 		session:    session,
-		replaced:   async.NewFutureVoid(),
+		removed:    async.NewFutureVoid(),
 		unmapped:   async.NewFutureVoid(),
 	}
 
@@ -75,13 +75,13 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 
 	if currByEntity != nil {
 		if r.removeMapping(currByEntity) {
-			async.ReturnVoid(currByEntity.replaced)
+			async.ReturnVoid(currByEntity.removed)
 		}
 	}
 
 	if currBySession != nil {
 		if r.removeMapping(currBySession) {
-			async.ReturnVoid(currBySession.replaced)
+			async.ReturnVoid(currBySession.removed)
 		}
 	}
 
@@ -90,9 +90,9 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 
 	r.mappingMu.Unlock()
 
-	go mapping.waitForExpire()
+	go mapping.waitForUnmap()
 
-	log.L(r.svcCtx).Debug("add mapping",
+	log.L(r.svcCtx).Info("add mapping",
 		zap.String("entity_id", entity.Id().String()),
 		zap.String("session_id", session.Id().String()))
 
