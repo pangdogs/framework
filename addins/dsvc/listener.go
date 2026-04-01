@@ -69,15 +69,13 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 	stopped := async.NewFutureVoid()
 
 	go func() {
-		defer func() {
-			async.ReturnVoid(stopped)
-			d.barrier.Done()
-		}()
+		defer d.barrier.Done()
 
 		for {
 			select {
 			case <-ctx.Done():
 				d.listeners.Delete(listener)
+				async.ReturnVoid(stopped)
 				log.L(d.svcCtx).Debug("delete a broker message listener")
 				return
 			case msg := <-listener.Inbox:

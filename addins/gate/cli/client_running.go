@@ -30,13 +30,6 @@ import (
 
 // mainLoop 客户端主线程
 func (c *Client) mainLoop() {
-	defer func() {
-		if c.transceiver.Conn != nil {
-			c.transceiver.Conn.Close()
-		}
-		c.transceiver.Dispose()
-	}()
-
 	addr := c.NetAddr()
 	c.logger.Debug("client started",
 		zap.String("session_id", c.SessionId().String()),
@@ -187,6 +180,11 @@ loop:
 	c.close(nil)
 	// 等待i/o线程结束
 	<-c.io.terminated
+	// 关闭网络连接
+	if c.transceiver.Conn != nil {
+		c.transceiver.Conn.Close()
+	}
+	c.transceiver.Dispose()
 	// 返回关闭结果
 	async.ReturnVoid(c.closed)
 

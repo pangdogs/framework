@@ -83,29 +83,28 @@ func (m *_Mapping) Unmapped() async.Future {
 }
 
 func (m *_Mapping) waitForUnmap() {
+	defer m.router.barrier.Done()
+
 	var reason string
-
-	defer func() {
-		log.L(m.router.svcCtx).Info("mapping unmapped",
-			zap.String("entity_id", m.entity.Id().String()),
-			zap.String("session_id", m.session.Id().String()),
-			zap.String("reason", reason))
-
-		async.ReturnVoid(m.unmapped)
-		m.router.barrier.Done()
-	}()
 
 	select {
 	case <-m.router.ctx.Done():
+		m.Unmap()
 		reason = "router_terminating"
 	case <-m.entity.Terminated().Done():
+		m.Unmap()
 		reason = "entity_destroyed"
 	case <-m.session.Closed().Done():
+		m.Unmap()
 		reason = "session_closed"
 	case <-m.removed:
 		reason = "mapping_removed"
-		return
 	}
 
-	m.Unmap()
+	log.L(m.router.svcCtx).Info("mapping unmapped",
+		zap.String("entity_id", m.entity.Id().String()),
+		zap.String("session_id", m.session.Id().String()),
+		zap.String("reason", reason))
+
+	async.ReturnVoid(m.unmapped)
 }

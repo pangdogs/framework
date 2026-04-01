@@ -88,10 +88,6 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	go func() {
 		defer func() {
 			cancel()
-			if eventChan != nil {
-				eventChan.Close()
-			}
-			async.ReturnVoid(stopped)
 			r.barrier.Done()
 		}()
 
@@ -105,7 +101,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 			if watchRsp.Err() != nil {
 				log.L(r.svcCtx).Error("watching etcd key unexpectedly interrupted", zap.String("key", key), zap.Int64("revision", revision), zap.Error(watchRsp.Err()))
 				handleEvent(discovery.Event{Type: discovery.EventType_Error, Error: fmt.Errorf("registry: %w", watchRsp.Err())})
-				return
+				break
 			}
 
 			for _, etcdEvent := range watchRsp.Events {
@@ -150,6 +146,11 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 				handleEvent(event)
 			}
 		}
+
+		if eventChan != nil {
+			eventChan.Close()
+		}
+		async.ReturnVoid(stopped)
 
 		log.L(r.svcCtx).Debug("watching for service changes stopped", zap.String("key", key), zap.Int64("revision", revision))
 	}()

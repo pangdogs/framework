@@ -34,15 +34,7 @@ import (
 
 // mainLoop 会话主线程
 func (s *_Session) mainLoop() {
-	defer func() {
-		// 关闭连接和释放资源
-		if s.transceiver.Conn != nil {
-			s.transceiver.Conn.Close()
-		}
-		s.transceiver.Dispose()
-		// 释放屏障
-		s.gate.barrier.Done()
-	}()
+	defer s.gate.barrier.Done()
 
 	// 调整会话状态为活跃
 	s.setState(SessionState_Active)
@@ -159,6 +151,11 @@ loop:
 	s.ctrl.SendRst(context.Cause(s))
 	// 删除会话
 	s.gate.deleteSession(s.Id())
+	// 关闭连接和释放资源
+	if s.transceiver.Conn != nil {
+		s.transceiver.Conn.Close()
+	}
+	s.transceiver.Dispose()
 	// 返回关闭结果
 	async.ReturnVoid(s.closed)
 

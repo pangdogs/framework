@@ -115,13 +115,7 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 	unsubscribed := async.NewFutureVoid()
 
 	go func() {
-		defer func() {
-			if eventChan != nil {
-				eventChan.Close()
-			}
-			async.ReturnVoid(unsubscribed)
-			b.barrier.Done()
-		}()
+		defer b.barrier.Done()
 
 		select {
 		case <-ctx.Done():
@@ -133,6 +127,12 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 		} else {
 			log.L(b.svcCtx).Debug("unsubscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 		}
+
+		if eventChan != nil {
+			eventChan.Close()
+		}
+
+		async.ReturnVoid(unsubscribed)
 	}()
 
 	log.L(b.svcCtx).Debug("subscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))

@@ -61,15 +61,13 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 	stopped := async.NewFutureVoid()
 
 	go func() {
-		defer func() {
-			async.ReturnVoid(stopped)
-			g.barrier.Done()
-		}()
+		defer g.barrier.Done()
 
 		for {
 			select {
 			case <-ctx.Done():
 				g.sessionWatcher.Delete(watcher)
+				async.ReturnVoid(stopped)
 				log.L(g.svcCtx).Debug("delete a session established watcher")
 				return
 			case session := <-watcher.Inbox:
