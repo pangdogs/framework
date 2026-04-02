@@ -21,74 +21,74 @@ package rpc
 
 import "git.golaxy.org/core/utils/async"
 
-func Asserts(ret async.Result) []any {
-	return Results(ret).ensure(3)
+func Asserts(future async.Future) []any {
+	return Results(future).ensure(3)
 }
 
-func AssertVoid(ret async.Result) {
-	ResultVoid(ret).ensure(3)
+func AssertVoid(future async.Future) {
+	ResultVoid(future).ensure(3)
 }
 
-func Assert1[T1 any](ret async.Result) T1 {
-	return Result1[T1](ret).ensure(3)
+func Assert1[T1 any](future async.Future) T1 {
+	return Result1[T1](future).ensure(3)
 }
 
-func Assert2[T1, T2 any](ret async.Result) (T1, T2) {
-	return Result2[T1, T2](ret).ensure(3)
+func Assert2[T1, T2 any](future async.Future) (T1, T2) {
+	return Result2[T1, T2](future).ensure(3)
 }
 
-func Assert3[T1, T2, T3 any](ret async.Result) (T1, T2, T3) {
-	return Result3[T1, T2, T3](ret).ensure(3)
+func Assert3[T1, T2, T3 any](future async.Future) (T1, T2, T3) {
+	return Result3[T1, T2, T3](future).ensure(3)
 }
 
-func Assert4[T1, T2, T3, T4 any](ret async.Result) (T1, T2, T3, T4) {
-	return Result4[T1, T2, T3, T4](ret).ensure(3)
+func Assert4[T1, T2, T3, T4 any](future async.Future) (T1, T2, T3, T4) {
+	return Result4[T1, T2, T3, T4](future).ensure(3)
 }
 
-func Assert5[T1, T2, T3, T4, T5 any](ret async.Result) (T1, T2, T3, T4, T5) {
-	return Result5[T1, T2, T3, T4, T5](ret).ensure(3)
+func Assert5[T1, T2, T3, T4, T5 any](future async.Future) (T1, T2, T3, T4, T5) {
+	return Result5[T1, T2, T3, T4, T5](future).ensure(3)
 }
 
-func Assert6[T1, T2, T3, T4, T5, T6 any](ret async.Result) (T1, T2, T3, T4, T5, T6) {
-	return Result6[T1, T2, T3, T4, T5, T6](ret).ensure(3)
+func Assert6[T1, T2, T3, T4, T5, T6 any](future async.Future) (T1, T2, T3, T4, T5, T6) {
+	return Result6[T1, T2, T3, T4, T5, T6](future).ensure(3)
 }
 
-func Assert7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7) {
-	return Result7[T1, T2, T3, T4, T5, T6, T7](ret).ensure(3)
+func Assert7[T1, T2, T3, T4, T5, T6, T7 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7) {
+	return Result7[T1, T2, T3, T4, T5, T6, T7](future).ensure(3)
 }
 
-func Assert8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8) {
-	return Result8[T1, T2, T3, T4, T5, T6, T7, T8](ret).ensure(3)
+func Assert8[T1, T2, T3, T4, T5, T6, T7, T8 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8) {
+	return Result8[T1, T2, T3, T4, T5, T6, T7, T8](future).ensure(3)
 }
 
-func Assert9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
-	return Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9](ret).ensure(3)
+func Assert9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9) {
+	return Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9](future).ensure(3)
 }
 
-func Assert10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
-	return Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](ret).ensure(3)
+func Assert10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) {
+	return Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](future).ensure(3)
 }
 
-func Assert11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
-	return Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11](ret).ensure(3)
+func Assert11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) {
+	return Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11](future).ensure(3)
 }
 
-func Assert12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
-	return Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12](ret).ensure(3)
+func Assert12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) {
+	return Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12](future).ensure(3)
 }
 
-func Assert13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
-	return Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13](ret).ensure(3)
+func Assert13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) {
+	return Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13](future).ensure(3)
 }
 
-func Assert14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
-	return Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14](ret).ensure(3)
+func Assert14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) {
+	return Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14](future).ensure(3)
 }
 
-func Assert15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
-	return Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15](ret).ensure(3)
+func Assert15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) {
+	return Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15](future).ensure(3)
 }
 
-func Assert16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Result) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
-	return Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16](ret).ensure(3)
+func Assert16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](future async.Future) (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) {
+	return Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16](future).ensure(3)
 }

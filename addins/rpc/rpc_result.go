@@ -74,7 +74,8 @@ func (rvs ResultValues) ensure(skip int) []any {
 	return rvs.Values
 }
 
-func Results(ret async.Result) (rvs ResultValues) {
+func Results(future async.Future) (rvs ResultValues) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rvs.Error = ret.Error
 		return
@@ -117,7 +118,8 @@ func (rtp ResultTuple0) ensure(skip int) {
 	}
 }
 
-func ResultVoid(ret async.Result) (rtp ResultTuple0) {
+func ResultVoid(future async.Future) (rtp ResultTuple0) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -145,7 +147,8 @@ func (rtp ResultTuple1[T1]) ensure(skip int) T1 {
 	return rtp.R1
 }
 
-func Result1[T1 any](ret async.Result) (rtp ResultTuple1[T1]) {
+func Result1[T1 any](future async.Future) (rtp ResultTuple1[T1]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -193,7 +196,8 @@ func (rtp ResultTuple2[T1, T2]) ensure(skip int) (T1, T2) {
 	return rtp.R1, rtp.R2
 }
 
-func Result2[T1, T2 any](ret async.Result) (rtp ResultTuple2[T1, T2]) {
+func Result2[T1, T2 any](future async.Future) (rtp ResultTuple2[T1, T2]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -249,7 +253,8 @@ func (rtp ResultTuple3[T1, T2, T3]) ensure(skip int) (T1, T2, T3) {
 	return rtp.R1, rtp.R2, rtp.R3
 }
 
-func Result3[T1, T2, T3 any](ret async.Result) (rtp ResultTuple3[T1, T2, T3]) {
+func Result3[T1, T2, T3 any](future async.Future) (rtp ResultTuple3[T1, T2, T3]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -313,7 +318,8 @@ func (rtp ResultTuple4[T1, T2, T3, T4]) ensure(skip int) (T1, T2, T3, T4) {
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4
 }
 
-func Result4[T1, T2, T3, T4 any](ret async.Result) (rtp ResultTuple4[T1, T2, T3, T4]) {
+func Result4[T1, T2, T3, T4 any](future async.Future) (rtp ResultTuple4[T1, T2, T3, T4]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -385,7 +391,8 @@ func (rtp ResultTuple5[T1, T2, T3, T4, T5]) ensure(skip int) (T1, T2, T3, T4, T5
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5
 }
 
-func Result5[T1, T2, T3, T4, T5 any](ret async.Result) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
+func Result5[T1, T2, T3, T4, T5 any](future async.Future) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -465,7 +472,8 @@ func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) ensure(skip int) (T1, T2, T3, T4
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6
 }
 
-func Result6[T1, T2, T3, T4, T5, T6 any](ret async.Result) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
+func Result6[T1, T2, T3, T4, T5, T6 any](future async.Future) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -553,7 +561,8 @@ func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) ensure(skip int) (T1, T2, T3
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7
 }
 
-func Result7[T1, T2, T3, T4, T5, T6, T7 any](ret async.Result) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
+func Result7[T1, T2, T3, T4, T5, T6, T7 any](future async.Future) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -649,7 +658,8 @@ func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) ensure(skip int) (T1, T2
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8
 }
 
-func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](ret async.Result) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
+func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](future async.Future) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -753,7 +763,8 @@ func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) ensure(skip int) (T1
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9
 }
 
-func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](ret async.Result) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
+func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](future async.Future) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -865,7 +876,8 @@ func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) ensure(skip in
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10
 }
 
-func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](ret async.Result) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
+func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](future async.Future) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -985,7 +997,8 @@ func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) ensure(sk
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11
 }
 
-func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](ret async.Result) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
+func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](future async.Future) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1113,7 +1126,8 @@ func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) ensu
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12
 }
 
-func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](ret async.Result) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
+func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](future async.Future) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1244,7 +1258,8 @@ func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13])
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13
 }
 
-func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](ret async.Result) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
+func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](future async.Future) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1383,7 +1398,8 @@ func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14
 }
 
-func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](ret async.Result) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
+func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](future async.Future) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1530,7 +1546,8 @@ func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15
 }
 
-func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](ret async.Result) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
+func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](future async.Future) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
@@ -1685,7 +1702,8 @@ func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 	return rtp.R1, rtp.R2, rtp.R3, rtp.R4, rtp.R5, rtp.R6, rtp.R7, rtp.R8, rtp.R9, rtp.R10, rtp.R11, rtp.R12, rtp.R13, rtp.R14, rtp.R15, rtp.R16
 }
 
-func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](ret async.Result) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
+func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](future async.Future) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
+	ret := <-future.Chan()
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return
