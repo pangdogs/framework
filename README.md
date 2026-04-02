@@ -1,57 +1,161 @@
 # Framework
 [English](./README.md) | [简体中文](./README.zh_CN.md)
 
-## Introduction
-[**Golaxy Distributed Service Development Framework**](https://github.com/pangdogs/framework) aims to provide a comprehensive server-side solution for real-time communication applications. Based on the [**core**](https://github.com/pangdogs/core) of the EC system and Actor thread model, the framework implements all dependency functions for distributed services. It is designed to be simple and easy to use, making it particularly suitable for developing games and remote control systems.
+## Overview
+[**Golaxy Distributed Service Development Framework**](https://github.com/pangdogs/framework) is the service-side companion to [**Golaxy Core**](https://github.com/pangdogs/core). It builds a distributed service runtime on top of the EC system and actor-thread model, and packages the infrastructure commonly needed by real-time systems such as game servers, gateways, and remote control platforms.
+
+This repository is organized around three layers:
+
+- `framework`: application bootstrap, service/runtime assembly, lifecycle hooks, and entity/component helpers.
+- `addins`: reusable infrastructure integrations such as broker, discovery, router, RPC, gateway, and database access.
+- `net`: the protocol stack used by the communication layer, including GTP transport and GAP application messages.
+
+## Architecture
+### Core concepts
+- `App` collects service assemblers, loads CLI/configuration with Cobra and Viper, and starts the requested service replicas.
+- `IService` wraps a service context and exposes add-ins such as broker, discovery, distributed sync, distributed service, distributed entity query, and RPC.
+- `IRuntime` wraps a runtime context, installs runtime add-ins, and owns entity execution.
+- `EntityBehavior` and `ComponentBehavior` provide typed access back to the owning runtime and service.
+- `BuildRuntime`, `BuildEntityPT`, and `BuildEntity` are the main builder APIs for runtime and entity creation.
+
+### Default add-ins
+Unless a service or runtime installs its own implementation during lifecycle hooks, the framework assembles these add-ins automatically.
+
+Service-level defaults:
+
+- `log`
+- `conf`
+- `broker` via NATS
+- `discovery` via ETCD
+- `dsync` via ETCD
+- `dsvc`
+- `dent` querier
+- `rpc`
+
+Runtime-level defaults:
+
+- `log`
+- `rpcstack`
+- `dent` registry
 
 ## Features
-The framework supports the development of stateful (`Stateful`) or stateless (`Stateless`) distributed services with the following features:
+- Bootstrap stateful or stateless services with configurable replica counts.
+- Load configuration from flags, environment variables, local files, or Viper remote providers.
+- Discover services, advertise nodes, and issue future-based inter-service calls.
+- Register and query distributed entities across runtimes and services.
+- Use a built-in broker layer, distributed synchronization, and SQL/Redis/MongoDB integrations.
+- Serve long-lived TCP/WebSocket connections with the GTP transport stack.
+- Exchange routed messages and RPC requests/replies with GAP messages and variant payloads.
+- Build gateways, routers, service RPC processors, and RPC clients from shared protocol components.
 
-- **MQ and Broker**: Based on NATS, supports message queue and event-driven architecture.
-- **Service Discovery**: Based on ETCD, also supports Redis (for demo purposes due to lack of data version control).
-- **Distributed Synchronization**: Supports distributed locking with ETCD or Redis, default is ETCD.
-- **Distributed Service**: Defines distributed service node address format, provides asynchronous model futures (`Future`), supports inter-service communication and horizontal scaling.
-- **Distributed Entities**: Provides registration and query functions for distributed entities, supports communication between them.
-- **GTP Protocol**: For long connections and real-time communication, works on reliable protocols (`TCP/WebSocket`), supports bi-directional signature verification, link encryption, link authentication, connection migration, custom messages.
-- **GAP Protocol**: For application layer communication messages, works on `GTP Protocol` or `MQ`, supports message deduplication, custom messages, custom variable types.
-- **GTP Gate and Client**: Gateway and client based on `GTP Protocol`, supports `TCP/WebSocket` long connections.
-- **Router**: Supports communication routing, session to entity mapping, client-service communication, communication grouping, and multicast messages.
-- **RPC**: Supports RPC calls between services, entities, clients, and groups based on `GAP Protocol`, supports variable types, simple and easy to use. Supports one-way notification RPC and response RPC.
-- **Logger**: Based on Zap.
-- **Config**: Based on Viper, supports local and remote configurations.
-- **Database**: Supports connection to relational databases (based on `GORM`), Redis, MongoDB.
+## Minimal bootstrap
+```go
+package main
 
-## Directory
-| Directory                                                                             | Description                                             |
-|---------------------------------------------------------------------------------------|---------------------------------------------------------|
-| [/](https://github.com/pangdogs/framework)                                            | Common types and functions for application development. |
-| [/addins/broker](https://github.com/pangdogs/framework/tree/main/addins/broker)       | Message queue middleware.                               |
-| [/addins/conf](https://github.com/pangdogs/framework/tree/main/addins/conf)           | Configuration system.                                   |
-| [/addins/db](https://github.com/pangdogs/framework/tree/main/addins/db)               | Database support.                                       |
-| [/addins/dentq](https://github.com/pangdogs/framework/tree/main/addins/dentq)         | Distributed entity query support.                       |
-| [/addins/dentr](https://github.com/pangdogs/framework/tree/main/addins/dentr)         | Distributed entity registration support.                |
-| [/addins/discovery](https://github.com/pangdogs/framework/tree/main/addins/discovery) | Service discovery.                                      |
-| [/addins/dsvc](https://github.com/pangdogs/framework/tree/main/addins/dsvc)           | Distributed service support.                            |
-| [/addins/dsync](https://github.com/pangdogs/framework/tree/main/addins/dsync)         | Distributed locking.                                    |
-| [/addins/gate](https://github.com/pangdogs/framework/tree/main/addins/gate)           | GTP gateway implementation.                             |
-| [/addins/log](https://github.com/pangdogs/framework/tree/main/addins/log)             | Logging system.                                         |
-| [/addins/router](https://github.com/pangdogs/framework/tree/main/addins/router)       | Client routing system.                                  |
-| [/addins/rpc](https://github.com/pangdogs/framework/tree/main/addins/rpc)             | RPC system.                                             |
-| [/addins/rpcstack](https://github.com/pangdogs/framework/tree/main/addins/rpcstack)   | RPC stack support.                                      |
-| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap)                   | GAP protocol implementation.                            |
-| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp)                   | GTP protocol implementation.                            |
-| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath)           | Service node address structure.                         |
-| [/utils](https://github.com/pangdogs/framework/tree/main/utils)                       | Various utility classes and functions.                  |
+import "git.golaxy.org/framework"
 
+type LobbyService struct {
+	framework.ServiceBehavior
+}
 
-## Examples
-See: [Examples](https://github.com/pangdogs/examples)
+func (svc *LobbyService) OnStarted(s framework.IService) {
+	s.BuildRuntime().
+		SetName("main").
+		SetEnableFrame(true).
+		SetFPS(20).
+		New()
+}
+
+func main() {
+	framework.NewApp().
+		SetAssembler("lobby", &LobbyService{}).
+		Run()
+}
+```
+
+The service name passed to `SetAssembler` is used as:
+
+- the configuration subtree returned by `svc.ServiceConf()`
+- the default key inside `startup.services`
+- the logical service name announced by distributed-service related add-ins
+
+## Configuration and startup
+`App` registers a common set of flags before boot:
+
+| Flag | Purpose |
+| --- | --- |
+| `log.*` | Logger level, encoder, format, and async buffering settings |
+| `conf.*` | Environment prefix, local config path, and remote config provider settings |
+| `nats.*` | Default broker connection settings |
+| `etcd.*` | Default ETCD connection settings |
+| `service.*` | Version, metadata, keepalive TTLs, future timeout, entity TTL, and panic recovery |
+| `startup.services` | Replica count per registered service name |
+| `pprof.*` | Optional pprof listener configuration |
+
+Typical startup command:
+
+```bash
+your-app \
+  --startup.services lobby=2 \
+  --nats.address localhost:4222 \
+  --etcd.address localhost:2379 \
+  --conf.local_path ./config.yaml
+```
+
+Service-specific settings should live under the service name:
+
+```yaml
+lobby:
+  tick_interval: 50ms
+  gate:
+    tcp_address: 0.0.0.0:7001
+```
+
+Inside service code, `svc.ServiceConf()` resolves to the `lobby` subtree while `svc.AppConf()` still exposes the full merged configuration.
+
+## Package layout
+| Path | Responsibility |
+| --- | --- |
+| [`./`](./) | App bootstrap, service/runtime/entity builders, lifecycle contracts, async helpers |
+| [`./addins`](./addins) | Convenience re-exports for built-in add-in installers and option helpers |
+| [`./addins/broker`](./addins/broker) | Broker abstraction and NATS implementation |
+| [`./addins/conf`](./addins/conf) | Viper-backed configuration add-in |
+| [`./addins/db`](./addins/db) | DB injection and integrations for SQL, Redis, and MongoDB |
+| [`./addins/dent`](./addins/dent) | Distributed entity query and registry add-ins |
+| [`./addins/discovery`](./addins/discovery) | Service discovery abstraction and ETCD implementation |
+| [`./addins/dsvc`](./addins/dsvc) | Distributed service addressing and future-based service calls |
+| [`./addins/dsync`](./addins/dsync) | Distributed synchronization with ETCD and Redis implementations |
+| [`./addins/gate`](./addins/gate) | Gateway/session management on top of GTP |
+| [`./addins/gate/cli`](./addins/gate/cli) | Low-level client for GTP/GAP endpoints |
+| [`./addins/log`](./addins/log) | Zap-backed logging add-in |
+| [`./addins/router`](./addins/router) | Session routing, mapping, groups, and multicast helpers |
+| [`./addins/rpc`](./addins/rpc) | RPC facade, call-path helpers, processors, and RPC client tooling |
+| [`./addins/rpcstack`](./addins/rpcstack) | RPC call chain/context stack |
+| [`./net/gap`](./net/gap) | GAP messages, codec, and dynamic variant values |
+| [`./net/gtp`](./net/gtp) | GTP messages, codec, crypto/compression methods, and transport machinery |
+| [`./net/netpath`](./net/netpath) | Helpers for distributed service/node path formats |
+| [`./utils`](./utils) | Binary and concurrency helpers used by the framework internals |
+
+## Protocol stack
+- `net/gtp` is the transport layer. It defines handshake messages, cipher negotiation, authentication, compression, and reliable packet delivery over TCP or WebSocket.
+- `net/gap` sits above GTP or broker-delivered payloads. It carries forwarded messages, RPC requests/replies, one-way RPC, and extensible application payloads.
+- `addins/gate`, `addins/router`, and `addins/rpc` build service-facing communication features on top of those two layers.
+
+## Requirements
+- Go `1.25+`
+- NATS for the default broker add-in
+- ETCD for the default discovery, distributed sync, and distributed entity registry/query add-ins
+- Optional Redis if you choose Redis-backed distributed sync or Redis DB access
+- Optional MongoDB or SQL databases depending on the enabled DB add-ins
 
 ## Installation
 ```bash
 go get -u git.golaxy.org/framework
 ```
 
-## Associated Repositories
+## Examples
+See [pangdogs/examples](https://github.com/pangdogs/examples) for end-to-end services, gateways, and RPC usage.
+
+## Related repositories
 - [Golaxy Distributed Service Development Framework Core](https://github.com/pangdogs/core)
-- [Golaxy Developing a Game Server Scaffold](https://github.com/pangdogs/scaffold)
+- [Golaxy Game Server Scaffold](https://github.com/pangdogs/scaffold)

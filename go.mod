@@ -7,7 +7,6 @@ require (
 	github.com/andybalholm/brotli v1.2.0
 	github.com/dgraph-io/ristretto/v2 v2.4.0
 	github.com/elliotchance/pie/v2 v2.9.1
-	github.com/fsnotify/fsnotify v1.9.0
 	github.com/fufuok/bytespool v1.5.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redsync/redsync/v4 v4.15.0
@@ -16,7 +15,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.25
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/spf13/viper/remote v1.21.0
 	go.etcd.io/etcd/api/v3 v3.6.7
@@ -47,6 +45,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -97,6 +96,7 @@ require (
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect

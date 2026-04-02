@@ -2,56 +2,160 @@
 [English](./README.md) | [简体中文](./README.zh_CN.md)
 
 ## 简介
-[**Golaxy分布式服务开发框架**](https://github.com/pangdogs/framework) 旨在为实时通信应用程序提供一个全面的服务端解决方案。基于EC系统与Actor线程模型的 [**内核**](https://github.com/pangdogs/core) ，框架实现了分布式服务的所有依赖项，设计简洁、易于使用，特别适合用于开发游戏和远程控制系统。
+[**Golaxy 分布式服务开发框架**](https://github.com/pangdogs/framework) 是 [**Golaxy Core**](https://github.com/pangdogs/core) 的服务端扩展层。它建立在 EC 系统和 Actor 线程模型之上，把实时通信系统常见的基础设施能力封装为统一的服务框架，适合游戏服务端、网关、远程控制平台等场景。
 
-## 功能与特性
-基于框架可以开发有状态（`Stateful`）或无状态（`Stateless`）分布式服务，已实现功能与特性：
+仓库当前主要分为三层：
 
-- 消息队列与事件驱动架构（`MQ and Broker`）：基于NATS。
-- 服务发现（`Service Discovery`）：基于ETCD，框架也提供Redis支持，但是Redis没有数据版本控制机制，所以仅能用于功能演示。
-- 分布式锁（`Distributed Synchronization`）：基于ETCD或Redis，默认ETCD。
-- 分布式服务支持（`Distributed Service`）：定义分布式服务节点地址格式，提供异步模型未来（`Future`），支持分布式服务间通信，可以横向拓展服务。
-- 分布式实体支持（`Distributed Entities`）：提供分布式实体（`Distributed Entity`）信息登记与查询功能，支持分布式实体间通信。
-- GTP协议（`Golaxy Transfer Protocol`）：适用于长连接、实时通信的工作场景，需要工作在可靠网络协议（`TCP/WebSocket`）之上，支持双向签名验证、链路加密、链路鉴权、连接迁移、自定义消息等特性。
-- GAP协议（`Golaxy Application Protocol`）：适用于开发应用层通信消息，需要工作在`GTP协议`或`MQ`之上，支持消息判重、自定义消息、自定义可变类型等特性。
-- GTP协议网关与客户端（`GTP Gate and Client`）：基于`GTP协议`的网关与客户端，支持`TCP/WebSocket`长连接。
-- 路由（`Router`）：支持规划通信路线，映射会话与实体，使任意服务可以与客户端通信，还支持创建通信分组，实现消息组播。
-- RPC支持（`Remote Procedure Call`）：支持服务、实体、客户端和分组间的RPC调用，基于`GAP协议`，支持可变类型，简单易用。支持单程通知RCP与有响应RPC。
-- 日志（`Logger`）：基于Zap。
-- 配置（`Config`）：基于Viper，支持本地本地配置与远端配置。
-- 数据库（`DB`）：支持连接关系型数据库（基于`GORM`）、Redis、MongoDB。
+- `framework`：应用启动、服务/运行时装配、生命周期接口，以及实体/组件构建辅助。
+- `addins`：可复用的基础设施插件，例如 broker、服务发现、路由、RPC、网关和数据库访问。
+- `net`：通信层协议栈，包括 GTP 传输协议和 GAP 应用层消息协议。
 
-## 目录
-| Directory                                                                             | Description |
-|---------------------------------------------------------------------------------------| ----------- |
-| [/](https://github.com/pangdogs/framework)                                            | 开发应用时常用的类型与函数。|
-| [/addins/broker](https://github.com/pangdogs/framework/tree/main/addins/broker)       | 消息队列中间件。|
-| [/addins/conf](https://github.com/pangdogs/framework/tree/main/addins/conf)           | 配置系统。|
-| [/addins/db](https://github.com/pangdogs/framework/tree/main/addins/db)               | 支持数据库。|
-| [/addins/dentq](https://github.com/pangdogs/framework/tree/main/addins/dentq)         | 支持分布式实体查询。|
-| [/addins/dentr](https://github.com/pangdogs/framework/tree/main/addins/dentr)         | 支持分布式实体注册。|
-| [/addins/discovery](https://github.com/pangdogs/framework/tree/main/addins/discovery) | 服务发现。|
-| [/addins/dsvc](https://github.com/pangdogs/framework/tree/main/addins/dsvc)           | 支持分布式服务。|
-| [/addins/dsync](https://github.com/pangdogs/framework/tree/main/addins/dsync)         | 分布式锁。|
-| [/addins/gate](https://github.com/pangdogs/framework/tree/main/addins/gate)           | 实现GTP网关。|
-| [/addins/log](https://github.com/pangdogs/framework/tree/main/addins/log)             | 日志系统。|
-| [/addins/router](https://github.com/pangdogs/framework/tree/main/addins/router)       | 客户端路由系统。|
-| [/addins/rpc](https://github.com/pangdogs/framework/tree/main/addins/rpc)             | RPC系统。|
-| [/addins/rpcstack](https://github.com/pangdogs/framework/tree/main/addins/rpcstack)   | 支持RPC堆栈。|
-| [/net/gap](https://github.com/pangdogs/framework/tree/main/net/gap)                   | GAP协议实现。|
-| [/net/gtp](https://github.com/pangdogs/framework/tree/main/net/gtp)                   | GTP协议实现。|
-| [/net/netpath](https://github.com/pangdogs/framework/tree/main/net/netpath)           | 服务节点地址结构。|
-| [/utils](https://github.com/pangdogs/framework/tree/main/utils)                       | 一些工具类与函数。 |
+## 架构说明
+### 核心概念
+- `App` 负责收集服务装配器，使用 Cobra/Viper 加载命令行与配置，并按配置启动多个服务副本。
+- `IService` 封装服务上下文，统一暴露 broker、服务发现、分布式同步、分布式服务、分布式实体查询和 RPC 等能力。
+- `IRuntime` 封装运行时上下文，负责安装运行时级 add-in，并承载实体执行。
+- `EntityBehavior` 和 `ComponentBehavior` 为实体、组件提供回到所属 runtime 和 service 的强类型访问。
+- `BuildRuntime`、`BuildEntityPT`、`BuildEntity` 是创建运行时、实体原型和实体实例的主要入口。
 
-## 示例
+### 默认装配的 add-in
+如果业务代码没有在生命周期阶段安装自定义实现，框架会自动装配以下 add-in。
 
-详见： [Examples](https://github.com/pangdogs/examples)
+服务级默认 add-in：
+
+- `log`
+- `conf`
+- `broker`，默认实现为 NATS
+- `discovery`，默认实现为 ETCD
+- `dsync`，默认实现为 ETCD
+- `dsvc`
+- `dent` 查询端
+- `rpc`
+
+运行时级默认 add-in：
+
+- `log`
+- `rpcstack`
+- `dent` 注册端
+
+## 功能特性
+- 支持有状态或无状态服务，并支持按副本数启动多个实例。
+- 支持从命令行、环境变量、本地配置文件、Viper 远程配置源加载配置。
+- 支持服务注册发现、节点发布，以及基于 `Future` 的跨服务调用。
+- 支持分布式实体注册、查询，以及 runtime 内实体创建。
+- 内置 broker 层、分布式同步能力，以及 SQL/Redis/MongoDB 集成。
+- 提供基于 TCP/WebSocket 的 GTP 长连接传输层。
+- 提供 GAP 应用层消息、转发、RPC 请求/响应与动态变体类型。
+- 可在统一协议栈上构建网关、路由、RPC 处理器和 RPC 客户端。
+
+## 最小启动示例
+```go
+package main
+
+import "git.golaxy.org/framework"
+
+type LobbyService struct {
+	framework.ServiceBehavior
+}
+
+func (svc *LobbyService) OnStarted(s framework.IService) {
+	s.BuildRuntime().
+		SetName("main").
+		SetEnableFrame(true).
+		SetFPS(20).
+		New()
+}
+
+func main() {
+	framework.NewApp().
+		SetAssembler("lobby", &LobbyService{}).
+		Run()
+}
+```
+
+传给 `SetAssembler` 的服务名会同时用于：
+
+- `svc.ServiceConf()` 返回的服务配置子树名
+- `startup.services` 中的默认服务键名
+- 分布式服务相关 add-in 对外发布的逻辑服务名
+
+## 配置与启动
+`App` 在启动前会统一注册以下配置项：
+
+| 配置项 | 作用 |
+| --- | --- |
+| `log.*` | 日志级别、编码器、输出格式和异步缓冲参数 |
+| `conf.*` | 环境变量前缀、本地配置路径、远程配置源参数 |
+| `nats.*` | 默认 broker 连接参数 |
+| `etcd.*` | 默认 ETCD 连接参数 |
+| `service.*` | 服务版本、元数据、保活 TTL、Future 超时、实体 TTL、panic 自动恢复 |
+| `startup.services` | 每个服务名对应的启动副本数 |
+| `pprof.*` | 可选的 pprof 监听参数 |
+
+典型启动命令：
+
+```bash
+your-app \
+  --startup.services lobby=2 \
+  --nats.address localhost:4222 \
+  --etcd.address localhost:2379 \
+  --conf.local_path ./config.yaml
+```
+
+服务专属配置建议放在服务名子树下：
+
+```yaml
+lobby:
+  tick_interval: 50ms
+  gate:
+    tcp_address: 0.0.0.0:7001
+```
+
+在代码中，`svc.ServiceConf()` 会定位到 `lobby` 子树，而 `svc.AppConf()` 仍然返回完整的合并后配置。
+
+## 目录说明
+| 路径 | 职责 |
+| --- | --- |
+| [`./`](./) | App 启动、服务/运行时/实体构建器、生命周期接口、异步辅助 |
+| [`./addins`](./addins) | 内置 add-in 安装入口与常用 option 辅助的聚合导出 |
+| [`./addins/broker`](./addins/broker) | Broker 抽象与 NATS 实现 |
+| [`./addins/conf`](./addins/conf) | 基于 Viper 的配置 add-in |
+| [`./addins/db`](./addins/db) | SQL、Redis、MongoDB 集成与数据库注入辅助 |
+| [`./addins/dent`](./addins/dent) | 分布式实体查询与注册 add-in |
+| [`./addins/discovery`](./addins/discovery) | 服务发现抽象与 ETCD 实现 |
+| [`./addins/dsvc`](./addins/dsvc) | 分布式服务寻址与基于 Future 的服务调用 |
+| [`./addins/dsync`](./addins/dsync) | 分布式同步能力及 ETCD/Redis 实现 |
+| [`./addins/gate`](./addins/gate) | 构建在 GTP 之上的网关与会话管理 |
+| [`./addins/gate/cli`](./addins/gate/cli) | 面向 GTP/GAP 端点的底层客户端 |
+| [`./addins/log`](./addins/log) | 基于 Zap 的日志 add-in |
+| [`./addins/router`](./addins/router) | 会话路由、映射、分组和组播辅助 |
+| [`./addins/rpc`](./addins/rpc) | RPC 门面、调用路径、处理器和 RPC 客户端工具 |
+| [`./addins/rpcstack`](./addins/rpcstack) | RPC 调用链上下文栈 |
+| [`./net/gap`](./net/gap) | GAP 消息、编解码和动态变体类型 |
+| [`./net/gtp`](./net/gtp) | GTP 消息、编解码、加密/压缩算法和传输实现 |
+| [`./net/netpath`](./net/netpath) | 分布式服务/节点路径格式辅助 |
+| [`./utils`](./utils) | 框架内部使用的二进制与并发辅助工具 |
+
+## 协议栈分层
+- `net/gtp` 是传输层，定义握手消息、密码套件协商、链路鉴权、压缩，以及基于 TCP/WebSocket 的可靠消息传输。
+- `net/gap` 位于 GTP 或 MQ 之上，用于承载转发消息、RPC 请求/响应、单向 RPC 和可扩展应用层负载。
+- `addins/gate`、`addins/router`、`addins/rpc` 在这两层协议之上构建面向业务的通信能力。
+
+## 环境要求
+- Go `1.25+`
+- 默认 broker 依赖 NATS
+- 默认服务发现、分布式同步、分布式实体注册/查询依赖 ETCD
+- 如果选择 Redis 版分布式同步或 Redis 数据库 add-in，则需要 Redis
+- 根据启用的数据库 add-in，可选 MongoDB 或各类 SQL 数据库
 
 ## 安装
-```
+```bash
 go get -u git.golaxy.org/framework
 ```
 
-## 相关项目
-- [Golaxy分布式服务开发框架内核](https://github.com/pangdogs/core)
-- [Golaxy游戏服务器的脚手架](https://github.com/pangdogs/scaffold)
+## 示例
+完整示例可参考 [pangdogs/examples](https://github.com/pangdogs/examples)。
+
+## 相关仓库
+- [Golaxy Distributed Service Development Framework Core](https://github.com/pangdogs/core)
+- [Golaxy 游戏服务脚手架](https://github.com/pangdogs/scaffold)
