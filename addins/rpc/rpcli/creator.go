@@ -93,8 +93,8 @@ func (ctor *RPCliCreator) SetWebSocketOrigin(origin string) *RPCliCreator {
 	return ctor
 }
 
-func (ctor *RPCliCreator) SetTLSConfig(tlsConfig tls.Config) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.TLSConfig(&tlsConfig))
+func (ctor *RPCliCreator) SetTLSConfig(tlsConfig *tls.Config) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.TLSConfig(tlsConfig))
 	return ctor
 }
 

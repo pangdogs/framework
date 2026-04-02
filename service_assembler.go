@@ -338,7 +338,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 				zapcore.NewCore(
 					encoder,
 					zapcore.AddSync(os.Stdout),
-					level,
+					atomicLevel,
 				),
 				zap.AddCaller(),
 				zap.AddStacktrace(zap.DPanicLevel),

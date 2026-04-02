@@ -139,10 +139,12 @@ func (m *_EtcdSyncMutex) Lock(ctx context.Context) error {
 		return fmt.Errorf("dsync: %w", err)
 	}
 
-	ctx, _ = context.WithTimeout(ctx, m.expiry)
+	lockCtx, cancel := context.WithTimeout(ctx, m.expiry)
+	defer cancel()
+
 	mutex := etcd_concurrency.NewMutex(session, m.name)
 
-	if err = mutex.Lock(ctx); err != nil {
+	if err = mutex.Lock(lockCtx); err != nil {
 		session.Close()
 		m.locked.Store(false)
 

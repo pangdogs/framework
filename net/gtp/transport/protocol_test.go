@@ -42,7 +42,8 @@ func Test_Protocol(t *testing.T) {
 	}
 	defer listener.Close()
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	var wg sync.WaitGroup
 

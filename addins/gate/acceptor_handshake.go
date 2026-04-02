@@ -553,8 +553,6 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 	default:
 		return fmt.Errorf("CipherSuite.SecretKeyExchange(%s) not supported", cs.SecretKeyExchange)
 	}
-
-	return nil
 }
 
 // setupCompression 安装压缩模块

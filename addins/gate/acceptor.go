@@ -44,7 +44,9 @@ func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
 		return nil, errors.New("gate: service shutdown")
 	default:
 	}
-	ctx, _ := context.WithTimeout(acc.ctx, acc.options.AcceptTimeout)
+	ctx, cancel := context.WithTimeout(acc.ctx, acc.options.AcceptTimeout)
+	defer cancel()
+
 	return acc.handshake(ctx, conn)
 }
 
