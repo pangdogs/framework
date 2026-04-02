@@ -43,11 +43,11 @@ func parseResult[T any](retArr variant.Array, idx int) (T, error) {
 
 	retRV, err := v.Convert(reflect.TypeFor[T]())
 	if err != nil {
-		return types.ZeroT[T](), ErrMethodResultTypeMismatch
+		return types.Zero[T](), ErrMethodResultTypeMismatch
 	}
 
 	if retRV.IsNil() {
-		return types.ZeroT[T](), nil
+		return types.Zero[T](), nil
 	}
 
 	return retRV.Interface().(T), nil

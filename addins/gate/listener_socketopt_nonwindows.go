@@ -31,12 +31,12 @@ import (
 func newListenConfig(options *GateOptions) *net.ListenConfig {
 	var noDelay *int
 	if options.TCPNoDelay != nil {
-		noDelay = types.NewCopiedT(types.Bool2Int[int](*options.TCPNoDelay))
+		noDelay = types.Pointer(types.Bool2Int[int](*options.TCPNoDelay))
 	}
 
 	var quickAck *int
 	if options.TCPQuickAck != nil {
-		quickAck = types.NewCopiedT(types.Bool2Int[int](*options.TCPQuickAck))
+		quickAck = types.Pointer(types.Bool2Int[int](*options.TCPQuickAck))
 	}
 
 	recvBuf := options.TCPRecvBuf
