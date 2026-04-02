@@ -29,50 +29,54 @@ import (
 )
 
 // BuildRuntime 创建运行时
-func BuildRuntime(svcCtx service.Context) *RuntimeCreator {
-	if svcCtx == nil {
-		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
+func BuildRuntime(svcInst IService) *RuntimeCreator {
+	if svcInst == nil {
+		exception.Panicf("%w: %w: svcInst is nil", ErrFramework, core.ErrArgs)
 	}
 
+	assembler := &RuntimeAssembler{}
+	assembler.init(svcInst, assembler)
+
 	return &RuntimeCreator{
-		svcCtx: svcCtx,
+		svcInst:   svcInst,
+		assembler: assembler,
 		settings: _RuntimeSettings{
 			name:                            "",
 			persistId:                       uid.Nil,
-			autoRecover:                     svcCtx.GetAutoRecover(),
-			reportError:                     svcCtx.GetReportError(),
+			autoRecover:                     svcInst.AutoRecover(),
+			reportError:                     svcInst.ReportError(),
 			continueOnActivatingEntityPanic: false,
-			processQueueCapacity:            128,
+			enableFrame:                     false,
 			fps:                             0,
 			autoInjection:                   true,
 		},
 	}
 }
 
-// RuntimeCreator 运行时构建器
+// RuntimeCreator 运行时实例构建器
 type RuntimeCreator struct {
-	svcCtx   service.Context
-	generic  iRuntimeGeneric
-	settings _RuntimeSettings
+	svcInst   service.Context
+	assembler iRuntimeAssembler
+	settings  _RuntimeSettings
 }
 
-// Setup 安装运行时泛化类型
-func (c *RuntimeCreator) Setup(generic any) *RuntimeCreator {
-	if c.svcCtx == nil {
-		exception.Panicf("%w: svcCtx is nil", ErrFramework)
+// SetAssembler 设置运行时实例装配器
+func (c *RuntimeCreator) SetAssembler(assembler any) *RuntimeCreator {
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
 	}
 
-	if generic == nil {
-		exception.Panicf("%w: %w: generic is nil", ErrFramework, core.ErrArgs)
+	if assembler == nil {
+		exception.Panicf("%w: %w: assembler is nil", ErrFramework, core.ErrArgs)
 	}
 
-	rtGeneric, ok := generic.(iRuntimeGeneric)
+	assemblerInst, ok := assembler.(iRuntimeAssembler)
 	if !ok {
-		rtGeneric = newRuntimeInstantiation(generic)
+		assemblerInst = newRuntimeInstantiator(assembler)
 	}
-	rtGeneric.init(c.svcCtx, rtGeneric)
+	assemblerInst.init(c.svcInst, assemblerInst)
 
-	c.generic = rtGeneric
+	c.assembler = assemblerInst
 
 	return c
 }
@@ -96,20 +100,20 @@ func (c *RuntimeCreator) SetPanicHandling(autoRecover bool, reportError chan err
 	return c
 }
 
-// ContinueOnActivatingEntityPanic 激活实体时发生panic是否继续，不继续将会主动删除实体
-func (c *RuntimeCreator) ContinueOnActivatingEntityPanic(b bool) *RuntimeCreator {
+// SetContinueOnActivatingEntityPanic 设置激活实体时发生panic是否继续，不继续将会主动删除实体
+func (c *RuntimeCreator) SetContinueOnActivatingEntityPanic(b bool) *RuntimeCreator {
 	c.settings.continueOnActivatingEntityPanic = b
 	return c
 }
 
-// SetProcessQueueCapacity 设置任务处理流水线大小
-func (c *RuntimeCreator) SetProcessQueueCapacity(cap int) *RuntimeCreator {
-	c.settings.processQueueCapacity = cap
+// SetEnableFrame 设置是否启用帧循环
+func (c *RuntimeCreator) SetEnableFrame(b bool) *RuntimeCreator {
+	c.settings.enableFrame = b
 	return c
 }
 
 // SetFPS 设置帧率
-func (c *RuntimeCreator) SetFPS(fps float32) *RuntimeCreator {
+func (c *RuntimeCreator) SetFPS(fps float64) *RuntimeCreator {
 	c.settings.fps = fps
 	return c
 }
@@ -122,15 +126,11 @@ func (c *RuntimeCreator) SetAutoInjection(b bool) *RuntimeCreator {
 
 // New 创建运行时
 func (c *RuntimeCreator) New() IRuntime {
-	if c.svcCtx == nil {
-		exception.Panicf("%w: svcCtx is nil", ErrFramework)
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
 	}
-
-	generic := c.generic
-	if generic == nil {
-		generic = &RuntimeGeneric{}
-		generic.init(c.svcCtx, generic)
+	if c.assembler == nil {
+		exception.Panicf("%w: assembler is nil", ErrFramework)
 	}
-
-	return reinterpret.Cast[IRuntime](runtime.Current(generic.generate(c.settings)))
+	return reinterpret.Cast[IRuntime](runtime.Current(c.assembler.assemble(c.settings)))
 }

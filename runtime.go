@@ -24,7 +24,8 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
-	"git.golaxy.org/framework/addins/dentr"
+	"git.golaxy.org/framework/addins"
+	"git.golaxy.org/framework/addins/dent"
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
@@ -36,14 +37,14 @@ func GetRuntime(provider runtime.CurrentContextProvider) IRuntime {
 // IRuntime 运行时实例接口
 type IRuntime interface {
 	runtime.Context
-	// GetDistEntityRegistry 获取分布式实体注册支持
-	GetDistEntityRegistry() dentr.IDistEntityRegistry
-	// GetRPCStack 获取RPC调用堆栈支持
-	GetRPCStack() rpcstack.IRPCStack
-	// GetService 获取服务实例
-	GetService() IService
-	// GetAutoInjection 是否自动注入组件
-	GetAutoInjection() bool
+	// DistEntityRegistry 获取分布式实体注册支持
+	DistEntityRegistry() dent.IDistEntityRegistry
+	// RPCStack 获取RPC调用堆栈支持
+	RPCStack() rpcstack.IRPCStack
+	// Service 获取服务实例
+	Service() IService
+	// AutoInjection 是否自动注入组件
+	AutoInjection() bool
 	// BuildEntity 创建实体
 	BuildEntity(prototype string) *core.EntityCreator
 }
@@ -58,23 +59,23 @@ type RuntimeBehavior struct {
 	autoInjection bool
 }
 
-// GetDistEntityRegistry 获取分布式实体注册支持
-func (rt *RuntimeBehavior) GetDistEntityRegistry() dentr.IDistEntityRegistry {
-	return dentr.Using(rt)
+// DistEntityRegistry 获取分布式实体注册支持
+func (rt *RuntimeBehavior) DistEntityRegistry() dent.IDistEntityRegistry {
+	return addins.Dentr.Require(rt)
 }
 
-// GetRPCStack 获取RPC调用堆栈支持
-func (rt *RuntimeBehavior) GetRPCStack() rpcstack.IRPCStack {
-	return rpcstack.Using(rt)
+// RPCStack 获取RPC调用堆栈支持
+func (rt *RuntimeBehavior) RPCStack() rpcstack.IRPCStack {
+	return addins.RPCStack.Require(rt)
 }
 
-// GetService 获取服务
-func (rt *RuntimeBehavior) GetService() IService {
+// Service 获取服务
+func (rt *RuntimeBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(rt))
 }
 
-// GetAutoInjection 是否自动注入组件
-func (rt *RuntimeBehavior) GetAutoInjection() bool {
+// AutoInjection 是否自动注入组件
+func (rt *RuntimeBehavior) AutoInjection() bool {
 	return rt.autoInjection
 }
 

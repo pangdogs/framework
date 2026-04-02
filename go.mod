@@ -3,7 +3,7 @@ module git.golaxy.org/framework
 go 1.25
 
 require (
-	git.golaxy.org/core v0.4.27-0.20260401092627-f2c482034daa
+	git.golaxy.org/core v0.4.27-0.20260401104756-29c959c9d59a
 	github.com/andybalholm/brotli v1.2.0
 	github.com/dgraph-io/ristretto/v2 v2.4.0
 	github.com/elliotchance/pie/v2 v2.9.1
@@ -19,6 +19,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/spf13/viper/remote v1.21.0
+	go.etcd.io/etcd/api/v3 v3.6.7
 	go.etcd.io/etcd/client/v3 v3.6.7
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	go.uber.org/zap v1.27.1
@@ -101,7 +102,6 @@ require (
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.7 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.7 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.22 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

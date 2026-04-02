@@ -20,17 +20,18 @@
 package framework
 
 import (
+	"reflect"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
-	"reflect"
 )
 
-// IRuntimeInstantiation 运行时实例化接口
-type IRuntimeInstantiation interface {
+// IRuntimeInstantiator 运行时实例化接口
+type IRuntimeInstantiator interface {
 	Instantiate() IRuntime
 }
 
-func newRuntimeInstantiation(rtInst any) *_RuntimeInstantiation {
+func newRuntimeInstantiator(rtInst any) *_RuntimeInstantiator {
 	if rtInst == nil {
 		exception.Panicf("%w: %w: rtInst is nil", ErrFramework, core.ErrArgs)
 	}
@@ -48,19 +49,19 @@ func newRuntimeInstantiation(rtInst any) *_RuntimeInstantiation {
 		exception.Panicf("%w: unsupported type", ErrFramework)
 	}
 
-	return &_RuntimeInstantiation{
-		runtimeInstanceRT: rtInstRT,
+	return &_RuntimeInstantiator{
+		instanceRT: rtInstRT,
 	}
 }
 
-type _RuntimeInstantiation struct {
-	RuntimeGeneric
-	runtimeInstanceRT reflect.Type
+type _RuntimeInstantiator struct {
+	RuntimeAssembler
+	instanceRT reflect.Type
 }
 
-func (r *_RuntimeInstantiation) Instantiate() IRuntime {
-	if r.runtimeInstanceRT == nil {
-		exception.Panicf("%w: runtimeInstanceRT is nil", ErrFramework)
+func (r *_RuntimeInstantiator) Instantiate() IRuntime {
+	if r.instanceRT == nil {
+		exception.Panicf("%w: instanceRT is nil", ErrFramework)
 	}
-	return reflect.New(r.runtimeInstanceRT).Interface().(IRuntime)
+	return reflect.New(r.instanceRT).Interface().(IRuntime)
 }

@@ -20,20 +20,21 @@
 package framework
 
 import (
+	"sync"
+	"sync/atomic"
+
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/addins"
 	"git.golaxy.org/framework/addins/broker"
-	"git.golaxy.org/framework/addins/conf"
-	"git.golaxy.org/framework/addins/dentq"
+	"git.golaxy.org/framework/addins/dent"
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/dsync"
 	"git.golaxy.org/framework/addins/rpc"
 	"github.com/spf13/viper"
-	"sync"
-	"sync/atomic"
 )
 
 // GetService 获取服务实例
@@ -44,138 +45,138 @@ func GetService(provider runtime.ConcurrentContextProvider) IService {
 // IService 服务实例接口
 type IService interface {
 	service.Context
-	// GetAppConf 获取当前应用程序配置
-	GetAppConf() *viper.Viper
-	// GetServiceConf 获取当前服务配置
-	GetServiceConf() *viper.Viper
-	// GetRegistry 获取服务发现插件
-	GetRegistry() discovery.IRegistry
-	// GetBroker 获取消息队列中间件插件
-	GetBroker() broker.IBroker
-	// GetDistSync 获取分布式同步插件
-	GetDistSync() dsync.IDistSync
-	// GetDistService 获取分布式服务插件
-	GetDistService() dsvc.IDistService
-	// GetDistEntityQuerier 获取分布式实体查询插件
-	GetDistEntityQuerier() dentq.IDistEntityQuerier
-	// GetRPC 获取RPC支持插件
-	GetRPC() rpc.IRPC
-	// GetStartupNo 获取启动序号
-	GetStartupNo() int
-	// GetMemory 获取服务内存KV存储
-	GetMemory() *sync.Map
+	// AppConf 获取当前应用程序配置
+	AppConf() *viper.Viper
+	// ServiceConf 获取当前服务配置
+	ServiceConf() *viper.Viper
+	// Registry 获取服务发现插件
+	Registry() discovery.IRegistry
+	// Broker 获取消息队列中间件插件
+	Broker() broker.IBroker
+	// DistSync 获取分布式同步插件
+	DistSync() dsync.IDistSync
+	// DistService 获取分布式服务插件
+	DistService() dsvc.IDistService
+	// DistEntityQuerier 获取分布式实体查询插件
+	DistEntityQuerier() dent.IDistEntityQuerier
+	// RPC 获取RPC支持插件
+	RPC() rpc.IRPC
+	// ReplicaNo 获取副本序号
+	ReplicaNo() int
+	// Memory 获取服务内存KV存储
+	Memory() *sync.Map
 	// BuildRuntime 创建运行时
 	BuildRuntime() *RuntimeCreator
 	// BuildEntityPT 创建实体原型
 	BuildEntityPT(prototype string) *EntityPTCreator
-	// BuildEntityAsync 创建实体
-	BuildEntityAsync(prototype string) *EntityCreatorAsync
+	// BuildEntity 创建实体
+	BuildEntity(prototype string) *EntityCreator
 }
 
 type iService interface {
 	getStarted() *atomic.Bool
-	getRuntimeGeneric() *RuntimeGeneric
+	getRuntimeAssembler() *RuntimeAssembler
 }
 
 // ServiceBehavior 服务实例行为
 type ServiceBehavior struct {
 	service.ContextBehavior
-	started        atomic.Bool
-	memory         sync.Map
-	runtimeGeneric RuntimeGeneric
+	started          atomic.Bool
+	memory           sync.Map
+	runtimeAssembler RuntimeAssembler
 }
 
-// GetAppConf 获取当前应用程序配置
-func (svc *ServiceBehavior) GetAppConf() *viper.Viper {
+// AppConf 获取当前应用配置
+func (svc *ServiceBehavior) AppConf() *viper.Viper {
 	if !svc.started.Load() {
-		return svc.getStartupConf()
+		return svc.getConf()
 	}
-	return conf.Using(svc).AppConf()
+	return addins.Conf.Require(svc).AppConf()
 }
 
-// GetServiceConf 获取当前服务配置
-func (svc *ServiceBehavior) GetServiceConf() *viper.Viper {
+// ServiceConf 获取当前服务配置
+func (svc *ServiceBehavior) ServiceConf() *viper.Viper {
 	if !svc.started.Load() {
-		return svc.getStartupConf().Sub(svc.GetName())
+		return svc.getConf().Sub(svc.Name())
 	}
-	return conf.Using(svc).ServiceConf()
+	return addins.Conf.Require(svc).ServiceConf()
 }
 
-// GetRegistry 获取服务发现插件
-func (svc *ServiceBehavior) GetRegistry() discovery.IRegistry {
-	return discovery.Using(svc)
+// Registry 获取服务发现插件
+func (svc *ServiceBehavior) Registry() discovery.IRegistry {
+	return addins.Discovery.Require(svc)
 }
 
-// GetBroker 获取消息队列中间件插件
-func (svc *ServiceBehavior) GetBroker() broker.IBroker {
-	return broker.Using(svc)
+// Broker 获取消息队列中间件插件
+func (svc *ServiceBehavior) Broker() broker.IBroker {
+	return addins.Broker.Require(svc)
 }
 
-// GetDistSync 获取分布式同步插件
-func (svc *ServiceBehavior) GetDistSync() dsync.IDistSync {
-	return dsync.Using(svc)
+// DistSync 获取分布式同步插件
+func (svc *ServiceBehavior) DistSync() dsync.IDistSync {
+	return addins.Dsync.Require(svc)
 }
 
-// GetDistService 获取分布式服务插件
-func (svc *ServiceBehavior) GetDistService() dsvc.IDistService {
-	return dsvc.Using(svc)
+// DistService 获取分布式服务插件
+func (svc *ServiceBehavior) DistService() dsvc.IDistService {
+	return addins.Dsvc.Require(svc)
 }
 
-// GetDistEntityQuerier 获取分布式实体查询插件
-func (svc *ServiceBehavior) GetDistEntityQuerier() dentq.IDistEntityQuerier {
-	return dentq.Using(svc)
+// DistEntityQuerier 获取分布式实体查询插件
+func (svc *ServiceBehavior) DistEntityQuerier() dent.IDistEntityQuerier {
+	return addins.Dentq.Require(svc)
 }
 
-// GetRPC 获取RPC支持插件
-func (svc *ServiceBehavior) GetRPC() rpc.IRPC {
-	return rpc.Using(svc)
+// RPC 获取RPC支持插件
+func (svc *ServiceBehavior) RPC() rpc.IRPC {
+	return addins.RPC.Require(svc)
 }
 
-// GetStartupNo 获取启动序号
-func (svc *ServiceBehavior) GetStartupNo() int {
-	v, _ := svc.GetMemory().Load(memStartupNo)
+// ReplicaNo 获取副本序号
+func (svc *ServiceBehavior) ReplicaNo() int {
+	v, _ := svc.Memory().Load(memReplicaNo)
 	startupNo, ok := v.(int)
 	if !ok {
-		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupNo)
+		exception.Panicf("%w: service memory %q not exists", ErrFramework, memReplicaNo)
 	}
 	return startupNo
 }
 
-// GetMemory 获取服务内存KV存储
-func (svc *ServiceBehavior) GetMemory() *sync.Map {
+// Memory 获取服务内存KV存储
+func (svc *ServiceBehavior) Memory() *sync.Map {
 	return &svc.memory
 }
 
 // BuildRuntime 创建运行时
 func (svc *ServiceBehavior) BuildRuntime() *RuntimeCreator {
-	rtCtor := BuildRuntime(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface)
-	rtCtor.generic = &svc.runtimeGeneric
+	rtCtor := BuildRuntime(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()))
+	rtCtor.assembler = &svc.runtimeAssembler
 	return rtCtor
 }
 
 // BuildEntityPT 创建实体原型
 func (svc *ServiceBehavior) BuildEntityPT(prototype string) *EntityPTCreator {
-	return BuildEntityPT(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype)
+	return BuildEntityPT(service.UnsafeContext(svc).Instance(), prototype)
 }
 
-// BuildEntityAsync 创建实体
-func (svc *ServiceBehavior) BuildEntityAsync(prototype string) *EntityCreatorAsync {
-	return BuildEntityAsync(service.UnsafeContext(svc).GetOptions().InstanceFace.Iface, prototype).SetRuntimeCreator(svc.BuildRuntime())
+// BuildEntity 创建实体
+func (svc *ServiceBehavior) BuildEntity(prototype string) *EntityCreator {
+	return BuildEntity(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()), prototype).SetRuntimeCreator(svc.BuildRuntime())
 }
 
 func (svc *ServiceBehavior) getStarted() *atomic.Bool {
 	return &svc.started
 }
 
-func (svc *ServiceBehavior) getRuntimeGeneric() *RuntimeGeneric {
-	return &svc.runtimeGeneric
+func (svc *ServiceBehavior) getRuntimeAssembler() *RuntimeAssembler {
+	return &svc.runtimeAssembler
 }
 
-func (svc *ServiceBehavior) getStartupConf() *viper.Viper {
-	v, _ := svc.GetMemory().Load(memStartupConf)
-	startupConf, ok := v.(*viper.Viper)
+func (svc *ServiceBehavior) getConf() *viper.Viper {
+	v, _ := svc.Memory().Load(memConf)
+	conf, ok := v.(*viper.Viper)
 	if !ok {
-		exception.Panicf("%w: service memory %q not existed", ErrFramework, memStartupConf)
+		exception.Panicf("%w: service memory %q not exists", ErrFramework, memConf)
 	}
-	return startupConf
+	return conf
 }

@@ -92,9 +92,7 @@ func main() {
 			log.Printf("saved to %s, %s", priKeyFile.Name(), pubKeyFile.Name())
 		},
 		CompletionOptions: cobra.CompletionOptions{
-			DisableDefaultCmd:   true,
-			DisableNoDescFlag:   true,
-			DisableDescriptions: true,
+			DisableDefaultCmd: true,
 		},
 	}
 	cmd.Flags().Int("sha_bits", 512, "sha hash bits")

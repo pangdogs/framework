@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
@@ -81,27 +80,21 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 		logger = zap.New(
 			zapcore.NewCore(
 				zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-				&zapcore.BufferedWriteSyncer{
-					WS:            zapcore.AddSync(os.Stdout),
-					Size:          512 * 1024,
-					FlushInterval: time.Second,
-				},
-				zap.DebugLevel,
+				zapcore.AddSync(os.Stdout),
+				zapcore.DebugLevel,
 			),
+			zap.AddCaller(),
+			zap.AddStacktrace(zap.DPanicLevel),
 		)
 	}
 
-	var fields []zap.Field
+	fields := []zap.Field{zap.String("service", svcCtx.String())}
 
-	if l.options.ServiceInfo {
-		fields = append(fields, zap.String("service", svcCtx.String()))
-	}
-
-	if rtCtx != nil && l.options.RuntimeInfo {
+	if rtCtx != nil {
 		fields = append(fields, zap.String("runtime", rtCtx.String()))
 	}
 
-	l.logger = logger.WithOptions(zap.Fields(fields...))
+	l.logger = logger.With(fields...)
 	l.sugaredLogger = l.logger.Sugar()
 }
 

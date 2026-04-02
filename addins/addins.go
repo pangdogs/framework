@@ -41,23 +41,38 @@ import (
 )
 
 var (
-	Broker        = broker.AddIn
-	BrokerNats    = broker_nats.AddIn
-	Conf          = conf.AddIn
-	MongoDB       = mongodb.AddIn
-	RedisDB       = redisdb.AddIn
-	SQLDB         = sqldb.AddIn
-	Dentq         = dent.QuerierAddIn
-	Dentr         = dent.RegistryAddIn
-	Discovery     = discovery.AddIn
-	DiscoveryEtcd = discovery_etcd.AddIn
-	Dsvc          = dsvc.AddIn
-	Dsync         = dsync.AddIn
-	DsyncEtcd     = dsync_etcd.AddIn
-	DsyncRedis    = dsync_redis.AddIn
-	Gate          = gate.AddIn
-	Log           = log.AddIn
-	Router        = router.AddIn
-	RPC           = rpc.AddIn
-	RPCStack      = rpcstack.AddIn
+	Broker            = broker.AddIn
+	BrokerNats        = broker_nats.AddIn
+	BrokerNatsWith    = broker_nats.With
+	Conf              = conf.AddIn
+	ConfWith          = conf.With
+	MongoDB           = mongodb.AddIn
+	MongoDBWith       = mongodb.With
+	RedisDB           = redisdb.AddIn
+	RedisDBWith       = redisdb.With
+	SQLDB             = sqldb.AddIn
+	SQLDBWith         = sqldb.With
+	Dentq             = dent.QuerierAddIn
+	DentqWith         = dent.With.Querier
+	Dentr             = dent.RegistryAddIn
+	DentrWith         = dent.With.Registry
+	Discovery         = discovery.AddIn
+	DiscoveryEtcd     = discovery_etcd.AddIn
+	DiscoveryEtcdWith = discovery_etcd.With
+	Dsvc              = dsvc.AddIn
+	DsvcWith          = dsvc.With
+	Dsync             = dsync.AddIn
+	DsyncEtcd         = dsync_etcd.AddIn
+	DsyncEtcdWith     = dsync_etcd.With
+	DsyncRedis        = dsync_redis.AddIn
+	DsyncRedisWith    = dsync_redis.With
+	Gate              = gate.AddIn
+	GateWith          = gate.With
+	Log               = log.AddIn
+	LogWith           = log.With
+	Router            = router.AddIn
+	RouterWith        = router.With
+	RPC               = rpc.AddIn
+	RPCWith           = rpc.With
+	RPCStack          = rpcstack.AddIn
 )

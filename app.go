@@ -22,11 +22,6 @@ package framework
 import (
 	"context"
 	"errors"
-	"git.golaxy.org/core"
-	"git.golaxy.org/core/utils/exception"
-	"git.golaxy.org/core/utils/generic"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -34,22 +29,27 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
+
+	"git.golaxy.org/core"
+	"git.golaxy.org/core/utils/exception"
+	"git.golaxy.org/core/utils/generic"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // NewApp 创建应用
 func NewApp() *App {
 	app := &App{
-		startupConf: viper.New(),
-		servicePTs:  map[string]*_ServicePT{},
+		conf: viper.New(),
 	}
-	app.startupCmd = &cobra.Command{
+	app.cmd = &cobra.Command{
 		Short: "Application for Launching Services",
 		Run: func(*cobra.Command, []string) {
-			// 加载启动参数配置
-			app.initStartupConf()
+			// 加载参数配置
+			app.initConf()
 			// 加载pprof
 			app.initPProf()
 			// 执行启动回调
@@ -60,107 +60,85 @@ func NewApp() *App {
 			app.terminatedCB.UnsafeCall(app)
 		},
 		CompletionOptions: cobra.CompletionOptions{
-			DisableDefaultCmd:   true,
-			DisableNoDescFlag:   true,
-			DisableDescriptions: true,
+			DisableDefaultCmd: true,
 		},
 	}
 	return app
 }
 
-type _ServicePT struct {
-	generic iServiceGeneric
-	num     int
+type _SupportedService struct {
+	assembler iServiceAssembler
+	count     int
 }
 
 // App 应用
 type App struct {
-	isRunning                        atomic.Bool
-	servicePTs                       map[string]*_ServicePT
-	startupConf                      *viper.Viper
-	startupCmd                       *cobra.Command
+	services                         generic.SliceMap[string, *_SupportedService]
+	conf                             *viper.Viper
+	cmd                              *cobra.Command
 	initCB, startingCB, terminatedCB generic.Action1[*App]
 }
 
-// Setup 安装服务泛化类型
-func (app *App) Setup(name string, generic any) *App {
-	if app.isRunning.Load() {
-		exception.Panicf("%w: already running", ErrFramework)
+// SetAssembler 设置服务
+func (app *App) SetAssembler(name string, assembler any) *App {
+	if app.conf == nil {
+		exception.Panicf("%w: conf is nil", ErrFramework)
 	}
 
-	if app.servicePTs == nil {
-		exception.Panicf("%w: servicePTs is nil", ErrFramework)
+	if app.cmd == nil {
+		exception.Panicf("%w: cmd is nil", ErrFramework)
 	}
 
-	if app.startupConf == nil {
-		exception.Panicf("%w: startupConf is nil", ErrFramework)
+	if assembler == nil {
+		exception.Panicf("%w: %w: assembler is nil", ErrFramework, core.ErrArgs)
 	}
 
-	if app.startupCmd == nil {
-		exception.Panicf("%w: startupCmd is nil", ErrFramework)
-	}
-
-	if generic == nil {
-		exception.Panicf("%w: %w: generic is nil", ErrFramework, core.ErrArgs)
-	}
-
-	svcGeneric, ok := generic.(iServiceGeneric)
+	assemblerInst, ok := assembler.(iServiceAssembler)
 	if !ok {
-		svcGeneric = newServiceInstantiation(generic)
+		assemblerInst = newServiceInstantiator(assembler)
 	}
-	svcGeneric.init(app.startupConf, app.startupCmd, name, svcGeneric)
+	assemblerInst.init(app.conf, app.cmd, name, assemblerInst)
 
-	app.servicePTs[name] = &_ServicePT{
-		generic: svcGeneric,
-		num:     1,
-	}
+	app.services.Add(name,
+		&_SupportedService{
+			assembler: assemblerInst,
+			count:     1,
+		},
+	)
 
 	return app
 }
 
 // InitCB 初始化回调
 func (app *App) InitCB(cb generic.Action1[*App]) *App {
-	if app.isRunning.Load() {
-		exception.Panicf("%w: already running", ErrFramework)
-	}
 	app.initCB = cb
 	return app
 }
 
 // StartingCB 启动回调
 func (app *App) StartingCB(cb generic.Action1[*App]) *App {
-	if app.isRunning.Load() {
-		exception.Panicf("%w: already running", ErrFramework)
-	}
 	app.startingCB = cb
 	return app
 }
 
 // TerminateCB 终止回调
 func (app *App) TerminateCB(cb generic.Action1[*App]) *App {
-	if app.isRunning.Load() {
-		exception.Panicf("%w: already running", ErrFramework)
-	}
 	app.terminatedCB = cb
 	return app
 }
 
 // Run 运行
 func (app *App) Run() {
-	if app.servicePTs == nil {
-		exception.Panicf("%w: servicePTs is nil", ErrFramework)
+	if app.services == nil {
+		exception.Panicf("%w: services is nil", ErrFramework)
 	}
 
-	if app.startupConf == nil {
-		exception.Panicf("%w: startupConf is nil", ErrFramework)
+	if app.conf == nil {
+		exception.Panicf("%w: conf is nil", ErrFramework)
 	}
 
-	if app.startupCmd == nil {
-		exception.Panicf("%w: startupCmd is nil", ErrFramework)
-	}
-
-	if !app.isRunning.CompareAndSwap(false, true) {
-		exception.Panicf("%w: already running", ErrFramework)
+	if app.cmd == nil {
+		exception.Panicf("%w: cmd is nil", ErrFramework)
 	}
 
 	// 初始化启动参数
@@ -169,116 +147,113 @@ func (app *App) Run() {
 	app.initCB.UnsafeCall(app)
 
 	// 开始运行
-	if err := app.startupCmd.Execute(); err != nil {
+	if err := app.cmd.Execute(); err != nil {
 		exception.Panicf("%w: %w", ErrFramework, err)
 	}
 }
 
-// GetStartupConf 获取启动参数配置
-func (app *App) GetStartupConf() *viper.Viper {
-	return app.startupConf
+// Conf 获取参数配置
+func (app *App) Conf() *viper.Viper {
+	return app.conf
 }
 
-// GetStartupCmd 获取启动命令
-func (app *App) GetStartupCmd() *cobra.Command {
-	return app.startupCmd
+// Cmd 获取启动命令
+func (app *App) Cmd() *cobra.Command {
+	return app.cmd
 }
 
 func (app *App) initFlags() {
-	startupCmd := app.startupCmd
+	cmd := app.cmd
 
 	// 日志参数
-	startupCmd.PersistentFlags().String("log.format", "console", "logging output format (json|console)")
-	startupCmd.PersistentFlags().String("log.level", "info", "logging level")
-	startupCmd.PersistentFlags().String("log.dir", "", "logging directory path")
-	startupCmd.PersistentFlags().Int("log.size", 100*1024*1024, "log file splitting size")
-	startupCmd.PersistentFlags().Bool("log.stdout", true, "logging output to stdout")
-	startupCmd.PersistentFlags().Bool("log.development", false, "logging in development mode")
-	startupCmd.PersistentFlags().Bool("log.service_info", false, "logging output service info")
-	startupCmd.PersistentFlags().Bool("log.runtime_info", false, "logging output generic info")
+	cmd.PersistentFlags().String("log.level", zap.InfoLevel.String(), "log level: [debug|info|warn|error|dpanic|panic|fatal]")
+	cmd.PersistentFlags().String("log.encoder", "development", "log encoder: [production|development]")
+	cmd.PersistentFlags().String("log.format", "console", "log format: [console|json]")
+	cmd.PersistentFlags().Bool("log.async", true, "enable async log writer")
+	cmd.PersistentFlags().Int("log.buffer_size", 512*1024, "async log buffer size in bytes")
+	cmd.PersistentFlags().Duration("log.flush_interval", time.Second, "async log flush interval, e.g. 1s")
 
 	// 配置参数
-	startupCmd.PersistentFlags().String("conf.env_prefix", "", "defines the prefix for environment variables")
-	startupCmd.PersistentFlags().String("conf.local_path", "", "local config file path")
-	startupCmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
-	startupCmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
-	startupCmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
-	startupCmd.PersistentFlags().Bool("conf.auto_hotfix", false, "auto hotfix config")
+	cmd.PersistentFlags().String("conf.env_prefix", "", "defines the prefix for environment variables")
+	cmd.PersistentFlags().String("conf.local_path", "", "local config file path")
+	cmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
+	cmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
+	cmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
 
 	// nats参数
-	startupCmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")
-	startupCmd.PersistentFlags().String("nats.username", "", "nats auth username")
-	startupCmd.PersistentFlags().String("nats.password", "", "nats auth password")
+	cmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")
+	cmd.PersistentFlags().String("nats.username", "", "nats auth username")
+	cmd.PersistentFlags().String("nats.password", "", "nats auth password")
 
 	// etcd参数
-	startupCmd.PersistentFlags().String("etcd.address", "localhost:2379", "etcd address")
-	startupCmd.PersistentFlags().String("etcd.username", "", "etcd auth username")
-	startupCmd.PersistentFlags().String("etcd.password", "", "etcd auth password")
+	cmd.PersistentFlags().String("etcd.address", "localhost:2379", "etcd address")
+	cmd.PersistentFlags().String("etcd.username", "", "etcd auth username")
+	cmd.PersistentFlags().String("etcd.password", "", "etcd auth password")
 
 	// 分布式服务参数
-	startupCmd.PersistentFlags().String("service.version", "v0.0.0", "service version info")
-	startupCmd.PersistentFlags().StringToString("service.meta", map[string]string{}, "service meta info")
-	startupCmd.PersistentFlags().Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
-	startupCmd.PersistentFlags().Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
-	startupCmd.PersistentFlags().Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
-	startupCmd.PersistentFlags().Bool("service.auto_recover", false, "enable panic auto recover")
+	cmd.PersistentFlags().String("service.version", "v0.0.0", "service version info")
+	cmd.PersistentFlags().StringToString("service.meta", map[string]string{}, "service meta info")
+	cmd.PersistentFlags().Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
+	cmd.PersistentFlags().Duration("service.future_timeout", 3*time.Second, "timeout for future model of service interaction")
+	cmd.PersistentFlags().Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
+	cmd.PersistentFlags().Bool("service.auto_recover", false, "enable panic auto recover")
 
 	// 启动的服务列表
-	startupCmd.PersistentFlags().StringToString("startup.services", func() map[string]string {
+	cmd.PersistentFlags().StringToString("startup.services", func() map[string]string {
 		ret := map[string]string{}
-		for name, pt := range app.servicePTs {
-			ret[name] = strconv.Itoa(pt.num)
-		}
+		app.services.Each(func(name string, service *_SupportedService) {
+			ret[name] = strconv.Itoa(service.count)
+		})
 		return ret
 	}(), "instances required for each service to start")
 
 	// pprof参数
-	startupCmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
-	startupCmd.PersistentFlags().String("pprof.address", "0.0.0.0:6060", "pprof listening address")
+	cmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
+	cmd.PersistentFlags().String("pprof.address", "0.0.0.0:6060", "pprof listening address")
 }
 
-func (app *App) initStartupConf() {
-	startupConf := app.startupConf
+func (app *App) initConf() {
+	conf := app.conf
 
 	// 合并启动参数
-	startupConf.BindPFlags(app.startupCmd.Flags())
+	conf.BindPFlags(app.cmd.Flags())
 
 	// 合并环境变量
-	startupConf.SetEnvPrefix(startupConf.GetString("conf.env_prefix"))
-	startupConf.AutomaticEnv()
+	conf.SetEnvPrefix(conf.GetString("conf.env_prefix"))
+	conf.AutomaticEnv()
 
 	// 加载本地配置文件
-	localPath := startupConf.GetString("conf.local_path")
+	localPath := conf.GetString("conf.local_path")
 
 	if localPath != "" {
-		startupConf.SetConfigFile(localPath)
+		conf.SetConfigFile(localPath)
 
-		if err := startupConf.ReadInConfig(); err != nil {
-			exception.Panicf("%w: read local config %q failed, %s", ErrFramework, localPath, err)
+		if err := conf.ReadInConfig(); err != nil {
+			exception.Panicf("%w: read local config failed, path:%q, %s", ErrFramework, localPath, err)
 		}
 	}
 
 	// 加载远程配置文件
-	remoteProvider := startupConf.GetString("conf.remote_provider")
-	remoteEndpoint := startupConf.GetString("conf.remote_endpoint")
-	remotePath := startupConf.GetString("conf.remote_path")
+	remoteProvider := conf.GetString("conf.remote_provider")
+	remoteEndpoint := conf.GetString("conf.remote_endpoint")
+	remotePath := conf.GetString("conf.remote_path")
 
 	if remoteProvider != "" {
-		if err := startupConf.AddRemoteProvider(remoteProvider, remoteEndpoint, remotePath); err != nil {
-			exception.Panicf(`%w: set remote config "%s - %s - %s" failed, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
+		if err := conf.AddRemoteProvider(remoteProvider, remoteEndpoint, remotePath); err != nil {
+			exception.Panicf(`%w: set remote config failed, provider:%q, endpoint:%q, path:%q, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
 		}
-		if err := startupConf.ReadRemoteConfig(); err != nil {
-			exception.Panicf(`%w: read remote config "%s - %s - %s" failed, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
+		if err := conf.ReadRemoteConfig(); err != nil {
+			exception.Panicf(`%w: read remote config failed, provider:%q, endpoint:%q, path:%q, %s`, ErrFramework, remoteProvider, remoteEndpoint, remotePath, err)
 		}
 	}
 }
 
 func (app *App) initPProf() {
-	if !app.GetStartupConf().GetBool("pprof.enable") {
+	if !app.Conf().GetBool("pprof.enable") {
 		return
 	}
 
-	addr := app.GetStartupConf().GetString("pprof.address")
+	addr := app.Conf().GetString("pprof.address")
 
 	_, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
@@ -307,21 +282,21 @@ func (app *App) mainLoop() {
 	// 启动所有服务
 	wg := &sync.WaitGroup{}
 
-	serviceNum := app.startupConf.GetStringMapString("startup.services")
+	bootstrap := app.conf.GetStringMapString("startup.services")
 
-	for name, servicePT := range app.servicePTs {
-		servicePT.num, _ = strconv.Atoi(serviceNum[name])
-	}
+	app.services.Each(func(name string, service *_SupportedService) {
+		service.count, _ = strconv.Atoi(bootstrap[name])
+	})
 
-	for _, servicePT := range app.servicePTs {
-		for i := 0; i < servicePT.num; i++ {
+	app.services.Each(func(name string, service *_SupportedService) {
+		for i := 0; i < service.count; i++ {
 			wg.Add(1)
-			go func(svcGeneric iServiceGeneric, no int) {
+			go func(assembler iServiceAssembler, replicaNo int) {
 				defer wg.Done()
-				<-svcGeneric.generate(ctx, no).Run()
-			}(servicePT.generic, i)
+				<-assembler.assemble(ctx, replicaNo).Run().Done()
+			}(service.assembler, i)
 		}
-	}
+	})
 
 	// 等待运行结束
 	wg.Wait()

@@ -21,64 +21,79 @@ package framework
 
 import (
 	"context"
+	"time"
+
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
-	"time"
+	"git.golaxy.org/core/utils/reinterpret"
 )
 
 // CallAsync 异步执行代码，有返回值
-func (c *ComponentBehavior) CallAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.CallAsync(c, func(_ runtime.Context, args ...any) async.Ret {
-		if !c.GetLiving() {
-			return async.MakeRet(nil, ErrEntityOrComponentNotLiving)
+func (c *ComponentBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
+	return core.CallAsync(c, func(ctx runtime.Context, args ...any) async.Result {
+		if !c.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
-		return fun.UnsafeCall(args...)
+		return fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), args...)
 	}, args...)
 }
 
 // CallVoidAsync 异步执行代码，无返回值
-func (c *ComponentBehavior) CallVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.CallAsync(c, func(_ runtime.Context, args ...any) async.Ret {
-		if !c.GetLiving() {
-			return async.MakeRet(nil, ErrEntityOrComponentNotLiving)
+func (c *ComponentBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
+	return core.CallAsync(c, func(ctx runtime.Context, args ...any) async.Result {
+		if !c.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
-		fun.UnsafeCall(args...)
-		return async.VoidRet
+		fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), args...)
+		return async.NewResult(nil, nil)
 	}, args...)
 }
 
 // GoAsync 使用新线程执行代码，有返回值（注意线程安全）
-func (c *ComponentBehavior) GoAsync(fun generic.FuncVar0[any, async.Ret], args ...any) async.AsyncRet {
-	return core.GoAsync(c, func(ctx context.Context, args ...any) async.Ret {
-		return fun.UnsafeCall(args...)
+func (c *ComponentBehavior) GoAsync(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
+	return core.GoAsync(c.Entity(), func(ctx context.Context, args ...any) async.Result {
+		return fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
 // GoVoidAsync 使用新线程执行代码，无返回值（注意线程安全）
-func (c *ComponentBehavior) GoVoidAsync(fun generic.ActionVar0[any], args ...any) async.AsyncRet {
-	return core.GoVoidAsync(c, func(ctx context.Context, args ...any) {
-		fun.UnsafeCall(args...)
+func (c *ComponentBehavior) GoVoidAsync(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
+	return core.GoVoidAsync(c.Entity(), func(ctx context.Context, args ...any) {
+		fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
 // TimeAfterAsync 定时器，指定时长
-func (c *ComponentBehavior) TimeAfterAsync(dur time.Duration) async.AsyncRet {
-	return core.TimeAfterAsync(c, dur)
+func (c *ComponentBehavior) TimeAfterAsync(dur time.Duration) async.Future {
+	return core.TimeAfterAsync(c.Entity(), dur)
 }
 
 // TimeAtAsync 定时器，指定时间点
-func (c *ComponentBehavior) TimeAtAsync(at time.Time) async.AsyncRet {
-	return core.TimeAtAsync(c, at)
+func (c *ComponentBehavior) TimeAtAsync(at time.Time) async.Future {
+	return core.TimeAtAsync(c.Entity(), at)
 }
 
 // TimeTickAsync 心跳器
-func (c *ComponentBehavior) TimeTickAsync(dur time.Duration) async.AsyncRet {
-	return core.TimeTickAsync(c, dur)
+func (c *ComponentBehavior) TimeTickAsync(dur time.Duration) async.Future {
+	return core.TimeTickAsync(c.Entity(), dur)
 }
 
 // ReadChanAsync 读取channel
-func (c *ComponentBehavior) ReadChanAsync(ch <-chan any) async.AsyncRet {
-	return core.ReadChanAsync(c, ch)
+func (c *ComponentBehavior) ReadChanAsync(ch <-chan any) async.Future {
+	return core.ReadChanAsync(c.Entity(), ch)
+}
+
+// Await 异步等待结果返回
+func (c *ComponentBehavior) Await(futures ...async.Future) AwaitDirector {
+	return AwaitDirector{
+		caller:   c,
+		director: core.Await(c, futures...),
+	}
+}
+
+func (c *ComponentBehavior) isAlive() bool {
+	return c.State() <= ec.ComponentState_Alive
 }

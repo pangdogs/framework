@@ -26,9 +26,7 @@ import (
 
 // LoggerOptions 所有选项
 type LoggerOptions struct {
-	Logger      *zap.Logger
-	ServiceInfo bool
-	RuntimeInfo bool
+	Logger *zap.Logger
 }
 
 var With _Option
@@ -39,8 +37,6 @@ type _Option struct{}
 func (_Option) Default() option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		With.Logger(nil)(options)
-		With.ServiceInfo(true)(options)
-		With.RuntimeInfo(true)(options)
 	}
 }
 
@@ -48,19 +44,5 @@ func (_Option) Default() option.Setting[LoggerOptions] {
 func (_Option) Logger(logger *zap.Logger) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		options.Logger = logger
-	}
-}
-
-// ServiceInfo 添加服务信息
-func (_Option) ServiceInfo(b bool) option.Setting[LoggerOptions] {
-	return func(options *LoggerOptions) {
-		options.ServiceInfo = b
-	}
-}
-
-// RuntimeInfo 添加运行时信息
-func (_Option) RuntimeInfo(b bool) option.Setting[LoggerOptions] {
-	return func(options *LoggerOptions) {
-		options.RuntimeInfo = b
 	}
 }

@@ -71,11 +71,3 @@ type LifecycleServiceAddInDeactivated interface {
 type LifecycleServiceEntityPTDeclared interface {
 	EntityPTDeclared(svc IService, entityPT ec.EntityPT)
 }
-
-type LifecycleServiceEntityPTRedeclared interface {
-	EntityPTRedeclared(svc IService, entityPT ec.EntityPT)
-}
-
-type LifecycleServiceEntityPTUndeclared interface {
-	EntityPTUndeclared(svc IService, entityPT ec.EntityPT)
-}

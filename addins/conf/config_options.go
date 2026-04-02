@@ -20,26 +20,13 @@
 package conf
 
 import (
-	"time"
-
-	"git.golaxy.org/core"
-	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/option"
-	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // ConfigOptions 所有选项
 type ConfigOptions struct {
-	Defaults                             map[string]any // 默认配置
-	Flags                                *pflag.FlagSet // 启动命令参数
-	AutomaticEnv                         bool           // 合并环境变量
-	EnvPrefix                            string         // 环境变量前缀
-	LocalPath                            string         // 本地配置文件路径
-	RemoteProvider                       string         // 远端配置类型（etcd3,consul...）
-	RemoteEndpoint                       string         // 远端地址
-	RemotePath                           string         // 远端路径
-	AutoHotFix                           bool           // 自动热更新
-	AutoHotFixRemoteCheckingIntervalTime time.Duration  // 自动热更新远端配置检测间隔时间
+	Vipper *viper.Viper
 }
 
 var With _ConfigOption
@@ -49,74 +36,12 @@ type _ConfigOption struct{}
 // Default 默认值
 func (_ConfigOption) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		With.Defaults(nil).Apply(options)
-		With.Flags(nil).Apply(options)
-		With.AutomaticEnv(false).Apply(options)
-		With.EnvPrefix("").Apply(options)
-		With.Local("").Apply(options)
-		With.Remote("", "", "").Apply(options)
-		With.AutoHotFix(false).Apply(options)
-		With.AutoHotFixRemoteCheckingIntervalTime(time.Minute).Apply(options)
+		With.Vipper(nil).Apply(options)
 	}
 }
 
-// Defaults 默认配置
-func (_ConfigOption) Defaults(dict map[string]any) option.Setting[ConfigOptions] {
+func (_ConfigOption) Vipper(v *viper.Viper) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
-		options.Defaults = dict
-	}
-}
-
-// AutomaticEnv 合并环境变量
-func (_ConfigOption) AutomaticEnv(b bool) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.AutomaticEnv = b
-	}
-}
-
-// EnvPrefix 环境变量前缀
-func (_ConfigOption) EnvPrefix(prefix string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.EnvPrefix = prefix
-	}
-}
-
-// Flags 启动命令参数
-func (_ConfigOption) Flags(flags *pflag.FlagSet) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.Flags = flags
-	}
-}
-
-// Local 本地配置
-func (_ConfigOption) Local(path string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.LocalPath = path
-	}
-}
-
-// Remote 远端配置
-func (_ConfigOption) Remote(provider, endpoint, path string) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.RemoteProvider = provider
-		options.RemoteEndpoint = endpoint
-		options.RemotePath = path
-	}
-}
-
-// AutoHotFix 是否热更新
-func (_ConfigOption) AutoHotFix(b bool) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		options.AutoHotFix = b
-	}
-}
-
-// AutoHotFixRemoteCheckingIntervalTime 自动热更新远端配置检测间隔时间
-func (_ConfigOption) AutoHotFixRemoteCheckingIntervalTime(d time.Duration) option.Setting[ConfigOptions] {
-	return func(options *ConfigOptions) {
-		if d < 3*time.Second {
-			exception.Panicf("conf: %w: option AutoHotFixRemoteCheckingIntervalTime must be >= 3 seconds", core.ErrArgs)
-		}
-		options.AutoHotFixRemoteCheckingIntervalTime = d
+		options.Vipper = v
 	}
 }

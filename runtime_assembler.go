@@ -22,19 +22,16 @@ package framework
 import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/ec/pt"
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/assertion"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/core/utils/uid"
-	"git.golaxy.org/framework/addins/dentr"
-	"git.golaxy.org/framework/addins/log"
-	"git.golaxy.org/framework/addins/log/zap_log"
-	"git.golaxy.org/framework/addins/rpcstack"
+	. "git.golaxy.org/framework/addins"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
@@ -45,34 +42,34 @@ type _RuntimeSettings struct {
 	autoRecover                     bool
 	reportError                     chan error
 	continueOnActivatingEntityPanic bool
-	processQueueCapacity            int
-	fps                             float32
+	enableFrame                     bool
+	fps                             float64
 	autoInjection                   bool
 }
 
-type iRuntimeGeneric interface {
+type iRuntimeAssembler interface {
 	init(svcCtx service.Context, instance any)
-	generate(settings _RuntimeSettings) core.Runtime
+	assemble(settings _RuntimeSettings) core.Runtime
 }
 
-// RuntimeGeneric 运行时泛化类型
-type RuntimeGeneric struct {
+// RuntimeAssembler 运行时装配器
+type RuntimeAssembler struct {
 	svcInst  IService
 	instance any
 }
 
-func (r *RuntimeGeneric) init(svcCtx service.Context, instance any) {
+func (r *RuntimeAssembler) init(svcCtx service.Context, instance any) {
 	r.svcInst = reinterpret.Cast[IService](svcCtx)
 	r.instance = instance
 }
 
-func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
+func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	rtInstFace := iface.Face[runtime.Context]{}
 
-	if cb, ok := r.instance.(IRuntimeInstantiation); ok {
-		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](cb.Instantiate())
+	if cb, ok := r.instance.(IRuntimeInstantiator); ok {
+		rtInstFace = iface.NewFaceTReflectC[runtime.Context, IRuntime](cb.Instantiate())
 	} else {
-		rtInstFace = iface.MakeFaceTReflectC[runtime.Context, IRuntime](&RuntimeBehavior{})
+		rtInstFace = iface.NewFaceTReflectC[runtime.Context, IRuntime](&RuntimeBehavior{})
 	}
 
 	rtInstFrameLoopBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameLoopBegin)
@@ -93,17 +90,17 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	runGCBeginCB, _ := r.instance.(LifecycleRuntimeRunGCBegin)
 	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
 
-	rtCtx := runtime.NewContext(r.GetService(),
-		runtime.With.Context.InstanceFace(rtInstFace),
-		runtime.With.Context.Name(settings.name),
-		runtime.With.Context.PersistId(settings.persistId),
-		runtime.With.Context.PanicHandling(settings.autoRecover, settings.reportError),
-		runtime.With.Context.RunningStatusChangedCB(func(rtCtx runtime.Context, status runtime.RunningStatus, args ...any) {
+	rtCtx := runtime.NewContext(r.svcInst,
+		runtime.With.InstanceFace(rtInstFace),
+		runtime.With.Name(settings.name),
+		runtime.With.PersistId(settings.persistId),
+		runtime.With.PanicHandling(settings.autoRecover, settings.reportError),
+		runtime.With.RunningEventCB(func(rtCtx runtime.Context, runningEvent runtime.RunningEvent, args ...any) {
 			rtInst := reinterpret.Cast[IRuntime](rtCtx)
 
-			switch status {
-			case runtime.RunningStatus_Birth:
-				cacheCallPath("", rtInst.GetReflected().Type())
+			switch runningEvent {
+			case runtime.RunningEvent_Birth:
+				cacheCallPath("", rtInst.Reflected().Type())
 				rtInst.(iRuntime).setAutoInjection(settings.autoInjection)
 
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
@@ -121,91 +118,91 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeBuilt); ok {
 					cb.Built(rtInst)
 				}
-			case runtime.RunningStatus_Starting:
+			case runtime.RunningEvent_Starting:
 				if cb, ok := r.instance.(LifecycleRuntimeStarting); ok {
 					cb.Starting(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarting); ok {
 					cb.Starting(rtInst)
 				}
-			case runtime.RunningStatus_Started:
+			case runtime.RunningEvent_Started:
 				if cb, ok := r.instance.(LifecycleRuntimeStarted); ok {
 					cb.Started(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarted); ok {
 					cb.Started(rtInst)
 				}
-			case runtime.RunningStatus_FrameLoopBegin:
+			case runtime.RunningEvent_FrameLoopBegin:
 				if cb := frameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
 				if cb := rtInstFrameLoopBeginCB; cb != nil {
 					cb.FrameLoopBegin(rtInst)
 				}
-			case runtime.RunningStatus_FrameUpdateBegin:
+			case runtime.RunningEvent_FrameUpdateBegin:
 				if cb := frameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
 				if cb := rtInstFrameUpdateBeginCB; cb != nil {
 					cb.FrameUpdateBegin(rtInst)
 				}
-			case runtime.RunningStatus_FrameUpdateEnd:
+			case runtime.RunningEvent_FrameUpdateEnd:
 				if cb := frameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
 				if cb := rtInstFrameUpdateEndCB; cb != nil {
 					cb.FrameUpdateEnd(rtInst)
 				}
-			case runtime.RunningStatus_FrameLoopEnd:
+			case runtime.RunningEvent_FrameLoopEnd:
 				if cb := frameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
 				if cb := rtInstFrameLoopEndCB; cb != nil {
 					cb.FrameLoopEnd(rtInst)
 				}
-			case runtime.RunningStatus_RunCallBegin:
+			case runtime.RunningEvent_RunCallBegin:
 				if cb := runCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
 				if cb := rtInstRunCallBeginCB; cb != nil {
 					cb.RunCallBegin(rtInst)
 				}
-			case runtime.RunningStatus_RunCallEnd:
+			case runtime.RunningEvent_RunCallEnd:
 				if cb := runCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
 				if cb := rtInstRunCallEndCB; cb != nil {
 					cb.RunCallEnd(rtInst)
 				}
-			case runtime.RunningStatus_RunGCBegin:
+			case runtime.RunningEvent_RunGCBegin:
 				if cb := runGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
 				if cb := rtInstRunGCBeginCB; cb != nil {
 					cb.RunGCBegin(rtInst)
 				}
-			case runtime.RunningStatus_RunGCEnd:
+			case runtime.RunningEvent_RunGCEnd:
 				if cb := runGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
 				if cb := rtInstRunGCEndCB; cb != nil {
 					cb.RunGCEnd(rtInst)
 				}
-			case runtime.RunningStatus_Terminating:
+			case runtime.RunningEvent_Terminating:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminating); ok {
 					cb.Terminating(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminating); ok {
 					cb.Terminating(rtInst)
 				}
-			case runtime.RunningStatus_Terminated:
+			case runtime.RunningEvent_Terminated:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
 					cb.Terminated(rtInst)
 				}
-			case runtime.RunningStatus_ActivatingAddIn:
+			case runtime.RunningEvent_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivating); ok {
@@ -214,7 +211,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivating); ok {
 					cb.AddInActivating(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_AddInActivated:
+			case runtime.RunningEvent_AddInActivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivated); ok {
 					cb.AddInActivated(rtInst, addInStatus)
@@ -222,7 +219,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivated); ok {
 					cb.AddInActivated(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_DeactivatingAddIn:
+			case runtime.RunningEvent_AddInDeactivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivating); ok {
 					cb.AddInDeactivating(rtInst, addInStatus)
@@ -230,7 +227,7 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivating); ok {
 					cb.AddInDeactivating(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_AddInDeactivated:
+			case runtime.RunningEvent_AddInDeactivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivated); ok {
 					cb.AddInDeactivated(rtInst, addInStatus)
@@ -238,31 +235,31 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivated); ok {
 					cb.AddInDeactivated(rtInst, addInStatus)
 				}
-			case runtime.RunningStatus_EntityInitComponents:
+			case runtime.RunningEvent_EntityActivating:
 				entity := args[0].(ec.Entity)
 
-				if entity.GetPT().Prototype() == "" {
-					cacheCallPath("", entity.GetReflected().Type())
+				if entity.PT().Prototype() == "" {
+					cacheCallPath("", entity.Reflected().Type())
 				}
 
-				if rtInst.GetAutoInjection() {
-					ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
-						pt.InjectRV(entity, compNode.V.GetReflected())
+				if rtInst.AutoInjection() {
+					ec.UnsafeEntity(entity).ComponentList().Traversal(func(compSlot *generic.FreeSlot[ec.Component]) bool {
+						assertion.InjectRV(entity, compSlot.V.Reflected())
 						return true
 					})
 				}
-			case runtime.RunningStatus_EntityAddComponents:
+			case runtime.RunningEvent_EntityAddingComponents:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
 
 				for i := range components {
 					comp := components[i]
-					cacheCallPath(comp.GetName(), comp.GetReflected().Type())
+					cacheCallPath(comp.Name(), comp.Reflected().Type())
 				}
 
-				if rtInst.GetAutoInjection() {
-					ec.UnsafeEntity(entity).GetComponentList().Traversal(func(compNode *generic.Node[ec.Component]) bool {
-						pt.InjectRV(entity, compNode.V.GetReflected())
+				if rtInst.AutoInjection() {
+					ec.UnsafeEntity(entity).ComponentList().Traversal(func(compSlot *generic.FreeSlot[ec.Component]) bool {
+						assertion.InjectRV(entity, compSlot.V.Reflected())
 						return true
 					})
 				}
@@ -273,88 +270,74 @@ func (r *RuntimeGeneric) generate(settings _RuntimeSettings) core.Runtime {
 	return core.NewRuntime(rtCtx,
 		core.With.Runtime.AutoRun(true),
 		core.With.Runtime.ContinueOnActivatingEntityPanic(settings.continueOnActivatingEntityPanic),
-		core.With.Runtime.ProcessQueueCapacity(settings.processQueueCapacity),
-		core.With.Runtime.Frame(func() runtime.Frame {
-			if settings.fps <= 0 {
-				return nil
-			}
-			return runtime.NewFrame(
-				runtime.With.Frame.TargetFPS(settings.fps),
-			)
-		}()),
+		core.With.Runtime.TaskQueue(core.With.TaskQueue.Unbounded(true)),
+		core.With.Runtime.Frame(core.With.Frame.Enabled(settings.enableFrame), core.With.Frame.TargetFPS(settings.fps)),
 	)
 }
 
-// GetService 获取服务
-func (r *RuntimeGeneric) GetService() IService {
-	return r.svcInst
-}
-
-func (r *RuntimeGeneric) installAddIns(rtInst IRuntime) {
-	appConf := r.svcInst.GetAppConf()
+func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
+	appConf := r.svcInst.AppConf()
 
 	installed := func(name string) bool {
-		_, ok := rtInst.GetAddInManager().Get(name)
+		_, ok := rtInst.AddInManager().GetStatusByName(name)
 		return ok
 	}
 
 	// 安装日志插件
-	if !installed(log.Name) {
+	if !installed(Log.Name) {
 		if cb, ok := rtInst.(InstallRuntimeLogger); ok {
 			cb.InstallLogger(rtInst)
 		}
 	}
-	if !installed(log.Name) {
+	if !installed(Log.Name) {
 		if cb, ok := r.instance.(InstallRuntimeLogger); ok {
 			cb.InstallLogger(rtInst)
 		}
 	}
-	if !installed(log.Name) {
-		v, _ := r.svcInst.GetMemory().Load(memZapLogger)
+	if !installed(Log.Name) {
+		v, _ := r.svcInst.Memory().Load(memLogger)
 		if logger, ok := v.(*zap.Logger); ok {
-			zap_log.Install(rtInst,
-				zap_log.With.ZapLogger(logger),
-				zap_log.With.ServiceInfo(appConf.GetBool("log.service_info")),
-				zap_log.With.RuntimeInfo(appConf.GetBool("log.runtime_info")),
+			Log.Install(rtInst,
+				LogWith.Logger(logger),
 			)
 		}
 	}
 
 	// 安装RPC调用堆栈支持
-	if !installed(rpcstack.Name) {
+	if !installed(RPCStack.Name) {
 		if cb, ok := rtInst.(InstallRuntimeRPCStack); ok {
 			cb.InstallRPCStack(rtInst)
 		}
 	}
-	if !installed(rpcstack.Name) {
+	if !installed(RPCStack.Name) {
 		if cb, ok := r.instance.(InstallRuntimeRPCStack); ok {
 			cb.InstallRPCStack(rtInst)
 		}
 	}
-	if !installed(rpcstack.Name) {
-		rpcstack.Install(rtInst)
+	if !installed(RPCStack.Name) {
+		RPCStack.Install(rtInst)
 	}
 
 	// 安装分布式实体支持插件
-	if !installed(dentr.Name) {
+	if !installed(Dentr.Name) {
 		if cb, ok := rtInst.(InstallRuntimeDistEntityRegistry); ok {
 			cb.InstallDistEntityRegistry(rtInst)
 		}
 	}
-	if !installed(dentr.Name) {
+	if !installed(Dentr.Name) {
 		if cb, ok := r.instance.(InstallRuntimeDistEntityRegistry); ok {
 			cb.InstallDistEntityRegistry(rtInst)
 		}
 	}
-	if !installed(dentr.Name) {
-		v, _ := r.GetService().GetMemory().Load(memEtcdClientOnce)
+	if !installed(Dentr.Name) {
+		v, _ := r.svcInst.Memory().Load(memEtcdClientOnce)
 		cliOnce, ok := v.(func() *etcdv3.Client)
 		if !ok {
-			exception.Panicf("%w: service memory %q not existed", ErrFramework, memEtcdClientOnce)
+			exception.Panicf("%w: service memory %q not exists", ErrFramework, memEtcdClientOnce)
 		}
-		dentr.Install(rtInst,
-			dentr.With.EtcdClient(cliOnce()),
-			dentr.With.TTL(appConf.GetDuration("service.dent_ttl")),
+		Dentr.Install(rtInst,
+			DentrWith.EtcdClient(cliOnce()),
+			DentrWith.RegistrationTTL(appConf.GetDuration("service.dent_ttl")),
 		)
 	}
 }

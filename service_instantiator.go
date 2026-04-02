@@ -20,17 +20,18 @@
 package framework
 
 import (
+	"reflect"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
-	"reflect"
 )
 
-// IServiceInstantiation 服务实例化接口
-type IServiceInstantiation interface {
+// IServiceInstantiator 服务实例化接口
+type IServiceInstantiator interface {
 	Instantiate() IService
 }
 
-func newServiceInstantiation(svcInst any) *_ServiceInstantiation {
+func newServiceInstantiator(svcInst any) *_ServiceInstantiator {
 	if svcInst == nil {
 		exception.Panicf("%w: %w: svcInst is nil", ErrFramework, core.ErrArgs)
 	}
@@ -48,19 +49,19 @@ func newServiceInstantiation(svcInst any) *_ServiceInstantiation {
 		exception.Panicf("%w: unsupported type", ErrFramework)
 	}
 
-	return &_ServiceInstantiation{
-		serviceInstanceRT: svcInstRT,
+	return &_ServiceInstantiator{
+		instanceRT: svcInstRT,
 	}
 }
 
-type _ServiceInstantiation struct {
-	ServiceGeneric
-	serviceInstanceRT reflect.Type
+type _ServiceInstantiator struct {
+	ServiceAssembler
+	instanceRT reflect.Type
 }
 
-func (s *_ServiceInstantiation) Instantiate() IService {
-	if s.serviceInstanceRT == nil {
-		exception.Panicf("%w: serviceInstanceRT is nil", ErrFramework)
+func (s *_ServiceInstantiator) Instantiate() IService {
+	if s.instanceRT == nil {
+		exception.Panicf("%w: instanceRT is nil", ErrFramework)
 	}
-	return reflect.New(s.serviceInstanceRT).Interface().(IService)
+	return reflect.New(s.instanceRT).Interface().(IService)
 }

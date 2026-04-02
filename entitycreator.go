@@ -24,7 +24,6 @@ import (
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/ec/pt"
 	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/iface"
@@ -33,20 +32,20 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// BuildEntityAsync 创建实体
-func BuildEntityAsync(svcCtx service.Context, prototype string) *EntityCreatorAsync {
-	if svcCtx == nil {
-		exception.Panicf("%w: %w: svcCtx is nil", ErrFramework, core.ErrArgs)
+// BuildEntity 创建实体
+func BuildEntity(svcInst IService, prototype string) *EntityCreator {
+	if svcInst == nil {
+		exception.Panicf("%w: %w: svcInst is nil", ErrFramework, core.ErrArgs)
 	}
-	return &EntityCreatorAsync{
-		ctx:       svcCtx,
+	return &EntityCreator{
+		svcInst:   svcInst,
 		prototype: prototype,
 	}
 }
 
-// EntityCreatorAsync 实体构建器
-type EntityCreatorAsync struct {
-	ctx       service.Context
+// EntityCreator 实体构建器
+type EntityCreator struct {
+	svcInst   IService
 	prototype string
 	rtInst    IRuntime
 	rtCreator *RuntimeCreator
@@ -56,70 +55,64 @@ type EntityCreatorAsync struct {
 }
 
 // SetRuntime 设置运行时（优先使用）
-func (c *EntityCreatorAsync) SetRuntime(rtInst IRuntime) *EntityCreatorAsync {
+func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
 	c.rtInst = rtInst
 	return c
 }
 
 // SetRuntimeCreator 设置运行时构建器
-func (c *EntityCreatorAsync) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreatorAsync {
+func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreator {
 	c.rtCreator = rtCreator
 	return c
 }
 
 // SetInstanceFace 设置实例，用于扩展实体能力
-func (c *EntityCreatorAsync) SetInstanceFace(face iface.Face[ec.Entity]) *EntityCreatorAsync {
+func (c *EntityCreator) SetInstanceFace(face iface.Face[ec.Entity]) *EntityCreator {
 	c.settings = append(c.settings, ec.With.InstanceFace(face))
 	return c
 }
 
 // SetInstance 设置实例，用于扩展实体能力
-func (c *EntityCreatorAsync) SetInstance(instance ec.Entity) *EntityCreatorAsync {
-	c.settings = append(c.settings, ec.With.InstanceFace(iface.MakeFaceT(instance)))
+func (c *EntityCreator) SetInstance(instance ec.Entity) *EntityCreator {
+	c.settings = append(c.settings, ec.With.InstanceFace(iface.NewFaceT(instance)))
 	return c
 }
 
 // SetScope 设置实体的可访问作用域
-func (c *EntityCreatorAsync) SetScope(scope ec.Scope) *EntityCreatorAsync {
+func (c *EntityCreator) SetScope(scope ec.Scope) *EntityCreator {
 	c.settings = append(c.settings, ec.With.Scope(scope))
 	return c
 }
 
 // SetPersistId 设置实体持久化Id
-func (c *EntityCreatorAsync) SetPersistId(id uid.Id) *EntityCreatorAsync {
+func (c *EntityCreator) SetPersistId(id uid.Id) *EntityCreator {
 	c.settings = append(c.settings, ec.With.PersistId(id))
 	return c
 }
 
-// SetComponentNameIndexing 设置是否开启组件名称索引
-func (c *EntityCreatorAsync) SetComponentNameIndexing(b bool) *EntityCreatorAsync {
-	c.settings = append(c.settings, ec.With.ComponentNameIndexing(b))
-	return c
-}
-
 // SetComponentAwakeOnFirstTouch 设置开启组件被首次访问时，检测并调用Awake()
-func (c *EntityCreatorAsync) SetComponentAwakeOnFirstTouch(b bool) *EntityCreatorAsync {
+func (c *EntityCreator) SetComponentAwakeOnFirstTouch(b bool) *EntityCreator {
 	c.settings = append(c.settings, ec.With.ComponentAwakeOnFirstTouch(b))
 	return c
 }
 
 // SetComponentUniqueID 设置开启组件唯一Id
-func (c *EntityCreatorAsync) SetComponentUniqueID(b bool) *EntityCreatorAsync {
+func (c *EntityCreator) SetComponentUniqueID(b bool) *EntityCreator {
 	c.settings = append(c.settings, ec.With.ComponentUniqueID(b))
 	return c
 }
 
 // SetMeta 设置Meta信息
-func (c *EntityCreatorAsync) SetMeta(dict map[string]any) *EntityCreatorAsync {
+func (c *EntityCreator) SetMeta(dict map[string]any) *EntityCreator {
 	if c.meta == nil {
 		c.settings = append(c.settings, c.withMeta())
 	}
-	c.meta = meta.M(dict)
+	c.meta = meta.New(dict)
 	return c
 }
 
 // MergeMeta 合并Meta信息，如果存在则覆盖
-func (c *EntityCreatorAsync) MergeMeta(dict map[string]any) *EntityCreatorAsync {
+func (c *EntityCreator) MergeMeta(dict map[string]any) *EntityCreator {
 	for k, v := range dict {
 		if c.meta == nil {
 			c.settings = append(c.settings, c.withMeta())
@@ -130,7 +123,7 @@ func (c *EntityCreatorAsync) MergeMeta(dict map[string]any) *EntityCreatorAsync 
 }
 
 // MergeMetaIfAbsent 合并Meta信息，如果存在则跳过
-func (c *EntityCreatorAsync) MergeMetaIfAbsent(dict map[string]any) *EntityCreatorAsync {
+func (c *EntityCreator) MergeMetaIfAbsent(dict map[string]any) *EntityCreator {
 	for k, v := range dict {
 		if c.meta == nil {
 			c.settings = append(c.settings, c.withMeta())
@@ -141,9 +134,9 @@ func (c *EntityCreatorAsync) MergeMetaIfAbsent(dict map[string]any) *EntityCreat
 }
 
 // AssignMeta 赋值Meta信息
-func (c *EntityCreatorAsync) AssignMeta(m meta.Meta) *EntityCreatorAsync {
+func (c *EntityCreator) AssignMeta(m meta.Meta) *EntityCreator {
 	if m == nil {
-		m = meta.M(nil)
+		m = meta.New(nil)
 	}
 	if c.meta == nil {
 		c.settings = append(c.settings, c.withMeta())
@@ -153,40 +146,40 @@ func (c *EntityCreatorAsync) AssignMeta(m meta.Meta) *EntityCreatorAsync {
 }
 
 // SetParentId 设置父实体Id
-func (c *EntityCreatorAsync) SetParentId(id uid.Id) *EntityCreatorAsync {
+func (c *EntityCreator) SetParentId(id uid.Id) *EntityCreator {
 	c.parentId = id
 	return c
 }
 
 // New 创建实体
-func (c *EntityCreatorAsync) New() (ec.ConcurrentEntity, error) {
-	if c.ctx == nil {
-		exception.Panicf("%w: ctx is nil", ErrFramework)
+func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
 	}
 
-	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
+	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
 	rtInst := c.rtInst
 	if rtInst == nil {
 		rtCreator := c.rtCreator
 		if rtCreator == nil {
-			rtCreator = BuildRuntime(c.ctx)
+			rtCreator = BuildRuntime(c.svcInst)
 		}
-		rtInst = rtCreator.SetPersistId(entity.GetId()).New()
+		rtInst = rtCreator.SetPersistId(entity.Id()).New()
 	}
 
-	err := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
-		if c.parentId.IsNil() {
-			if err := rtCtx.GetEntityManager().AddEntity(entity); err != nil {
-				return async.MakeRet(nil, err)
-			}
-		} else {
-			if err := rtCtx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
-				return async.MakeRet(nil, err)
+	err := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+		if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
+			return async.NewResult(nil, err)
+		}
+		if !c.parentId.IsNil() {
+			if err := rtCtx.EntityTree().AddChild(c.parentId, entity.Id()); err != nil {
+				entity.Destroy()
+				return async.NewResult(nil, err)
 			}
 		}
-		return async.VoidRet
-	}).Wait(c.ctx).Error
+		return async.NewResult(nil, nil)
+	}).Wait(c.svcInst).Error
 	if err != nil {
 		if c.rtInst == nil {
 			rtInst.Terminate()
@@ -198,52 +191,51 @@ func (c *EntityCreatorAsync) New() (ec.ConcurrentEntity, error) {
 }
 
 // NewAsync 创建实体
-func (c *EntityCreatorAsync) NewAsync() async.AsyncRetT[ec.ConcurrentEntity] {
-	if c.ctx == nil {
-		exception.Panicf("%w: ctx is nil", ErrFramework)
+func (c *EntityCreator) NewAsync() async.Future {
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
 	}
 
-	entity := pt.For(c.ctx, c.prototype).Construct(c.settings...)
+	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
 	rtInst := c.rtInst
 	if rtInst == nil {
 		rtCreator := c.rtCreator
 		if rtCreator == nil {
-			rtCreator = BuildRuntime(c.ctx)
+			rtCreator = BuildRuntime(c.svcInst)
 		}
-		rtInst = rtCreator.SetPersistId(entity.GetId()).New()
+		rtInst = rtCreator.SetPersistId(entity.Id()).New()
 	}
 
-	asyncRet := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Ret {
-		if c.parentId.IsNil() {
-			if err := rtCtx.GetEntityManager().AddEntity(entity); err != nil {
-				return async.MakeRet(nil, err)
-			}
-		} else {
-			if err := rtCtx.GetEntityTree().AddNode(entity, c.parentId); err != nil {
-				return async.MakeRet(nil, err)
+	creation := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+		if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
+			return async.NewResult(nil, err)
+		}
+		if !c.parentId.IsNil() {
+			if err := rtCtx.EntityTree().AddChild(c.parentId, entity.Id()); err != nil {
+				entity.Destroy()
+				return async.NewResult(nil, err)
 			}
 		}
-		return async.VoidRet
+		return async.NewResult(nil, nil)
 	})
 
-	asyncRetT := async.MakeAsyncRetT[ec.ConcurrentEntity]()
+	result := async.NewFutureChan()
+
 	go func() {
-		ret := asyncRet.Wait(c.ctx)
-		if ret.OK() {
-			async.ReturnT(asyncRetT, async.MakeRetT[ec.ConcurrentEntity](entity, nil))
-		} else {
+		ret := creation.Wait(c.svcInst)
+		if !ret.OK() {
 			if c.rtInst == nil {
 				rtInst.Terminate()
 			}
-			async.ReturnT(asyncRetT, async.MakeRetT[ec.ConcurrentEntity](nil, ret.Error))
 		}
+		async.Return(result, ret)
 	}()
 
-	return asyncRetT
+	return result.Out()
 }
 
-func (c *EntityCreatorAsync) withMeta() option.Setting[ec.EntityOptions] {
+func (c *EntityCreator) withMeta() option.Setting[ec.EntityOptions] {
 	return func(o *ec.EntityOptions) {
 		o.Meta = c.meta
 	}

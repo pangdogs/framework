@@ -21,7 +21,6 @@ package framework
 
 import (
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
@@ -32,22 +31,12 @@ type EntityBehavior struct {
 	ec.EntityBehavior
 }
 
-// GetRuntime 获取运行时
-func (e *EntityBehavior) GetRuntime() IRuntime {
+// Runtime 获取运行时
+func (e *EntityBehavior) Runtime() IRuntime {
 	return reinterpret.Cast[IRuntime](runtime.Current(e))
 }
 
-// GetService 获取服务
-func (e *EntityBehavior) GetService() IService {
+// Service 获取服务
+func (e *EntityBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(e))
-}
-
-// GetAddInManager 获取插件管理器
-func (e *EntityBehavior) GetAddInManager() extension.AddInManager {
-	return runtime.Current(e).GetAddInManager()
-}
-
-// GetLiving 是否活跃可用
-func (e *EntityBehavior) GetLiving() bool {
-	return e.GetState() <= ec.EntityState_Alive
 }
