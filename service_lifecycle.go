@@ -25,49 +25,57 @@ import (
 )
 
 type LifecycleServiceBirth interface {
-	Birth(svc IService)
-}
-
-type LifecycleServiceDefaultConfig interface {
-	DefaultConfig(svc IService) map[string]any
+	OnBirth(svc IService)
 }
 
 type LifecycleServiceBuilt interface {
-	Built(svc IService)
+	OnBuilt(svc IService)
 }
 
 type LifecycleServiceStarting interface {
-	Starting(svc IService)
+	OnStarting(svc IService)
 }
 
 type LifecycleServiceStarted interface {
-	Started(svc IService)
+	OnStarted(svc IService)
 }
 
 type LifecycleServiceTerminating interface {
-	Terminating(svc IService)
+	OnTerminating(svc IService)
 }
 
 type LifecycleServiceTerminated interface {
-	Terminated(svc IService)
+	OnTerminated(svc IService)
 }
 
 type LifecycleServiceAddInActivating interface {
-	AddInActivating(svc IService, addIn extension.AddInStatus)
+	OnAddInActivating(svc IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInActivated interface {
-	AddInActivated(svc IService, addIn extension.AddInStatus)
+	OnAddInActivated(svc IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInDeactivating interface {
-	AddInDeactivating(svc IService, addIn extension.AddInStatus)
+	OnAddInDeactivating(svc IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceAddInDeactivated interface {
-	AddInDeactivated(svc IService, addIn extension.AddInStatus)
+	OnAddInDeactivated(svc IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceEntityPTDeclared interface {
-	EntityPTDeclared(svc IService, entityPT ec.EntityPT)
+	OnEntityPTDeclared(svc IService, entityPT ec.EntityPT)
+}
+
+type LifecycleServiceComponentPTDeclared interface {
+	OnComponentPTDeclared(svc IService, componentPT ec.ComponentPT)
+}
+
+type LifecycleServiceEntityRegistered interface {
+	OnEntityRegistered(svc IService, entity ec.ConcurrentEntity)
+}
+
+type LifecycleServiceEntityDeregistered interface {
+	OnEntityDeregistered(svc IService, entity ec.ConcurrentEntity)
 }

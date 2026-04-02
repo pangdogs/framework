@@ -80,6 +80,12 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	rtInstRunCallEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunCallEnd)
 	rtInstRunGCBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCBegin)
 	rtInstRunGCEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCEnd)
+	rtInstEntityActivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivating)
+	rtInstEntityActivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivated)
+	rtInstEntityAddingComponentsCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityAddingComponents)
+	rtInstEntityComponentsAddedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsAdded)
+	rtInstEntityRemovingComponentCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityRemovingComponent)
+	rtInstEntityComponentRemovedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentRemoved)
 
 	frameLoopBeginCB, _ := r.instance.(LifecycleRuntimeFrameLoopBegin)
 	frameUpdateBeginCB, _ := r.instance.(LifecycleRuntimeFrameUpdateBegin)
@@ -89,6 +95,12 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	runCallEndCB, _ := r.instance.(LifecycleRuntimeRunCallEnd)
 	runGCBeginCB, _ := r.instance.(LifecycleRuntimeRunGCBegin)
 	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
+	entityActivatingCB, _ := r.instance.(LifecycleRuntimeEntityActivating)
+	entityActivatedCB, _ := r.instance.(LifecycleRuntimeEntityActivated)
+	entityAddingComponentsCB, _ := r.instance.(LifecycleRuntimeEntityAddingComponents)
+	entityComponentsAddedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsAdded)
+	entityRemovingComponentCB, _ := r.instance.(LifecycleRuntimeEntityRemovingComponent)
+	entityComponentRemovedCB, _ := r.instance.(LifecycleRuntimeEntityComponentRemoved)
 
 	rtCtx := runtime.NewContext(r.svcInst,
 		runtime.With.InstanceFace(rtInstFace),
@@ -104,136 +116,136 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				rtInst.(iRuntime).setAutoInjection(settings.autoInjection)
 
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
-					cb.Birth(rtInst)
+					cb.OnBirth(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeBirth); ok {
-					cb.Birth(rtInst)
+					cb.OnBirth(rtInst)
 				}
 
 				r.installAddIns(rtInst)
 
 				if cb, ok := r.instance.(LifecycleRuntimeBuilt); ok {
-					cb.Built(rtInst)
+					cb.OnBuilt(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeBuilt); ok {
-					cb.Built(rtInst)
+					cb.OnBuilt(rtInst)
 				}
 			case runtime.RunningEvent_Starting:
 				if cb, ok := r.instance.(LifecycleRuntimeStarting); ok {
-					cb.Starting(rtInst)
+					cb.OnStarting(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarting); ok {
-					cb.Starting(rtInst)
+					cb.OnStarting(rtInst)
 				}
 			case runtime.RunningEvent_Started:
 				if cb, ok := r.instance.(LifecycleRuntimeStarted); ok {
-					cb.Started(rtInst)
+					cb.OnStarted(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeStarted); ok {
-					cb.Started(rtInst)
+					cb.OnStarted(rtInst)
 				}
 			case runtime.RunningEvent_FrameLoopBegin:
 				if cb := frameLoopBeginCB; cb != nil {
-					cb.FrameLoopBegin(rtInst)
+					cb.OnFrameLoopBegin(rtInst)
 				}
 				if cb := rtInstFrameLoopBeginCB; cb != nil {
-					cb.FrameLoopBegin(rtInst)
+					cb.OnFrameLoopBegin(rtInst)
 				}
 			case runtime.RunningEvent_FrameUpdateBegin:
 				if cb := frameUpdateBeginCB; cb != nil {
-					cb.FrameUpdateBegin(rtInst)
+					cb.OnFrameUpdateBegin(rtInst)
 				}
 				if cb := rtInstFrameUpdateBeginCB; cb != nil {
-					cb.FrameUpdateBegin(rtInst)
+					cb.OnFrameUpdateBegin(rtInst)
 				}
 			case runtime.RunningEvent_FrameUpdateEnd:
 				if cb := frameUpdateEndCB; cb != nil {
-					cb.FrameUpdateEnd(rtInst)
+					cb.OnFrameUpdateEnd(rtInst)
 				}
 				if cb := rtInstFrameUpdateEndCB; cb != nil {
-					cb.FrameUpdateEnd(rtInst)
+					cb.OnFrameUpdateEnd(rtInst)
 				}
 			case runtime.RunningEvent_FrameLoopEnd:
 				if cb := frameLoopEndCB; cb != nil {
-					cb.FrameLoopEnd(rtInst)
+					cb.OnFrameLoopEnd(rtInst)
 				}
 				if cb := rtInstFrameLoopEndCB; cb != nil {
-					cb.FrameLoopEnd(rtInst)
+					cb.OnFrameLoopEnd(rtInst)
 				}
 			case runtime.RunningEvent_RunCallBegin:
 				if cb := runCallBeginCB; cb != nil {
-					cb.RunCallBegin(rtInst)
+					cb.OnRunCallBegin(rtInst)
 				}
 				if cb := rtInstRunCallBeginCB; cb != nil {
-					cb.RunCallBegin(rtInst)
+					cb.OnRunCallBegin(rtInst)
 				}
 			case runtime.RunningEvent_RunCallEnd:
 				if cb := runCallEndCB; cb != nil {
-					cb.RunCallEnd(rtInst)
+					cb.OnRunCallEnd(rtInst)
 				}
 				if cb := rtInstRunCallEndCB; cb != nil {
-					cb.RunCallEnd(rtInst)
+					cb.OnRunCallEnd(rtInst)
 				}
 			case runtime.RunningEvent_RunGCBegin:
 				if cb := runGCBeginCB; cb != nil {
-					cb.RunGCBegin(rtInst)
+					cb.OnRunGCBegin(rtInst)
 				}
 				if cb := rtInstRunGCBeginCB; cb != nil {
-					cb.RunGCBegin(rtInst)
+					cb.OnRunGCBegin(rtInst)
 				}
 			case runtime.RunningEvent_RunGCEnd:
 				if cb := runGCEndCB; cb != nil {
-					cb.RunGCEnd(rtInst)
+					cb.OnRunGCEnd(rtInst)
 				}
 				if cb := rtInstRunGCEndCB; cb != nil {
-					cb.RunGCEnd(rtInst)
+					cb.OnRunGCEnd(rtInst)
 				}
 			case runtime.RunningEvent_Terminating:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminating); ok {
-					cb.Terminating(rtInst)
+					cb.OnTerminating(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminating); ok {
-					cb.Terminating(rtInst)
+					cb.OnTerminating(rtInst)
 				}
 			case runtime.RunningEvent_Terminated:
 				if cb, ok := r.instance.(LifecycleRuntimeTerminated); ok {
-					cb.Terminated(rtInst)
+					cb.OnTerminated(rtInst)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeTerminated); ok {
-					cb.Terminated(rtInst)
+					cb.OnTerminated(rtInst)
 				}
 			case runtime.RunningEvent_AddInActivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivating); ok {
-					cb.AddInActivating(rtInst, addInStatus)
+					cb.OnAddInActivating(rtInst, addInStatus)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivating); ok {
-					cb.AddInActivating(rtInst, addInStatus)
+					cb.OnAddInActivating(rtInst, addInStatus)
 				}
 			case runtime.RunningEvent_AddInActivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivated); ok {
-					cb.AddInActivated(rtInst, addInStatus)
+					cb.OnAddInActivated(rtInst, addInStatus)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivated); ok {
-					cb.AddInActivated(rtInst, addInStatus)
+					cb.OnAddInActivated(rtInst, addInStatus)
 				}
 			case runtime.RunningEvent_AddInDeactivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivating); ok {
-					cb.AddInDeactivating(rtInst, addInStatus)
+					cb.OnAddInDeactivating(rtInst, addInStatus)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivating); ok {
-					cb.AddInDeactivating(rtInst, addInStatus)
+					cb.OnAddInDeactivating(rtInst, addInStatus)
 				}
 			case runtime.RunningEvent_AddInDeactivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInDeactivated); ok {
-					cb.AddInDeactivated(rtInst, addInStatus)
+					cb.OnAddInDeactivated(rtInst, addInStatus)
 				}
 				if cb, ok := rtInst.(LifecycleRuntimeAddInDeactivated); ok {
-					cb.AddInDeactivated(rtInst, addInStatus)
+					cb.OnAddInDeactivated(rtInst, addInStatus)
 				}
 			case runtime.RunningEvent_EntityActivating:
 				entity := args[0].(ec.Entity)
@@ -247,6 +259,21 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 						assertion.InjectRV(entity, compSlot.V.Reflected())
 						return true
 					})
+				}
+
+				if cb := entityActivatingCB; cb != nil {
+					cb.OnEntityActivating(rtInst, entity)
+				}
+				if cb := rtInstEntityActivatingCB; cb != nil {
+					cb.OnEntityActivating(rtInst, entity)
+				}
+			case runtime.RunningEvent_EntityActivated:
+				entity := args[0].(ec.Entity)
+				if cb := entityActivatedCB; cb != nil {
+					cb.OnEntityActivated(rtInst, entity)
+				}
+				if cb := rtInstEntityActivatedCB; cb != nil {
+					cb.OnEntityActivated(rtInst, entity)
 				}
 			case runtime.RunningEvent_EntityAddingComponents:
 				entity := args[0].(ec.Entity)
@@ -262,6 +289,40 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 						assertion.InjectRV(entity, compSlot.V.Reflected())
 						return true
 					})
+				}
+
+				if cb := entityAddingComponentsCB; cb != nil {
+					cb.OnEntityAddingComponents(rtInst, entity, components)
+				}
+				if cb := rtInstEntityAddingComponentsCB; cb != nil {
+					cb.OnEntityAddingComponents(rtInst, entity, components)
+				}
+			case runtime.RunningEvent_EntityComponentsAdded:
+				entity := args[0].(ec.Entity)
+				components := args[1].([]ec.Component)
+				if cb := entityComponentsAddedCB; cb != nil {
+					cb.OnEntityComponentsAdded(rtInst, entity, components)
+				}
+				if cb := rtInstEntityComponentsAddedCB; cb != nil {
+					cb.OnEntityComponentsAdded(rtInst, entity, components)
+				}
+			case runtime.RunningEvent_EntityRemovingComponent:
+				entity := args[0].(ec.Entity)
+				component := args[1].(ec.Component)
+				if cb := entityRemovingComponentCB; cb != nil {
+					cb.OnEntityRemovingComponent(rtInst, entity, component)
+				}
+				if cb := rtInstEntityRemovingComponentCB; cb != nil {
+					cb.OnEntityRemovingComponent(rtInst, entity, component)
+				}
+			case runtime.RunningEvent_EntityComponentRemoved:
+				entity := args[0].(ec.Entity)
+				component := args[1].(ec.Component)
+				if cb := entityComponentRemovedCB; cb != nil {
+					cb.OnEntityComponentRemoved(rtInst, entity, component)
+				}
+				if cb := rtInstEntityComponentRemovedCB; cb != nil {
+					cb.OnEntityComponentRemoved(rtInst, entity, component)
 				}
 			}
 		}),

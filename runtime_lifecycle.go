@@ -19,76 +19,103 @@
 
 package framework
 
-import "git.golaxy.org/core/extension"
+import (
+	"git.golaxy.org/core/ec"
+	"git.golaxy.org/core/extension"
+)
 
 type LifecycleRuntimeBuilt interface {
-	Built(rt IRuntime)
+	OnBuilt(rt IRuntime)
 }
 
 type LifecycleRuntimeBirth interface {
-	Birth(rt IRuntime)
+	OnBirth(rt IRuntime)
 }
 
 type LifecycleRuntimeStarting interface {
-	Starting(rt IRuntime)
+	OnStarting(rt IRuntime)
 }
 
 type LifecycleRuntimeStarted interface {
-	Started(rt IRuntime)
+	OnStarted(rt IRuntime)
 }
 
 type LifecycleRuntimeFrameLoopBegin interface {
-	FrameLoopBegin(rt IRuntime)
+	OnFrameLoopBegin(rt IRuntime)
 }
 
 type LifecycleRuntimeFrameUpdateBegin interface {
-	FrameUpdateBegin(rt IRuntime)
+	OnFrameUpdateBegin(rt IRuntime)
 }
 
 type LifecycleRuntimeFrameUpdateEnd interface {
-	FrameUpdateEnd(rt IRuntime)
+	OnFrameUpdateEnd(rt IRuntime)
 }
 
 type LifecycleRuntimeFrameLoopEnd interface {
-	FrameLoopEnd(rt IRuntime)
+	OnFrameLoopEnd(rt IRuntime)
 }
 
 type LifecycleRuntimeRunCallBegin interface {
-	RunCallBegin(rt IRuntime)
+	OnRunCallBegin(rt IRuntime)
 }
 
 type LifecycleRuntimeRunCallEnd interface {
-	RunCallEnd(rt IRuntime)
+	OnRunCallEnd(rt IRuntime)
 }
 
 type LifecycleRuntimeRunGCBegin interface {
-	RunGCBegin(rt IRuntime)
+	OnRunGCBegin(rt IRuntime)
 }
 
 type LifecycleRuntimeRunGCEnd interface {
-	RunGCEnd(rt IRuntime)
+	OnRunGCEnd(rt IRuntime)
 }
 
 type LifecycleRuntimeTerminating interface {
-	Terminating(rt IRuntime)
+	OnTerminating(rt IRuntime)
 }
 
 type LifecycleRuntimeTerminated interface {
-	Terminated(rt IRuntime)
+	OnTerminated(rt IRuntime)
 }
 
 type LifecycleRuntimeAddInActivating interface {
-	AddInActivating(rt IRuntime, addIn extension.AddInStatus)
+	OnAddInActivating(rt IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInActivated interface {
-	AddInActivated(rt IRuntime, addIn extension.AddInStatus)
+	OnAddInActivated(rt IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInDeactivating interface {
-	AddInDeactivating(rt IRuntime, addIn extension.AddInStatus)
+	OnAddInDeactivating(rt IRuntime, addIn extension.AddInStatus)
 }
 
 type LifecycleRuntimeAddInDeactivated interface {
-	AddInDeactivated(rt IRuntime, addIn extension.AddInStatus)
+	OnAddInDeactivated(rt IRuntime, addIn extension.AddInStatus)
+}
+
+type LifecycleRuntimeEntityActivating interface {
+	OnEntityActivating(rt IRuntime, entity ec.Entity)
+}
+
+type LifecycleRuntimeEntityActivated interface {
+	OnEntityActivated(rt IRuntime, entity ec.Entity)
+}
+
+type LifecycleRuntimeEntityAddingComponents interface {
+	OnEntityAddingComponents(rt IRuntime, entity ec.Entity, components []ec.Component)
+}
+
+type LifecycleRuntimeEntityComponentsAdded interface {
+	OnEntityComponentsAdded(rt IRuntime, entity ec.Entity, components []ec.Component)
+}
+
+type LifecycleRuntimeEntityRemovingComponent interface {
+	OnEntityRemovingComponent(rt IRuntime, entity ec.Entity, component ec.Component)
+}
+
+type LifecycleRuntimeEntityComponentRemoved interface {
+	OnEntityComponentRemoved(rt IRuntime, entity ec.Entity, component ec.Component)
 }

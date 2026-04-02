@@ -21,7 +21,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 
@@ -97,7 +96,8 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 
 			switch runningEvent {
 			case service.RunningEvent_Birth:
-				conf := s.conf
+				conf := viper.New()
+				conf.MergeConfigMap(s.conf.AllSettings())
 
 				svcInst.Memory().Store(memReplicaNo, replicaNo)
 				svcInst.Memory().Store(memConf, conf)
@@ -107,42 +107,19 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				cacheCallPath("", svcInst.Reflected().Type())
 
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
-					cb.Birth(svcInst)
+					cb.OnBirth(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceBirth); ok {
-					cb.Birth(svcInst)
+					cb.OnBirth(svcInst)
 				}
 
-				defaults := map[string]any{}
-
-				if cb, ok := s.instance.(LifecycleServiceDefaultConfig); ok {
-					for k, v := range cb.DefaultConfig(svcInst) {
-						defaults[svcInst.Name()+"."+k] = v
-					}
-				}
-				if cb, ok := svcInst.(LifecycleServiceDefaultConfig); ok {
-					for k, v := range cb.DefaultConfig(svcInst) {
-						defaults[svcInst.Name()+"."+k] = v
-					}
-				}
-				if len(defaults) > 0 {
-					conf = viper.New()
-					conf.MergeConfigMap(conf.AllSettings())
-
-					for k, v := range defaults {
-						conf.SetDefault(k, v)
-					}
-
-					svcInst.Memory().Store(memConf, conf)
-				}
-
-				s.installAddIns(svcInst, conf)
+				s.installAddIns(svcInst)
 
 				if cb, ok := s.instance.(LifecycleServiceBuilt); ok {
-					cb.Built(svcInst)
+					cb.OnBuilt(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceBuilt); ok {
-					cb.Built(svcInst)
+					cb.OnBuilt(svcInst)
 				}
 
 				svcInst.Memory().Store(memEtcdClientOnce, sync.OnceValue(func() *etcdv3.Client {
@@ -176,34 +153,34 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				}
 			case service.RunningEvent_Starting:
 				if cb, ok := s.instance.(LifecycleServiceStarting); ok {
-					cb.Starting(svcInst)
+					cb.OnStarting(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceStarting); ok {
-					cb.Starting(svcInst)
+					cb.OnStarting(svcInst)
 				}
 			case service.RunningEvent_Started:
 				if !svcInst.(iService).getStarted().CompareAndSwap(false, true) {
 					exception.Panicf("%w: already started", ErrFramework)
 				}
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
-					cb.Started(svcInst)
+					cb.OnStarted(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceStarted); ok {
-					cb.Started(svcInst)
+					cb.OnStarted(svcInst)
 				}
 			case service.RunningEvent_Terminating:
 				if cb, ok := s.instance.(LifecycleServiceTerminating); ok {
-					cb.Terminating(svcInst)
+					cb.OnTerminating(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceTerminating); ok {
-					cb.Terminating(svcInst)
+					cb.OnTerminating(svcInst)
 				}
 			case service.RunningEvent_Terminated:
 				if cb, ok := s.instance.(LifecycleServiceTerminated); ok {
-					cb.Terminated(svcInst)
+					cb.OnTerminated(svcInst)
 				}
 				if cb, ok := svcInst.(LifecycleServiceTerminated); ok {
-					cb.Terminated(svcInst)
+					cb.OnTerminated(svcInst)
 				}
 				{
 					v, _ := svcInst.Memory().Load(memLogger)
@@ -221,34 +198,34 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				addInStatus := args[0].(extension.AddInStatus)
 				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
 				if cb, ok := s.instance.(LifecycleServiceAddInActivating); ok {
-					cb.AddInActivating(svcInst, addInStatus)
+					cb.OnAddInActivating(svcInst, addInStatus)
 				}
 				if cb, ok := svcInst.(LifecycleServiceAddInActivating); ok {
-					cb.AddInActivating(svcInst, addInStatus)
+					cb.OnAddInActivating(svcInst, addInStatus)
 				}
 			case service.RunningEvent_AddInActivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := s.instance.(LifecycleServiceAddInActivated); ok {
-					cb.AddInActivated(svcInst, addInStatus)
+					cb.OnAddInActivated(svcInst, addInStatus)
 				}
 				if cb, ok := svcInst.(LifecycleServiceAddInActivated); ok {
-					cb.AddInActivated(svcInst, addInStatus)
+					cb.OnAddInActivated(svcInst, addInStatus)
 				}
 			case service.RunningEvent_AddInDeactivating:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := s.instance.(LifecycleServiceAddInDeactivating); ok {
-					cb.AddInDeactivating(svcInst, addInStatus)
+					cb.OnAddInDeactivating(svcInst, addInStatus)
 				}
 				if cb, ok := svcInst.(LifecycleServiceAddInDeactivating); ok {
-					cb.AddInDeactivating(svcInst, addInStatus)
+					cb.OnAddInDeactivating(svcInst, addInStatus)
 				}
 			case service.RunningEvent_AddInDeactivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := s.instance.(LifecycleServiceAddInDeactivated); ok {
-					cb.AddInDeactivated(svcInst, addInStatus)
+					cb.OnAddInDeactivated(svcInst, addInStatus)
 				}
 				if cb, ok := svcInst.(LifecycleServiceAddInDeactivated); ok {
-					cb.AddInDeactivated(svcInst, addInStatus)
+					cb.OnAddInDeactivated(svcInst, addInStatus)
 				}
 			case service.RunningEvent_EntityPTDeclared:
 				entityPT := args[0].(ec.EntityPT)
@@ -258,10 +235,34 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 					cacheCallPath(comp.Name, comp.PT.InstanceRT())
 				}
 				if cb, ok := s.instance.(LifecycleServiceEntityPTDeclared); ok {
-					cb.EntityPTDeclared(svcInst, entityPT)
+					cb.OnEntityPTDeclared(svcInst, entityPT)
 				}
 				if cb, ok := svcInst.(LifecycleServiceEntityPTDeclared); ok {
-					cb.EntityPTDeclared(svcInst, entityPT)
+					cb.OnEntityPTDeclared(svcInst, entityPT)
+				}
+			case service.RunningEvent_ComponentPTDeclared:
+				compPT := args[0].(ec.ComponentPT)
+				if cb, ok := s.instance.(LifecycleServiceComponentPTDeclared); ok {
+					cb.OnComponentPTDeclared(svcInst, compPT)
+				}
+				if cb, ok := svcInst.(LifecycleServiceComponentPTDeclared); ok {
+					cb.OnComponentPTDeclared(svcInst, compPT)
+				}
+			case service.RunningEvent_EntityRegistered:
+				entity := args[0].(ec.ConcurrentEntity)
+				if cb, ok := s.instance.(LifecycleServiceEntityRegistered); ok {
+					cb.OnEntityRegistered(svcInst, entity)
+				}
+				if cb, ok := svcInst.(LifecycleServiceEntityRegistered); ok {
+					cb.OnEntityRegistered(svcInst, entity)
+				}
+			case service.RunningEvent_EntityDeregistered:
+				entity := args[0].(ec.ConcurrentEntity)
+				if cb, ok := s.instance.(LifecycleServiceEntityDeregistered); ok {
+					cb.OnEntityDeregistered(svcInst, entity)
+				}
+				if cb, ok := svcInst.(LifecycleServiceEntityDeregistered); ok {
+					cb.OnEntityDeregistered(svcInst, entity)
 				}
 			}
 		}),
@@ -270,7 +271,9 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 	return core.NewService(svcCtx)
 }
 
-func (s *ServiceAssembler) installAddIns(svcInst IService, conf *viper.Viper) {
+func (s *ServiceAssembler) installAddIns(svcInst IService) {
+	conf := svcInst.AppConf()
+
 	installed := func(name string) bool {
 		_, ok := svcInst.AddInManager().GetStatusByName(name)
 		return ok
@@ -310,7 +313,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService, conf *viper.Viper) {
 		case "json":
 			encoder = zapcore.NewJSONEncoder(encoderConf)
 		default:
-			fmt.Errorf("%w: unknown log.format:%q", ErrFramework, conf.GetString("log.format"))
+			exception.Panicf("%w: unknown log.format:%q", ErrFramework, conf.GetString("log.format"))
 		}
 
 		var logger *zap.Logger
@@ -340,149 +343,149 @@ func (s *ServiceAssembler) installAddIns(svcInst IService, conf *viper.Viper) {
 				zap.AddCaller(),
 				zap.AddStacktrace(zap.DPanicLevel),
 			)
-
-			svcInst.Memory().Store(memLogger, logger)
-			svcInst.Memory().Store(memLoggerAtomicLevel, atomicLevel)
-
-			Log.Install(svcInst,
-				LogWith.Logger(logger),
-			)
 		}
 
-		// 安装配置插件
-		if !installed(Conf.Name) {
-			if cb, ok := svcInst.(InstallServiceConfig); ok {
-				cb.InstallConfig(svcInst)
-			}
-		}
-		if !installed(Conf.Name) {
-			if cb, ok := s.instance.(InstallServiceConfig); ok {
-				cb.InstallConfig(svcInst)
-			}
-		}
-		if !installed(Conf.Name) {
-			Conf.Install(svcInst,
-				ConfWith.Vipper(conf),
-			)
-		}
+		svcInst.Memory().Store(memLogger, logger)
+		svcInst.Memory().Store(memLoggerAtomicLevel, atomicLevel)
 
-		// 安装消息队列中间件插件
-		if !installed(Broker.Name) {
-			if cb, ok := svcInst.(InstallServiceBroker); ok {
-				cb.InstallBroker(svcInst)
-			}
-		}
-		if !installed(Broker.Name) {
-			if cb, ok := s.instance.(InstallServiceBroker); ok {
-				cb.InstallBroker(svcInst)
-			}
-		}
-		if !installed(Broker.Name) {
-			BrokerNats.Install(svcInst,
-				BrokerNatsWith.CustomAddresses(conf.GetString("nats.address")),
-				BrokerNatsWith.CustomAuth(
-					conf.GetString("nats.username"),
-					conf.GetString("nats.password"),
-				),
-			)
-		}
+		Log.Install(svcInst,
+			LogWith.Logger(logger),
+		)
+	}
 
-		// 安装服务发现插件
-		if !installed(Discovery.Name) {
-			if cb, ok := svcInst.(InstallServiceRegistry); ok {
-				cb.InstallRegistry(svcInst)
-			}
+	// 安装配置插件
+	if !installed(Conf.Name) {
+		if cb, ok := svcInst.(InstallServiceConfig); ok {
+			cb.InstallConfig(svcInst)
 		}
-		if !installed(Discovery.Name) {
-			if cb, ok := s.instance.(InstallServiceRegistry); ok {
-				cb.InstallRegistry(svcInst)
-			}
+	}
+	if !installed(Conf.Name) {
+		if cb, ok := s.instance.(InstallServiceConfig); ok {
+			cb.InstallConfig(svcInst)
 		}
-		if !installed(Discovery.Name) {
-			DiscoveryEtcd.Install(svcInst,
-				DiscoveryEtcdWith.CustomAddresses(conf.GetString("etcd.address")),
-				DiscoveryEtcdWith.CustomAuth(
-					conf.GetString("etcd.username"),
-					conf.GetString("etcd.password"),
-				),
-			)
-		}
+	}
+	if !installed(Conf.Name) {
+		Conf.Install(svcInst,
+			ConfWith.Vipper(conf),
+		)
+	}
 
-		// 安装分布式同步插件
-		if !installed(Dsync.Name) {
-			if cb, ok := svcInst.(InstallServiceDistSync); ok {
-				cb.InstallDistSync(svcInst)
-			}
+	// 安装消息队列中间件插件
+	if !installed(Broker.Name) {
+		if cb, ok := svcInst.(InstallServiceBroker); ok {
+			cb.InstallBroker(svcInst)
 		}
-		if !installed(Dsync.Name) {
-			if cb, ok := s.instance.(InstallServiceDistSync); ok {
-				cb.InstallDistSync(svcInst)
-			}
+	}
+	if !installed(Broker.Name) {
+		if cb, ok := s.instance.(InstallServiceBroker); ok {
+			cb.InstallBroker(svcInst)
 		}
-		if !installed(Dsync.Name) {
-			DsyncEtcd.Install(svcInst,
-				DsyncEtcdWith.CustomAddresses(conf.GetString("etcd.address")),
-				DsyncEtcdWith.CustomAuth(
-					conf.GetString("etcd.username"),
-					conf.GetString("etcd.password"),
-				),
-			)
-		}
+	}
+	if !installed(Broker.Name) {
+		BrokerNats.Install(svcInst,
+			BrokerNatsWith.CustomAddresses(conf.GetString("nats.address")),
+			BrokerNatsWith.CustomAuth(
+				conf.GetString("nats.username"),
+				conf.GetString("nats.password"),
+			),
+		)
+	}
 
-		// 安装分布式服务插件
-		if !installed(Dsvc.Name) {
-			if cb, ok := svcInst.(InstallServiceDistService); ok {
-				cb.InstallDistService(svcInst)
-			}
+	// 安装服务发现插件
+	if !installed(Discovery.Name) {
+		if cb, ok := svcInst.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(svcInst)
 		}
-		if !installed(Dsvc.Name) {
-			if cb, ok := s.instance.(InstallServiceDistService); ok {
-				cb.InstallDistService(svcInst)
-			}
+	}
+	if !installed(Discovery.Name) {
+		if cb, ok := s.instance.(InstallServiceRegistry); ok {
+			cb.InstallRegistry(svcInst)
 		}
-		if !installed(Dsvc.Name) {
-			Dsvc.Install(svcInst,
-				DsvcWith.Version(conf.GetString("service.version")),
-				DsvcWith.Meta(conf.GetStringMapString("service.meta")),
-				DsvcWith.RegistrationTTL(conf.GetDuration("service.ttl")),
-				DsvcWith.FutureTimeout(conf.GetDuration("service.future_timeout")),
-			)
-		}
+	}
+	if !installed(Discovery.Name) {
+		DiscoveryEtcd.Install(svcInst,
+			DiscoveryEtcdWith.CustomAddresses(conf.GetString("etcd.address")),
+			DiscoveryEtcdWith.CustomAuth(
+				conf.GetString("etcd.username"),
+				conf.GetString("etcd.password"),
+			),
+		)
+	}
 
-		// 安装分布式实体查询插件
-		if !installed(Dentq.Name) {
-			if cb, ok := svcInst.(InstallServiceDistEntityQuerier); ok {
-				cb.InstallDistEntityQuerier(svcInst)
-			}
+	// 安装分布式同步插件
+	if !installed(Dsync.Name) {
+		if cb, ok := svcInst.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(svcInst)
 		}
-		if !installed(Dentq.Name) {
-			if cb, ok := s.instance.(InstallServiceDistEntityQuerier); ok {
-				cb.InstallDistEntityQuerier(svcInst)
-			}
+	}
+	if !installed(Dsync.Name) {
+		if cb, ok := s.instance.(InstallServiceDistSync); ok {
+			cb.InstallDistSync(svcInst)
 		}
-		if !installed(Dentq.Name) {
-			Dentq.Install(svcInst,
-				DentqWith.CustomAddresses(conf.GetString("etcd.address")),
-				DentqWith.CustomAuth(
-					conf.GetString("etcd.username"),
-					conf.GetString("etcd.password"),
-				),
-			)
-		}
+	}
+	if !installed(Dsync.Name) {
+		DsyncEtcd.Install(svcInst,
+			DsyncEtcdWith.CustomAddresses(conf.GetString("etcd.address")),
+			DsyncEtcdWith.CustomAuth(
+				conf.GetString("etcd.username"),
+				conf.GetString("etcd.password"),
+			),
+		)
+	}
 
-		// 安装RPC支持插件
-		if !installed(RPC.Name) {
-			if cb, ok := svcInst.(InstallServiceRPC); ok {
-				cb.InstallRPC(svcInst)
-			}
+	// 安装分布式服务插件
+	if !installed(Dsvc.Name) {
+		if cb, ok := svcInst.(InstallServiceDistService); ok {
+			cb.InstallDistService(svcInst)
 		}
-		if !installed(RPC.Name) {
-			if cb, ok := s.instance.(InstallServiceRPC); ok {
-				cb.InstallRPC(svcInst)
-			}
+	}
+	if !installed(Dsvc.Name) {
+		if cb, ok := s.instance.(InstallServiceDistService); ok {
+			cb.InstallDistService(svcInst)
 		}
-		if !installed(RPC.Name) {
-			RPC.Install(svcInst)
+	}
+	if !installed(Dsvc.Name) {
+		Dsvc.Install(svcInst,
+			DsvcWith.Version(conf.GetString("service.version")),
+			DsvcWith.Meta(conf.GetStringMapString("service.meta")),
+			DsvcWith.RegistrationTTL(conf.GetDuration("service.ttl")),
+			DsvcWith.FutureTimeout(conf.GetDuration("service.future_timeout")),
+		)
+	}
+
+	// 安装分布式实体查询插件
+	if !installed(Dentq.Name) {
+		if cb, ok := svcInst.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(svcInst)
 		}
+	}
+	if !installed(Dentq.Name) {
+		if cb, ok := s.instance.(InstallServiceDistEntityQuerier); ok {
+			cb.InstallDistEntityQuerier(svcInst)
+		}
+	}
+	if !installed(Dentq.Name) {
+		Dentq.Install(svcInst,
+			DentqWith.CustomAddresses(conf.GetString("etcd.address")),
+			DentqWith.CustomAuth(
+				conf.GetString("etcd.username"),
+				conf.GetString("etcd.password"),
+			),
+		)
+	}
+
+	// 安装RPC支持插件
+	if !installed(RPC.Name) {
+		if cb, ok := svcInst.(InstallServiceRPC); ok {
+			cb.InstallRPC(svcInst)
+		}
+	}
+	if !installed(RPC.Name) {
+		if cb, ok := s.instance.(InstallServiceRPC); ok {
+			cb.InstallRPC(svcInst)
+		}
+	}
+	if !installed(RPC.Name) {
+		RPC.Install(svcInst)
 	}
 }
