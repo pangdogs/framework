@@ -48,8 +48,12 @@ func (ls *Listeners[H, M]) Add(handler H, size int) *Listener[H, M] {
 	pls := (*atomic.Pointer[[]*Listener[H, M]])(ls)
 	l := NewListener[H, M](handler, size)
 	for {
+		var news []*Listener[H, M]
 		old := pls.Load()
-		news := append(*old, l)
+		if old != nil {
+			news = slices.Clone(*old)
+		}
+		news = append(news, l)
 		if pls.CompareAndSwap(old, &news) {
 			break
 		}
@@ -61,8 +65,11 @@ func (ls *Listeners[H, M]) Add(handler H, size int) *Listener[H, M] {
 func (ls *Listeners[H, M]) Delete(l *Listener[H, M]) {
 	pls := (*atomic.Pointer[[]*Listener[H, M]])(ls)
 	for {
+		var news []*Listener[H, M]
 		old := pls.Load()
-		news := slices.Clone(*old)
+		if old != nil {
+			news = slices.Clone(*old)
+		}
 		news = slices.DeleteFunc(news, func(exists *Listener[H, M]) bool { return exists == l })
 		if pls.CompareAndSwap(old, &news) {
 			break
