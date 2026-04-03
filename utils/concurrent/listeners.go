@@ -80,7 +80,11 @@ func (ls *Listeners[H, M]) Delete(l *Listener[H, M]) {
 
 func (ls *Listeners[H, M]) Load() []*Listener[H, M] {
 	pls := (*atomic.Pointer[[]*Listener[H, M]])(ls)
-	return *pls.Load()
+	snap := pls.Load()
+	if snap == nil {
+		return nil
+	}
+	return *snap
 }
 
 func (ls *Listeners[H, M]) Broadcast(m M) (rejected int) {
