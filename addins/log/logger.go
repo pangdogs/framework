@@ -28,6 +28,7 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/core/utils/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -88,10 +89,10 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 		)
 	}
 
-	fields := []zap.Field{zap.String("service", svcCtx.String())}
+	fields := []zap.Field{zap.Any("service", json.RawMessage(types.String2Bytes(svcCtx.String())))}
 
 	if rtCtx != nil {
-		fields = append(fields, zap.String("runtime", rtCtx.String()))
+		fields = append(fields, zap.Any("runtime", json.RawMessage(types.String2Bytes(rtCtx.String()))))
 	}
 
 	l.logger = logger.With(fields...)
