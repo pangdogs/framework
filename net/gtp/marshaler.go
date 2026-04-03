@@ -26,18 +26,12 @@ import (
 )
 
 // Marshal 序列化
-func Marshal[T ReadableMsg](msg T) (ret binaryutil.Bytes, err error) {
+func Marshal[T ReadableMsg](msg T) (binaryutil.Bytes, error) {
 	bs := binaryutil.NewBytes(true, msg.Size())
-	defer func() {
-		if !bs.SameRef(ret) {
-			bs.Release()
-		}
-	}()
-
 	if _, err := binaryutil.CopyToBuff(bs.Payload(), msg); err != nil {
+		bs.Release()
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
 	}
-
 	return bs, nil
 }
 

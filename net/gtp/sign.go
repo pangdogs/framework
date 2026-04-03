@@ -23,6 +23,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"os"
 )
@@ -57,6 +58,9 @@ func ReadPublicKey(reader io.Reader) (*rsa.PublicKey, error) {
 	}
 
 	block, _ := pem.Decode(bs)
+	if block == nil {
+		return nil, fmt.Errorf("%w: invalid public key pem", ErrGTP)
+	}
 
 	pubKey, err := x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
@@ -74,6 +78,9 @@ func ReadPrivateKey(reader io.Reader) (*rsa.PrivateKey, error) {
 	}
 
 	block, _ := pem.Decode(bs)
+	if block == nil {
+		return nil, fmt.Errorf("%w: invalid private key pem", ErrGTP)
+	}
 
 	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {

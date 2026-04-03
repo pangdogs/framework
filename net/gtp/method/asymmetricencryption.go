@@ -51,30 +51,20 @@ func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Ha
 			return nil, errors.New("crypto/rsa: invalid padding mode")
 		}
 
-		var cryptoHash crypto.Hash
-		switch hash {
-		case gtp.Hash_SHA256:
-			cryptoHash = crypto.SHA256
-		case gtp.Hash_SHA384:
-			cryptoHash = crypto.SHA384
-		case gtp.Hash_SHA512:
-			cryptoHash = crypto.SHA512
-		case gtp.Hash_BLAKE2b256:
-			cryptoHash = crypto.BLAKE2b_256
-		case gtp.Hash_BLAKE2b384:
-			cryptoHash = crypto.BLAKE2b_384
-		case gtp.Hash_BLAKE2b512:
-			cryptoHash = crypto.BLAKE2b_512
-		case gtp.Hash_BLAKE2s256:
-			cryptoHash = crypto.BLAKE2s_256
-		default:
+		cryptoHash, ok := toCryptoHash(hash)
+		if !ok {
 			return nil, errors.New("crypto/rsa: invalid hash method")
 		}
 
 		return _RSASigner{padding: padding, hash: cryptoHash}, nil
 
 	case gtp.AsymmetricEncryption_ECDSA:
-		return _ECDSAPSigner{}, nil
+		cryptoHash, ok := toCryptoHash(hash)
+		if !ok {
+			return nil, errors.New("crypto/ecdsa: invalid hash method")
+		}
+		return _ECDSAPSigner{hash: cryptoHash}, nil
+
 	default:
 		return nil, ErrInvalidMethod
 	}
@@ -86,6 +76,10 @@ type _RSASigner struct {
 }
 
 func (s _RSASigner) GenerateKey() (crypto.PrivateKey, error) {
+	if !s.hash.Available() {
+		return nil, errors.New("crypto/rsa: invalid hash method")
+	}
+
 	switch s.hash.Size() {
 	case 32:
 		return rsa.GenerateKey(rand.Reader, 2048)
@@ -128,6 +122,9 @@ func (s _RSASigner) Verify(pub crypto.PublicKey, data, sig []byte) error {
 	if !ok {
 		return errors.New("crypto/rsa: invalid public key")
 	}
+	if !s.hash.Available() {
+		return errors.New("crypto/rsa: invalid hash method")
+	}
 
 	hash := s.hash.New()
 	hash.Write(data)
@@ -149,6 +146,10 @@ type _ECDSAPSigner struct {
 }
 
 func (s _ECDSAPSigner) GenerateKey() (crypto.PrivateKey, error) {
+	if !s.hash.Available() {
+		return nil, errors.New("crypto/ecdsa: invalid hash method")
+	}
+
 	switch s.hash.Size() {
 	case 32:
 		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -166,6 +167,9 @@ func (s _ECDSAPSigner) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 	if !ok {
 		return nil, errors.New("crypto/ecdsa: invalid private key")
 	}
+	if !s.hash.Available() {
+		return nil, errors.New("crypto/ecdsa: invalid hash method")
+	}
 
 	hash := s.hash.New()
 	hash.Write(data)
@@ -176,14 +180,43 @@ func (s _ECDSAPSigner) Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
 }
 
 func (s _ECDSAPSigner) Verify(pub crypto.PublicKey, data, sig []byte) error {
+	ecdsaPub, ok := pub.(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("crypto/ecdsa: invalid public key")
+	}
+	if !s.hash.Available() {
+		return errors.New("crypto/ecdsa: invalid hash method")
+	}
+
 	hash := s.hash.New()
 	hash.Write(data)
 
 	hashed := hash.Sum(nil)
 
-	if ecdsa.VerifyASN1(pub.(*ecdsa.PublicKey), hashed, sig) {
+	if ecdsa.VerifyASN1(ecdsaPub, hashed, sig) {
 		return nil
 	}
 
 	return errors.New("crypto/ecdsa: verification error")
+}
+
+func toCryptoHash(hash gtp.Hash) (crypto.Hash, bool) {
+	switch hash {
+	case gtp.Hash_SHA256:
+		return crypto.SHA256, true
+	case gtp.Hash_SHA384:
+		return crypto.SHA384, true
+	case gtp.Hash_SHA512:
+		return crypto.SHA512, true
+	case gtp.Hash_BLAKE2b256:
+		return crypto.BLAKE2b_256, true
+	case gtp.Hash_BLAKE2b384:
+		return crypto.BLAKE2b_384, true
+	case gtp.Hash_BLAKE2b512:
+		return crypto.BLAKE2b_512, true
+	case gtp.Hash_BLAKE2s256:
+		return crypto.BLAKE2s_256, true
+	default:
+		return 0, false
+	}
 }
