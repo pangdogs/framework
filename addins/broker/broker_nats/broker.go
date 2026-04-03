@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/service"
@@ -132,6 +133,12 @@ func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue strin
 func (b *_NatsBroker) Flush(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
 	}
 
 	if err := b.client.FlushWithContext(ctx); err != nil {
