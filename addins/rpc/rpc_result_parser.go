@@ -78,7 +78,7 @@ func ParseResults(ret async.Result) (rvs ResultValues) {
 	return
 }
 
-func ParseVoid(ret async.Result) (rtp ResultTuple0) {
+func ParseVoid(ret async.Result) (rtp ResultTupleVoid) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
 		return

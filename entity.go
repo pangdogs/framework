@@ -24,11 +24,15 @@ import (
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/framework/addins/log"
+	"go.uber.org/zap"
 )
 
 // EntityBehavior 实体行为，在需要扩展实体能力时，匿名嵌入至实体结构体中
 type EntityBehavior struct {
 	ec.EntityBehavior
+	logger      *zap.Logger
+	sugarLogger *zap.SugaredLogger
 }
 
 // Runtime 获取运行时
@@ -39,4 +43,20 @@ func (e *EntityBehavior) Runtime() IRuntime {
 // Service 获取服务
 func (e *EntityBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(e))
+}
+
+// L 结构化日志
+func (e *EntityBehavior) L() *zap.Logger {
+	if e.logger == nil {
+		e.logger = log.L(e.Runtime()).With(zap.String("entity", e.String()))
+	}
+	return e.logger
+}
+
+// S 传统日志
+func (e *EntityBehavior) S() *zap.SugaredLogger {
+	if e.sugarLogger == nil {
+		e.sugarLogger = e.L().Sugar()
+	}
+	return e.sugarLogger
 }

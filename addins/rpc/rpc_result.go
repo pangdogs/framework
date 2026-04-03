@@ -48,25 +48,25 @@ func Results(future async.Future) (rvs ResultValues) {
 	return ParseResults(<-future.Chan())
 }
 
-type ResultTuple0 struct {
+type ResultTupleVoid struct {
 	Error error
 }
 
-func (rtp ResultTuple0) Extract() error {
+func (rtp ResultTupleVoid) Extract() error {
 	return rtp.Error
 }
 
-func (rtp ResultTuple0) Ensure() {
+func (rtp ResultTupleVoid) Ensure() {
 	rtp.ensure(2)
 }
 
-func (rtp ResultTuple0) ensure(skip int) {
+func (rtp ResultTupleVoid) ensure(skip int) {
 	if rtp.Error != nil {
 		exception.PanicSkip(skip, rtp.Error)
 	}
 }
 
-func ResultVoid(future async.Future) (rtp ResultTuple0) {
+func ResultVoid(future async.Future) (rtp ResultTupleVoid) {
 	return ParseVoid(<-future.Chan())
 }
 
