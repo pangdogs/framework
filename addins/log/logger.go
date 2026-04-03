@@ -50,16 +50,16 @@ type lazyJSON struct {
 	v any
 }
 
-func (l lazyJSON) String() string {
+func (l lazyJSON) MarshalJSON() ([]byte, error) {
 	data, err := json.Marshal(l.v)
 	if err != nil {
-		return fmt.Sprintf("json.Marshal(): %s", err.Error())
+		return json.Marshal(fmt.Sprintf("json.Marshal(): %s", err.Error()))
 	}
-	return string(data)
+	return data, nil
 }
 
 func JSON(key string, v any) zap.Field {
-	return zap.Stringer(key, lazyJSON{v: v})
+	return zap.Reflect(key, lazyJSON{v: v})
 }
 
 func newLogger(settings ...option.Setting[LoggerOptions]) ILogger {

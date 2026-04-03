@@ -47,7 +47,7 @@ func BuildRuntime(svcInst IService) *RuntimeCreator {
 			reportError:                     svcInst.ReportError(),
 			continueOnActivatingEntityPanic: false,
 			enableFrame:                     false,
-			fps:                             0,
+			fps:                             30,
 			autoInjection:                   true,
 		},
 	}
