@@ -85,7 +85,7 @@ func (s *ByteStream) WriteTo(writer io.Writer) (int64, error) {
 }
 
 func (s *ByteStream) SeekWritePos(p int) error {
-	if p < 0 || p >= len(s.sp) {
+	if p < 0 || p > len(s.sp) {
 		return ErrInvalidSeekPos
 	}
 	s.wp = s.sp[p:]
@@ -353,7 +353,7 @@ func (s *ByteStream) WriteUvarint(v uint64) error {
 }
 
 func (s *ByteStream) SeekReadPos(p int) error {
-	if p < 0 || p >= len(s.sp) {
+	if p < 0 || p > len(s.sp) {
 		return ErrInvalidSeekPos
 	}
 	s.rp = s.sp[p:]
@@ -505,6 +505,7 @@ func (s *ByteStream) ReadBytes16() ([16]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes16])
+	s.rp = s.rp[SizeofBytes16:]
 	return v, nil
 }
 
@@ -514,6 +515,7 @@ func (s *ByteStream) ReadBytes32() ([32]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes32])
+	s.rp = s.rp[SizeofBytes32:]
 	return v, nil
 }
 
@@ -523,6 +525,7 @@ func (s *ByteStream) ReadBytes64() ([64]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes64])
+	s.rp = s.rp[SizeofBytes64:]
 	return v, nil
 }
 
@@ -532,6 +535,7 @@ func (s *ByteStream) ReadBytes128() ([128]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes128])
+	s.rp = s.rp[SizeofBytes128:]
 	return v, nil
 }
 
@@ -541,6 +545,7 @@ func (s *ByteStream) ReadBytes160() ([160]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes160])
+	s.rp = s.rp[SizeofBytes160:]
 	return v, nil
 }
 
@@ -550,6 +555,7 @@ func (s *ByteStream) ReadBytes256() ([256]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes256])
+	s.rp = s.rp[SizeofBytes256:]
 	return v, nil
 }
 
@@ -559,6 +565,7 @@ func (s *ByteStream) ReadBytes512() ([512]byte, error) {
 		return v, io.ErrUnexpectedEOF
 	}
 	copy(v[:], s.rp[:SizeofBytes512])
+	s.rp = s.rp[SizeofBytes512:]
 	return v, nil
 }
 

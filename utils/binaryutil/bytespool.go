@@ -85,8 +85,8 @@ type Bytes struct {
 	recyclable bool
 }
 
-// Equal 是否是相同
-func (bs Bytes) Equal(other Bytes) bool {
+// SameRef 是否引用相同数据
+func (bs Bytes) SameRef(other Bytes) bool {
 	refA := (*reflect.SliceHeader)(unsafe.Pointer(&bs.data)).Data
 	refB := (*reflect.SliceHeader)(unsafe.Pointer(&other.data)).Data
 	return refA == refB

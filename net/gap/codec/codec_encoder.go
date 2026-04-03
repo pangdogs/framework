@@ -60,7 +60,7 @@ func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret bina
 
 	mpBuf := binaryutil.NewBytes(true, int(mp.Head.Len))
 	defer func() {
-		if !mpBuf.Equal(ret) {
+		if !mpBuf.SameRef(ret) {
 			mpBuf.Release()
 		}
 	}()

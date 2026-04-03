@@ -154,7 +154,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: dencrypt msg failed, %w", ErrDecode, err)
 		}
-		if !buf.Equal(dencryptBuf) {
+		if !buf.SameRef(dencryptBuf) {
 			buf.Release()
 		}
 		buf = dencryptBuf
@@ -185,7 +185,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: uncompress msg failed, %w", ErrDecode, err)
 		}
-		if !buf.Equal(uncompressedBuf) {
+		if !buf.SameRef(uncompressedBuf) {
 			buf.Release()
 		}
 		buf = uncompressedBuf

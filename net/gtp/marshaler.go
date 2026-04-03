@@ -29,7 +29,7 @@ import (
 func Marshal[T ReadableMsg](msg T) (ret binaryutil.Bytes, err error) {
 	bs := binaryutil.NewBytes(true, msg.Size())
 	defer func() {
-		if !bs.Equal(ret) {
+		if !bs.SameRef(ret) {
 			bs.Release()
 		}
 	}()
