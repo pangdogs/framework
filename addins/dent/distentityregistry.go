@@ -157,7 +157,7 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) {
 
 	key := d.newEntityKey(entity)
 
-	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithIgnoreValue(), etcdv3.WithLease(d.leaseId))
+	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithLease(d.leaseId))
 	if err != nil {
 		log.L(d.rtCtx).Error("put distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
 		return

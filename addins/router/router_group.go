@@ -223,7 +223,7 @@ func (r *_Router) getGroupByName(ctx context.Context, groupName string) (IGroup,
 		If(etcdv3.Compare(etcdv3.Version(groupIdKey), "!=", 0)).
 		Then(
 			etcdv3.OpGet(groupIdKey),
-			etcdv3.OpGet(groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithIgnoreValue()),
+			etcdv3.OpGet(groupEntitiesPrefix, etcdv3.WithPrefix()),
 		).
 		Commit()
 	if err != nil {
