@@ -49,8 +49,6 @@ func (d *EventDispatcher) Dispatch(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	defer d.Transceiver.GC()
-
 	e, err := d.retryRecv(ctx)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrEvent, err)

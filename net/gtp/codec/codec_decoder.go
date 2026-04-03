@@ -20,6 +20,7 @@
 package codec
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -53,11 +54,11 @@ type IValidation interface {
 
 // Decoder 消息包解码器
 type Decoder struct {
-	MsgCreator     gtp.IMsgCreator    // 消息对象构建器
-	Encryption     IEncryption        // 加密模块
-	Authentication IAuthentication    // 认证模块
-	Compression    ICompression       // 压缩模块
-	gcList         []binaryutil.Bytes // GC列表
+	MsgCreator          gtp.IMsgCreator // 消息对象构建器
+	Encryption          IEncryption     // 加密模块
+	Authentication      IAuthentication // 认证模块
+	Compression         ICompression    // 压缩模块
+	MaxUncompressedSize int             // 最大解压缩大小，用于防御压缩包炸弹
 }
 
 // SetEncryption 设置加密模块
@@ -73,8 +74,9 @@ func (d *Decoder) SetAuthentication(authentication IAuthentication) *Decoder {
 }
 
 // SetCompression 设置压缩模块
-func (d *Decoder) SetCompression(compression ICompression) *Decoder {
+func (d *Decoder) SetCompression(compression ICompression, maxUncompressedSize int) *Decoder {
 	d.Compression = compression
+	d.MaxUncompressedSize = maxUncompressedSize
 	return d
 }
 
@@ -99,14 +101,6 @@ func (d *Decoder) Decode(data []byte, validation IValidation) (gtp.MsgPacket, in
 	return mp, length, nil
 }
 
-// GC GC
-func (d *Decoder) GC() {
-	for i := range d.gcList {
-		d.gcList[i].Release()
-	}
-	d.gcList = d.gcList[:0]
-}
-
 // peekLength 探测消息包长度
 func (d *Decoder) peekLength(data []byte) (int, error) {
 	mpl := gtp.MsgPacketLen{}
@@ -126,24 +120,23 @@ func (d *Decoder) peekLength(data []byte) (int, error) {
 // decode 解码消息包
 func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, error) {
 	// 消息包数据缓存
-	mpBuf := binaryutil.NewBytes(true, len(data))
-	d.gcList = append(d.gcList, mpBuf)
-
-	// 拷贝消息包
-	copy(mpBuf.Payload(), data)
+	buf := binaryutil.NewBytes(true, len(data))
+	copy(buf.Payload(), data)
 
 	mp := gtp.MsgPacket{}
 
 	// 读取消息头
-	if _, err := mp.Head.Write(mpBuf.Payload()); err != nil {
+	if _, err := mp.Head.Write(buf.Payload()); err != nil {
+		buf.Release()
 		return gtp.MsgPacket{}, fmt.Errorf("%w: read msg-packet-head failed, %w", ErrDecode, err)
 	}
 
-	msgBuf := mpBuf.Payload()[mp.Head.Size():]
+	msgBuf := buf.Payload()[mp.Head.Size():]
 
 	// 验证消息包
 	if validation != nil {
 		if err := validation.Validate(mp.Head, msgBuf); err != nil {
+			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: validate msg-packet-head failed, %w", ErrDecode, err)
 		}
 	}
@@ -152,24 +145,30 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 	if mp.Head.Flags.Is(gtp.Flag_Encrypted) {
 		// 解密消息体
 		if d.Encryption == nil {
+			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: Encryption is nil, msg can't be decrypted", ErrDecode)
 		}
+
 		dencryptBuf, err := d.Encryption.Transforming(msgBuf, msgBuf)
 		if err != nil {
+			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: dencrypt msg failed, %w", ErrDecode, err)
 		}
-		if dencryptBuf.Recyclable() {
-			d.gcList = append(d.gcList, dencryptBuf)
+		if !buf.Equal(dencryptBuf) {
+			buf.Release()
 		}
-		msgBuf = dencryptBuf.Payload()
+		buf = dencryptBuf
+		msgBuf = buf.Payload()
 
 		// 消息认证
 		if mp.Head.Flags.Is(gtp.Flag_Signed) {
 			if d.Authentication == nil {
+				buf.Release()
 				return gtp.MsgPacket{}, fmt.Errorf("%w: Authentication is nil, msg can't be auth msg-mac", ErrDecode)
 			}
 			msgBuf, err = d.Authentication.Auth(mp.Head.MsgId, mp.Head.Flags, msgBuf)
 			if err != nil {
+				buf.Release()
 				return gtp.MsgPacket{}, fmt.Errorf("%w: auth msg-mac failed, %w", ErrDecode, err)
 			}
 		}
@@ -178,30 +177,36 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 	// 检查压缩标记
 	if mp.Head.Flags.Is(gtp.Flag_Compressed) {
 		if d.Compression == nil {
+			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: Compression is nil, msg can't be uncompress", ErrDecode)
 		}
-		uncompressedBuf, err := d.Compression.Uncompress(msgBuf)
+		uncompressedBuf, err := d.Compression.Uncompress(msgBuf, d.MaxUncompressedSize)
 		if err != nil {
+			buf.Release()
 			return gtp.MsgPacket{}, fmt.Errorf("%w: uncompress msg failed, %w", ErrDecode, err)
 		}
-		if uncompressedBuf.Recyclable() {
-			d.gcList = append(d.gcList, uncompressedBuf)
+		if !buf.Equal(uncompressedBuf) {
+			buf.Release()
 		}
-		msgBuf = uncompressedBuf.Payload()
+		buf = uncompressedBuf
+		msgBuf = buf.Payload()
 	}
 
 	// 创建消息体
 	msg, err := d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
+		buf.Release()
 		return gtp.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgId)
 	}
 
 	// 读取消息
-	if _, err = msg.Write(msgBuf); err != nil {
+	if _, err = msg.Write(bytes.Clone(msgBuf)); err != nil {
+		buf.Release()
 		return gtp.MsgPacket{}, fmt.Errorf("%w: read msg failed, %w", ErrDecode, err)
 	}
 
 	mp.Msg = msg
 
+	buf.Release()
 	return mp, nil
 }

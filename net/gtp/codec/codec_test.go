@@ -65,7 +65,7 @@ func Test_Codec(t *testing.T) {
 	decoder := codec.NewDecoder(gtp.DefaultMsgCreator()).
 		SetEncryption(codec.NewEncryption(decrypter, nil, func() ([]byte, error) { return nonce.Bytes(), nil })).
 		SetAuthentication(codec.NewAuthentication(hmac)).
-		SetCompression(codec.NewCompression(compressionStream))
+		SetCompression(codec.NewCompression(compressionStream), 16*1024*1024)
 
 	for i := 0; i < 10; i++ {
 		sessionId, _ := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 1024))

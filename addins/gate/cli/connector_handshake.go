@@ -392,17 +392,17 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 
 // setupCompression 安装压缩模块
 func (ctor *_Connector) setupCompression(cm gtp.Compression) error {
-	compression, compressedSize, err := ctor.newCompression(cm)
+	compression, compressionThreshold, _, err := ctor.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	ctor.encoder.SetCompression(compression, compressedSize)
+	ctor.encoder.SetCompression(compression, compressionThreshold)
 
-	compression, _, err = ctor.newCompression(cm)
+	compression, _, maxUncompressedSize, err := ctor.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	ctor.decoder.SetCompression(compression)
+	ctor.decoder.SetCompression(compression, maxUncompressedSize)
 
 	return nil
 }
@@ -489,17 +489,17 @@ func (ctor *_Connector) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) 
 }
 
 // newCompression 构造压缩模块
-func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.ICompression, int, error) {
+func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.ICompression, int, int, error) {
 	if compression == gtp.Compression_None {
-		return nil, 0, nil
+		return nil, 0, 0, nil
 	}
 
 	compressionStream, err := method.NewCompressionStream(compression)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 
-	return codec.NewCompression(compressionStream), ctor.options.CompressionThreshold, err
+	return codec.NewCompression(compressionStream), ctor.options.CompressionThreshold, ctor.options.MaxUncompressedSize, err
 }
 
 // sign 签名

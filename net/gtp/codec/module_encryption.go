@@ -37,9 +37,9 @@ var (
 // IEncryption 加密模块接口
 type IEncryption interface {
 	// Transforming 变换数据
-	Transforming(dst, src []byte) (binaryutil.Bytes, error)
+	Transforming(dst, src []byte) (transformedBuf binaryutil.Bytes, err error)
 	// SizeOfAddition 附加数据大小
-	SizeOfAddition(msgLen int) (int, error)
+	SizeOfAddition(msgLen int) (size int, err error)
 }
 
 type (
@@ -79,43 +79,39 @@ type Encryption struct {
 }
 
 // Transforming 变换数据
-func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.Bytes, err error) {
+func (e *Encryption) Transforming(dst, src []byte) (binaryutil.Bytes, error) {
 	if e.Cipher == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: Cipher is nil", ErrEncrypt)
 	}
 
-	var in []byte
+	var inBuf binaryutil.Bytes
 
-	is := e.Cipher.InputSize(len(src))
-	if is > len(src) {
-		buf := binaryutil.NewBytes(true, is)
-		defer buf.Release()
-
-		copy(buf.Payload(), src)
-		in = buf.Payload()
+	inSize := e.Cipher.InputSize(len(src))
+	if inSize > len(src) {
+		inBuf = binaryutil.NewBytes(true, inSize)
+		copy(inBuf.Payload(), src)
 	} else {
-		in = src
+		inBuf = binaryutil.RefBytes(src)
 	}
 
-	os := e.Cipher.OutputSize(len(src))
-	if os > len(dst) {
-		buf := binaryutil.NewBytes(true, os)
-		defer func() {
-			if !buf.Equal(ret) {
-				buf.Release()
-			}
-		}()
+	var outBuf binaryutil.Bytes
 
-		ret = buf
+	outSize := e.Cipher.OutputSize(len(src))
+	if outSize > len(dst) {
+		outBuf = binaryutil.NewBytes(true, outSize)
 	} else {
-		ret = binaryutil.RefBytes(dst)
+		outBuf = binaryutil.RefBytes(dst)
 	}
 
 	if e.Cipher.Pad() {
 		if e.Padding == nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
 		}
-		if err = e.Padding.Pad(in, len(src)); err != nil {
+		if err := e.Padding.Pad(inBuf.Payload(), len(src)); err != nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
 	}
@@ -124,32 +120,44 @@ func (e *Encryption) Transforming(dst, src []byte) (ret binaryutil.Bytes, err er
 
 	if e.Cipher.NonceSize() > 0 {
 		if e.FetchNonce == nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: FetchNonce is nil", ErrEncrypt)
 		}
+		var err error
 		nonce, err = generic.FuncPairError(e.FetchNonce.SafeCall())
 		if err != nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
 	}
 
-	ts, err := e.Cipher.Transforming(ret.Payload(), in, nonce)
+	ts, err := e.Cipher.Transforming(outBuf.Payload(), inBuf.Payload(), nonce)
 	if err != nil {
+		outBuf.Release()
+		inBuf.Release()
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 	}
-	ret = ret.Slice(0, ts)
+	outBuf = outBuf.Slice(0, ts)
 
 	if e.Cipher.Unpad() {
 		if e.Padding == nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: Padding is nil", ErrEncrypt)
 		}
-		buf, err := e.Padding.Unpad(ret.Payload())
+		buf, err := e.Padding.Unpad(outBuf.Payload())
 		if err != nil {
+			outBuf.Release()
+			inBuf.Release()
 			return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrEncrypt, err)
 		}
-		ret = ret.Slice(0, len(buf))
+		outBuf = outBuf.Slice(0, len(buf))
 	}
 
-	return ret, nil
+	inBuf.Release()
+	return outBuf, nil
 }
 
 // SizeOfAddition 附加数据大小

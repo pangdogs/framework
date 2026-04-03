@@ -557,17 +557,17 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 
 // setupCompression 安装压缩模块
 func (acc *_Acceptor) setupCompression(cm gtp.Compression) error {
-	compression, compressedSize, err := acc.newCompression(cm)
+	compression, compressionThreshold, _, err := acc.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	acc.encoder.SetCompression(compression, compressedSize)
+	acc.encoder.SetCompression(compression, compressionThreshold)
 
-	compression, _, err = acc.newCompression(cm)
+	compression, _, maxUncompressedSize, err := acc.newCompression(cm)
 	if err != nil {
 		return err
 	}
-	acc.decoder.SetCompression(compression)
+	acc.decoder.SetCompression(compression, maxUncompressedSize)
 
 	return nil
 }
@@ -694,17 +694,17 @@ func (acc *_Acceptor) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (c
 }
 
 // newCompression 构造压缩模块
-func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompression, int, error) {
+func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompression, int, int, error) {
 	if compression == gtp.Compression_None {
-		return nil, 0, nil
+		return nil, 0, 0, nil
 	}
 
 	compressionStream, err := method.NewCompressionStream(compression)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 
-	return codec.NewCompression(compressionStream), acc.options.CompressionThreshold, err
+	return codec.NewCompression(compressionStream), acc.options.CompressionThreshold, acc.options.MaxUncompressedSize, err
 }
 
 // sign 签名

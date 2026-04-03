@@ -62,6 +62,7 @@ type ClientOptions struct {
 	EncVerifySignaturePublicKey crypto.PublicKey       // 加密通信中，验证服务端签名用的公钥
 	Compression                 gtp.Compression        // 通信中的压缩函数
 	CompressionThreshold        int                    // 通信中启用压缩阀值（字节），<=0表示不开启
+	MaxUncompressedSize         int                    // 通信中最大解压缩大小，用于防御压缩包炸弹
 	AutoReconnect               bool                   // 开启自动重连
 	AutoReconnectInterval       time.Duration          // 自动重连的时间间隔
 	AutoReconnectRetryTimes     int                    // 自动重连的重试次数，<=0表示无限重试
@@ -113,6 +114,7 @@ func (_ClientOption) Default() option.Setting[ClientOptions] {
 		With.EncVerifyServerSignature(false)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressionThreshold(64 * 1024)(options)
+		With.MaxUncompressedSize(64 * 1024 * 1024)(options)
 		With.AutoReconnect(false)(options)
 		With.AutoReconnectInterval(3 * time.Second)(options)
 		With.AutoReconnectRetryTimes(100)(options)
@@ -284,6 +286,13 @@ func (_ClientOption) Compression(c gtp.Compression) option.Setting[ClientOptions
 func (_ClientOption) CompressionThreshold(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.CompressionThreshold = size
+	}
+}
+
+// MaxUncompressedSize 通信中最大解压缩大小，用于防御压缩包炸弹
+func (_ClientOption) MaxUncompressedSize(size int) option.Setting[ClientOptions] {
+	return func(options *ClientOptions) {
+		options.MaxUncompressedSize = size
 	}
 }
 

@@ -39,11 +39,11 @@ var (
 // IAuthentication 认证模块接口，用于防止消息被篡改
 type IAuthentication interface {
 	// Sign 签名
-	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.Bytes, err error)
+	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (signedBuf binaryutil.Bytes, err error)
 	// Auth 认证
-	Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error)
+	Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (authBuf []byte, err error)
 	// SizeOfAddition 附加数据大小
-	SizeOfAddition(msgLen int) (int, error)
+	SizeOfAddition(msgLen int) (size int, err error)
 }
 
 // NewAuthentication 创建认证模块
@@ -59,18 +59,18 @@ func NewAuthentication(hmac hash.Hash) IAuthentication {
 
 // Authentication 认证模块
 type Authentication struct {
-	HMAC    hash.Hash
-	macBuff []byte
+	HMAC      hash.Hash
+	hmacCache []byte
 }
 
 // Sign 签名
-func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst binaryutil.Bytes, err error) {
+func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
 	if m.HMAC == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
 	}
 
-	if len(m.macBuff) <= 0 {
-		m.macBuff = make([]byte, m.HMAC.Size())
+	if len(m.hmacCache) <= 0 {
+		m.hmacCache = make([]byte, m.HMAC.Size())
 	}
 
 	m.HMAC.Reset()
@@ -80,36 +80,32 @@ func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 
 	msgSigned := gtp.MsgSigned{
 		Data: msgBuf,
-		MAC:  m.HMAC.Sum(m.macBuff[:0]),
+		MAC:  m.HMAC.Sum(m.hmacCache[:0]),
 	}
 
-	buf := binaryutil.NewBytes(true, msgSigned.Size())
-	defer func() {
-		if !buf.Equal(dst) {
-			buf.Release()
-		}
-	}()
+	signedBuf := binaryutil.NewBytes(true, msgSigned.Size())
 
-	if _, err = binaryutil.CopyToBuff(buf.Payload(), msgSigned); err != nil {
+	if _, err := binaryutil.CopyToBuff(signedBuf.Payload(), msgSigned); err != nil {
+		signedBuf.Release()
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w", ErrAuthenticate, err)
 	}
 
-	return buf, nil
+	return signedBuf, nil
 }
 
 // Auth 认证
-func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (dst []byte, err error) {
+func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
 	if m.HMAC == nil {
 		return nil, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
 	}
 
-	if len(m.macBuff) <= 0 {
-		m.macBuff = make([]byte, m.HMAC.Size())
+	if len(m.hmacCache) <= 0 {
+		m.hmacCache = make([]byte, m.HMAC.Size())
 	}
 
 	msgSigned := gtp.MsgSigned{}
 
-	if _, err = msgSigned.Write(msgBuf); err != nil {
+	if _, err := msgSigned.Write(msgBuf); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrAuthenticate, err)
 	}
 
@@ -118,7 +114,7 @@ func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	m.HMAC.Write(bs[:])
 	m.HMAC.Write(msgSigned.Data)
 
-	if !hmac.Equal(m.HMAC.Sum(m.macBuff[:0]), msgSigned.MAC) {
+	if !hmac.Equal(m.HMAC.Sum(m.hmacCache[:0]), msgSigned.MAC) {
 		return nil, ErrInvalidMAC
 	}
 

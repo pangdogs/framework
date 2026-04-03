@@ -254,17 +254,8 @@ func (t *Transceiver) Migrate(conn net.Conn, remoteRecvSeq uint32) (sendReq, rec
 	return t.Synchronizer.SendSeq(), t.Synchronizer.RecvSeq(), nil
 }
 
-// GC GC
-func (t *Transceiver) GC() {
-	if t.Decoder != nil {
-		t.Decoder.GC()
-	}
-}
-
 // Dispose 释放资源
 func (t *Transceiver) Dispose() {
-	t.GC()
-
 	if t.Synchronizer != nil {
 		t.Synchronizer.Dispose()
 	}
