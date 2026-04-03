@@ -66,7 +66,6 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.Ms
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w: %w", ErrProtocol, core.ErrPanicked, panicErr)
 		}
-		trans.GC()
 	}()
 
 	err = h.retrySend(trans.Send(hello.Interface()))
@@ -118,7 +117,6 @@ func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAc
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.GC()
 	}()
 
 	recv, err := h.retryRecv(ctx)
@@ -169,7 +167,6 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w: %w", ErrProtocol, core.ErrPanicked, panicErr)
 		}
-		trans.GC()
 	}()
 
 	recv, err := h.retryRecv(ctx)
@@ -249,7 +246,6 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.GC()
 	}()
 
 	err = h.retrySend(trans.Send(secretKeyExchange.Interface()))
@@ -342,7 +338,6 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.GC()
 	}()
 
 	recv, err := h.retryRecv(ctx)
@@ -404,7 +399,6 @@ func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept C
 		if err != nil {
 			trans.SendRst(err)
 		}
-		trans.GC()
 	}()
 
 	recv, err := h.retryRecv(ctx)
@@ -432,7 +426,6 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
-	trans := h.Transceiver
 
 	if finishedAccept == nil {
 		return fmt.Errorf("%w: %w: finishedAccept is nil", ErrProtocol, core.ErrArgs)
@@ -442,7 +435,6 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("%w: %w: %w", ErrProtocol, core.ErrPanicked, panicErr)
 		}
-		trans.GC()
 	}()
 
 	recv, err := h.retryRecv(ctx)
