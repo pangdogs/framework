@@ -20,10 +20,13 @@
 package framework
 
 import (
+	"encoding/json"
+
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/log"
 	"go.uber.org/zap"
 )
@@ -48,7 +51,7 @@ func (c *ComponentBehavior) Service() IService {
 // L 结构化日志
 func (c *ComponentBehavior) L() *zap.Logger {
 	if c.logger == nil {
-		c.logger = log.L(c.Runtime()).With(zap.String("component", c.String()))
+		c.logger = log.L(c.Runtime()).With(zap.Any("component", json.RawMessage(types.String2Bytes(c.String()))))
 	}
 	return c.logger
 }

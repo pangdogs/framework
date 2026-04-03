@@ -20,10 +20,13 @@
 package framework
 
 import (
+	"encoding/json"
+
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/log"
 	"go.uber.org/zap"
 )
@@ -48,7 +51,7 @@ func (e *EntityBehavior) Service() IService {
 // L 结构化日志
 func (e *EntityBehavior) L() *zap.Logger {
 	if e.logger == nil {
-		e.logger = log.L(e.Runtime()).With(zap.String("entity", e.String()))
+		e.logger = log.L(e.Runtime()).With(zap.Any("entity", json.RawMessage(types.String2Bytes(e.String()))))
 	}
 	return e.logger
 }
