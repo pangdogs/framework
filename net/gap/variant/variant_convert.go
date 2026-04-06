@@ -84,7 +84,10 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	case sliceAnyRT, reflect.PointerTo(sliceAnyRT):
 		switch v.TypeId {
 		case TypeId_Array:
-			arr := *v.Value.(*Array)
+			arr, ok := indirectArray(v.Value)
+			if !ok {
+				return reflect.Value{}, ErrInvalidCast
+			}
 
 			rv := make([]any, 0, len(arr))
 			for _, it := range arr {
@@ -101,7 +104,10 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	case sliceRVRT, reflect.PointerTo(sliceRVRT):
 		switch v.TypeId {
 		case TypeId_Array:
-			arr := *v.Value.(*Array)
+			arr, ok := indirectArray(v.Value)
+			if !ok {
+				return reflect.Value{}, ErrInvalidCast
+			}
 
 			rv := make([]reflect.Value, 0, len(arr))
 			for _, it := range arr {
@@ -118,10 +124,13 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	case mapStringAnyRT, reflect.PointerTo(mapStringAnyRT):
 		switch v.TypeId {
 		case TypeId_Map:
-			m := *v.Value.(*Map).ToUnorderedSliceMap()
+			m, ok := indirectMap(v.Value)
+			if !ok {
+				return reflect.Value{}, ErrInvalidCast
+			}
 
-			rv := make(map[string]any, len(m))
-			for _, kv := range m {
+			rv := make(map[string]any, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -138,10 +147,13 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	case sliceMapStringAnyRT, reflect.PointerTo(sliceMapStringAnyRT):
 		switch v.TypeId {
 		case TypeId_Map:
-			m := *v.Value.(*Map).ToUnorderedSliceMap()
+			m, ok := indirectMap(v.Value)
+			if !ok {
+				return reflect.Value{}, ErrInvalidCast
+			}
 
-			rv := make(generic.SliceMap[string, any], 0, len(m))
-			for _, kv := range m {
+			rv := make(generic.SliceMap[string, any], 0, len(*m))
+			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -158,7 +170,10 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	case unorderedSliceMapStringAnyRT, reflect.PointerTo(unorderedSliceMapStringAnyRT):
 		switch v.TypeId {
 		case TypeId_Map:
-			m := v.Value.(*Map).ToUnorderedSliceMap()
+			m, ok := indirectMap(v.Value)
+			if !ok {
+				return reflect.Value{}, ErrInvalidCast
+			}
 
 			for _, kv := range *m {
 				if kv.K.TypeId != TypeId_String {
@@ -193,4 +208,26 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	}
 
 	return reflect.Value{}, ErrInvalidCast
+}
+
+func indirectArray(v ReadableValue) (Array, bool) {
+	switch arr := v.(type) {
+	case Array:
+		return arr, true
+	case *Array:
+		return *arr, true
+	default:
+		return nil, false
+	}
+}
+
+func indirectMap(v ReadableValue) (*generic.UnorderedSliceMap[Variant, Variant], bool) {
+	switch m := v.(type) {
+	case Map:
+		return m.ToUnorderedSliceMap(), true
+	case *Map:
+		return m.ToUnorderedSliceMap(), true
+	default:
+		return nil, false
+	}
 }
