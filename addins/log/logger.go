@@ -77,28 +77,28 @@ func JSONRawStringer(key string, v fmt.Stringer) zap.Field {
 	return zap.Reflect(key, lazyJSONRawStringer{v: v})
 }
 
-type rawJSONString struct {
+type jsonRawString struct {
 	v string
 }
 
-func (r rawJSONString) MarshalJSON() ([]byte, error) {
+func (r jsonRawString) MarshalJSON() ([]byte, error) {
 	return types.String2Bytes(r.v), nil
 }
 
 func JSONRawString(key string, v string) zap.Field {
-	return zap.Reflect(key, rawJSONString{v: v})
+	return zap.Reflect(key, jsonRawString{v: v})
 }
 
-type rawJSONByteString struct {
+type jsonRawByteString struct {
 	v []byte
 }
 
-func (r rawJSONByteString) MarshalJSON() ([]byte, error) {
+func (r jsonRawByteString) MarshalJSON() ([]byte, error) {
 	return r.v, nil
 }
 
 func JSONRawByteString(key string, v []byte) zap.Field {
-	return zap.Reflect(key, rawJSONByteString{v: v})
+	return zap.Reflect(key, jsonRawByteString{v: v})
 }
 
 func newLogger(settings ...option.Setting[LoggerOptions]) ILogger {
