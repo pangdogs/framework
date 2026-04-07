@@ -33,7 +33,6 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	. "git.golaxy.org/framework/addins"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"go.uber.org/zap"
 )
 
 type _RuntimeSettings struct {
@@ -337,7 +336,7 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 }
 
 func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
-	appConf := r.svcInst.AppConf()
+	conf := r.svcInst.AppConf()
 
 	installed := func(name string) bool {
 		_, ok := rtInst.AddInManager().GetStatusByName(name)
@@ -356,12 +355,9 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 		}
 	}
 	if !installed(Log.Name) {
-		v, _ := r.svcInst.Memory().Load(memLogger)
-		if logger, ok := v.(*zap.Logger); ok {
-			Log.Install(rtInst,
-				LogWith.Logger(logger),
-			)
-		}
+		Log.Install(rtInst,
+			LogWith.Logger(r.svcInst.L()),
+		)
 	}
 
 	// 安装RPC调用堆栈支持
@@ -398,7 +394,7 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 		}
 		Dentr.Install(rtInst,
 			DentrWith.EtcdClient(cliOnce()),
-			DentrWith.RegistrationTTL(appConf.GetDuration("service.dent_ttl")),
+			DentrWith.RegistrationTTL(conf.GetDuration("service.dent_ttl")),
 		)
 	}
 }

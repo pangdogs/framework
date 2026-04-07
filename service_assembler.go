@@ -32,7 +32,6 @@ import (
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/reinterpret"
 	. "git.golaxy.org/framework/addins"
-	"git.golaxy.org/framework/addins/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -96,15 +95,13 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 
 			switch runningEvent {
 			case service.RunningEvent_Birth:
-				conf := viper.New()
-				conf.MergeConfigMap(s.conf.AllSettings())
-
-				svcInst.Memory().Store(memReplicaNo, replicaNo)
-				svcInst.Memory().Store(memConf, conf)
-				svcInst.Memory().Store(memCmd, s.cmd)
-
 				svcInst.(iService).getRuntimeAssembler().init(svcInst, svcInst.(iService).getRuntimeAssembler())
 				cacheCallPath("", svcInst.Reflected().Type())
+
+				svcInst.Memory().Store(memReplicaNo, replicaNo)
+
+				s.initConf(svcInst)
+				s.initLogger(svcInst)
 
 				if cb, ok := s.instance.(LifecycleServiceBirth); ok {
 					cb.OnBirth(svcInst)
@@ -140,11 +137,7 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 						for {
 							select {
 							case err := <-svcInst.ReportError():
-								if svcInst.(iService).getStarted().Load() {
-									log.L(svcInst).Error("[Recovery from panic]", zap.Error(err))
-								} else {
-									panic(err)
-								}
+								svcInst.L().Error("[Recovery from panic]", zap.Error(err))
 							case <-svcInst.Done():
 								return
 							}
@@ -271,6 +264,75 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 	return core.NewService(svcCtx)
 }
 
+func (s *ServiceAssembler) initConf(svcInst IService) {
+	conf := viper.New()
+	conf.MergeConfigMap(s.conf.AllSettings())
+
+	svcInst.Memory().Store(memConf, conf)
+	svcInst.Memory().Store(memCmd, s.cmd)
+}
+
+func (s *ServiceAssembler) initLogger(svcInst IService) {
+	conf := svcInst.AppConf()
+
+	level, err := zapcore.ParseLevel(conf.GetString("log.level"))
+	if err != nil {
+		exception.Panicf("%w: parse log.level:%q failed, %s", ErrFramework, conf.GetString("log.level"), err)
+	}
+
+	var encoderConf zapcore.EncoderConfig
+	switch conf.GetString("log.encoder") {
+	case "production":
+		encoderConf = zap.NewProductionEncoderConfig()
+	case "development":
+		encoderConf = zap.NewDevelopmentEncoderConfig()
+	default:
+		exception.Panicf("%w: unknown log.encoder:%q", ErrFramework, conf.GetString("log.encoder"))
+	}
+
+	var encoder zapcore.Encoder
+	switch conf.GetString("log.format") {
+	case "console":
+		encoder = zapcore.NewConsoleEncoder(encoderConf)
+	case "json":
+		encoder = zapcore.NewJSONEncoder(encoderConf)
+	default:
+		exception.Panicf("%w: unknown log.format:%q", ErrFramework, conf.GetString("log.format"))
+	}
+
+	var logger *zap.Logger
+	atomicLevel := zap.NewAtomicLevelAt(level)
+
+	if conf.GetBool("log.async") {
+		logger = zap.New(
+			zapcore.NewCore(
+				encoder,
+				&zapcore.BufferedWriteSyncer{
+					WS:            zapcore.AddSync(os.Stdout),
+					Size:          conf.GetInt("log.buffer_size"),
+					FlushInterval: conf.GetDuration("log.flush_interval"),
+				},
+				atomicLevel,
+			),
+			zap.AddCaller(),
+			zap.AddStacktrace(zap.DPanicLevel),
+		)
+	} else {
+		logger = zap.New(
+			zapcore.NewCore(
+				encoder,
+				zapcore.AddSync(os.Stdout),
+				atomicLevel,
+			),
+			zap.AddCaller(),
+			zap.AddStacktrace(zap.DPanicLevel),
+		)
+	}
+
+	svcInst.Memory().Store(memLogger, logger)
+	svcInst.Memory().Store(memLoggerAtomicLevel, atomicLevel)
+}
+
 func (s *ServiceAssembler) installAddIns(svcInst IService) {
 	conf := svcInst.AppConf()
 
@@ -291,65 +353,8 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 		}
 	}
 	if !installed(Log.Name) {
-		level, err := zapcore.ParseLevel(conf.GetString("log.level"))
-		if err != nil {
-			exception.Panicf("%w: parse log.level:%q failed, %s", ErrFramework, conf.GetString("log.level"), err)
-		}
-
-		var encoderConf zapcore.EncoderConfig
-		switch conf.GetString("log.encoder") {
-		case "production":
-			encoderConf = zap.NewProductionEncoderConfig()
-		case "development":
-			encoderConf = zap.NewDevelopmentEncoderConfig()
-		default:
-			exception.Panicf("%w: unknown log.encoder:%q", ErrFramework, conf.GetString("log.encoder"))
-		}
-
-		var encoder zapcore.Encoder
-		switch conf.GetString("log.format") {
-		case "console":
-			encoder = zapcore.NewConsoleEncoder(encoderConf)
-		case "json":
-			encoder = zapcore.NewJSONEncoder(encoderConf)
-		default:
-			exception.Panicf("%w: unknown log.format:%q", ErrFramework, conf.GetString("log.format"))
-		}
-
-		var logger *zap.Logger
-		atomicLevel := zap.NewAtomicLevelAt(level)
-
-		if conf.GetBool("log.async") {
-			logger = zap.New(
-				zapcore.NewCore(
-					encoder,
-					&zapcore.BufferedWriteSyncer{
-						WS:            zapcore.AddSync(os.Stdout),
-						Size:          conf.GetInt("log.buffer_size"),
-						FlushInterval: conf.GetDuration("log.flush_interval"),
-					},
-					atomicLevel,
-				),
-				zap.AddCaller(),
-				zap.AddStacktrace(zap.DPanicLevel),
-			)
-		} else {
-			logger = zap.New(
-				zapcore.NewCore(
-					encoder,
-					zapcore.AddSync(os.Stdout),
-					atomicLevel,
-				),
-				zap.AddCaller(),
-				zap.AddStacktrace(zap.DPanicLevel),
-			)
-		}
-
-		svcInst.Memory().Store(memLogger, logger)
-		svcInst.Memory().Store(memLoggerAtomicLevel, atomicLevel)
-
 		Log.Install(svcInst,
-			LogWith.Logger(logger),
+			LogWith.Logger(svcInst.L()),
 		)
 	}
 

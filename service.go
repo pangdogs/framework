@@ -172,11 +172,17 @@ func (svc *ServiceBehavior) BuildEntity(prototype string) *EntityCreator {
 
 // L 结构化日志
 func (svc *ServiceBehavior) L() *zap.Logger {
+	if !svc.started.Load() {
+		return svc.getLogger()
+	}
 	return log.L(svc)
 }
 
 // S 传统日志
 func (svc *ServiceBehavior) S() *zap.SugaredLogger {
+	if !svc.started.Load() {
+		return svc.getLogger().Sugar()
+	}
 	return log.S(svc)
 }
 
@@ -195,4 +201,13 @@ func (svc *ServiceBehavior) getConf() *viper.Viper {
 		exception.Panicf("%w: service memory %q not exists", ErrFramework, memConf)
 	}
 	return conf
+}
+
+func (svc *ServiceBehavior) getLogger() *zap.Logger {
+	v, _ := svc.Memory().Load(memLogger)
+	logger, ok := v.(*zap.Logger)
+	if !ok {
+		exception.Panicf("%w: service memory %q not exists", ErrFramework, memLogger)
+	}
+	return logger
 }
