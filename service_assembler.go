@@ -157,7 +157,7 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				}
 
 				// 注册服务信息
-				Dsvc.Require(svcInst).RegisterOnce()
+				svcInst.DistService().RegisterOnce()
 
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
 					cb.OnStarted(svcInst)
