@@ -33,8 +33,10 @@ import (
 	"git.golaxy.org/framework/addins/discovery"
 	"git.golaxy.org/framework/addins/dsvc"
 	"git.golaxy.org/framework/addins/dsync"
+	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/rpc"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // GetService 获取服务实例
@@ -71,6 +73,10 @@ type IService interface {
 	BuildEntityPT(prototype string) *EntityPTCreator
 	// BuildEntity 创建实体
 	BuildEntity(prototype string) *EntityCreator
+	// L 结构化日志
+	L() *zap.Logger
+	// S 传统日志
+	S() *zap.SugaredLogger
 }
 
 type iService interface {
@@ -162,6 +168,16 @@ func (svc *ServiceBehavior) BuildEntityPT(prototype string) *EntityPTCreator {
 // BuildEntity 创建实体
 func (svc *ServiceBehavior) BuildEntity(prototype string) *EntityCreator {
 	return BuildEntity(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()), prototype).SetRuntimeCreator(svc.BuildRuntime())
+}
+
+// L 结构化日志
+func (svc *ServiceBehavior) L() *zap.Logger {
+	return log.L(svc)
+}
+
+// S 传统日志
+func (svc *ServiceBehavior) S() *zap.SugaredLogger {
+	return log.S(svc)
 }
 
 func (svc *ServiceBehavior) getStarted() *atomic.Bool {

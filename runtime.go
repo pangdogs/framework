@@ -26,7 +26,9 @@ import (
 	"git.golaxy.org/core/utils/reinterpret"
 	"git.golaxy.org/framework/addins"
 	"git.golaxy.org/framework/addins/dent"
+	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/addins/rpcstack"
+	"go.uber.org/zap"
 )
 
 // GetRuntime 获取运行时实例
@@ -47,6 +49,10 @@ type IRuntime interface {
 	AutoInjection() bool
 	// BuildEntity 创建实体
 	BuildEntity(prototype string) *core.EntityCreator
+	// L 结构化日志
+	L() *zap.Logger
+	// S 传统日志
+	S() *zap.SugaredLogger
 }
 
 type iRuntime interface {
@@ -82,6 +88,16 @@ func (rt *RuntimeBehavior) AutoInjection() bool {
 // BuildEntity 创建实体
 func (rt *RuntimeBehavior) BuildEntity(prototype string) *core.EntityCreator {
 	return core.BuildEntity(runtime.Current(rt), prototype)
+}
+
+// L 结构化日志
+func (rt *RuntimeBehavior) L() *zap.Logger {
+	return log.L(rt)
+}
+
+// S 传统日志
+func (rt *RuntimeBehavior) S() *zap.SugaredLogger {
+	return log.S(rt)
 }
 
 func (rt *RuntimeBehavior) setAutoInjection(b bool) {
