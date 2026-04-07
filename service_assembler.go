@@ -156,8 +156,8 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 					exception.Panicf("%w: already started", ErrFramework)
 				}
 
-				// 注册服务信息
-				svcInst.DistService().RegisterOnce()
+				// 服务上线
+				svcInst.DistService().BringUp()
 
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
 					cb.OnStarted(svcInst)

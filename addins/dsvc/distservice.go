@@ -45,8 +45,8 @@ import (
 
 // IDistService 分布式服务支持
 type IDistService interface {
-	// RegisterOnce 注册服务信息
-	RegisterOnce()
+	// BringUp 服务上线
+	BringUp()
 	// NodeDetails 获取节点地址信息
 	NodeDetails() *NodeDetails
 	// FutureController 获取异步模型Future控制器
@@ -76,7 +76,7 @@ type _DistService struct {
 	encoder          *codec.Encoder
 	decoder          *codec.Decoder
 	futureController *concurrent.FutureController
-	registerOnce     sync.Once
+	bringUpOnce      sync.Once
 	listeners        concurrent.Listeners[MsgHandler, _BrokerMsg]
 }
 
@@ -117,9 +117,9 @@ func (d *_DistService) Shut(svcCtx service.Context) {
 	d.barrier.Wait()
 }
 
-// RegisterOnce 注册服务信息
-func (d *_DistService) RegisterOnce() {
-	d.registerOnce.Do(func() {
+// BringUp 服务上线
+func (d *_DistService) BringUp() {
+	d.bringUpOnce.Do(func() {
 		svcCtx := d.svcCtx
 
 		if !d.barrier.Join(1) {
