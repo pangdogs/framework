@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 	"unique"
 
@@ -44,6 +45,8 @@ import (
 
 // IDistService 分布式服务支持
 type IDistService interface {
+	// RegisterOnce 注册服务信息
+	RegisterOnce()
 	// NodeDetails 获取节点地址信息
 	NodeDetails() *NodeDetails
 	// FutureController 获取异步模型Future控制器
@@ -73,6 +76,7 @@ type _DistService struct {
 	encoder          *codec.Encoder
 	decoder          *codec.Decoder
 	futureController *concurrent.FutureController
+	registerOnce     sync.Once
 	listeners        concurrent.Listeners[MsgHandler, _BrokerMsg]
 }
 
@@ -102,83 +106,6 @@ func (d *_DistService) Init(svcCtx service.Context) {
 
 	// 初始化地址信息
 	d.initNodeDetails()
-
-	log.L(svcCtx).Info("service node is starting",
-		zap.String("service", svcCtx.Name()),
-		zap.String("node", svcCtx.Id().String()),
-		log.JSON("details", d.details))
-
-	// 加分布式锁
-	mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.Id().String()))
-	if err := mutex.Lock(svcCtx); err != nil {
-		log.L(svcCtx).Panic("lock dsync mutex failed", zap.String("name", mutex.Name()), zap.Error(err))
-	}
-	defer mutex.Unlock(context.Background())
-
-	// 检查服务节点是否已被注册
-	_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.Id())
-	if err == nil {
-		log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()))
-	}
-	if !errors.Is(err, discovery.ErrRegistrationNotFound) {
-		log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()), zap.Error(err))
-	}
-
-	// 订阅消息事件
-	subs := []async.Future{
-		// 订阅全服消息事件
-		d.subscribe(d.details.GlobalBroadcastAddr, ""),
-		d.subscribe(d.details.GlobalBalanceAddr, "balance"),
-
-		// 订阅服务类型消息事件
-		d.subscribe(d.details.BroadcastAddr, ""),
-		d.subscribe(d.details.BalanceAddr, "balance"),
-
-		// 订阅服务节点消息事件
-		d.subscribe(d.details.LocalAddr, ""),
-	}
-
-	// 服务节点信息
-	node := &discovery.Node{
-		Id:      svcCtx.Id(),
-		Address: d.details.LocalAddr,
-		Version: d.options.Version,
-		Meta:    d.options.Meta,
-	}
-
-	// 注册服务节点
-	reg, err := d.registry.RegisterNode(d.ctx, svcCtx.Name(), node, d.options.RegistrationTTL)
-	if err != nil {
-		log.L(svcCtx).Panic("register service node failed",
-			zap.String("service", svcCtx.Name()),
-			zap.String("node", svcCtx.Id().String()),
-			zap.Error(err))
-	}
-	if _, err = reg.KeepAliveContinuous(d.ctx); err != nil {
-		log.L(svcCtx).Panic("keepalive service node failed",
-			zap.String("service", svcCtx.Name()),
-			zap.String("node", svcCtx.Id().String()),
-			zap.Error(err))
-	}
-
-	log.L(svcCtx).Info("service node is started",
-		zap.String("service", svcCtx.Name()),
-		zap.String("node", svcCtx.Id().String()),
-		log.JSON("details", d.details))
-
-	d.barrier.Join(1)
-	go func() {
-		defer d.barrier.Done()
-		<-d.ctx.Done()
-		// 取消注册服务节点
-		reg.Deregister(context.Background())
-		// 等待消息事件已取消订阅
-		for _, sub := range subs {
-			<-sub.Done()
-		}
-		// 刷新消息中间件缓存
-		d.broker.Flush(context.Background())
-	}()
 }
 
 // Shut 关闭插件
@@ -188,6 +115,93 @@ func (d *_DistService) Shut(svcCtx service.Context) {
 	d.terminate()
 	d.barrier.Close()
 	d.barrier.Wait()
+}
+
+// RegisterOnce 注册服务信息
+func (d *_DistService) RegisterOnce() {
+	d.registerOnce.Do(func() {
+		svcCtx := d.svcCtx
+
+		if !d.barrier.Join(1) {
+			log.L(svcCtx).Panic("service node is terminating")
+		}
+
+		log.L(svcCtx).Info("service node is starting",
+			zap.String("service", svcCtx.Name()),
+			zap.String("node", svcCtx.Id().String()),
+			log.JSON("details", d.details))
+
+		// 订阅消息事件
+		subs := []async.Future{
+			// 订阅全服消息事件
+			d.subscribe(d.details.GlobalBroadcastAddr, ""),
+			d.subscribe(d.details.GlobalBalanceAddr, "balance"),
+
+			// 订阅服务类型消息事件
+			d.subscribe(d.details.BroadcastAddr, ""),
+			d.subscribe(d.details.BalanceAddr, "balance"),
+
+			// 订阅服务节点消息事件
+			d.subscribe(d.details.LocalAddr, ""),
+		}
+
+		// 加分布式锁
+		mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.Id().String()))
+		if err := mutex.Lock(svcCtx); err != nil {
+			log.L(svcCtx).Panic("lock dsync mutex failed", zap.String("name", mutex.Name()), zap.Error(err))
+		}
+		defer mutex.Unlock(context.Background())
+
+		// 检查服务节点是否已被注册
+		_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.Id())
+		if err == nil {
+			log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()))
+		}
+		if !errors.Is(err, discovery.ErrRegistrationNotFound) {
+			log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()), zap.Error(err))
+		}
+
+		// 服务节点信息
+		node := &discovery.Node{
+			Id:      svcCtx.Id(),
+			Address: d.details.LocalAddr,
+			Version: d.options.Version,
+			Meta:    d.options.Meta,
+		}
+
+		// 注册服务节点
+		reg, err := d.registry.RegisterNode(d.ctx, svcCtx.Name(), node, d.options.RegistrationTTL)
+		if err != nil {
+			log.L(svcCtx).Panic("register service node failed",
+				zap.String("service", svcCtx.Name()),
+				zap.String("node", svcCtx.Id().String()),
+				zap.Error(err))
+		}
+		if _, err = reg.KeepAliveContinuous(d.ctx); err != nil {
+			log.L(svcCtx).Panic("keepalive service node failed",
+				zap.String("service", svcCtx.Name()),
+				zap.String("node", svcCtx.Id().String()),
+				zap.Error(err))
+		}
+
+		log.L(svcCtx).Info("service node is started",
+			zap.String("service", svcCtx.Name()),
+			zap.String("node", svcCtx.Id().String()),
+			log.JSON("details", d.details))
+
+		go func() {
+			defer d.barrier.Done()
+			<-d.ctx.Done()
+			// 取消注册服务节点
+			reg.Deregister(context.Background())
+			// 等待消息事件已取消订阅
+			for _, sub := range subs {
+				<-sub.Done()
+			}
+			// 刷新消息中间件缓存
+			d.broker.Flush(context.Background())
+		}()
+	})
 }
 
 // NodeDetails 获取节点地址信息

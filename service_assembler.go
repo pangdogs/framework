@@ -155,6 +155,10 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				if !svcInst.(iService).getStarted().CompareAndSwap(false, true) {
 					exception.Panicf("%w: already started", ErrFramework)
 				}
+
+				// 注册服务信息
+				Dsvc.Require(svcInst).RegisterOnce()
+
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
 					cb.OnStarted(svcInst)
 				}
