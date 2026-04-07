@@ -62,6 +62,45 @@ func JSON(key string, v any) zap.Field {
 	return zap.Reflect(key, lazyJSON{v: v})
 }
 
+type lazyJSONRawStringer struct {
+	v fmt.Stringer
+}
+
+func (l lazyJSONRawStringer) MarshalJSON() ([]byte, error) {
+	if l.v == nil {
+		return []byte("nil"), nil
+	}
+	return types.String2Bytes(l.v.String()), nil
+}
+
+func JSONRawStringer(key string, v fmt.Stringer) zap.Field {
+	return zap.Reflect(key, lazyJSONRawStringer{v: v})
+}
+
+type rawJSONString struct {
+	v string
+}
+
+func (r rawJSONString) MarshalJSON() ([]byte, error) {
+	return types.String2Bytes(r.v), nil
+}
+
+func JSONRawString(key string, v string) zap.Field {
+	return zap.Reflect(key, rawJSONString{v: v})
+}
+
+type rawJSONByteString struct {
+	v []byte
+}
+
+func (r rawJSONByteString) MarshalJSON() ([]byte, error) {
+	return r.v, nil
+}
+
+func JSONRawByteString(key string, v []byte) zap.Field {
+	return zap.Reflect(key, rawJSONByteString{v: v})
+}
+
 func newLogger(settings ...option.Setting[LoggerOptions]) ILogger {
 	return &_Logger{
 		options: option.New(With.Default(), settings...),
@@ -104,7 +143,7 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 // Shut 关闭插件
 func (l *_Logger) Shut(svcCtx service.Context, rtCtx runtime.Context) {
 	l.logger.Info("shutting down add-in", zap.String("name", AddIn.Name))
-	
+
 	l.logger.Sync()
 }
 
