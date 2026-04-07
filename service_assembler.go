@@ -340,6 +340,11 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 		_, ok := svcInst.AddInManager().GetStatusByName(name)
 		return ok
 	}
+	requireInstalled := func(name string) {
+		if !installed(name) {
+			exception.Panicf("%w: service add-in %q not installed", ErrFramework, name)
+		}
+	}
 
 	// 安装日志插件
 	if !installed(Log.Name) {
@@ -357,6 +362,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			LogWith.Logger(svcInst.L()),
 		)
 	}
+	requireInstalled(Log.Name)
 
 	// 安装配置插件
 	if !installed(Conf.Name) {
@@ -374,6 +380,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			ConfWith.Vipper(conf),
 		)
 	}
+	requireInstalled(Conf.Name)
 
 	// 安装消息队列中间件插件
 	if !installed(Broker.Name) {
@@ -395,6 +402,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			),
 		)
 	}
+	requireInstalled(Broker.Name)
 
 	// 安装服务发现插件
 	if !installed(Discovery.Name) {
@@ -416,6 +424,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			),
 		)
 	}
+	requireInstalled(Discovery.Name)
 
 	// 安装分布式同步插件
 	if !installed(Dsync.Name) {
@@ -437,6 +446,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			),
 		)
 	}
+	requireInstalled(Dsync.Name)
 
 	// 安装分布式服务插件
 	if !installed(Dsvc.Name) {
@@ -457,6 +467,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			DsvcWith.FutureTimeout(conf.GetDuration("service.future_timeout")),
 		)
 	}
+	requireInstalled(Dsvc.Name)
 
 	// 安装分布式实体查询插件
 	if !installed(Dentq.Name) {
@@ -478,6 +489,7 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 			),
 		)
 	}
+	requireInstalled(Dentq.Name)
 
 	// 安装RPC支持插件
 	if !installed(RPC.Name) {
@@ -493,4 +505,5 @@ func (s *ServiceAssembler) installAddIns(svcInst IService) {
 	if !installed(RPC.Name) {
 		RPC.Install(svcInst)
 	}
+	requireInstalled(RPC.Name)
 }

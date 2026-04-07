@@ -342,6 +342,11 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 		_, ok := rtInst.AddInManager().GetStatusByName(name)
 		return ok
 	}
+	requireInstalled := func(name string) {
+		if !installed(name) {
+			exception.Panicf("%w: runtime add-in %q not installed", ErrFramework, name)
+		}
+	}
 
 	// 安装日志插件
 	if !installed(Log.Name) {
@@ -359,6 +364,7 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 			LogWith.Logger(r.svcInst.L()),
 		)
 	}
+	requireInstalled(Log.Name)
 
 	// 安装RPC调用堆栈支持
 	if !installed(RPCStack.Name) {
@@ -374,6 +380,7 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 	if !installed(RPCStack.Name) {
 		RPCStack.Install(rtInst)
 	}
+	requireInstalled(RPCStack.Name)
 
 	// 安装分布式实体支持插件
 	if !installed(Dentr.Name) {
@@ -397,4 +404,5 @@ func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {
 			DentrWith.RegistrationTTL(conf.GetDuration("service.dent_ttl")),
 		)
 	}
+	requireInstalled(Dentr.Name)
 }
