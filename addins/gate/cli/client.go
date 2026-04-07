@@ -127,13 +127,13 @@ func (c *Client) FutureController() *concurrent.FutureController {
 	return c.futureController
 }
 
-// Logger 获取logger
-func (c *Client) Logger() *zap.Logger {
+// L 结构化日志
+func (c *Client) L() *zap.Logger {
 	return c.logger
 }
 
-// SugarLogger 获取SugarLogger
-func (c *Client) SugarLogger() *zap.SugaredLogger {
+// S 传统日志
+func (c *Client) S() *zap.SugaredLogger {
 	return c.sugarLogger
 }
 

@@ -39,7 +39,7 @@ var (
 func (c *RPCli) handleData(data []byte) {
 	mp, err := c.decoder.Decode(data)
 	if err != nil {
-		c.Logger().Error("decode data failed",
+		c.L().Error("decode data failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.Error(err))
 		return
@@ -60,7 +60,7 @@ func (c *RPCli) handleData(data []byte) {
 func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
-		c.Logger().Error("accept rpc notify failed",
+		c.L().Error("accept rpc notify failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -81,7 +81,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	case callpath.Client:
 		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			c.Logger().Error("accept rpc notify failed",
+			c.L().Error("accept rpc notify failed",
 				zap.String("session_id", c.SessionId().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
@@ -89,7 +89,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 				zap.String("method", cp.Method),
 				zap.Error(err))
 		} else {
-			c.Logger().Debug("accept rpc notify finished",
+			c.L().Debug("accept rpc notify finished",
 				zap.String("session_id", c.SessionId().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
@@ -105,7 +105,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		err = fmt.Errorf("parse call path failed: %w", err)
-		c.Logger().Error("accept rpc request failed",
+		c.L().Error("accept rpc request failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -128,7 +128,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	case callpath.Client:
 		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
-			c.Logger().Error("accept rpc request failed",
+			c.L().Error("accept rpc request failed",
 				zap.String("session_id", c.SessionId().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
@@ -138,7 +138,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 				zap.String("method", cp.Method),
 				zap.Error(err))
 		} else {
-			c.Logger().Debug("accept rpc request finished",
+			c.L().Debug("accept rpc request finished",
 				zap.String("session_id", c.SessionId().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
@@ -163,7 +163,7 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 	}
 
 	if err := c.FutureController().Resolve(reply.CorrId, ret); err != nil {
-		c.Logger().Error("resolve rpc reply failed",
+		c.L().Error("resolve rpc reply failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -172,7 +172,7 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 		return
 	}
 
-	c.Logger().Debug("rpc reply resolved",
+	c.L().Debug("rpc reply resolved",
 		zap.String("session_id", c.SessionId().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
@@ -197,7 +197,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		c.Logger().Error("marshal rpc reply failed",
+		c.L().Error("marshal rpc reply failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -216,7 +216,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
-		c.Logger().Error("encode rpc reply failed",
+		c.L().Error("encode rpc reply failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -227,7 +227,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 	defer mpBuf.Release()
 
 	if err = c.DataIO().Send(mpBuf.Payload()); err != nil {
-		c.Logger().Error("send rpc reply failed",
+		c.L().Error("send rpc reply failed",
 			zap.String("session_id", c.SessionId().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
@@ -236,7 +236,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 		return
 	}
 
-	c.Logger().Debug("rpc reply sent",
+	c.L().Debug("rpc reply sent",
 		zap.String("session_id", c.SessionId().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),

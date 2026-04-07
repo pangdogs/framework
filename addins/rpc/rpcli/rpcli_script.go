@@ -42,14 +42,14 @@ func (c *RPCli) SetScripts(scripts map[string]IScript) {
 			}
 
 			c.scripts.Add(name, script)
-			c.Logger().Info("script added",
+			c.L().Info("script added",
 				zap.String("session_id", c.SessionId().String()),
 				zap.String("name", name),
 				zap.String("instance", types.FullNameRT(scriptType)))
 
 		} else {
 			if c.scripts.Delete(name) {
-				c.Logger().Info("script removed",
+				c.L().Info("script removed",
 					zap.String("session_id", c.SessionId().String()),
 					zap.String("name", name))
 			}

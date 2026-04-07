@@ -113,7 +113,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 		return handle.Future()
 	}
 
-	c.Logger().Debug("rpc sent",
+	c.L().Debug("rpc sent",
 		zap.String("session_id", c.SessionId().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
@@ -168,7 +168,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		return err
 	}
 
-	c.Logger().Debug("oneway rpc sent",
+	c.L().Debug("oneway rpc sent",
 		zap.String("session_id", c.SessionId().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),

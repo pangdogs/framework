@@ -34,7 +34,6 @@ var (
 	ErrEntityNotFound               = errors.New("rpc: routing to entity not found")       // 找不到路由会话映射的实体
 	ErrSessionNotFound              = errors.New("rpc: routing to session not found")      // 找不到路由实体映射的会话
 	ErrGroupNotFound                = errors.New("rpc: group not found")                   // 找不到分组
-	ErrGroupChanIsFull              = errors.New("rpc: group send data channel is full")   // 分组发送数据的channel已满
 	ErrDistEntityNotFound           = errors.New("rpc: distributed entity not found")      // 找不到分布式实体
 	ErrDistEntityNodeNotFound       = errors.New("rpc: distributed entity node not found") // 找不到分布式实体的服务节点
 	ErrIncorrectDestAddress         = errors.New("rpc: incorrect destination Address")     // 错误的目的地址
