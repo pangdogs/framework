@@ -58,6 +58,8 @@ type IRouter interface {
 	GetGroupByName(ctx context.Context, name string) (IGroup, bool)
 	// GetGroupByAddr 使用地址查询路由组
 	GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool)
+	// GetGroupsByEntity 查询实体所属的所有路由组
+	GetGroupsByEntity(ctx context.Context, entityId uid.Id) []IGroup
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {

@@ -196,6 +196,55 @@ func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool
 	return r.getGroupByName(ctx, name)
 }
 
+// GetGroupsByEntity 查询实体所属的所有路由组
+func (r *_Router) GetGroupsByEntity(ctx context.Context, entityId uid.Id) []IGroup {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	rsp, err := r.client.Get(ctx, r.entityGroupsPrefix(entityId), etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
+	if err != nil {
+		log.L(r.svcCtx).Error("get entity groups failed",
+			zap.Stringer("entity_id", entityId),
+			zap.Error(err))
+		return nil
+	}
+	if len(rsp.Kvs) <= 0 {
+		return nil
+	}
+
+	groups := make([]IGroup, 0, len(rsp.Kvs))
+	seen := make(map[string]struct{}, len(rsp.Kvs))
+
+	for _, kv := range rsp.Kvs {
+		_, groupAddr, ok := r.parseEntityGroupsKey(string(kv.Key))
+		if !ok {
+			log.L(r.svcCtx).Warn("invalid entity groups key", zap.ByteString("key", kv.Key))
+			continue
+		}
+		if _, ok := seen[groupAddr]; ok {
+			log.L(r.svcCtx).Warn("duplicate entity groups key", zap.ByteString("key", kv.Key))
+			continue
+		}
+		seen[groupAddr] = struct{}{}
+
+		group, ok := r.GetGroupByAddr(ctx, groupAddr)
+		if !ok {
+			log.L(r.svcCtx).Warn("group not found for entity",
+				zap.Stringer("entity_id", entityId),
+				zap.String("group_addr", groupAddr))
+			continue
+		}
+
+		groups = append(groups, group)
+	}
+
+	if len(groups) <= 0 {
+		return nil
+	}
+	return groups
+}
+
 func (r *_Router) getGroupByName(ctx context.Context, groupName string) (IGroup, bool) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -425,4 +474,18 @@ func (r *_Router) parseGroupEntitiesKey(key string) (groupAddr string, entityId 
 	}
 
 	return trimmed[:idx], uid.From(trimmed[idx+1:]), true
+}
+
+func (r *_Router) parseEntityGroupsKey(key string) (entityId uid.Id, groupAddr string, ok bool) {
+	trimmed := strings.TrimPrefix(key, r.entityGroupsKeyPrefix)
+	if trimmed == key {
+		return uid.Nil, "", false
+	}
+
+	idx := strings.Index(trimmed, "/")
+	if idx <= 0 || idx >= len(trimmed)-1 {
+		return uid.Nil, "", false
+	}
+
+	return uid.From(trimmed[:idx]), trimmed[idx+1:], true
 }
