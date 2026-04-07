@@ -150,6 +150,11 @@ func (ctor *RPCliCreator) SetGTPCompressedSize(size int) *RPCliCreator {
 	return ctor
 }
 
+func (ctor *RPCliCreator) SetGTPMaxUncompressedSize(size int) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.MaxUncompressedSize(size))
+	return ctor
+}
+
 func (ctor *RPCliCreator) SetGTPAutoReconnect(b bool) *RPCliCreator {
 	ctor.settings = append(ctor.settings, cli.With.AutoReconnect(b))
 	return ctor

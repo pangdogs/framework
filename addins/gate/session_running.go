@@ -47,45 +47,70 @@ func (s *_Session) mainLoop() {
 	// 启动i/o发送线程
 	go s.io.sendLoop()
 
+	handleMigration := func() {
+		addr := s.netAddr.Load()
+		migrations := s.migrations.Add(1)
+
+		err := transport.Retry{
+			Transceiver: &s.transceiver,
+			Times:       s.gate.options.IORetryTimes,
+		}.Send(s.transceiver.Resend())
+
+		log.L(s.gate.svcCtx).Debug("session connection migration",
+			zap.String("session_id", s.Id().String()),
+			zap.String("local", addr.Local.String()),
+			zap.String("remote", addr.Remote.String()),
+			zap.Int64("migrations", migrations),
+			zap.NamedError("resend_error", err))
+
+		// 调整会话状态为活跃，并重置ping状态
+		s.setState(SessionState_Active)
+		pinged = false
+	}
+
+	closeInactive := func() {
+		s.close(&transport.RstError{
+			Code:    gtp.Code_SessionDeath,
+			Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
+		})
+	}
+
 loop:
 	for {
+		// 长期处于非活跃状态时，检测超时并关闭会话
+		if SessionState(s.state.Load()) == SessionState_Inactive {
+			wait := time.Until(timeout)
+			if wait <= 0 {
+				closeInactive()
+				break loop
+			}
+
+			timer := time.NewTimer(wait)
+			select {
+			case <-s.Done():
+				timer.Stop()
+				break loop
+
+			case <-s.migrationChan:
+				timer.Stop()
+				handleMigration()
+				continue
+
+			case <-timer.C:
+				closeInactive()
+				break loop
+			}
+		}
+
 		select {
 		case <-s.Done():
-			// 会话已关闭
 			break loop
 
 		case <-s.migrationChan:
-			// 收到连接迁移通知
-			addr := s.netAddr.Load()
-			migrations := s.migrations.Add(1)
-
-			err := transport.Retry{
-				Transceiver: &s.transceiver,
-				Times:       s.gate.options.IORetryTimes,
-			}.Send(s.transceiver.Resend())
-
-			log.L(s.gate.svcCtx).Debug("session connection migration",
-				zap.String("session_id", s.Id().String()),
-				zap.String("local", addr.Local.String()),
-				zap.String("remote", addr.Remote.String()),
-				zap.Int64("migrations", migrations),
-				zap.NamedError("resend_error", err))
-
-			// 调整会话状态为活跃，并重置ping状态
-			s.setState(SessionState_Active)
-			pinged = false
+			handleMigration()
+			continue
 
 		default:
-			// 长期处于非活跃状态时，检测超时并关闭会话
-			if SessionState(s.state.Load()) == SessionState_Inactive {
-				if time.Now().After(timeout) {
-					s.close(&transport.RstError{
-						Code:    gtp.Code_SessionDeath,
-						Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
-					})
-					continue
-				}
-			}
 		}
 
 		// 分发消息事件

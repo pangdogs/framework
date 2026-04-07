@@ -95,43 +95,74 @@ func (c *Client) mainLoop() {
 		}
 	}
 
+	handleMigration := func() {
+		addr := c.netAddr.Load()
+		migrations := c.migrations.Add(1)
+
+		err := transport.Retry{
+			Transceiver: &c.transceiver,
+			Times:       c.options.IORetryTimes,
+		}.Send(c.transceiver.Resend())
+
+		c.logger.Debug("client connection migration",
+			zap.String("session_id", c.SessionId().String()),
+			zap.String("user_id", c.UserId()),
+			zap.String("endpoint", c.Endpoint()),
+			zap.String("local", addr.Local.String()),
+			zap.String("remote", addr.Remote.String()),
+			zap.Int64("migrations", migrations),
+			zap.NamedError("resend_error", err))
+
+		changeActive(true)
+		pinged = false
+	}
+
 loop:
 	for {
-		select {
-		case <-c.Done():
-			// 客户端已关闭
-			break loop
-
-		case <-c.migrationChan:
-			// 收到连接迁移通知
-			addr := c.netAddr.Load()
-			migrations := c.migrations.Add(1)
-
-			err := transport.Retry{
-				Transceiver: &c.transceiver,
-				Times:       c.options.IORetryTimes,
-			}.Send(c.transceiver.Resend())
-
-			c.logger.Debug("client connection migration",
-				zap.String("session_id", c.SessionId().String()),
-				zap.String("user_id", c.UserId()),
-				zap.String("endpoint", c.Endpoint()),
-				zap.String("local", addr.Local.String()),
-				zap.String("remote", addr.Remote.String()),
-				zap.Int64("migrations", migrations),
-				zap.NamedError("resend_error", err))
-
-			changeActive(true)
-			pinged = false
-
-		default:
-			// 长期处于非活跃状态时，并且未开启自动重连，检测超时并关闭客户端
-			if !active && !c.options.AutoReconnect {
-				if time.Now().After(timeout) {
-					c.close(ErrInactiveTimeout)
+		// 长期处于非活跃状态时，并且未开启自动重连，检测超时并关闭客户端
+		if !active {
+			if c.options.AutoReconnect {
+				select {
+				case <-c.Done():
+					break loop
+				case <-c.migrationChan:
+					handleMigration()
 					continue
 				}
 			}
+
+			wait := time.Until(timeout)
+			if wait <= 0 {
+				c.close(ErrInactiveTimeout)
+				break loop
+			}
+
+			timer := time.NewTimer(wait)
+			select {
+			case <-c.Done():
+				timer.Stop()
+				break loop
+
+			case <-c.migrationChan:
+				timer.Stop()
+				handleMigration()
+				continue
+
+			case <-timer.C:
+				c.close(ErrInactiveTimeout)
+				break loop
+			}
+		}
+
+		select {
+		case <-c.Done():
+			break loop
+
+		case <-c.migrationChan:
+			handleMigration()
+			continue
+
+		default:
 		}
 
 		// 分发消息事件
