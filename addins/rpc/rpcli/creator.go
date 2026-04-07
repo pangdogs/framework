@@ -24,14 +24,12 @@ import (
 	"crypto"
 	"crypto/tls"
 	"fmt"
-	"reflect"
 	"time"
 
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
-	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/addins/gate/cli"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
@@ -45,7 +43,6 @@ func BuildRPCli() *RPCliCreator {
 		rttSampling:    3,
 		msgCreator:     gap.DefaultMsgCreator(),
 		reduceCallPath: true,
-		scriptTypes:    make(map[string]reflect.Type),
 	}
 }
 
@@ -55,7 +52,7 @@ type RPCliCreator struct {
 	rttSampling    int
 	msgCreator     gap.IMsgCreator
 	reduceCallPath bool
-	scriptTypes    map[string]reflect.Type
+	scripts        generic.SliceMap[string, IScript]
 }
 
 func (ctor *RPCliCreator) SetNetProtocol(p cli.NetProtocol) *RPCliCreator {
@@ -226,25 +223,15 @@ func (ctor *RPCliCreator) SetReduceCallPath(b bool) *RPCliCreator {
 	return ctor
 }
 
-func (ctor *RPCliCreator) SetScripts(scripts map[string]any) *RPCliCreator {
+func (ctor *RPCliCreator) SetScripts(scripts map[string]IScript) *RPCliCreator {
 	for name, script := range scripts {
 		if script == nil {
 			exception.Panicf("rpcli: %w: script %q can't be nil", core.ErrArgs, name)
 		}
-		if _, ok := ctor.scriptTypes[name]; ok {
+		if ctor.scripts.Exist(name) {
 			exception.Panicf("rpcli: %w: script %q has been registered", core.ErrArgs, name)
 		}
-		scriptType, _ := script.(reflect.Type)
-		if scriptType == nil {
-			scriptType = reflect.TypeOf(script)
-		}
-		for scriptType.Kind() == reflect.Pointer {
-			scriptType = scriptType.Elem()
-		}
-		if !reflect.PointerTo(scriptType).Implements(reflect.TypeFor[IScript]()) {
-			exception.Panicf("rpcli: %w: script %q instance %q not implement rpcli.IScript", core.ErrArgs, name, types.FullNameRT(scriptType))
-		}
-		ctor.scriptTypes[name] = scriptType
+		ctor.scripts.Add(name, script)
 	}
 	return ctor
 }
@@ -293,14 +280,12 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 		reduceCallPath: ctor.reduceCallPath,
 	}
 
-	for name, scriptType := range ctor.scriptTypes {
-		script := reflect.New(scriptType).Interface().(IScript)
-
+	ctor.scripts.Each(func(name string, script IScript) {
 		script.init(rpcli, name, script)
 		cacheCallPath(name, script.Reflected().Type())
 
 		rpcli.scripts.Add(name, script)
-	}
+	})
 
 	rpcli.DataIO().Listen(context.Background(), generic.CastDelegateVoid1(rpcli.handleData))
 
