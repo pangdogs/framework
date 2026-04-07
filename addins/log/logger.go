@@ -97,10 +97,14 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 
 	l.logger = logger.With(fields...)
 	l.sugaredLogger = l.logger.Sugar()
+
+	l.logger.Info("initializing add-in", zap.String("name", AddIn.Name))
 }
 
 // Shut 关闭插件
 func (l *_Logger) Shut(svcCtx service.Context, rtCtx runtime.Context) {
+	l.logger.Info("shutting down add-in", zap.String("name", AddIn.Name))
+	
 	l.logger.Sync()
 }
 
