@@ -12,8 +12,8 @@ cloud.google.com/go/longrunning v0.6.7 h1:IGtfDWHhQCgCjwQjV9iiLnUta9LBCo8R9QmAFs
 cloud.google.com/go/longrunning v0.6.7/go.mod h1:EAFV3IZAKmM56TyiE6VAP3VoTzhZzySwI/YI1s/nRsY=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-git.golaxy.org/core v0.4.27-0.20260407090430-dd9fb94ed020 h1:u0G8FryfG3KY5Yxjz8unGhPc09OowUFXZIWGsrA6o8Q=
-git.golaxy.org/core v0.4.27-0.20260407090430-dd9fb94ed020/go.mod h1:tz61yAuf8oyHDKXh/ZZYwV+N9tx8M782cHGEjD820No=
+git.golaxy.org/core v0.4.27-0.20260408091407-13ed174b9b19 h1:k6MdK3beFVDlUzQ6W02PnItL4fUJ/A6bDjlNXeWfWQI=
+git.golaxy.org/core v0.4.27-0.20260408091407-13ed174b9b19/go.mod h1:tz61yAuf8oyHDKXh/ZZYwV+N9tx8M782cHGEjD820No=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.0/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1 h1:E+OJmp2tPvt1W+amx48v1eqbjDYsgN+RzP4q16yV5eM=
