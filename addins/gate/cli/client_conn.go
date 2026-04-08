@@ -49,10 +49,10 @@ func (c *Client) initConn(conn net.Conn, encoder *codec.Encoder, decoder *codec.
 
 // migrateConn 迁移连接
 func (c *Client) migrateConn(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
-	if !c.migrationMutex.TryLock() {
+	if !c.migrationMu.TryLock() {
 		return 0, 0, errors.New("concurrent client connection migration rejected")
 	}
-	defer c.migrationMutex.Unlock()
+	defer c.migrationMu.Unlock()
 
 	// 迁移连接
 	sendSeq, recvSeq, err = c.transceiver.Migrate(conn, remoteRecvSeq)

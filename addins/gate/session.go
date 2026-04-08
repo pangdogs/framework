@@ -94,7 +94,7 @@ type _Session struct {
 	eventDispatcher transport.EventDispatcher
 	trans           transport.TransProtocol
 	ctrl            transport.CtrlProtocol
-	migrationMutex  sync.Mutex
+	migrationMu     sync.Mutex
 	migrationChan   chan struct{}
 	migrations      atomic.Int64
 	io              _SessionIO

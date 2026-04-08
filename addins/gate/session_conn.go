@@ -48,10 +48,10 @@ func (s *_Session) initConn(conn net.Conn, encoder *codec.Encoder, decoder *code
 
 // migrateConn 迁移连接
 func (s *_Session) migrateConn(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
-	if !s.migrationMutex.TryLock() {
+	if !s.migrationMu.TryLock() {
 		return 0, 0, errors.New("concurrent session connection migration rejected")
 	}
-	defer s.migrationMutex.Unlock()
+	defer s.migrationMu.Unlock()
 
 	// 迁移连接
 	sendSeq, recvSeq, err = s.transceiver.Migrate(conn, remoteRecvSeq)

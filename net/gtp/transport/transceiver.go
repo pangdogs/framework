@@ -48,13 +48,13 @@ var (
 
 // Transceiver 消息事件收发器，线程安全
 type Transceiver struct {
-	Conn                 net.Conn       // 网络连接
-	Encoder              *codec.Encoder // 消息包编码器
-	Decoder              *codec.Decoder // 消息包解码器
-	Timeout              time.Duration  // 网络io超时时间
-	Synchronizer         ISynchronizer  // 同步器
-	buffer               bytes.Buffer   // 接收消息缓存
-	sendMutex, recvMutex sync.Mutex     // 发送与接收消息锁
+	Conn           net.Conn       // 网络连接
+	Encoder        *codec.Encoder // 消息包编码器
+	Decoder        *codec.Decoder // 消息包解码器
+	Timeout        time.Duration  // 网络io超时时间
+	Synchronizer   ISynchronizer  // 同步器
+	buffer         bytes.Buffer   // 接收消息缓存
+	sendMu, recvMu sync.Mutex     // 发送与接收消息锁
 }
 
 // Send 发送消息
@@ -71,8 +71,8 @@ func (t *Transceiver) Send(e IEvent) error {
 		return fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
 
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
+	t.sendMu.Lock()
+	defer t.sendMu.Unlock()
 
 	// 写入同步器
 	if err := t.writeToSynchronizer(e); err != nil {
@@ -121,8 +121,8 @@ func (t *Transceiver) Resend() error {
 		return fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
 
-	t.sendMutex.Lock()
-	defer t.sendMutex.Unlock()
+	t.sendMu.Lock()
+	defer t.sendMu.Unlock()
 
 	// 设置链路超时时间
 	if t.Timeout > 0 {
@@ -157,8 +157,8 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 		return IEvent{}, fmt.Errorf("%w: Synchronizer is nil", ErrTrans)
 	}
 
-	t.recvMutex.Lock()
-	defer t.recvMutex.Unlock()
+	t.recvMu.Lock()
+	defer t.recvMu.Unlock()
 
 	var mpLen int
 	var mpCache [bytes.MinRead]byte
@@ -280,11 +280,11 @@ func (t *Transceiver) writeToSynchronizer(e IEvent) error {
 }
 
 func (t *Transceiver) pause() {
-	t.sendMutex.Lock()
-	t.recvMutex.Lock()
+	t.sendMu.Lock()
+	t.recvMu.Lock()
 }
 
 func (t *Transceiver) resume() {
-	t.sendMutex.Unlock()
-	t.recvMutex.Unlock()
+	t.sendMu.Unlock()
+	t.recvMu.Unlock()
 }
