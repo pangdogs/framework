@@ -56,12 +56,24 @@ type EntityCreator struct {
 
 // SetRuntime 设置运行时（值不为nil时，创建的新实体将会加入此处设置的运行时，不会创建新运行时）
 func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
+	}
+	if rtInst != nil && rtInst.Service() != c.svcInst {
+		exception.Panicf("%w: runtime service mismatch", ErrFramework)
+	}
 	c.rtInst = rtInst
 	return c
 }
 
 // SetRuntimeCreator 设置运行时构建器（如果未设置运行时，将会使用此处设置的构建器创建新运行时，此处值为nil时，将会使用默认运行时构建器；创建出的新实体将会自动成为新运行时的主实体）
 func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreator {
+	if c.svcInst == nil {
+		exception.Panicf("%w: svcInst is nil", ErrFramework)
+	}
+	if rtCreator != nil && rtCreator.svcInst != c.svcInst {
+		exception.Panicf("%w: runtime creator service mismatch", ErrFramework)
+	}
 	c.rtCreator = rtCreator
 	return c
 }
