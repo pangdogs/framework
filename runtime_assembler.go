@@ -321,8 +321,8 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 				if cb := rtInstEntityDeactivatedCB; cb != nil {
 					cb.OnEntityDeactivated(rtInst, entity)
 				}
-				if settings.mainEntity == entity {
-					rtCtx.Terminate()
+				if rtInst.MainEntity() == entity {
+					rtInst.Terminate()
 				}
 			case runtime.RunningEvent_EntityAddingComponents:
 				entity := args[0].(ec.Entity)
