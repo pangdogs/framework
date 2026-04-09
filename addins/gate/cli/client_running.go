@@ -87,7 +87,7 @@ func (c *Client) mainLoop() {
 		old := active
 		active = b
 		if old != b && !b {
-			if c.options.AutoRecover {
+			if c.options.AutoReconnect {
 				go autoReconnect()
 			} else {
 				timeout = time.Now().Add(c.options.InactiveTimeout)
