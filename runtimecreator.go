@@ -57,7 +57,7 @@ type RuntimeCreator struct {
 	settings  _RuntimeSettings
 }
 
-// SetAssembler 设置运行时实例装配器
+// SetAssembler 设置运行时实例装配器（传入实例类型时，将会自动创建装配器）
 func (c *RuntimeCreator) SetAssembler(assembler any) *RuntimeCreator {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)

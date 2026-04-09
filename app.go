@@ -79,7 +79,7 @@ type App struct {
 	initCB, startingCB, terminatedCB generic.Action1[*App]
 }
 
-// SetAssembler 设置服务实例装配器
+// SetAssembler 设置服务实例装配器（传入实例类型时，将会自动创建装配器）
 func (app *App) SetAssembler(name string, assembler any) *App {
 	if app.conf == nil {
 		exception.Panicf("%w: conf is nil", ErrFramework)

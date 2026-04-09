@@ -85,7 +85,7 @@ func (rt *RuntimeBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(rt))
 }
 
-// MainEntity 获取主实体（主实体销毁时，运行时将会停止运行）
+// MainEntity 获取主实体（主实体和运行时生命周期绑定，主实体销毁时，运行时将会停止运行）
 func (rt *RuntimeBehavior) MainEntity() ec.Entity {
 	return rt.mainEntity
 }
