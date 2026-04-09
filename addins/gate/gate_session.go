@@ -53,7 +53,7 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 	// 接受网络连接
 	session, err := acceptor.accept(conn)
 	if err != nil {
-		log.L(g.svcCtx).Error("failed to establish session",
+		log.L(g.svcCtx).Error("failed to accept connection",
 			zap.String("local", conn.LocalAddr().String()),
 			zap.String("remote", conn.RemoteAddr().String()),
 			zap.Error(err))
