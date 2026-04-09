@@ -85,7 +85,6 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 	rtInstRunCallEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunCallEnd)
 	rtInstRunGCBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCBegin)
 	rtInstRunGCEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCEnd)
-	rtInstAddInActivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeAddInActivationAborted)
 	rtInstEntityActivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivating)
 	rtInstEntityActivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivationAborted)
 	rtInstEntityActivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivated)
@@ -106,7 +105,6 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 	runCallEndCB, _ := r.instance.(LifecycleRuntimeRunCallEnd)
 	runGCBeginCB, _ := r.instance.(LifecycleRuntimeRunGCBegin)
 	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
-	addInActivationAbortedCB, _ := r.instance.(LifecycleRuntimeAddInActivationAborted)
 	entityActivatingCB, _ := r.instance.(LifecycleRuntimeEntityActivating)
 	entityActivationAbortedCB, _ := r.instance.(LifecycleRuntimeEntityActivationAborted)
 	entityActivatedCB, _ := r.instance.(LifecycleRuntimeEntityActivated)
@@ -241,10 +239,10 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 				}
 			case runtime.RunningEvent_AddInActivationAborted:
 				addInStatus := args[0].(extension.AddInStatus)
-				if cb := addInActivationAbortedCB; cb != nil {
+				if cb, ok := r.instance.(LifecycleRuntimeAddInActivationAborted); ok {
 					cb.OnAddInActivationAborted(rtInst, addInStatus)
 				}
-				if cb := rtInstAddInActivationAbortedCB; cb != nil {
+				if cb, ok := rtInst.(LifecycleRuntimeAddInActivationAborted); ok {
 					cb.OnAddInActivationAborted(rtInst, addInStatus)
 				}
 			case runtime.RunningEvent_AddInActivated:
