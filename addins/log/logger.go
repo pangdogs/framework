@@ -77,28 +77,12 @@ func JSONRawStringer(key string, v fmt.Stringer) zap.Field {
 	return zap.Reflect(key, lazyJSONRawStringer{v: v})
 }
 
-type jsonRawString struct {
-	v string
-}
-
-func (r jsonRawString) MarshalJSON() ([]byte, error) {
-	return types.String2Bytes(r.v), nil
-}
-
 func JSONRawString(key string, v string) zap.Field {
-	return zap.Reflect(key, jsonRawString{v: v})
-}
-
-type jsonRawByteString struct {
-	v []byte
-}
-
-func (r jsonRawByteString) MarshalJSON() ([]byte, error) {
-	return r.v, nil
+	return zap.Any(key, json.RawMessage(types.String2Bytes(v)))
 }
 
 func JSONRawByteString(key string, v []byte) zap.Field {
-	return zap.Reflect(key, jsonRawByteString{v: v})
+	return zap.Any(key, json.RawMessage(v))
 }
 
 func newLogger(settings ...option.Setting[LoggerOptions]) ILogger {
@@ -128,10 +112,12 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 		)
 	}
 
-	fields := []zap.Field{zap.Any("service", json.RawMessage(types.String2Bytes(svcCtx.String())))}
+	var fields []zap.Field
 
 	if rtCtx != nil {
 		fields = append(fields, zap.Any("runtime", json.RawMessage(types.String2Bytes(rtCtx.String()))))
+	} else {
+		fields = append(fields, zap.Any("service", json.RawMessage(types.String2Bytes(svcCtx.String()))))
 	}
 
 	l.logger = logger.With(fields...)
