@@ -29,6 +29,7 @@ import (
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/meta"
 	"git.golaxy.org/core/utils/option"
+	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/core/utils/uid"
 )
 
@@ -49,18 +50,17 @@ type EntityCreator struct {
 	prototype string
 	rtInst    IRuntime
 	rtCreator *RuntimeCreator
-	parentId  uid.Id
 	meta      meta.Meta
 	settings  []option.Setting[ec.EntityOptions]
 }
 
-// SetRuntime 设置运行时（优先使用）
+// SetRuntime 设置运行时（值不为nil时，创建的新实体将会加入此处设置的运行时，不会创建新运行时）
 func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
 	c.rtInst = rtInst
 	return c
 }
 
-// SetRuntimeCreator 设置运行时构建器
+// SetRuntimeCreator 设置运行时构建器（如果未设置运行时，将会使用此处设置的构建器创建新运行时，此处值为nil时，将会使用默认运行时构建器；创建出的新实体将会自动成为新运行时的主实体）
 func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreator {
 	c.rtCreator = rtCreator
 	return c
@@ -145,12 +145,6 @@ func (c *EntityCreator) AssignMeta(m meta.Meta) *EntityCreator {
 	return c
 }
 
-// SetParentId 设置父实体Id
-func (c *EntityCreator) SetParentId(id uid.Id) *EntityCreator {
-	c.parentId = id
-	return c
-}
-
 // New 创建实体
 func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 	if c.svcInst == nil {
@@ -159,34 +153,27 @@ func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 
 	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
-	rtInst := c.rtInst
-	if rtInst == nil {
-		rtCreator := c.rtCreator
-		if rtCreator == nil {
-			rtCreator = BuildRuntime(c.svcInst)
+	if c.rtInst != nil {
+		err := core.CallAsync(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+			return async.NewResult(nil, rtCtx.EntityManager().AddEntity(entity))
+		}).Wait(c.svcInst).Error
+		if err != nil {
+			return nil, err
 		}
-		rtInst = rtCreator.SetPersistId(entity.Id()).New()
+		return entity, nil
 	}
 
-	err := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
-		if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
-			return async.NewResult(nil, err)
-		}
-		if !c.parentId.IsNil() {
-			if err := rtCtx.EntityTree().AddChild(c.parentId, entity.Id()); err != nil {
-				entity.Destroy()
-				return async.NewResult(nil, err)
-			}
-		}
-		return async.NewResult(nil, nil)
-	}).Wait(c.svcInst).Error
+	rtCreator := c.rtCreator
+	if rtCreator == nil {
+		rtCreator = c.svcInst.BuildRuntime()
+	} else {
+		rtCreator = types.Pointer(*rtCreator)
+	}
+
+	_, err := rtCreator.SetPersistId(entity.Id()).SetMainEntity(entity).New()
 	if err != nil {
-		if c.rtInst == nil {
-			rtInst.Terminate()
-		}
 		return nil, err
 	}
-
 	return entity, nil
 }
 
@@ -198,41 +185,30 @@ func (c *EntityCreator) NewAsync() async.Future {
 
 	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
-	rtInst := c.rtInst
-	if rtInst == nil {
-		rtCreator := c.rtCreator
-		if rtCreator == nil {
-			rtCreator = BuildRuntime(c.svcInst)
-		}
-		rtInst = rtCreator.SetPersistId(entity.Id()).New()
-	}
-
-	creation := core.CallAsync(rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
-		if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
-			return async.NewResult(nil, err)
-		}
-		if !c.parentId.IsNil() {
-			if err := rtCtx.EntityTree().AddChild(c.parentId, entity.Id()); err != nil {
-				entity.Destroy()
+	if c.rtInst != nil {
+		return core.CallAsync(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+			if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
 				return async.NewResult(nil, err)
 			}
-		}
-		return async.NewResult(nil, nil)
-	})
+			return async.NewResult(entity, nil)
+		})
+	}
 
-	result := async.NewFutureChan()
+	rtCreator := c.rtCreator
+	if rtCreator == nil {
+		rtCreator = c.svcInst.BuildRuntime()
+	} else {
+		rtCreator = types.Pointer(*rtCreator)
+	}
 
-	go func() {
-		ret := creation.Wait(c.svcInst)
-		if !ret.OK() {
-			if c.rtInst == nil {
-				rtInst.Terminate()
-			}
-		}
-		async.Return(result, ret)
-	}()
+	resultFuture := async.NewFutureChan()
 
-	return result.Out()
+	_, err := rtCreator.SetPersistId(entity.Id()).SetMainEntity(entity).New()
+	if err != nil {
+		return async.Return(resultFuture, async.NewResult(nil, err))
+	}
+
+	return async.Return(resultFuture, async.NewResult(entity, nil))
 }
 
 func (c *EntityCreator) withMeta() option.Setting[ec.EntityOptions] {

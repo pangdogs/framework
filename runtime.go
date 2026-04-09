@@ -21,6 +21,7 @@ package framework
 
 import (
 	"git.golaxy.org/core"
+	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/reinterpret"
@@ -45,7 +46,9 @@ type IRuntime interface {
 	RPCStack() rpcstack.IRPCStack
 	// Service 获取服务实例
 	Service() IService
-	// AutoInjection 是否自动注入组件
+	// MainEntity 获取主实体（主实体和运行时生命周期绑定，主实体销毁时，运行时将会停止运行）
+	MainEntity() ec.Entity
+	// AutoInjection 获取是否自动注入组件
 	AutoInjection() bool
 	// BuildEntity 创建实体
 	BuildEntity(prototype string) *core.EntityCreator
@@ -56,12 +59,14 @@ type IRuntime interface {
 }
 
 type iRuntime interface {
+	setMainEntity(entity ec.Entity)
 	setAutoInjection(b bool)
 }
 
 // RuntimeBehavior 运行时实例行为
 type RuntimeBehavior struct {
 	runtime.ContextBehavior
+	mainEntity    ec.Entity
 	autoInjection bool
 }
 
@@ -80,7 +85,12 @@ func (rt *RuntimeBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(rt))
 }
 
-// AutoInjection 是否自动注入组件
+// MainEntity 获取主实体（主实体销毁时，运行时将会停止运行）
+func (rt *RuntimeBehavior) MainEntity() ec.Entity {
+	return rt.mainEntity
+}
+
+// AutoInjection 获取是否自动注入组件
 func (rt *RuntimeBehavior) AutoInjection() bool {
 	return rt.autoInjection
 }
@@ -98,6 +108,10 @@ func (rt *RuntimeBehavior) L() *zap.Logger {
 // S 传统日志
 func (rt *RuntimeBehavior) S() *zap.SugaredLogger {
 	return log.S(rt)
+}
+
+func (rt *RuntimeBehavior) setMainEntity(entity ec.Entity) {
+	rt.mainEntity = entity
 }
 
 func (rt *RuntimeBehavior) setAutoInjection(b bool) {

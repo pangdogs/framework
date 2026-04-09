@@ -78,6 +78,17 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 		svcInstFace = iface.NewFaceTReflectC[service.Context, IService](&ServiceBehavior{})
 	}
 
+	iSvcInst := svcInstFace.Iface.(iService)
+	iSvcInst.getRuntimeAssembler().init(iface.Cache2Iface[IService](svcInstFace.Cache), iSvcInst.getRuntimeAssembler())
+
+	svcInstHeartbeatCB, _ := svcInstFace.Iface.(LifecycleServiceHeartbeat)
+	svcInstEntityRegisteredCB, _ := svcInstFace.Iface.(LifecycleServiceEntityRegistered)
+	svcInstEntityDeregisteredCB, _ := svcInstFace.Iface.(LifecycleServiceEntityDeregistered)
+
+	heartbeatCB, _ := s.instance.(LifecycleServiceHeartbeat)
+	entityRegisteredCB, _ := s.instance.(LifecycleServiceEntityRegistered)
+	entityDeregisteredCB, _ := s.instance.(LifecycleServiceEntityDeregistered)
+
 	autoRecover := s.conf.GetBool("service.auto_recover")
 	var reportError chan error
 
@@ -95,7 +106,6 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 
 			switch runningEvent {
 			case service.RunningEvent_Birth:
-				svcInst.(iService).getRuntimeAssembler().init(svcInst, svcInst.(iService).getRuntimeAssembler())
 				cacheCallPath("", svcInst.Reflected().Type())
 
 				svcInst.Memory().Store(memReplicaNo, replicaNo)
@@ -156,7 +166,7 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 					exception.Panicf("%w: already started", ErrFramework)
 				}
 
-				// 服务上线
+				// 服务上线，加入分布式网络，可以正常通信
 				svcInst.DistService().BringUp()
 
 				if cb, ok := s.instance.(LifecycleServiceStarted); ok {
@@ -164,6 +174,13 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				}
 				if cb, ok := svcInst.(LifecycleServiceStarted); ok {
 					cb.OnStarted(svcInst)
+				}
+			case service.RunningEvent_Heartbeat:
+				if cb := heartbeatCB; cb != nil {
+					cb.OnHeartbeat(svcInst)
+				}
+				if cb := svcInstHeartbeatCB; cb != nil {
+					cb.OnHeartbeat(svcInst)
 				}
 			case service.RunningEvent_Terminating:
 				if cb, ok := s.instance.(LifecycleServiceTerminating); ok {
@@ -247,18 +264,18 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				}
 			case service.RunningEvent_EntityRegistered:
 				entity := args[0].(ec.ConcurrentEntity)
-				if cb, ok := s.instance.(LifecycleServiceEntityRegistered); ok {
+				if cb := entityRegisteredCB; cb != nil {
 					cb.OnEntityRegistered(svcInst, entity)
 				}
-				if cb, ok := svcInst.(LifecycleServiceEntityRegistered); ok {
+				if cb := svcInstEntityRegisteredCB; cb != nil {
 					cb.OnEntityRegistered(svcInst, entity)
 				}
 			case service.RunningEvent_EntityDeregistered:
 				entity := args[0].(ec.ConcurrentEntity)
-				if cb, ok := s.instance.(LifecycleServiceEntityDeregistered); ok {
+				if cb := entityDeregisteredCB; cb != nil {
 					cb.OnEntityDeregistered(svcInst, entity)
 				}
-				if cb, ok := svcInst.(LifecycleServiceEntityDeregistered); ok {
+				if cb := svcInstEntityDeregisteredCB; cb != nil {
 					cb.OnEntityDeregistered(svcInst, entity)
 				}
 			}

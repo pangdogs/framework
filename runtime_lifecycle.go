@@ -84,6 +84,10 @@ type LifecycleRuntimeAddInActivating interface {
 	OnAddInActivating(rt IRuntime, addIn extension.AddInStatus)
 }
 
+type LifecycleRuntimeAddInActivationAborted interface {
+	OnAddInActivationAborted(rt IRuntime, addIn extension.AddInStatus)
+}
+
 type LifecycleRuntimeAddInActivated interface {
 	OnAddInActivated(rt IRuntime, addIn extension.AddInStatus)
 }
@@ -100,12 +104,28 @@ type LifecycleRuntimeEntityActivating interface {
 	OnEntityActivating(rt IRuntime, entity ec.Entity)
 }
 
+type LifecycleRuntimeEntityActivationAborted interface {
+	OnEntityActivationAborted(rt IRuntime, entity ec.Entity)
+}
+
 type LifecycleRuntimeEntityActivated interface {
 	OnEntityActivated(rt IRuntime, entity ec.Entity)
 }
 
+type LifecycleRuntimeEntityDeactivating interface {
+	OnEntityDeactivating(rt IRuntime, entity ec.Entity)
+}
+
+type LifecycleRuntimeEntityDeactivated interface {
+	OnEntityDeactivated(rt IRuntime, entity ec.Entity)
+}
+
 type LifecycleRuntimeEntityAddingComponents interface {
 	OnEntityAddingComponents(rt IRuntime, entity ec.Entity, components []ec.Component)
+}
+
+type LifecycleRuntimeEntityComponentsAdditionAborted interface {
+	OnEntityComponentsAdditionAborted(rt IRuntime, entity ec.Entity, components []ec.Component)
 }
 
 type LifecycleRuntimeEntityComponentsAdded interface {
@@ -114,6 +134,10 @@ type LifecycleRuntimeEntityComponentsAdded interface {
 
 type LifecycleRuntimeEntityRemovingComponent interface {
 	OnEntityRemovingComponent(rt IRuntime, entity ec.Entity, component ec.Component)
+}
+
+type LifecycleRuntimeEntityComponentRemovalAborted interface {
+	OnEntityComponentRemovalAborted(rt IRuntime, entity ec.Entity, component ec.Component)
 }
 
 type LifecycleRuntimeEntityComponentRemoved interface {

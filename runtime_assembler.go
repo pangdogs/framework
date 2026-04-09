@@ -20,11 +20,12 @@
 package framework
 
 import (
+	"fmt"
+
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/assertion"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
@@ -38,6 +39,7 @@ import (
 type _RuntimeSettings struct {
 	name                            string
 	persistId                       uid.Id
+	mainEntity                      ec.Entity
 	autoRecover                     bool
 	reportError                     chan error
 	continueOnActivatingEntityPanic bool
@@ -47,8 +49,8 @@ type _RuntimeSettings struct {
 }
 
 type iRuntimeAssembler interface {
-	init(svcCtx service.Context, instance any)
-	assemble(settings _RuntimeSettings) core.Runtime
+	init(svcInst IService, instance any)
+	assemble(settings _RuntimeSettings) (core.Runtime, error)
 }
 
 // RuntimeAssembler 运行时装配器
@@ -57,12 +59,12 @@ type RuntimeAssembler struct {
 	instance any
 }
 
-func (r *RuntimeAssembler) init(svcCtx service.Context, instance any) {
-	r.svcInst = reinterpret.Cast[IService](svcCtx)
+func (r *RuntimeAssembler) init(svcInst IService, instance any) {
+	r.svcInst = svcInst
 	r.instance = instance
 }
 
-func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
+func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, error) {
 	rtInstFace := iface.Face[runtime.Context]{}
 
 	if cb, ok := r.instance.(IRuntimeInstantiator); ok {
@@ -70,6 +72,10 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	} else {
 		rtInstFace = iface.NewFaceTReflectC[runtime.Context, IRuntime](&RuntimeBehavior{})
 	}
+
+	iRtInst := rtInstFace.Iface.(iRuntime)
+	iRtInst.setMainEntity(settings.mainEntity)
+	iRtInst.setAutoInjection(settings.autoInjection)
 
 	rtInstFrameLoopBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameLoopBegin)
 	rtInstFrameUpdateBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeFrameUpdateBegin)
@@ -79,11 +85,17 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	rtInstRunCallEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunCallEnd)
 	rtInstRunGCBeginCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCBegin)
 	rtInstRunGCEndCB, _ := rtInstFace.Iface.(LifecycleRuntimeRunGCEnd)
+	rtInstAddInActivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeAddInActivationAborted)
 	rtInstEntityActivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivating)
+	rtInstEntityActivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivationAborted)
 	rtInstEntityActivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivated)
+	rtInstEntityDeactivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityDeactivating)
+	rtInstEntityDeactivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityDeactivated)
 	rtInstEntityAddingComponentsCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityAddingComponents)
+	rtInstEntityComponentsAdditionAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsAdditionAborted)
 	rtInstEntityComponentsAddedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsAdded)
 	rtInstEntityRemovingComponentCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityRemovingComponent)
+	rtInstEntityComponentRemovalAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentRemovalAborted)
 	rtInstEntityComponentRemovedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentRemoved)
 
 	frameLoopBeginCB, _ := r.instance.(LifecycleRuntimeFrameLoopBegin)
@@ -94,11 +106,17 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 	runCallEndCB, _ := r.instance.(LifecycleRuntimeRunCallEnd)
 	runGCBeginCB, _ := r.instance.(LifecycleRuntimeRunGCBegin)
 	runGCEndCB, _ := r.instance.(LifecycleRuntimeRunGCEnd)
+	addInActivationAbortedCB, _ := r.instance.(LifecycleRuntimeAddInActivationAborted)
 	entityActivatingCB, _ := r.instance.(LifecycleRuntimeEntityActivating)
+	entityActivationAbortedCB, _ := r.instance.(LifecycleRuntimeEntityActivationAborted)
 	entityActivatedCB, _ := r.instance.(LifecycleRuntimeEntityActivated)
+	entityDeactivatingCB, _ := r.instance.(LifecycleRuntimeEntityDeactivating)
+	entityDeactivatedCB, _ := r.instance.(LifecycleRuntimeEntityDeactivated)
 	entityAddingComponentsCB, _ := r.instance.(LifecycleRuntimeEntityAddingComponents)
+	entityComponentsAdditionAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsAdditionAborted)
 	entityComponentsAddedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsAdded)
 	entityRemovingComponentCB, _ := r.instance.(LifecycleRuntimeEntityRemovingComponent)
+	entityComponentRemovalAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentRemovalAborted)
 	entityComponentRemovedCB, _ := r.instance.(LifecycleRuntimeEntityComponentRemoved)
 
 	rtCtx := runtime.NewContext(r.svcInst,
@@ -112,7 +130,6 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 			switch runningEvent {
 			case runtime.RunningEvent_Birth:
 				cacheCallPath("", rtInst.Reflected().Type())
-				rtInst.(iRuntime).setAutoInjection(settings.autoInjection)
 
 				if cb, ok := r.instance.(LifecycleRuntimeBirth); ok {
 					cb.OnBirth(rtInst)
@@ -222,6 +239,14 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				if cb, ok := rtInst.(LifecycleRuntimeAddInActivating); ok {
 					cb.OnAddInActivating(rtInst, addInStatus)
 				}
+			case runtime.RunningEvent_AddInActivationAborted:
+				addInStatus := args[0].(extension.AddInStatus)
+				if cb := addInActivationAbortedCB; cb != nil {
+					cb.OnAddInActivationAborted(rtInst, addInStatus)
+				}
+				if cb := rtInstAddInActivationAbortedCB; cb != nil {
+					cb.OnAddInActivationAborted(rtInst, addInStatus)
+				}
 			case runtime.RunningEvent_AddInActivated:
 				addInStatus := args[0].(extension.AddInStatus)
 				if cb, ok := r.instance.(LifecycleRuntimeAddInActivated); ok {
@@ -266,6 +291,14 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				if cb := rtInstEntityActivatingCB; cb != nil {
 					cb.OnEntityActivating(rtInst, entity)
 				}
+			case runtime.RunningEvent_EntityActivationAborted:
+				entity := args[0].(ec.Entity)
+				if cb := entityActivationAbortedCB; cb != nil {
+					cb.OnEntityActivationAborted(rtInst, entity)
+				}
+				if cb := rtInstEntityActivationAbortedCB; cb != nil {
+					cb.OnEntityActivationAborted(rtInst, entity)
+				}
 			case runtime.RunningEvent_EntityActivated:
 				entity := args[0].(ec.Entity)
 				if cb := entityActivatedCB; cb != nil {
@@ -273,6 +306,25 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				}
 				if cb := rtInstEntityActivatedCB; cb != nil {
 					cb.OnEntityActivated(rtInst, entity)
+				}
+			case runtime.RunningEvent_EntityDeactivating:
+				entity := args[0].(ec.Entity)
+				if cb := entityDeactivatingCB; cb != nil {
+					cb.OnEntityDeactivating(rtInst, entity)
+				}
+				if cb := rtInstEntityDeactivatingCB; cb != nil {
+					cb.OnEntityDeactivating(rtInst, entity)
+				}
+			case runtime.RunningEvent_EntityDeactivated:
+				entity := args[0].(ec.Entity)
+				if cb := entityDeactivatedCB; cb != nil {
+					cb.OnEntityDeactivated(rtInst, entity)
+				}
+				if cb := rtInstEntityDeactivatedCB; cb != nil {
+					cb.OnEntityDeactivated(rtInst, entity)
+				}
+				if settings.mainEntity == entity {
+					rtCtx.Terminate()
 				}
 			case runtime.RunningEvent_EntityAddingComponents:
 				entity := args[0].(ec.Entity)
@@ -296,6 +348,15 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				if cb := rtInstEntityAddingComponentsCB; cb != nil {
 					cb.OnEntityAddingComponents(rtInst, entity, components)
 				}
+			case runtime.RunningEvent_EntityComponentsAdditionAborted:
+				entity := args[0].(ec.Entity)
+				components := args[1].([]ec.Component)
+				if cb := entityComponentsAdditionAbortedCB; cb != nil {
+					cb.OnEntityComponentsAdditionAborted(rtInst, entity, components)
+				}
+				if cb := rtInstEntityComponentsAdditionAbortedCB; cb != nil {
+					cb.OnEntityComponentsAdditionAborted(rtInst, entity, components)
+				}
 			case runtime.RunningEvent_EntityComponentsAdded:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
@@ -314,6 +375,15 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 				if cb := rtInstEntityRemovingComponentCB; cb != nil {
 					cb.OnEntityRemovingComponent(rtInst, entity, component)
 				}
+			case runtime.RunningEvent_EntityComponentRemovalAborted:
+				entity := args[0].(ec.Entity)
+				component := args[1].(ec.Component)
+				if cb := entityComponentRemovalAbortedCB; cb != nil {
+					cb.OnEntityComponentRemovalAborted(rtInst, entity, component)
+				}
+				if cb := rtInstEntityComponentRemovalAbortedCB; cb != nil {
+					cb.OnEntityComponentRemovalAborted(rtInst, entity, component)
+				}
 			case runtime.RunningEvent_EntityComponentRemoved:
 				entity := args[0].(ec.Entity)
 				component := args[1].(ec.Component)
@@ -327,12 +397,18 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) core.Runtime {
 		}),
 	)
 
+	if settings.mainEntity != nil {
+		if err := rtCtx.EntityManager().AddEntity(settings.mainEntity); err != nil {
+			return nil, fmt.Errorf("%w: failed to add main entity, %w", ErrFramework, err)
+		}
+	}
+
 	return core.NewRuntime(rtCtx,
 		core.With.Runtime.AutoRun(true),
 		core.With.Runtime.ContinueOnActivatingEntityPanic(settings.continueOnActivatingEntityPanic),
 		core.With.Runtime.TaskQueue(core.With.TaskQueue.Unbounded(true)),
 		core.With.Runtime.Frame(core.With.Frame.Enabled(settings.enableFrame), core.With.Frame.TargetFPS(settings.fps)),
-	)
+	), nil
 }
 
 func (r *RuntimeAssembler) installAddIns(rtInst IRuntime) {

@@ -155,9 +155,7 @@ func (svc *ServiceBehavior) Memory() *sync.Map {
 
 // BuildRuntime 创建运行时
 func (svc *ServiceBehavior) BuildRuntime() *RuntimeCreator {
-	rtCtor := BuildRuntime(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()))
-	rtCtor.assembler = &svc.runtimeAssembler
-	return rtCtor
+	return BuildRuntime(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()))
 }
 
 // BuildEntityPT 创建实体原型

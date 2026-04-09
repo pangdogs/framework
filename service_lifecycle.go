@@ -40,6 +40,10 @@ type LifecycleServiceStarted interface {
 	OnStarted(svc IService)
 }
 
+type LifecycleServiceHeartbeat interface {
+	OnHeartbeat(svc IService)
+}
+
 type LifecycleServiceTerminating interface {
 	OnTerminating(svc IService)
 }
