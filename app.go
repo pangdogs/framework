@@ -47,6 +47,12 @@ func NewApp() *App {
 	}
 	app.cmd = &cobra.Command{
 		Short: "Application for Launching Services",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			// 初始化启动参数
+			app.initFlags()
+			// 执行初始化回调
+			app.initCB.UnsafeCall(app)
+		},
 		Run: func(*cobra.Command, []string) {
 			// 加载参数配置
 			app.initConf()
@@ -140,11 +146,6 @@ func (app *App) Run() {
 	if app.cmd == nil {
 		exception.Panicf("%w: cmd is nil", ErrFramework)
 	}
-
-	// 初始化启动参数
-	app.initFlags()
-	// 执行初始化回调
-	app.initCB.UnsafeCall(app)
 
 	// 开始运行
 	if err := app.cmd.Execute(); err != nil {
