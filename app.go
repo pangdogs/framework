@@ -63,8 +63,6 @@ func NewApp() *App {
 			DisableDefaultCmd: true,
 		},
 	}
-	// 初始化启动参数
-	app.initFlags()
 	return app
 }
 
@@ -79,7 +77,7 @@ type App struct {
 	conf                             *viper.Viper
 	cmd                              *cobra.Command
 	initCB, startingCB, terminatedCB generic.Action1[*App]
-	inited                           bool
+	initOnce                         bool
 }
 
 // SetAssembler 设置服务实例装配器（传入实例类型时，将会自动创建装配器）
@@ -140,9 +138,11 @@ func (app *App) Run() {
 		exception.Panicf("%w: cmd is nil", ErrFramework)
 	}
 
-	// 执行初始化回调
-	if !app.inited {
-		app.inited = true
+	if !app.initOnce {
+		app.initOnce = true
+		// 初始化启动参数
+		app.initFlags()
+		// 执行初始化回调
 		app.initCB.UnsafeCall(app)
 	}
 
@@ -168,8 +168,11 @@ func (app *App) Cmd() *cobra.Command {
 	}
 
 	// 执行初始化回调
-	if !app.inited {
-		app.inited = true
+	if !app.initOnce {
+		app.initOnce = true
+		// 初始化启动参数
+		app.initFlags()
+		// 执行初始化回调
 		app.initCB.UnsafeCall(app)
 	}
 
