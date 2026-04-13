@@ -47,12 +47,6 @@ func NewApp() *App {
 	}
 	app.cmd = &cobra.Command{
 		Short: "Application for Launching Services",
-		PreRun: func(cmd *cobra.Command, args []string) {
-			// 初始化启动参数
-			app.initFlags()
-			// 执行初始化回调
-			app.initCB.UnsafeCall(app)
-		},
 		Run: func(*cobra.Command, []string) {
 			// 加载参数配置
 			app.initConf()
@@ -69,6 +63,8 @@ func NewApp() *App {
 			DisableDefaultCmd: true,
 		},
 	}
+	// 初始化启动参数
+	app.initFlags()
 	return app
 }
 
@@ -83,6 +79,7 @@ type App struct {
 	conf                             *viper.Viper
 	cmd                              *cobra.Command
 	initCB, startingCB, terminatedCB generic.Action1[*App]
+	inited                           bool
 }
 
 // SetAssembler 设置服务实例装配器（传入实例类型时，将会自动创建装配器）
@@ -115,7 +112,7 @@ func (app *App) SetAssembler(name string, assembler any) *App {
 	return app
 }
 
-// InitCB 初始化回调
+// InitCB 初始化回调（可以用于自定义启动参数）
 func (app *App) InitCB(cb generic.Action1[*App]) *App {
 	app.initCB = cb
 	return app
@@ -135,16 +132,18 @@ func (app *App) TerminateCB(cb generic.Action1[*App]) *App {
 
 // Run 运行
 func (app *App) Run() {
-	if app.services == nil {
-		exception.Panicf("%w: services is nil", ErrFramework)
-	}
-
 	if app.conf == nil {
 		exception.Panicf("%w: conf is nil", ErrFramework)
 	}
 
 	if app.cmd == nil {
 		exception.Panicf("%w: cmd is nil", ErrFramework)
+	}
+
+	// 执行初始化回调
+	if !app.inited {
+		app.inited = true
+		app.initCB.UnsafeCall(app)
 	}
 
 	// 开始运行
@@ -160,6 +159,20 @@ func (app *App) Conf() *viper.Viper {
 
 // Cmd 获取启动命令
 func (app *App) Cmd() *cobra.Command {
+	if app.conf == nil {
+		exception.Panicf("%w: conf is nil", ErrFramework)
+	}
+
+	if app.cmd == nil {
+		exception.Panicf("%w: cmd is nil", ErrFramework)
+	}
+
+	// 执行初始化回调
+	if !app.inited {
+		app.inited = true
+		app.initCB.UnsafeCall(app)
+	}
+
 	return app.cmd
 }
 
