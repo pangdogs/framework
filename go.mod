@@ -3,7 +3,7 @@ module git.golaxy.org/framework
 go 1.25.0
 
 require (
-	git.golaxy.org/core v0.4.27-0.20260409073528-8492d7654804
+	git.golaxy.org/core v0.4.27-0.20260417051732-1668d2b8bea1
 	github.com/andybalholm/brotli v1.2.1
 	github.com/dgraph-io/ristretto/v2 v2.4.0
 	github.com/elliotchance/pie/v2 v2.9.1
