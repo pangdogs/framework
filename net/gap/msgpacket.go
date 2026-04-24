@@ -28,7 +28,7 @@ import (
 // MsgPacket 消息包
 type MsgPacket struct {
 	Head MsgHead     // 消息头
-	Msg  ReadableMsg // 消息
+	Body ReadableMsg // 消息体
 }
 
 // Read implements io.Reader
@@ -39,11 +39,11 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 		return bs.BytesWritten(), err
 	}
 
-	if mp.Msg == nil {
+	if mp.Body == nil {
 		return bs.BytesWritten(), io.EOF
 	}
 
-	if _, err := binaryutil.CopyToByteStream(&bs, mp.Msg); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, mp.Body); err != nil {
 		return bs.BytesWritten(), err
 	}
 
@@ -54,8 +54,8 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 func (mp MsgPacket) Size() int {
 	n := mp.Head.Size()
 
-	if mp.Msg != nil {
-		n += mp.Msg.Size()
+	if mp.Body != nil {
+		n += mp.Body.Size()
 	}
 
 	return n

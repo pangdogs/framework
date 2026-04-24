@@ -82,7 +82,7 @@ func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 		return gap.MsgPacket{}, fmt.Errorf("%w: read msg failed, %w", ErrDecode, err)
 	}
 
-	mp.Msg = msg
+	mp.Body = msg
 
 	return mp, nil
 }

@@ -32,7 +32,7 @@ func TestDecoderDecodePlainPacket(t *testing.T) {
 	if n != len(buf.Payload()) {
 		t.Fatalf("unexpected consumed length: got %d want %d", n, len(buf.Payload()))
 	}
-	if !bytes.Equal(mp.Msg.(*gtp.MsgPayload).Data, newTestPayload().Data) {
+	if !bytes.Equal(mp.Body.(*gtp.MsgPayload).Data, newTestPayload().Data) {
 		t.Fatal("unexpected decoded payload")
 	}
 }

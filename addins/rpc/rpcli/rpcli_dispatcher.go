@@ -47,13 +47,13 @@ func (c *RPCli) handleData(data []byte) {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OnewayRPC:
-		c.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
+		c.acceptNotify(mp.Head.Src, mp.Body.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
-		c.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		c.acceptRequest(mp.Head.Src, mp.Body.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
-		c.resolveReply(mp.Msg.(*gap.MsgRPCReply))
+		c.resolveReply(mp.Body.(*gap.MsgRPCReply))
 	}
 }
 

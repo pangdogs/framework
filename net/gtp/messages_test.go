@@ -136,7 +136,7 @@ func TestMsgPacketAndMsgPacketLen(t *testing.T) {
 	msg := &MsgPayload{Data: []byte("packet")}
 	packet := MsgPacket{
 		Head: MsgHead{Len: uint32(msg.Size()), MsgId: msg.MsgId(), Flags: Flags_None(), Seq: 2, Ack: 1},
-		Msg:  msg,
+		Body: msg,
 	}
 	if packet.Size() != packet.Head.Size()+msg.Size() {
 		t.Fatalf("unexpected packet size: %d", packet.Size())

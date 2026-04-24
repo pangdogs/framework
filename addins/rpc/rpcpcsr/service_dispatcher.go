@@ -40,13 +40,13 @@ func (p *_ServiceProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_OnewayRPC:
-		p.acceptNotify(mp.Head.Src, mp.Msg.(*gap.MsgOnewayRPC))
+		p.acceptNotify(mp.Head.Src, mp.Body.(*gap.MsgOnewayRPC))
 
 	case gap.MsgId_RPC_Request:
-		p.acceptRequest(mp.Head.Src, mp.Msg.(*gap.MsgRPCRequest))
+		p.acceptRequest(mp.Head.Src, mp.Body.(*gap.MsgRPCRequest))
 
 	case gap.MsgId_RPC_Reply:
-		p.resolveReply(mp.Head.Src, mp.Msg.(*gap.MsgRPCReply))
+		p.resolveReply(mp.Head.Src, mp.Body.(*gap.MsgRPCReply))
 	}
 }
 

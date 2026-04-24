@@ -46,7 +46,7 @@ func TestEncoderEncodePlainPacket(t *testing.T) {
 		t.Fatalf("Decode failed: %v", err)
 	}
 
-	got := mp.Msg.(*gtp.MsgPayload)
+	got := mp.Body.(*gtp.MsgPayload)
 	if !bytes.Equal(got.Data, msg.Data) {
 		t.Fatal("unexpected decoded payload")
 	}
@@ -80,7 +80,7 @@ func TestEncoderEncodeWithModules(t *testing.T) {
 		t.Fatalf("Decode failed: %v", err)
 	}
 
-	if got := mp.Msg.(*gtp.MsgPayload); !bytes.Equal(got.Data, newTestPayload().Data) {
+	if got := mp.Body.(*gtp.MsgPayload); !bytes.Equal(got.Data, newTestPayload().Data) {
 		t.Fatal("unexpected decoded payload")
 	}
 }

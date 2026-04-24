@@ -54,7 +54,7 @@ func (p *_GateProcessor) handleSessionData(session gate.ISession, data []byte) {
 
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		p.acceptInbound(session, mp.Head.Src.Timestamp, mp.Msg.(*gap.MsgForward))
+		p.acceptInbound(session, mp.Head.Src.Timestamp, mp.Body.(*gap.MsgForward))
 	}
 }
 

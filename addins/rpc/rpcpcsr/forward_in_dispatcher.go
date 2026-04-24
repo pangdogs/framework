@@ -37,7 +37,7 @@ import (
 func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
-		req := mp.Msg.(*gap.MsgForward)
+		req := mp.Body.(*gap.MsgForward)
 
 		// 只支持来源于客户端域的转入消息
 		if !p.dsvc.NodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) || !gate.ClientDetails.DomainRoot.Contains(req.Src.Addr) {

@@ -205,7 +205,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 		return gtp.MsgPacket{}, fmt.Errorf("%w: read msg failed, %w", ErrDecode, err)
 	}
 
-	mp.Msg = msg
+	mp.Body = msg
 
 	buf.Release()
 	return mp, nil

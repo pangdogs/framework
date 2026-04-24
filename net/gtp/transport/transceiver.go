@@ -180,7 +180,7 @@ func (t *Transceiver) Recv(ctx context.Context) (IEvent, error) {
 					Flags: mp.Head.Flags,
 					Seq:   mp.Head.Seq,
 					Ack:   mp.Head.Ack,
-					Msg:   mp.Msg,
+					Msg:   mp.Body,
 				}
 
 				t.buffer.Next(l)

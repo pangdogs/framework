@@ -54,7 +54,7 @@ func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret bina
 			Src:   src,
 			Seq:   seq,
 		},
-		Msg: msg,
+		Body: msg,
 	}
 	mp.Head.Len = uint32(mp.Size())
 
