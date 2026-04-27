@@ -45,6 +45,9 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	ctor.encoder = codec.NewEncoder()
 	ctor.decoder = codec.NewDecoder(ctor.options.MsgCreator)
 
+	// 设置消息包最大长度
+	ctor.decoder.SetMaxPacketSize(ctor.options.MaxPacketSize)
+
 	// 握手协议
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{

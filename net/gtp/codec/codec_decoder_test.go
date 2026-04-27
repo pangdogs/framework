@@ -66,6 +66,20 @@ func TestDecoderDecodeErrors(t *testing.T) {
 		}
 	})
 
+	t.Run("packet too large", func(t *testing.T) {
+		buf := mustEncode(t, NewEncoder(), newTestPayload())
+		defer buf.Release()
+
+		decoder := NewDecoder(gtp.DefaultMsgCreator()).SetMaxPacketSize(len(buf.Payload()) - 1)
+		_, length, err := decoder.Decode(buf.Payload(), nil)
+		if !errors.Is(err, ErrPacketTooLarge) {
+			t.Fatalf("expected packet too large error, got %v", err)
+		}
+		if length != len(buf.Payload()) {
+			t.Fatalf("unexpected peeked length: got %d want %d", length, len(buf.Payload()))
+		}
+	})
+
 	t.Run("validation", func(t *testing.T) {
 		buf := mustEncode(t, NewEncoder(), newTestPayload())
 		defer buf.Release()

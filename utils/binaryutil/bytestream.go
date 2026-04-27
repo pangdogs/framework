@@ -474,7 +474,7 @@ func (s *ByteStream) ReadBytes() ([]byte, error) {
 	if l <= 0 {
 		return nil, nil
 	}
-	if len(s.rp) < int(l) {
+	if uint64(len(s.rp)) < l {
 		return nil, io.ErrUnexpectedEOF
 	}
 	v := make([]byte, l)
@@ -491,7 +491,7 @@ func (s *ByteStream) ReadBytesRef() ([]byte, error) {
 	if l <= 0 {
 		return nil, nil
 	}
-	if len(s.rp) < int(l) {
+	if uint64(len(s.rp)) < l {
 		return nil, io.ErrUnexpectedEOF
 	}
 	v := s.rp[:l]
@@ -577,7 +577,7 @@ func (s *ByteStream) ReadString() (string, error) {
 	if l <= 0 {
 		return "", nil
 	}
-	if len(s.rp) < int(l) {
+	if uint64(len(s.rp)) < l {
 		return "", io.ErrUnexpectedEOF
 	}
 	v := string(s.rp[:l])
@@ -593,7 +593,7 @@ func (s *ByteStream) ReadStringRef() (string, error) {
 	if l <= 0 {
 		return "", nil
 	}
-	if len(s.rp) < int(l) {
+	if uint64(len(s.rp)) < l {
 		return "", io.ErrUnexpectedEOF
 	}
 	v := types.Bytes2String(s.rp[:l])

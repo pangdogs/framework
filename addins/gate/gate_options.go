@@ -70,6 +70,7 @@ type GateOptions struct {
 	Compression                    gtp.Compression        // 通信中的压缩函数
 	CompressionThreshold           int                    // 通信中启用压缩阀值（字节），<=0表示不开启
 	MaxUncompressedSize            int                    // 通信中最大解压缩大小，用于防御压缩包炸弹
+	MaxPacketSize                  int                    // 通信中最大消息包大小，用于防御长度炸弹
 	AcceptTimeout                  time.Duration          // 接受连接超时时间
 	Authenticator                  Authenticator          // 鉴权客户端处理器
 	SessionInactiveTimeout         time.Duration          // 会话不活跃后的超时时间
@@ -121,7 +122,8 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.AgreeClientCompressionProposal(false)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressionThreshold(64 * 1024)(options)
-		With.MaxUncompressedSize(64 * 1024 * 1024)(options)
+		With.MaxUncompressedSize(128 * 1024 * 1024)(options)
+		With.MaxPacketSize(64 * 1024 * 1024)(options)
 		With.AcceptTimeout(10 * time.Second)(options)
 		With.Authenticator(nil)(options)
 		With.SessionInactiveTimeout(time.Minute)(options)
@@ -355,10 +357,17 @@ func (_GateOption) CompressionThreshold(threshold int) option.Setting[GateOption
 	}
 }
 
-// MaxUncompressedSize 通信中最大解压缩大小，用于防御压缩包炸弹
+// MaxUncompressedSize 设置通信中最大解压缩大小，用于防御压缩包炸弹
 func (_GateOption) MaxUncompressedSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.MaxUncompressedSize = size
+	}
+}
+
+// MaxPacketSize 设置通信中最大消息包大小，用于防御长度炸弹
+func (_GateOption) MaxPacketSize(size int) option.Setting[GateOptions] {
+	return func(options *GateOptions) {
+		options.MaxPacketSize = size
 	}
 }
 

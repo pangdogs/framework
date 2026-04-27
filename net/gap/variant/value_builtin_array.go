@@ -69,12 +69,14 @@ func (v *Array) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]Variant, l)
+	*v = make([]Variant, 0, min(l, 256))
 
 	for i := uint64(0); i < l; i++ {
-		if _, err := bs.WriteTo(&(*v)[i]); err != nil {
+		var item Variant
+		if _, err := bs.WriteTo(&item); err != nil {
 			return bs.BytesRead(), err
 		}
+		*v = append(*v, item)
 	}
 
 	return bs.BytesRead(), nil

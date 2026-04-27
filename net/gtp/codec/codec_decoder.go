@@ -32,8 +32,9 @@ import (
 )
 
 var (
-	ErrDecode             = errors.New("gtp-decode")                                                  // 解码错误
-	ErrUnableToPeekLength = fmt.Errorf("%w: %w, unable to peek length", ErrDecode, io.ErrShortBuffer) // 无法探测消息长度
+	ErrDecode             = errors.New("gtp-decode")
+	ErrUnableToPeekLength = fmt.Errorf("%w: %w, unable to peek length", ErrDecode, io.ErrShortBuffer)
+	ErrPacketTooLarge     = fmt.Errorf("%w: packet too large", ErrDecode)
 )
 
 // NewDecoder 创建消息包解码器
@@ -59,6 +60,7 @@ type Decoder struct {
 	Authentication      IAuthentication // 认证模块
 	Compression         ICompression    // 压缩模块
 	MaxUncompressedSize int             // 最大解压缩大小，用于防御压缩包炸弹
+	MaxPacketSize       int             // 最大消息包大小，用于防御长度炸弹
 }
 
 // SetEncryption 设置加密模块
@@ -77,6 +79,12 @@ func (d *Decoder) SetAuthentication(authentication IAuthentication) *Decoder {
 func (d *Decoder) SetCompression(compression ICompression, maxUncompressedSize int) *Decoder {
 	d.Compression = compression
 	d.MaxUncompressedSize = maxUncompressedSize
+	return d
+}
+
+// SetMaxPacketSize 设置最大消息包大小
+func (d *Decoder) SetMaxPacketSize(maxPacketSize int) *Decoder {
+	d.MaxPacketSize = maxPacketSize
 	return d
 }
 
@@ -109,7 +117,9 @@ func (d *Decoder) peekLength(data []byte) (int, error) {
 	if _, err := mpl.Write(data); err != nil {
 		return 0, ErrUnableToPeekLength
 	}
-
+	if d.MaxPacketSize > 0 && int(mpl.Len) > d.MaxPacketSize {
+		return int(mpl.Len), fmt.Errorf("%w (%d > %d)", ErrPacketTooLarge, mpl.Len, d.MaxPacketSize)
+	}
 	if len(data) < int(mpl.Len) {
 		return int(mpl.Len), fmt.Errorf("%w: %w (%d < %d)", ErrDecode, io.ErrShortBuffer, len(data), mpl.Len)
 	}

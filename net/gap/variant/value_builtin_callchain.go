@@ -70,33 +70,32 @@ func (v *CallChain) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]Call, l)
+	*v = make([]Call, min(l, 256))
 
 	for i := uint64(0); i < l; i++ {
 		svc, err := bs.ReadString()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
-
 		addr, err := bs.ReadString()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
-
 		ts, err := bs.ReadInt64()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
-
 		transit, err := bs.ReadBool()
 		if err != nil {
 			return bs.BytesRead(), err
 		}
-
-		(*v)[i].Svc = svc
-		(*v)[i].Addr = addr
-		(*v)[i].Transit = transit
-		(*v)[i].Timestamp = time.UnixMilli(ts).Local()
+		item := Call{
+			Svc:       svc,
+			Addr:      addr,
+			Timestamp: time.UnixMilli(ts).Local(),
+			Transit:   transit,
+		}
+		*v = append(*v, item)
 	}
 
 	return bs.BytesRead(), nil

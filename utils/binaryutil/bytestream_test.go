@@ -320,3 +320,28 @@ func TestByteStreamReadErrors(t *testing.T) {
 		t.Fatalf("unexpected ReadUvarint error: %v", err)
 	}
 }
+
+func TestByteStreamLengthPrefixedReadsRejectOversizedLengths(t *testing.T) {
+	buf := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(buf, ^uint64(0))
+
+	stream := NewBigEndianStream(buf[:n])
+	if _, err := stream.ReadBytes(); err != io.ErrUnexpectedEOF {
+		t.Fatalf("ReadBytes error = %v, want %v", err, io.ErrUnexpectedEOF)
+	}
+
+	stream = NewBigEndianStream(buf[:n])
+	if _, err := stream.ReadBytesRef(); err != io.ErrUnexpectedEOF {
+		t.Fatalf("ReadBytesRef error = %v, want %v", err, io.ErrUnexpectedEOF)
+	}
+
+	stream = NewBigEndianStream(buf[:n])
+	if _, err := stream.ReadString(); err != io.ErrUnexpectedEOF {
+		t.Fatalf("ReadString error = %v, want %v", err, io.ErrUnexpectedEOF)
+	}
+
+	stream = NewBigEndianStream(buf[:n])
+	if _, err := stream.ReadStringRef(); err != io.ErrUnexpectedEOF {
+		t.Fatalf("ReadStringRef error = %v, want %v", err, io.ErrUnexpectedEOF)
+	}
+}
