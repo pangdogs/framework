@@ -70,7 +70,7 @@ func (v *CallChain) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]Call, min(l, 256))
+	*v = make([]Call, 0, min(l, 256))
 
 	for i := uint64(0); i < l; i++ {
 		svc, err := bs.ReadString()

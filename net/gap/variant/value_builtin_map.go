@@ -127,7 +127,7 @@ func (v *Map) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]generic.UnorderedKV[Variant, Variant], min(l, 256))
+	*v = make([]generic.UnorderedKV[Variant, Variant], 0, min(l, 256))
 
 	for i := uint64(0); i < l; i++ {
 		var kv generic.UnorderedKV[Variant, Variant]
