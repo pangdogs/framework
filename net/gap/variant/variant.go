@@ -63,6 +63,12 @@ func (v Variant) Read(p []byte) (int, error) {
 		return bs.BytesWritten(), err
 	}
 
+	if v.TypeId >= TypeId_Customize {
+		if err := bs.WriteUvarint(uint64(v.Value.Size())); err != nil {
+			return bs.BytesWritten(), err
+		}
+	}
+
 	if _, err := binaryutil.CopyToByteStream(&bs, v.Value); err != nil {
 		return bs.BytesWritten(), err
 	}
@@ -76,6 +82,16 @@ func (v *Variant) Write(p []byte) (int, error) {
 
 	if _, err := bs.WriteTo(&v.TypeId); err != nil {
 		return bs.BytesRead(), err
+	}
+
+	if v.TypeId >= TypeId_Customize {
+		valueSize, err := bs.ReadUvarint()
+		if err != nil {
+			return bs.BytesRead(), err
+		}
+		if uint64(bs.BytesUnread()) < valueSize {
+			return bs.BytesRead(), io.ErrUnexpectedEOF
+		}
 	}
 
 	reflected, err := v.TypeId.NewReflected()
@@ -103,7 +119,11 @@ func (v Variant) Size() int {
 	n := v.TypeId.Size()
 
 	if v.Value != nil {
-		n += v.Value.Size()
+		s := v.Value.Size()
+		if v.TypeId >= TypeId_Customize {
+			n += binaryutil.SizeofUvarint(uint64(s))
+		}
+		n += s
 	}
 
 	return n
