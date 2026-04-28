@@ -25,20 +25,48 @@ import (
 	"git.golaxy.org/core"
 )
 
-// NewSerializedVariant 创建已序列化可变类型
-func NewSerializedVariant(v ReadableValue) (Variant, error) {
+// NewSerializedVariant 创建已序列化变体
+func NewSerializedVariant(v ReadableValue) (SerializedVariant, error) {
 	if v == nil {
-		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
+		return SerializedVariant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
 
 	sv, err := NewSerializedValue(v)
 	if err != nil {
-		return Variant{}, err
+		return SerializedVariant{}, err
 	}
 
-	return Variant{
-		TypeId:     v.TypeId(),
-		Value:      sv,
-		Releasable: sv,
-	}, nil
+	return wrappedSerializedVariant(sv, sv), nil
+}
+
+func wrappedSerializedVariant(v ReadableValue, r releasable) SerializedVariant {
+	return SerializedVariant{
+		Variant: Variant{
+			TypeId: v.TypeId(),
+			Value:  v,
+		},
+		releasable: r,
+	}
+}
+
+type releasable interface {
+	Release()
+}
+
+// SerializedVariant 已序列化变体
+type SerializedVariant struct {
+	Variant
+	releasable releasable
+}
+
+// Release 释放缓存，缓存释放后请勿再使用或引用变体
+func (v SerializedVariant) Release() {
+	if v.releasable != nil {
+		v.releasable.Release()
+	}
+}
+
+// Ref 引用变体
+func (v SerializedVariant) Ref() Variant {
+	return v.Variant
 }

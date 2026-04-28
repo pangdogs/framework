@@ -102,6 +102,11 @@ func encodeVariant(t *testing.T, v Variant) []byte {
 	return encodeReadable(t, v, v.Size())
 }
 
+func encodeSerializedVariant(t *testing.T, v SerializedVariant) []byte {
+	t.Helper()
+	return encodeVariant(t, v.Ref())
+}
+
 func decodeVariant(t *testing.T, data []byte) Variant {
 	t.Helper()
 

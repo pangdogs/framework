@@ -88,7 +88,7 @@ func (v *SerializedValue) Indirect() any {
 	return v
 }
 
-// Release 释放资源
+// Release 释放缓存，缓存释放后请勿再使用或引用变体值
 func (v *SerializedValue) Release() {
 	v.Data.Release()
 }

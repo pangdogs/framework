@@ -17,24 +17,30 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-// Package variant provides the dynamic value system used by GAP messages and RPC
-// payloads.
+// Package variant 提供 GAP 消息和 RPC 负载使用的动态值模型。
 //
-// 这个包把可传输值统一抽象为带 TypeId 的 Variant，主要用于：
-//   - GAP RPC 参数与返回值
-//   - 自定义消息中的动态字段
-//   - Map、Array、Error、CallChain 等通用复合值的跨网络传输
-//
-// 包内会在初始化时注册常用内置类型，包括整数、浮点、布尔、字节串、字符串、
-// Null、Map、Array、Error 和 CallChain。自定义类型需要实现 Value 接口，
+// 包内以 Variant 作为统一入口，Variant 持有 TypeId 和对应的可读值。
+// 常用内置类型会在初始化时注册，包括整数、浮点、布尔、字节串、字符串、
+// Null、Array、Map、Error 和 CallChain。自定义类型需要实现 Value 接口，
 // 并通过 VariantCreator().Declare 注册后，才能根据 TypeId 反序列化。
 //
-// 常见入口包括：
-//   - NewVariant / CastVariant：把值包装为 Variant
-//   - NewSerializedVariant / CastSerializedVariant：把值提前序列化后再包装
-//   - NewSerializedValue：生成仅保留 TypeId 和原始字节的序列化值
-//   - GenTypeId / GenTypeIdT：为自定义类型生成稳定的 TypeId
+// 常用入口包括：
+//   - NewVariant / CastVariant：把值包装为普通 Variant。
+//   - NewSerializedVariant / CastSerializedVariant：把值转换为显式序列化变体。
+//   - NewSerializedArray / NewSerializedMapFrom...：创建由 SerializedVariant
+//     元素组成的序列化容器。
+//   - NewSerializedValue：缓存单个值的编码字节。
+//   - GenTypeId / GenTypeIdT：为自定义类型生成稳定的 TypeId。
 //
-// 如果 Variant 持有的是 SerializedValue 或其他带缓冲区的对象，使用方在值不再
-// 需要时应调用 Release，以便及时归还底层资源。
+// 当前序列化相关结构主要包括：
+//   - SerializedValue：单个值的已编码字节。
+//   - SerializedArray：数组结果的序列化容器。
+//   - SerializedMap：映射结果的序列化容器。
+//   - SerializedVariant：统一包装上述序列化值或容器。
+//
+// Ref 返回底层普通值视图，用于继续走现有的 Variant / Array / Map 编码链路。
+// Release 用于归还序列化过程中持有的缓存资源。调用方需要自行保证同一底层
+// 序列化对象只释放一次，不要对共享底层资源的多个包装对象重复调用 Release。
+// 当前这套序列化结构主要用于 RPC 返回值回包链，尤其是需要跨异步等待后再写入
+// MsgRPCReply 的场景。
 package variant

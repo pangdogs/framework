@@ -26,7 +26,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// CastVariant 转换只读可变类型
+// CastVariant 转换为变体
 func CastVariant(a any) (Variant, error) {
 retry:
 	switch v := a.(type) {

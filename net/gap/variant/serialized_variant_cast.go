@@ -26,8 +26,8 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// CastSerializedVariant 转换已序列化可变类型
-func CastSerializedVariant(a any) (ret Variant, err error) {
+// CastSerializedVariant 转换已序列化变体
+func CastSerializedVariant(a any) (ret SerializedVariant, err error) {
 retry:
 	switch v := a.(type) {
 	case int:
@@ -106,47 +106,27 @@ retry:
 	case []any:
 		arr, err := NewSerializedArray(v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				arr.Release()
-			}
-		}()
-		return NewSerializedVariant(arr)
+		return wrappedSerializedVariant(arr, arr), nil
 	case *[]any:
 		arr, err := NewSerializedArray(*v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				arr.Release()
-			}
-		}()
-		return NewSerializedVariant(arr)
+		return wrappedSerializedVariant(arr, arr), nil
 	case []reflect.Value:
 		arr, err := NewSerializedArray(v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				arr.Release()
-			}
-		}()
-		return NewSerializedVariant(arr)
+		return wrappedSerializedVariant(arr, arr), nil
 	case *[]reflect.Value:
 		arr, err := NewSerializedArray(*v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				arr.Release()
-			}
-		}()
-		return NewSerializedVariant(arr)
+		return wrappedSerializedVariant(arr, arr), nil
 	case Map:
 		return NewSerializedVariant(v)
 	case *Map:
@@ -154,69 +134,47 @@ retry:
 	case map[string]any:
 		m, err := NewSerializedMapFromGoMap[string, any](v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
 	case *map[string]any:
 		m, err := NewSerializedMapFromGoMap[string, any](*v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
 	case generic.SliceMap[string, any]:
 		m, err := NewSerializedMapFromSliceMap[string, any](v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
 	case *generic.SliceMap[string, any]:
 		m, err := NewSerializedMapFromSliceMap[string, any](*v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
 	case generic.UnorderedSliceMap[string, any]:
 		m, err := NewSerializedMapFromUnorderedSliceMap[string, any](v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
 	case *generic.UnorderedSliceMap[string, any]:
 		m, err := NewSerializedMapFromUnorderedSliceMap[string, any](*v)
 		if err != nil {
-			return Variant{}, err
+			return SerializedVariant{}, err
 		}
-		defer func() {
-			if !ret.IsValid() {
-				m.Release()
-			}
-		}()
-		return NewSerializedVariant(m)
+		return wrappedSerializedVariant(m, m), nil
+	case SerializedArray:
+		return wrappedSerializedVariant(v, v), nil
+	case *SerializedArray:
+		return wrappedSerializedVariant(*v, *v), nil
+	case SerializedMap:
+		return wrappedSerializedVariant(v, v), nil
+	case *SerializedMap:
+		return wrappedSerializedVariant(*v, *v), nil
 	case Error:
 		return NewSerializedVariant(&v)
 	case *Error:
@@ -229,23 +187,27 @@ retry:
 		return NewSerializedVariant(*v)
 	case reflect.Value:
 		if !v.CanInterface() {
-			return Variant{}, ErrInvalidCast
+			return SerializedVariant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
 	case *reflect.Value:
 		if !v.CanInterface() {
-			return Variant{}, ErrInvalidCast
+			return SerializedVariant{}, ErrInvalidCast
 		}
 		a = v.Interface()
 		goto retry
 	case Variant:
-		return v, nil
+		return NewSerializedVariant(v.Value)
 	case *Variant:
+		return NewSerializedVariant(v.Value)
+	case SerializedVariant:
+		return v, nil
+	case *SerializedVariant:
 		return *v, nil
 	case ReadableValue:
 		return NewSerializedVariant(v)
 	default:
-		return Variant{}, ErrInvalidCast
+		return SerializedVariant{}, ErrInvalidCast
 	}
 }

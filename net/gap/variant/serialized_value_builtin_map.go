@@ -26,37 +26,42 @@ import (
 )
 
 // NewSerializedMapFromGoMap 创建已序列化map
-func NewSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret Map, err error) {
-	varMap := make(Map, 0, len(m))
+func NewSerializedMapFromGoMap[K comparable, V any](m map[K]V) (ret SerializedMap, err error) {
+	ret.Map = make(Map, 0, len(m))
+	ret.entries = make([]serializedMapEntry, 0, len(m))
 	defer func() {
-		if ret == nil {
-			varMap.Release()
+		if err != nil {
+			ret.Release()
+			ret = SerializedMap{}
 		}
 	}()
 
 	for k, v := range m {
 		varK, err := CastSerializedVariant(k)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
 		varV, err := CastSerializedVariant(v)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Map.ToUnorderedSliceMap().Add(varK.Ref(), varV.Ref())
+		ret.entries = append(ret.entries, serializedMapEntry{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
 }
 
 // NewSerializedMapFromSliceMap 创建已序列化map
-func NewSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (ret Map, err error) {
-	varMap := make(Map, 0, len(m))
+func NewSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (ret SerializedMap, err error) {
+	ret.Map = make(Map, 0, len(m))
+	ret.entries = make([]serializedMapEntry, 0, len(m))
 	defer func() {
-		if ret == nil {
-			varMap.Release()
+		if err != nil {
+			ret.Release()
+			ret = SerializedMap{}
 		}
 	}()
 
@@ -65,26 +70,29 @@ func NewSerializedMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]
 
 		varK, err := CastSerializedVariant(&kv.K)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
 		varV, err := CastSerializedVariant(&kv.V)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Map.ToUnorderedSliceMap().Add(varK.Ref(), varV.Ref())
+		ret.entries = append(ret.entries, serializedMapEntry{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
 }
 
 // NewSerializedMapFromUnorderedSliceMap 创建已序列化map
-func NewSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (ret Map, err error) {
-	varMap := make(Map, 0, len(m))
+func NewSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (ret SerializedMap, err error) {
+	ret.Map = make(Map, 0, len(m))
+	ret.entries = make([]serializedMapEntry, 0, len(m))
 	defer func() {
-		if ret == nil {
-			varMap.Release()
+		if err != nil {
+			ret.Release()
+			ret = SerializedMap{}
 		}
 	}()
 
@@ -93,16 +101,41 @@ func NewSerializedMapFromUnorderedSliceMap[K comparable, V any](m generic.Unorde
 
 		varK, err := CastSerializedVariant(&kv.K)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
 		varV, err := CastSerializedVariant(&kv.V)
 		if err != nil {
-			return nil, err
+			return SerializedMap{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Map.ToUnorderedSliceMap().Add(varK.Ref(), varV.Ref())
+		ret.entries = append(ret.entries, serializedMapEntry{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
+}
+
+type serializedMapEntry struct {
+	K SerializedVariant
+	V SerializedVariant
+}
+
+// SerializedMap 已序列化map
+type SerializedMap struct {
+	Map
+	entries []serializedMapEntry
+}
+
+// Release 释放缓存，缓存释放后请勿再使用或引用变体值
+func (m SerializedMap) Release() {
+	for i := range m.entries {
+		m.entries[i].K.Release()
+		m.entries[i].V.Release()
+	}
+}
+
+// Ref 引用变体值
+func (m SerializedMap) Ref() Map {
+	return m.Map
 }

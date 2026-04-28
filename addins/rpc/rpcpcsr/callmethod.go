@@ -44,7 +44,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.Array, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.SerializedArray, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
@@ -58,11 +58,11 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 	} else {
 		status, ok := svcCtx.AddInManager().GetStatusByName(addIn)
 		if !ok {
-			return nil, ErrAddInNotFound
+			return variant.SerializedArray{}, ErrAddInNotFound
 		}
 
 		if status.State() != extension.AddInState_Running {
-			return nil, ErrAddInInactive
+			return variant.SerializedArray{}, ErrAddInInactive
 		}
 
 		scriptRV = status.Reflected()
@@ -72,18 +72,18 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 	if !methodRV.IsValid() {
 		callee, ok := scriptRV.Interface().(ICallee)
 		if !ok {
-			return nil, ErrMethodNotFound
+			return variant.SerializedArray{}, ErrMethodNotFound
 		}
 
 		methodRV = callee.Callee(method)
 		if !methodRV.IsValid() {
-			return nil, ErrMethodNotFound
+			return variant.SerializedArray{}, ErrMethodNotFound
 		}
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
 	if err != nil {
-		return nil, err
+		return variant.SerializedArray{}, err
 	}
 
 	return variant.NewSerializedArray(methodRV.Call(argsRV))
@@ -233,29 +233,33 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	return argsRV, nil
 }
 
-func waitAsyncResult(ctx context.Context, future async.Future) (variant.Array, error) {
+func waitAsyncResult(ctx context.Context, future async.Future) (variant.SerializedArray, error) {
 	for {
 		ret := future.Wait(ctx)
 		if !ret.OK() {
-			return nil, ret.Error
+			return variant.SerializedArray{}, ret.Error
 		}
 
 		var ok bool
 		future, ok = ret.Value.(async.Future)
 		if ok {
 			if future.IsNil() {
-				return nil, ErrAsyncMethodReturnedNil
+				return variant.SerializedArray{}, ErrAsyncMethodReturnedNil
 			}
 			continue
 		}
 
-		if rets, ok := ret.Value.(variant.Array); ok {
+		if rets, ok := ret.Value.(variant.SerializedArray); ok {
 			return rets, nil
+		}
+
+		if rets, ok := ret.Value.(variant.Array); ok {
+			return variant.NewSerializedArray(rets)
 		}
 
 		rets, err := variant.NewSerializedArray([]any{ret.Value})
 		if err != nil {
-			return nil, err
+			return variant.SerializedArray{}, err
 		}
 
 		return rets, nil

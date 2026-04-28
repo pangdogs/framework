@@ -46,7 +46,7 @@ func TestSerializedVariantRoundTrip(t *testing.T) {
 			}
 			defer v.Release()
 
-			wire := encodeVariant(t, v)
+			wire := encodeSerializedVariant(t, v)
 			got := decodeVariant(t, wire)
 			gotWire := encodeVariant(t, got)
 

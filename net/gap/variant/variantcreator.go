@@ -35,7 +35,7 @@ var (
 	ErrNotDeclared = fmt.Errorf("%w: variant not declared", ErrVariant) // 类型未注册
 )
 
-// IVariantCreator 可变类型对象构建器接口
+// IVariantCreator 变体对象构建器接口
 type IVariantCreator interface {
 	// Declare 注册类型
 	Declare(v Value)
@@ -47,7 +47,7 @@ type IVariantCreator interface {
 
 var variantCreator = _NewVariantCreator()
 
-// VariantCreator 可变类型对象构建器
+// VariantCreator 变体对象构建器
 func VariantCreator() IVariantCreator {
 	return variantCreator
 }
@@ -76,12 +76,12 @@ func init() {
 	VariantCreator().Declare(&CallChain{})
 }
 
-// _NewVariantCreator 创建可变类型对象构建器
+// _NewVariantCreator 创建变体对象构建器
 func _NewVariantCreator() IVariantCreator {
 	return &_VariantCreator{}
 }
 
-// _VariantCreator 可变类型对象构建器
+// _VariantCreator 变体对象构建器
 type _VariantCreator struct {
 	variantTypes atomic.Pointer[map[TypeId]reflect.Type]
 }

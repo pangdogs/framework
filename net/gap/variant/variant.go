@@ -30,10 +30,10 @@ import (
 )
 
 var (
-	ErrVariant = errors.New("gap-variant") // 可变类型错误
+	ErrVariant = errors.New("gap-variant") // 变体错误
 )
 
-// NewVariant 创建可变类型
+// NewVariant 创建变体
 func NewVariant(v ReadableValue) (Variant, error) {
 	if v == nil {
 		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
@@ -44,17 +44,11 @@ func NewVariant(v ReadableValue) (Variant, error) {
 	}, nil
 }
 
-// Releasable 释放资源接口
-type Releasable interface {
-	Release()
-}
-
-// Variant 可变类型
+// Variant 变体
 type Variant struct {
-	TypeId     TypeId        // 类型Id
-	Value      ReadableValue // 值
-	Reflected  reflect.Value // 反射值
-	Releasable Releasable    // 释放资源
+	TypeId    TypeId        // 类型Id
+	Value     ReadableValue // 值
+	Reflected reflect.Value // 反射值
 }
 
 // Read implements io.Reader
@@ -113,13 +107,6 @@ func (v Variant) Size() int {
 	}
 
 	return n
-}
-
-// Release 释放资源
-func (v Variant) Release() {
-	if v.Releasable != nil {
-		v.Releasable.Release()
-	}
 }
 
 // IsValid 是否有效

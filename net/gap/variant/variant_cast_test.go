@@ -85,11 +85,104 @@ func TestCastSerializedVariant(t *testing.T) {
 			if v.TypeId != tc.wantID {
 				t.Fatalf("unexpected type id: got %d want %d", v.TypeId, tc.wantID)
 			}
-			if _, ok := v.Value.(*SerializedValue); !ok {
-				t.Fatalf("expected SerializedValue, got %T", v.Value)
+			switch tc.wantID {
+			case TypeId_Array:
+				if _, ok := v.Value.(SerializedArray); !ok {
+					t.Fatalf("expected SerializedArray, got %T", v.Value)
+				}
+			case TypeId_Map:
+				if _, ok := v.Value.(SerializedMap); !ok {
+					t.Fatalf("expected SerializedMap, got %T", v.Value)
+				}
+			default:
+				if _, ok := v.Value.(*SerializedValue); !ok {
+					t.Fatalf("expected SerializedValue, got %T", v.Value)
+				}
+			}
+			if !v.Ref().IsValid() {
+				t.Fatal("expected valid underlying variant")
 			}
 		})
 	}
+}
+
+func TestSerializedContainersRef(t *testing.T) {
+	t.Run("array ref readable bytes", func(t *testing.T) {
+		arr, err := NewSerializedArray([]any{"x", int32(3), true, nil})
+		if err != nil {
+			t.Fatalf("NewSerializedArray failed: %v", err)
+		}
+		defer arr.Release()
+
+		got := encodeReadable(t, arr, arr.Size())
+		want := encodeReadable(t, arr.Ref(), arr.Ref().Size())
+		compareBytes(t, got, want)
+	})
+
+	t.Run("map ref readable bytes", func(t *testing.T) {
+		m, err := NewSerializedMapFromGoMap(map[string]any{
+			"name":  "demo",
+			"count": int32(2),
+			"ok":    true,
+		})
+		if err != nil {
+			t.Fatalf("NewSerializedMapFromGoMap failed: %v", err)
+		}
+		defer m.Release()
+
+		got := encodeReadable(t, m, m.Size())
+		want := encodeReadable(t, m.Ref(), m.Ref().Size())
+		compareBytes(t, got, want)
+	})
+}
+
+func TestCastSerializedVariantFromSerializedContainers(t *testing.T) {
+	t.Run("serialized array", func(t *testing.T) {
+		arr, err := NewSerializedArray([]any{"x", int32(3), true, nil})
+		if err != nil {
+			t.Fatalf("NewSerializedArray failed: %v", err)
+		}
+
+		v, err := CastSerializedVariant(arr)
+		if err != nil {
+			arr.Release()
+			t.Fatalf("CastSerializedVariant failed: %v", err)
+		}
+		defer v.Release()
+
+		got, ok := v.Value.(SerializedArray)
+		if !ok {
+			t.Fatalf("expected SerializedArray, got %T", v.Value)
+		}
+		if len(got.Ref()) != len(arr.Ref()) {
+			t.Fatalf("unexpected array length: got %d want %d", len(got.Ref()), len(arr.Ref()))
+		}
+	})
+
+	t.Run("serialized map", func(t *testing.T) {
+		m, err := NewSerializedMapFromGoMap(map[string]any{
+			"name":  "demo",
+			"count": int32(2),
+		})
+		if err != nil {
+			t.Fatalf("NewSerializedMapFromGoMap failed: %v", err)
+		}
+
+		v, err := CastSerializedVariant(m)
+		if err != nil {
+			m.Release()
+			t.Fatalf("CastSerializedVariant failed: %v", err)
+		}
+		defer v.Release()
+
+		got, ok := v.Value.(SerializedMap)
+		if !ok {
+			t.Fatalf("expected SerializedMap, got %T", v.Value)
+		}
+		if len(got.Ref()) != len(m.Ref()) {
+			t.Fatalf("unexpected map length: got %d want %d", len(got.Ref()), len(m.Ref()))
+		}
+	})
 }
 
 func TestVariantConvert(t *testing.T) {

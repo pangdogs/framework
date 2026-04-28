@@ -192,7 +192,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			zap.String("src", src.Addr),
 			zap.Int64("corr_id", req.CorrId),
 			zap.Error(err))
-		p.reply(src, req.CorrId, nil, err)
+		p.reply(src, req.CorrId, variant.SerializedArray{}, err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 				zap.Int64("corr_id", req.CorrId),
 				zap.String("call_path", cp.String()),
 				zap.Error(err))
-			p.reply(src, req.CorrId, nil, err)
+			p.reply(src, req.CorrId, variant.SerializedArray{}, err)
 			return
 		}
 	}
@@ -260,7 +260,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(src, req.CorrId, nil, err)
+			p.reply(src, req.CorrId, variant.SerializedArray{}, err)
 			return
 		}
 
@@ -298,7 +298,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(src, req.CorrId, nil, err)
+			p.reply(src, req.CorrId, variant.SerializedArray{}, err)
 			return
 		}
 
@@ -351,7 +351,7 @@ func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply)
 		zap.Int64("corr_id", reply.CorrId))
 }
 
-func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
+func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.SerializedArray, retErr error) {
 	defer rets.Release()
 
 	if corrId == 0 {
@@ -360,7 +360,7 @@ func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Arr
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-		Rets:   rets,
+		Rets:   rets.Ref(),
 	}
 
 	if retErr != nil {

@@ -111,7 +111,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 			zap.String("remote", c.NetAddr().Remote.String()),
 			zap.Int64("corr_id", req.CorrId),
 			zap.Error(err))
-		c.reply(src, req.CorrId, nil, err)
+		c.reply(src, req.CorrId, variant.SerializedArray{}, err)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 		zap.Int64("corr_id", reply.CorrId))
 }
 
-func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
+func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.SerializedArray, retErr error) {
 	defer rets.Release()
 
 	if corrId == 0 {
@@ -188,7 +188,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-		Rets:   rets,
+		Rets:   rets.Ref(),
 	}
 
 	if retErr != nil {
@@ -243,20 +243,20 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 		zap.Int64("corr_id", corrId))
 }
 
-func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.Array, err error) {
+func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.SerializedArray, err error) {
 	scr, ok := c.GetScript(script)
 	if !ok {
-		return nil, ErrScriptNotFound
+		return variant.SerializedArray{}, ErrScriptNotFound
 	}
 
 	methodRV := scr.Reflected().MethodByName(method)
 	if !methodRV.IsValid() {
-		return nil, ErrMethodNotFound
+		return variant.SerializedArray{}, ErrMethodNotFound
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
 	if err != nil {
-		return nil, err
+		return variant.SerializedArray{}, err
 	}
 
 	return variant.NewSerializedArray(methodRV.Call(argsRV))

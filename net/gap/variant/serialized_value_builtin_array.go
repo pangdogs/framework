@@ -20,21 +20,42 @@
 package variant
 
 // NewSerializedArray 创建已序列化array
-func NewSerializedArray[T any](arr []T) (ret Array, err error) {
-	varArr := make(Array, 0, len(arr))
+func NewSerializedArray[T any](arr []T) (ret SerializedArray, err error) {
+	ret.Array = make(Array, 0, len(arr))
+	ret.items = make([]SerializedVariant, 0, len(arr))
 	defer func() {
-		if ret == nil {
-			varArr.Release()
+		if err != nil {
+			ret.Release()
+			ret = SerializedArray{}
 		}
 	}()
 
 	for i := range arr {
 		v, err := CastSerializedVariant(&arr[i])
 		if err != nil {
-			return nil, err
+			return SerializedArray{}, err
 		}
-		varArr = append(varArr, v)
+		ret.Array = append(ret.Array, v.Ref())
+		ret.items = append(ret.items, v)
 	}
 
-	return varArr, nil
+	return ret, nil
+}
+
+// SerializedArray 已序列化数组
+type SerializedArray struct {
+	Array
+	items []SerializedVariant
+}
+
+// Release 释放缓存，缓存释放后请勿再使用或引用变体值
+func (a SerializedArray) Release() {
+	for i := range a.items {
+		a.items[i].Release()
+	}
+}
+
+// Ref 引用变体值
+func (a SerializedArray) Ref() Array {
+	return a.Array
 }

@@ -164,15 +164,6 @@ func (v Map) Indirect() any {
 	return v
 }
 
-// Release 释放资源
-func (v Map) Release() {
-	for i := range v {
-		kv := &v[i]
-		kv.K.Release()
-		kv.V.Release()
-	}
-}
-
 // ToUnorderedSliceMap 转换为UnorderedSliceMap
 func (v *Map) ToUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
 	return (*generic.UnorderedSliceMap[Variant, Variant])(v)
