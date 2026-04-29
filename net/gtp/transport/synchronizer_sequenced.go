@@ -204,6 +204,9 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 			if err != nil {
 				return wn, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 			}
+			if frame.offset < len(frame.data) {
+				exception.Panicf("%w: broken writer, wrote: %d, offset: %d, frame: %d", ErrSynchronizer, n, frame.offset, len(frame.data))
+			}
 		}
 
 		// 写入完全成功时，更新已发送位置
@@ -238,7 +241,7 @@ func (s *SequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
 			}
 
 			s.sent = i
-			s.ackSeq = frame.seq - 1
+			s.ackSeq = frame.seq
 
 			return nil
 		}
@@ -309,26 +312,32 @@ func (s *SequencedSynchronizer) getRemoteAck() uint32 {
 
 func (s *SequencedSynchronizer) ack(seq uint32) {
 	cached := s.cached
+	count := 0
 
 	for i := 0; i < s.queue.Length(); i++ {
 		frame := s.queue.Index(i)
 
-		cached -= len(frame.data)
-
-		if frame.seq == seq {
-			for j := 0; j <= i; j++ {
-				binaryutil.BytesPool.Put(s.queue.Pop().data)
-			}
-
-			s.sent = 0
-
-			s.cached = cached
-			if s.cached < 0 {
-				exception.Panicf("%w: sequenced buffer cached less 0 is invalid", ErrSynchronizer)
-			}
-
-			return
+		if int32(frame.seq-seq) >= 0 {
+			break
 		}
+
+		cached -= len(frame.data)
+		count++
+	}
+
+	if count <= 0 {
+		return
+	}
+
+	for i := 0; i < count; i++ {
+		binaryutil.BytesPool.Put(s.queue.Pop().data)
+	}
+
+	s.sent = max(0, s.sent-count)
+
+	s.cached = cached
+	if s.cached < 0 {
+		exception.Panicf("%w: cached size underflow: %d", ErrSynchronizer, s.cached)
 	}
 }
 
@@ -350,7 +359,7 @@ func (s *SequencedSynchronizer) reduce(size int) {
 
 			s.cached = cached
 			if s.cached < 0 {
-				exception.Panicf("%w: sequenced buffer cached less 0 is invalid", ErrSynchronizer)
+				exception.Panicf("%w: cached size underflow: %d", ErrSynchronizer, s.cached)
 			}
 
 			return

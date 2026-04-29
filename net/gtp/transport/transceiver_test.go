@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"reflect"
 	"testing"
 
 	"git.golaxy.org/framework/net/gtp"
@@ -157,6 +158,197 @@ func TestTransceiverMigrateAndDispose(t *testing.T) {
 	tr.Dispose()
 	if !disposed {
 		t.Fatal("expected synchronizer dispose")
+	}
+}
+
+func TestTransceiverMigrateWithSequencedSynchronizerResendWindow(t *testing.T) {
+	t.Run("resend starts from requested remote recv seq", func(t *testing.T) {
+		var oldSent, newSent bytes.Buffer
+
+		tr := &Transceiver{
+			Conn: &stubConn{
+				writeFn: oldSent.Write,
+			},
+			Encoder:      codec.NewEncoder(),
+			Decoder:      codec.NewDecoder(gtp.DefaultMsgCreator()),
+			Synchronizer: NewSequencedSynchronizer(1, 1, 4096),
+		}
+
+		for _, payload := range []string{"one", "two", "three"} {
+			if err := tr.Send(newPayloadEvent(payload)); err != nil {
+				t.Fatalf("Send(%q) failed: %v", payload, err)
+			}
+		}
+
+		newConn := &stubConn{
+			writeFn: newSent.Write,
+		}
+		if _, _, err := tr.Migrate(newConn, 2); err != nil {
+			t.Fatalf("Migrate failed: %v", err)
+		}
+		if err := tr.Resend(); err != nil {
+			t.Fatalf("Resend failed: %v", err)
+		}
+
+		heads := decodePacketHeads(t, newSent.Bytes())
+		gotSeqs := make([]uint32, 0, len(heads))
+		for _, head := range heads {
+			gotSeqs = append(gotSeqs, head.Seq)
+		}
+		wantSeqs := []uint32{2, 3}
+		if !reflect.DeepEqual(gotSeqs, wantSeqs) {
+			t.Fatalf("unexpected resent seqs: got %v want %v", gotSeqs, wantSeqs)
+		}
+	})
+
+	t.Run("remote recv seq equal send seq conservatively replays last frame", func(t *testing.T) {
+		var oldSent, newSent bytes.Buffer
+
+		tr := &Transceiver{
+			Conn: &stubConn{
+				writeFn: oldSent.Write,
+			},
+			Encoder:      codec.NewEncoder(),
+			Decoder:      codec.NewDecoder(gtp.DefaultMsgCreator()),
+			Synchronizer: NewSequencedSynchronizer(1, 1, 4096),
+		}
+
+		for _, payload := range []string{"one", "two"} {
+			if err := tr.Send(newPayloadEvent(payload)); err != nil {
+				t.Fatalf("Send(%q) failed: %v", payload, err)
+			}
+		}
+
+		newConn := &stubConn{
+			writeFn: newSent.Write,
+		}
+		if _, _, err := tr.Migrate(newConn, 3); err != nil {
+			t.Fatalf("Migrate failed: %v", err)
+		}
+		if err := tr.Resend(); err != nil {
+			t.Fatalf("Resend failed: %v", err)
+		}
+
+		heads := decodePacketHeads(t, newSent.Bytes())
+		gotSeqs := make([]uint32, 0, len(heads))
+		for _, head := range heads {
+			gotSeqs = append(gotSeqs, head.Seq)
+		}
+		wantSeqs := []uint32{2}
+		if !reflect.DeepEqual(gotSeqs, wantSeqs) {
+			t.Fatalf("unexpected conservative replay seqs: got %v want %v", gotSeqs, wantSeqs)
+		}
+	})
+}
+
+func TestTransceiverMigrateWithSequencedSynchronizerThenSendUsesReplayStart(t *testing.T) {
+	var oldSent, newSent bytes.Buffer
+
+	tr := &Transceiver{
+		Conn: &stubConn{
+			writeFn: oldSent.Write,
+		},
+		Encoder:      codec.NewEncoder(),
+		Decoder:      codec.NewDecoder(gtp.DefaultMsgCreator()),
+		Synchronizer: NewSequencedSynchronizer(1, 1, 4096),
+	}
+
+	for _, payload := range []string{"one", "two", "three"} {
+		if err := tr.Send(newPayloadEvent(payload)); err != nil {
+			t.Fatalf("Send(%q) failed: %v", payload, err)
+		}
+	}
+
+	newConn := &stubConn{
+		writeFn: newSent.Write,
+	}
+	if _, _, err := tr.Migrate(newConn, 2); err != nil {
+		t.Fatalf("Migrate failed: %v", err)
+	}
+	if err := tr.Send(newPayloadEvent("four")); err != nil {
+		t.Fatalf("Send after migrate failed: %v", err)
+	}
+
+	heads := decodePacketHeads(t, newSent.Bytes())
+	gotSeqs := make([]uint32, 0, len(heads))
+	for _, head := range heads {
+		gotSeqs = append(gotSeqs, head.Seq)
+	}
+	wantSeqs := []uint32{2, 3, 4}
+	if !reflect.DeepEqual(gotSeqs, wantSeqs) {
+		t.Fatalf("unexpected seqs after migrate then send: got %v want %v", gotSeqs, wantSeqs)
+	}
+}
+
+func TestTransceiverMigrateWithSequencedSynchronizerResetsPartialFrameOffset(t *testing.T) {
+	var firstWrite bool
+	var firstFrame []byte
+	var firstPrefix []byte
+	var newSent bytes.Buffer
+	oldConn := &stubConn{
+		writeFn: func(p []byte) (int, error) {
+			if firstWrite {
+				return 0, ErrClosed
+			}
+			firstWrite = true
+			firstFrame = bytes.Clone(p)
+			firstPrefix = bytes.Clone(p[:len(p)/2])
+			return len(p) / 2, ErrDeadlineExceeded
+		},
+	}
+
+	tr := &Transceiver{
+		Conn:         oldConn,
+		Encoder:      codec.NewEncoder(),
+		Decoder:      codec.NewDecoder(gtp.DefaultMsgCreator()),
+		Synchronizer: NewSequencedSynchronizer(1, 1, 4096),
+	}
+
+	err := tr.Send(newPayloadEvent("partial"))
+	if !errors.Is(err, ErrDeadlineExceeded) {
+		t.Fatalf("expected deadline error, got %v", err)
+	}
+
+	newConn := &stubConn{
+		writeFn: newSent.Write,
+	}
+	if _, _, err := tr.Migrate(newConn, 1); err != nil {
+		t.Fatalf("Migrate failed: %v", err)
+	}
+	if err := tr.Resend(); err != nil {
+		t.Fatalf("Resend failed: %v", err)
+	}
+
+	if !bytes.Equal(newSent.Bytes(), firstFrame) {
+		t.Fatalf("expected full synchronized frame resent after migrate")
+	}
+	if !bytes.HasPrefix(newSent.Bytes(), firstPrefix) {
+		t.Fatal("expected resent frame to restart from the original frame prefix")
+	}
+}
+
+func TestTransceiverMigrateWithSequencedSynchronizerFailsWhenRequestedSequenceEvicted(t *testing.T) {
+	packet := encodePacket(t, newPayloadEvent("one"))
+
+	var sent bytes.Buffer
+	tr := &Transceiver{
+		Conn: &stubConn{
+			writeFn: sent.Write,
+		},
+		Encoder:      codec.NewEncoder(),
+		Decoder:      codec.NewDecoder(gtp.DefaultMsgCreator()),
+		Synchronizer: NewSequencedSynchronizer(1, 1, len(packet)),
+	}
+
+	if err := tr.Send(newPayloadEvent("one")); err != nil {
+		t.Fatalf("first send failed: %v", err)
+	}
+	if err := tr.Send(newPayloadEvent("two")); err != nil {
+		t.Fatalf("second send failed: %v", err)
+	}
+
+	if _, _, err := tr.Migrate(&stubConn{}, 1); err == nil {
+		t.Fatal("expected migrate failure after requested frame was evicted")
 	}
 }
 

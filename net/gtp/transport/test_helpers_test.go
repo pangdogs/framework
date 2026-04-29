@@ -227,6 +227,24 @@ func encodePacket(t *testing.T, e IEvent) []byte {
 	return bytes.Clone(buf.Payload())
 }
 
+func decodePacketHeads(t *testing.T, data []byte) []gtp.MsgHead {
+	t.Helper()
+
+	decoder := codec.NewDecoder(gtp.DefaultMsgCreator())
+	var heads []gtp.MsgHead
+
+	for offset := 0; offset < len(data); {
+		mp, n, err := decoder.Decode(data[offset:], nil)
+		if err != nil {
+			t.Fatalf("Decode failed at offset %d: %v", offset, err)
+		}
+		heads = append(heads, mp.Head)
+		offset += n
+	}
+
+	return heads
+}
+
 type readSequenceConn struct {
 	mu    sync.Mutex
 	reads []readResult
