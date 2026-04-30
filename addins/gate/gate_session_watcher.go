@@ -30,7 +30,9 @@ import (
 )
 
 type (
-	SessionEstablishedHandler = generic.DelegateVoid1[ISession] // 会话建立完成处理器
+	// SessionEstablishedHandler 首次建立会话完成处理器。
+	// 旧会话迁移重连成功不会触发该处理器。
+	SessionEstablishedHandler = generic.DelegateVoid1[ISession]
 )
 
 func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {

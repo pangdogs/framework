@@ -48,7 +48,8 @@ type IGate interface {
 	Get(id uid.Id) (ISession, bool)
 	// Count 会话数量
 	Count() int64
-	// Watch 监听建立会话
+	// Watch 监听首次建立会话。
+	// 旧会话迁移重连成功不会触发该回调。
 	Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error)
 }
 
@@ -193,7 +194,8 @@ func (g *_Gate) Count() int64 {
 	return g.sessionCount.Load()
 }
 
-// Watch 监听建立会话
+// Watch 监听首次建立会话。
+// 旧会话迁移重连成功不会触发该回调。
 func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, errors.New("gate: handler is nil")

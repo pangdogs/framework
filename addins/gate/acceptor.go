@@ -37,11 +37,12 @@ type _Acceptor struct {
 	decoder *codec.Decoder
 }
 
-// accept 接受网络连接
-func (acc *_Acceptor) accept(conn net.Conn) (*_Session, error) {
+// accept 接受网络连接并完成握手。
+// 返回的 bool 表示该连接是否为旧会话迁移连接。
+func (acc *_Acceptor) accept(conn net.Conn) (*_Session, bool, error) {
 	select {
 	case <-acc.ctx.Done():
-		return nil, errors.New("gate: service shutdown")
+		return nil, false, errors.New("gate: service shutdown")
 	default:
 	}
 	ctx, cancel := context.WithTimeout(acc.ctx, acc.options.AcceptTimeout)

@@ -97,7 +97,7 @@ func (c *Client) mainLoop() {
 
 	handleMigration := func() {
 		addr := c.netAddr.Load()
-		migrations := c.migrations.Add(1)
+		migrations := c.migrations.Load()
 
 		err := transport.Retry{
 			Transceiver: &c.transceiver,

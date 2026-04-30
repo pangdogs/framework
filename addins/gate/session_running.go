@@ -49,7 +49,7 @@ func (s *_Session) mainLoop() {
 
 	handleMigration := func() {
 		addr := s.netAddr.Load()
-		migrations := s.migrations.Add(1)
+		migrations := s.migrations.Load()
 
 		err := transport.Retry{
 			Transceiver: &s.transceiver,

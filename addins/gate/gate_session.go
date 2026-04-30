@@ -51,7 +51,7 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 	acceptor := _Acceptor{_Gate: g}
 
 	// 接受网络连接
-	session, err := acceptor.accept(conn)
+	session, migrated, err := acceptor.accept(conn)
 	if err != nil {
 		log.L(g.svcCtx).Error("failed to accept connection",
 			zap.String("local", conn.LocalAddr().String()),
@@ -60,24 +60,31 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 		return nil, false
 	}
 
+	if migrated {
+		log.L(g.svcCtx).Info("session migrated",
+			zap.String("session_id", session.Id().String()),
+			zap.String("user_id", session.UserId()),
+			zap.String("token", session.Token()),
+			zap.String("local", conn.LocalAddr().String()),
+			zap.String("remote", conn.RemoteAddr().String()))
+		return session, true
+	}
+
 	log.L(g.svcCtx).Info("session established",
 		zap.String("session_id", session.Id().String()),
 		zap.String("user_id", session.UserId()),
 		zap.String("token", session.Token()),
-		zap.Int64("migrations", session.Migrations()),
 		zap.String("local", conn.LocalAddr().String()),
 		zap.String("remote", conn.RemoteAddr().String()))
 
 	rejected := g.sessionWatcher.Broadcast(session)
 	if rejected > 0 {
-		addr := session.NetAddr()
 		log.L(g.svcCtx).Error("some listeners rejected the session established due to backpressure",
 			zap.String("session_id", session.Id().String()),
 			zap.String("user_id", session.UserId()),
 			zap.String("token", session.Token()),
-			zap.Int64("migrations", session.Migrations()),
-			zap.String("local", addr.Local.String()),
-			zap.String("remote", addr.Remote.String()),
+			zap.String("local", conn.LocalAddr().String()),
+			zap.String("remote", conn.RemoteAddr().String()),
 			zap.Int("rejected", rejected))
 	}
 

@@ -40,7 +40,7 @@ import (
 )
 
 // handshake 握手过程
-func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, error) {
+func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, bool, error) {
 	// 编解码器构建器
 	acc.encoder = codec.NewEncoder()
 	acc.decoder = codec.NewDecoder(acc.options.MsgCreator)
@@ -196,21 +196,21 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		return servHello, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// 开启加密时，与客户端交换秘钥
 	if encryptionFlow {
 		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
 	// 安装压缩模块
 	err = acc.setupCompression(cm)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// 开启鉴权时，鉴权客户端
@@ -245,7 +245,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -277,7 +277,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	} else {
 		// 创建新会话，并初始化连接
@@ -297,7 +297,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	sendRst := func(code gtp.Code, message string) error {
@@ -316,17 +316,17 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	if continueFlow {
 		// 检测会话有效性
 		if !acc.validateSession(session) {
-			return nil, sendRst(gtp.Code_Reject, "session has expired")
+			return nil, false, sendRst(gtp.Code_Reject, "session has expired")
 		}
 	} else {
 		// 占用屏障
 		if !acc.barrier.Join(1) {
-			return nil, sendRst(gtp.Code_Shutdown, "service shutdown")
+			return nil, false, sendRst(gtp.Code_Shutdown, "service shutdown")
 		}
 		// 添加会话
 		if !acc.addSession(session) {
 			acc.barrier.Done()
-			return nil, sendRst(gtp.Code_Reject, "session can't be confirmed")
+			return nil, false, sendRst(gtp.Code_Reject, "session can't be confirmed")
 		}
 		// 调整会话状态为已确认
 		session.setState(SessionState_Confirmed)
@@ -334,7 +334,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		go session.mainLoop()
 	}
 
-	return session, nil
+	return session, continueFlow, nil
 }
 
 // secretKeyExchange 秘钥交换过程

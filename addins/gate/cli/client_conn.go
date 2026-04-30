@@ -60,6 +60,9 @@ func (c *Client) migrateConn(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recv
 		return
 	}
 
+	// 迁移成功后立即更新计数，保证外部观察到的是已提交状态
+	c.migrations.Add(1)
+
 	// 记录连接信息
 	c.netAddr.Store(&NetAddr{
 		Local:  conn.LocalAddr(),
