@@ -116,7 +116,7 @@ func (_ClientOption) Default() option.Setting[ClientOptions] {
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressionThreshold(64 * 1024)(options)
 		With.MaxUncompressedSize(128 * 1024 * 1024)(options)
-		With.MaxMaxPacketSize(64 * 1024 * 1024)(options)
+		With.MaxPacketSize(64 * 1024 * 1024)(options)
 		With.AutoReconnect(false)(options)
 		With.AutoReconnectInterval(3 * time.Second)(options)
 		With.AutoReconnectRetryTimes(100)(options)
@@ -298,8 +298,8 @@ func (_ClientOption) MaxUncompressedSize(size int) option.Setting[ClientOptions]
 	}
 }
 
-// MaxMaxPacketSize 设置通信中最大消息包大小，用于防御长度炸弹
-func (_ClientOption) MaxMaxPacketSize(size int) option.Setting[ClientOptions] {
+// MaxPacketSize 设置通信中最大消息包大小，用于防御长度炸弹
+func (_ClientOption) MaxPacketSize(size int) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
 		options.MaxPacketSize = size
 	}
