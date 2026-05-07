@@ -68,7 +68,7 @@ func (c *Client) ProbeTime() async.Future {
 	if err != nil {
 		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
 	}
-	if err := c.ctrl.QueryTime(handle.Id()); err != nil {
+	if err := c.ctrl.ProbeTime(handle.Id()); err != nil {
 		handle.Cancel(err)
 	}
 	return handle.Future()

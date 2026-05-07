@@ -12,10 +12,10 @@ func TestCtrlProtocolSendMethods(t *testing.T) {
 	ctrl := &CtrlProtocol{Transceiver: client}
 
 	done := make(chan error, 1)
-	go func() { done <- ctrl.QueryTime(7) }()
+	go func() { done <- ctrl.ProbeTime(7) }()
 	e := recvWithTimeout(t, server)
 	if err := <-done; err != nil {
-		t.Fatalf("QueryTime failed: %v", err)
+		t.Fatalf("ProbeTime failed: %v", err)
 	}
 	syncTime := AssertEvent[*gtp.MsgSyncTime](e)
 	if !syncTime.Flags.Is(gtp.Flag_ReqTime) || syncTime.Msg.CorrId != 7 {
@@ -91,8 +91,8 @@ func TestCtrlProtocolNilTransceiverErrors(t *testing.T) {
 	if err := ctrl.SendRst(nil); err == nil {
 		t.Fatal("expected SendRst error")
 	}
-	if err := ctrl.QueryTime(1); err == nil {
-		t.Fatal("expected QueryTime error")
+	if err := ctrl.ProbeTime(1); err == nil {
+		t.Fatal("expected ProbeTime error")
 	}
 	if err := ctrl.SendPing(); err == nil {
 		t.Fatal("expected SendPing error")

@@ -60,8 +60,27 @@ func (c *CtrlProtocol) SendRst(err error) error {
 	return nil
 }
 
-// QueryTime 请求同步时间
-func (c *CtrlProtocol) QueryTime(corrId int64) error {
+// SendPing 发送ping
+func (c *CtrlProtocol) SendPing() error {
+	if c.Transceiver == nil {
+		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
+	}
+
+	err := c.retrySend(c.Transceiver.Send(
+		Event[*gtp.MsgHeartbeat]{
+			Flags: gtp.Flags(gtp.Flag_Ping),
+			Msg:   &gtp.MsgHeartbeat{},
+		}.Interface(),
+	))
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrProtocol, err)
+	}
+
+	return nil
+}
+
+// ProbeTime 探测对端时间
+func (c *CtrlProtocol) ProbeTime(corrId int64) error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -73,25 +92,6 @@ func (c *CtrlProtocol) QueryTime(corrId int64) error {
 				CorrId:     corrId,
 				OriginTime: time.Now().UnixMilli(),
 			},
-		}.Interface(),
-	))
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrProtocol, err)
-	}
-
-	return nil
-}
-
-// SendPing 发送ping
-func (c *CtrlProtocol) SendPing() error {
-	if c.Transceiver == nil {
-		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
-	}
-
-	err := c.retrySend(c.Transceiver.Send(
-		Event[*gtp.MsgHeartbeat]{
-			Flags: gtp.Flags(gtp.Flag_Ping),
-			Msg:   &gtp.MsgHeartbeat{},
 		}.Interface(),
 	))
 	if err != nil {
