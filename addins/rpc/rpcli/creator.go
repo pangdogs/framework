@@ -40,7 +40,7 @@ import (
 // BuildRPCli 创建RPC客户端
 func BuildRPCli() *RPCliCreator {
 	return &RPCliCreator{
-		rttSampling:    3,
+		timeSamples:    3,
 		msgCreator:     gap.DefaultMsgCreator(),
 		reduceCallPath: true,
 	}
@@ -49,7 +49,7 @@ func BuildRPCli() *RPCliCreator {
 // RPCliCreator RPC客户端构建器
 type RPCliCreator struct {
 	settings       []option.Setting[cli.ClientOptions]
-	rttSampling    int
+	timeSamples    int
 	msgCreator     gap.IMsgCreator
 	reduceCallPath bool
 	scripts        generic.SliceMap[string, IScript]
@@ -175,11 +175,11 @@ func (ctor *RPCliCreator) SetGTPInactiveTimeout(d time.Duration) *RPCliCreator {
 	return ctor
 }
 
-func (ctor *RPCliCreator) SetGTPRTTSampling(n int) *RPCliCreator {
+func (ctor *RPCliCreator) SetGTPTimeSamples(n int) *RPCliCreator {
 	if n < 3 {
-		exception.Panicf("rpcli: %w: option GTPRTTSampling can't be set to a value less than 3", core.ErrArgs)
+		exception.Panicf("rpcli: %w: option GTPTimeSamples can't be set to a value less than 3", core.ErrArgs)
 	}
-	ctor.rttSampling = n
+	ctor.timeSamples = n
 	return ctor
 }
 
@@ -252,28 +252,28 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 		return nil, err
 	}
 
-	var remoteTime *cli.ResponseTime
+	var remoteClock *cli.TimeSample
 
-	for range ctor.rttSampling {
-		respTime := client.RequestTime().Wait(ctx)
-		if !respTime.OK() {
-			client.Close(respTime.Error)
-			return nil, respTime.Error
+	for range ctor.timeSamples {
+		resp := client.ProbeTime().Wait(ctx)
+		if !resp.OK() {
+			client.Close(resp.Error)
+			return nil, resp.Error
 		}
 
-		current, ok := respTime.Value.(*cli.ResponseTime)
+		current, ok := resp.Value.(*cli.TimeSample)
 		if !ok {
-			err := fmt.Errorf("rpcli: unexpected response time type %T", respTime.Value)
+			err := fmt.Errorf("rpcli: unexpected probe time response type, expected *cli.TimeSample, got %T", resp.Value)
 			client.Close(err)
 			return nil, err
 		}
 
-		if remoteTime != nil {
-			if current.RTT() < remoteTime.RTT() {
-				remoteTime = current
+		if remoteClock != nil {
+			if current.RTT() < remoteClock.RTT() {
+				remoteClock = current
 			}
 		} else {
-			remoteTime = current
+			remoteClock = current
 		}
 	}
 
@@ -281,7 +281,7 @@ func (ctor *RPCliCreator) Connect(ctx context.Context, endpoint string) (*RPCli,
 		Client:         client,
 		encoder:        codec.NewEncoder(),
 		decoder:        codec.NewDecoder(ctor.msgCreator),
-		remoteTime:     *remoteTime,
+		remoteClock:    *remoteClock,
 		reduceCallPath: ctor.reduceCallPath,
 	}
 

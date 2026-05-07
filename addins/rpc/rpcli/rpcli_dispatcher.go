@@ -214,7 +214,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.SerializedArray
 		TransData: msgBuf.Payload(),
 	}
 
-	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteClock.RemoteNow().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		c.L().Error("encode rpc reply failed",
 			zap.String("session_id", c.SessionId().String()),

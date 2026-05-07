@@ -33,9 +33,11 @@ const (
 
 // MsgSyncTime 同步时间
 type MsgSyncTime struct {
-	CorrId     int64 // 关联Id，用于支持Future等异步模型
-	LocalTime  int64 // 本地时间
-	RemoteTime int64 // 对端时间（响应时有效）
+	CorrId       int64 // 关联Id，用于支持Future等异步模型
+	OriginTime   int64 // NTP t1，请求方发送请求时间
+	ReceiveTime  int64 // NTP t2，响应方收到请求时间（响应时有效）
+	TransmitTime int64 // NTP t3，响应方发送响应时间（响应时有效）
+	ZoneOffset   int32 // 响应方时区偏移秒数（响应时有效）
 }
 
 // Read implements io.Reader
@@ -44,10 +46,16 @@ func (m MsgSyncTime) Read(p []byte) (int, error) {
 	if err := bs.WriteInt64(m.CorrId); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteInt64(m.LocalTime); err != nil {
+	if err := bs.WriteInt64(m.OriginTime); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteInt64(m.RemoteTime); err != nil {
+	if err := bs.WriteInt64(m.ReceiveTime); err != nil {
+		return bs.BytesWritten(), err
+	}
+	if err := bs.WriteInt64(m.TransmitTime); err != nil {
+		return bs.BytesWritten(), err
+	}
+	if err := bs.WriteInt32(m.ZoneOffset); err != nil {
 		return bs.BytesWritten(), err
 	}
 	return bs.BytesWritten(), io.EOF
@@ -63,12 +71,22 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.LocalTime, err = bs.ReadInt64()
+	m.OriginTime, err = bs.ReadInt64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
 
-	m.RemoteTime, err = bs.ReadInt64()
+	m.ReceiveTime, err = bs.ReadInt64()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.TransmitTime, err = bs.ReadInt64()
+	if err != nil {
+		return bs.BytesRead(), err
+	}
+
+	m.ZoneOffset, err = bs.ReadInt32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -77,8 +95,9 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 }
 
 // Size 大小
-func (MsgSyncTime) Size() int {
-	return binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64
+func (m MsgSyncTime) Size() int {
+	return binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 +
+		binaryutil.SizeofInt32
 }
 
 // MsgId 消息Id

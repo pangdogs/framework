@@ -43,7 +43,7 @@ func TestBuiltinMessagesMarshalUnmarshalAndClone(t *testing.T) {
 		&MsgFinished{SendSeq: 20, RecvSeq: 21},
 		&MsgRst{Code: Code_Reject, Message: "denied"},
 		&MsgHeartbeat{},
-		&MsgSyncTime{CorrId: 22, LocalTime: 23, RemoteTime: 24},
+		&MsgSyncTime{CorrId: 22, OriginTime: 23, ReceiveTime: 24, TransmitTime: 25, ZoneOffset: 28800},
 		&MsgPayload{Data: []byte("payload")},
 	}
 

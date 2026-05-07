@@ -45,15 +45,15 @@ type RPCli struct {
 	*cli.Client
 	encoder        *codec.Encoder
 	decoder        *codec.Decoder
-	remoteTime     cli.ResponseTime
+	remoteClock    cli.TimeSample
 	reduceCallPath bool
 	scriptsMu      sync.RWMutex
 	scripts        generic.SliceMap[string, IScript]
 }
 
-// RemoteTime 获取对端时间
-func (c *RPCli) RemoteTime() cli.ResponseTime {
-	return c.remoteTime
+// RemoteClock 获取对端时钟
+func (c *RPCli) RemoteClock() cli.TimeSample {
+	return c.remoteClock
 }
 
 // RPC RPC调用
@@ -101,7 +101,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 		TransData: msgBuf.Payload(),
 	}
 
-	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteClock.RemoteNow().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		handle.Cancel(err)
 		return handle.Future()
@@ -158,7 +158,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 		TransData: msgBuf.Payload(),
 	}
 
-	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteTime.NowTime().UnixMilli()}, 0, forwardMsg)
+	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteClock.RemoteNow().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		return err
 	}

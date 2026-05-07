@@ -60,8 +60,8 @@ func (c *CtrlProtocol) SendRst(err error) error {
 	return nil
 }
 
-// RequestTime 请求同步时间
-func (c *CtrlProtocol) RequestTime(corrId int64) error {
+// QueryTime 请求同步时间
+func (c *CtrlProtocol) QueryTime(corrId int64) error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -70,8 +70,8 @@ func (c *CtrlProtocol) RequestTime(corrId int64) error {
 		Event[*gtp.MsgSyncTime]{
 			Flags: gtp.Flags(gtp.Flag_ReqTime),
 			Msg: &gtp.MsgSyncTime{
-				CorrId:    corrId,
-				LocalTime: time.Now().UnixMilli(),
+				CorrId:     corrId,
+				OriginTime: time.Now().UnixMilli(),
 			},
 		}.Interface(),
 	))
@@ -110,7 +110,6 @@ func (c *CtrlProtocol) retrySend(err error) error {
 
 // HandleEvent 消息事件处理器
 func (c *CtrlProtocol) HandleEvent(e IEvent) {
-
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:
 		c.RstHandler.Call(c.AutoRecover, c.ReportError, nil, AssertEvent[*gtp.MsgRst](e))
@@ -119,6 +118,8 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) {
 		syncTime := AssertEvent[*gtp.MsgSyncTime](e)
 
 		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
+			recvTime := time.Now()
+			_, zoneOffset := recvTime.Zone()
 			if c.Transceiver == nil {
 				exception.Panicf("%w: Transceiver is nil", ErrProtocol)
 			}
@@ -126,9 +127,11 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) {
 				Event[*gtp.MsgSyncTime]{
 					Flags: gtp.Flags(gtp.Flag_RespTime),
 					Msg: &gtp.MsgSyncTime{
-						CorrId:     syncTime.Msg.CorrId,
-						LocalTime:  time.Now().UnixMilli(),
-						RemoteTime: syncTime.Msg.LocalTime,
+						CorrId:       syncTime.Msg.CorrId,
+						OriginTime:   syncTime.Msg.OriginTime,
+						ReceiveTime:  recvTime.UnixMilli(),
+						TransmitTime: time.Now().UnixMilli(),
+						ZoneOffset:   int32(zoneOffset),
 					},
 				}.Interface(),
 			))

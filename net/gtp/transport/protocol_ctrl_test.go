@@ -12,10 +12,10 @@ func TestCtrlProtocolSendMethods(t *testing.T) {
 	ctrl := &CtrlProtocol{Transceiver: client}
 
 	done := make(chan error, 1)
-	go func() { done <- ctrl.RequestTime(7) }()
+	go func() { done <- ctrl.QueryTime(7) }()
 	e := recvWithTimeout(t, server)
 	if err := <-done; err != nil {
-		t.Fatalf("RequestTime failed: %v", err)
+		t.Fatalf("QueryTime failed: %v", err)
 	}
 	syncTime := AssertEvent[*gtp.MsgSyncTime](e)
 	if !syncTime.Flags.Is(gtp.Flag_ReqTime) || syncTime.Msg.CorrId != 7 {
@@ -55,14 +55,18 @@ func TestCtrlProtocolHandleEvent(t *testing.T) {
 	}()
 	ctrl.HandleEvent(Event[*gtp.MsgSyncTime]{
 		Flags: gtp.Flags(gtp.Flag_ReqTime),
-		Msg:   &gtp.MsgSyncTime{CorrId: 9, LocalTime: 1},
+		Msg:   &gtp.MsgSyncTime{CorrId: 9, OriginTime: 1},
 	}.Interface())
 	if !syncCalled {
 		t.Fatal("expected sync time handler")
 	}
 	resp := <-respCh
-	if !AssertEvent[*gtp.MsgSyncTime](resp).Flags.Is(gtp.Flag_RespTime) {
+	respTime := AssertEvent[*gtp.MsgSyncTime](resp)
+	if !respTime.Flags.Is(gtp.Flag_RespTime) {
 		t.Fatal("expected response time event")
+	}
+	if respTime.Msg.OriginTime != 1 || respTime.Msg.ReceiveTime == 0 || respTime.Msg.TransmitTime == 0 {
+		t.Fatalf("unexpected response time msg: %+v", respTime.Msg)
 	}
 
 	pongCh := make(chan IEvent, 1)
@@ -87,8 +91,8 @@ func TestCtrlProtocolNilTransceiverErrors(t *testing.T) {
 	if err := ctrl.SendRst(nil); err == nil {
 		t.Fatal("expected SendRst error")
 	}
-	if err := ctrl.RequestTime(1); err == nil {
-		t.Fatal("expected RequestTime error")
+	if err := ctrl.QueryTime(1); err == nil {
+		t.Fatal("expected QueryTime error")
 	}
 	if err := ctrl.SendPing(); err == nil {
 		t.Fatal("expected SendPing error")
