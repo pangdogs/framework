@@ -101,7 +101,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.IORetryTimes(3)(options)
 		With.IOBufferCap(128 * 1024)(options)
 		With.MsgCreator(gtp.DefaultMsgCreator())(options)
-		With.AgreeClientEncryptionProposal(false)(options)
+		With.AgreeClientEncryptionProposal(true)(options)
 		With.EncCipherSuite(gtp.CipherSuite{
 			SecretKeyExchange:   gtp.SecretKeyExchange_ECDHE,
 			SymmetricEncryption: gtp.SymmetricEncryption_XChaCha20_Poly1305,
@@ -119,7 +119,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 		With.EncSignaturePrivateKey(nil)(options)
 		With.EncVerifyClientSignature(false)(options)
 		With.EncVerifySignaturePublicKey(nil)(options)
-		With.AgreeClientCompressionProposal(false)(options)
+		With.AgreeClientCompressionProposal(true)(options)
 		With.Compression(gtp.Compression_Brotli)(options)
 		With.CompressionThreshold(64 * 1024)(options)
 		With.MaxUncompressedSize(128 * 1024 * 1024)(options)
