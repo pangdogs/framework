@@ -138,6 +138,7 @@ func (g *_Gate) Init(svcCtx service.Context) {
 		mux := http.NewServeMux()
 		mux.Handle(g.options.WebSocketURL.Path, websocket.Server{
 			Handler: func(wsConn *websocket.Conn) {
+				wsConn.PayloadType = websocket.BinaryFrame
 				conn := &_WebSocketConn{Conn: wsConn, gate: g}
 
 				log.L(g.svcCtx).Debug("listener(ws) accepted a new connection, establishing session",

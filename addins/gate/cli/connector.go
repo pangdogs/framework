@@ -76,10 +76,13 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 			}
 		}
 
-		conn, err = websocket.DialConfig(conf)
+		wsConn, err := websocket.DialConfig(conf)
 		if err != nil {
 			return nil, err
 		}
+
+		wsConn.PayloadType = websocket.BinaryFrame
+		conn = wsConn
 
 	default:
 		conn, err = newDialer(&ctor.options).DialContext(ctx, "tcp", endpoint)
@@ -153,10 +156,13 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 			}
 		}
 
-		conn, err = websocket.DialConfig(conf)
+		wsConn, err := websocket.DialConfig(conf)
 		if err != nil {
 			return err
 		}
+
+		wsConn.PayloadType = websocket.BinaryFrame
+		conn = wsConn
 
 	default:
 		conn, err = newDialer(&ctor.options).DialContext(client, "tcp", client.Endpoint())
