@@ -89,8 +89,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make([]any, 0, len(arr))
-			for _, it := range arr {
+			rv := make([]any, 0, len(arr.Items))
+			for _, it := range arr.Items {
 				rv = append(rv, it.Value.Indirect())
 			}
 
@@ -109,8 +109,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make([]reflect.Value, 0, len(arr))
-			for _, it := range arr {
+			rv := make([]reflect.Value, 0, len(arr.Items))
+			for _, it := range arr.Items {
 				rv = append(rv, reflect.ValueOf(it.Value.Indirect()))
 			}
 
@@ -217,16 +217,16 @@ func indirectArray(v ReadableValue) (Array, bool) {
 	case *Array:
 		return *arr, true
 	default:
-		return nil, false
+		return Array{}, false
 	}
 }
 
 func indirectMap(v ReadableValue) (*generic.UnorderedSliceMap[Variant, Variant], bool) {
 	switch m := v.(type) {
 	case Map:
-		return m.ToUnorderedSliceMap(), true
+		return &m.Entries, true
 	case *Map:
-		return m.ToUnorderedSliceMap(), true
+		return &m.Entries, true
 	default:
 		return nil, false
 	}

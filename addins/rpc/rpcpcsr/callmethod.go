@@ -44,7 +44,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
-func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.SerializedArray, err error) {
+func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("rpc: %w: %w", core.ErrPanicked, panicErr)
@@ -58,11 +58,11 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 	} else {
 		status, ok := svcCtx.AddInManager().GetStatusByName(addIn)
 		if !ok {
-			return variant.SerializedArray{}, ErrAddInNotFound
+			return variant.Array{}, ErrAddInNotFound
 		}
 
 		if status.State() != extension.AddInState_Running {
-			return variant.SerializedArray{}, ErrAddInInactive
+			return variant.Array{}, ErrAddInInactive
 		}
 
 		scriptRV = status.Reflected()
@@ -72,21 +72,21 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 	if !methodRV.IsValid() {
 		callee, ok := scriptRV.Interface().(ICallee)
 		if !ok {
-			return variant.SerializedArray{}, ErrMethodNotFound
+			return variant.Array{}, ErrMethodNotFound
 		}
 
 		methodRV = callee.Callee(method)
 		if !methodRV.IsValid() {
-			return variant.SerializedArray{}, ErrMethodNotFound
+			return variant.Array{}, ErrMethodNotFound
 		}
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
 	if err != nil {
-		return variant.SerializedArray{}, err
+		return variant.Array{}, err
 	}
 
-	return variant.NewSerializedArray(methodRV.Call(argsRV))
+	return variant.NewArray(methodRV.Call(argsRV))
 }
 
 func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addIn, method string, args variant.Array) (_ async.Future, err error) {
@@ -137,7 +137,12 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 			}
 		}
 
-		return async.NewResult(variant.NewSerializedArray(retsRV))
+		rets, err := variant.NewArray(retsRV)
+		if err != nil {
+			return async.NewResult(nil, err)
+		}
+
+		return async.NewResult(rets.ToSnapshot(true))
 	}), nil
 }
 
@@ -184,7 +189,12 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 			}
 		}
 
-		return async.NewResult(variant.NewSerializedArray(retsRV))
+		rets, err := variant.NewArray(retsRV)
+		if err != nil {
+			return async.NewResult(nil, err)
+		}
+
+		return async.NewResult(rets.ToSnapshot(true))
 	}), nil
 }
 
@@ -203,9 +213,9 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	}
 
 	switch {
-	case ccPos < 0 && methodRT.NumIn() != len(args):
+	case ccPos < 0 && methodRT.NumIn() != len(args.Items):
 		return nil, ErrMethodParameterCountMismatch
-	case ccPos >= 0 && methodRT.NumIn() != len(args)+1:
+	case ccPos >= 0 && methodRT.NumIn() != len(args.Items)+1:
 		return nil, ErrMethodParameterCountMismatch
 	}
 
@@ -217,11 +227,11 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 			argsRV[i] = reflect.ValueOf(cc)
 			continue
 		}
-		if j >= len(args) {
+		if j >= len(args.Items) {
 			return nil, ErrMethodParameterCountMismatch
 		}
 
-		argRV, err := args[j].Convert(methodRT.In(i))
+		argRV, err := args.Items[j].Convert(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}
@@ -233,35 +243,31 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	return argsRV, nil
 }
 
-func waitAsyncResult(ctx context.Context, future async.Future) (variant.SerializedArray, error) {
+func waitAsyncResult(ctx context.Context, future async.Future) (variant.Array, error) {
 	for {
 		ret := future.Wait(ctx)
 		if !ret.OK() {
-			return variant.SerializedArray{}, ret.Error
+			return variant.Array{}, ret.Error
 		}
 
 		var ok bool
 		future, ok = ret.Value.(async.Future)
 		if ok {
 			if future.IsNil() {
-				return variant.SerializedArray{}, ErrAsyncMethodReturnedNil
+				return variant.Array{}, ErrAsyncMethodReturnedNil
 			}
 			continue
 		}
 
-		if rets, ok := ret.Value.(variant.SerializedArray); ok {
+		if rets, ok := ret.Value.(variant.Array); ok {
 			return rets, nil
 		}
 
-		if rets, ok := ret.Value.(variant.Array); ok {
-			return variant.NewSerializedArray(rets)
-		}
-
-		rets, err := variant.NewSerializedArray([]any{ret.Value})
+		rets, err := variant.NewArray([]any{ret.Value})
 		if err != nil {
-			return variant.SerializedArray{}, err
+			return variant.Array{}, err
 		}
 
-		return rets, nil
+		return rets.ToSnapshot(true)
 	}
 }

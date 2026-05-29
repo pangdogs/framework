@@ -70,7 +70,7 @@ func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForwar
 				zap.String("src", req.Src.Addr),
 				zap.String("dst", req.Dst),
 				zap.Error(err))
-			p.reply(transit, req.Src, req.CorrId, variant.SerializedArray{}, err)
+			p.reply(transit, req.Src, req.CorrId, variant.Array{}, err)
 			return
 		}
 		p.acceptRequest(transit, req.Src, req.Dst, msg)
@@ -157,8 +157,8 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("call_path", cp.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
-				rets.Release()
 			}
+			rets.ReleaseIfSnapshotted()
 		}()
 
 	case callpath.Runtime:
@@ -197,8 +197,8 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("id", cp.Id.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
-				rets.Release()
 			}
+			rets.ReleaseIfSnapshotted()
 		}()
 
 	case callpath.Entity:
@@ -237,8 +237,8 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("id", cp.Id.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
-				rets.Release()
 			}
+			rets.ReleaseIfSnapshotted()
 		}()
 	}
 }
@@ -253,7 +253,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 			zap.String("dst", dst),
 			zap.Int64("corr_id", req.CorrId),
 			zap.Error(err))
-		p.reply(transit, src, req.CorrId, variant.SerializedArray{}, err)
+		p.reply(transit, src, req.CorrId, variant.Array{}, err)
 		return
 	}
 	cp.Id = uid.From(dst)
@@ -291,7 +291,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 				zap.Int64("corr_id", req.CorrId),
 				zap.String("call_path", cp.String()),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.SerializedArray{}, err)
+			p.reply(transit, src, req.CorrId, variant.Array{}, err)
 			return
 		}
 	}
@@ -336,7 +336,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.SerializedArray{}, err)
+			p.reply(transit, src, req.CorrId, variant.Array{}, err)
 			return
 		}
 
@@ -380,7 +380,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.SerializedArray{}, err)
+			p.reply(transit, src, req.CorrId, variant.Array{}, err)
 			return
 		}
 
@@ -417,7 +417,7 @@ func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.Msg
 	ret := async.Result{}
 
 	if reply.Error.OK() {
-		if len(reply.Rets) > 0 {
+		if len(reply.Rets.Items) > 0 {
 			ret.Value = reply.Rets
 		}
 	} else {
@@ -439,8 +439,8 @@ func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.Msg
 		zap.Int64("corr_id", reply.CorrId))
 }
 
-func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.SerializedArray, retErr error) {
-	defer rets.Release()
+func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.Array, retErr error) {
+	defer rets.ReleaseIfSnapshotted()
 
 	if corrId == 0 {
 		return
@@ -448,7 +448,7 @@ func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets va
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-		Rets:   rets.Ref(),
+		Rets:   rets,
 	}
 
 	if retErr != nil {

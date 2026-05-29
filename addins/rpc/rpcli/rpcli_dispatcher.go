@@ -79,7 +79,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 
 	switch cp.TargetKind {
 	case callpath.Client:
-		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
+		_, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			c.L().Error("accept rpc notify failed",
 				zap.String("session_id", c.SessionId().String()),
@@ -96,7 +96,6 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 				zap.String("call_path", cp.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method))
-			rets.Release()
 		}
 	}
 }
@@ -111,7 +110,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 			zap.String("remote", c.NetAddr().Remote.String()),
 			zap.Int64("corr_id", req.CorrId),
 			zap.Error(err))
-		c.reply(src, req.CorrId, variant.SerializedArray{}, err)
+		c.reply(src, req.CorrId, variant.Array{}, err)
 		return
 	}
 
@@ -155,7 +154,7 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 	ret := async.Result{}
 
 	if reply.Error.OK() {
-		if len(reply.Rets) > 0 {
+		if len(reply.Rets.Items) > 0 {
 			ret.Value = reply.Rets
 		}
 	} else {
@@ -179,16 +178,14 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 		zap.Int64("corr_id", reply.CorrId))
 }
 
-func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.SerializedArray, retErr error) {
-	defer rets.Release()
-
+func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	if corrId == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
 		CorrId: corrId,
-		Rets:   rets.Ref(),
+		Rets:   rets,
 	}
 
 	if retErr != nil {
@@ -243,23 +240,23 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.SerializedArray
 		zap.Int64("corr_id", corrId))
 }
 
-func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.SerializedArray, err error) {
+func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.Array, err error) {
 	scr, ok := c.GetScript(script)
 	if !ok {
-		return variant.SerializedArray{}, ErrScriptNotFound
+		return variant.Array{}, ErrScriptNotFound
 	}
 
 	methodRV := scr.Reflected().MethodByName(method)
 	if !methodRV.IsValid() {
-		return variant.SerializedArray{}, ErrMethodNotFound
+		return variant.Array{}, ErrMethodNotFound
 	}
 
 	argsRV, err := parseArgs(methodRV, cc, args)
 	if err != nil {
-		return variant.SerializedArray{}, err
+		return variant.Array{}, err
 	}
 
-	return variant.NewSerializedArray(methodRV.Call(argsRV))
+	return variant.NewArray(methodRV.Call(argsRV))
 }
 
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
@@ -277,9 +274,9 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	}
 
 	switch {
-	case ccPos < 0 && methodRT.NumIn() != len(args):
+	case ccPos < 0 && methodRT.NumIn() != len(args.Items):
 		return nil, ErrMethodParameterCountMismatch
-	case ccPos >= 0 && methodRT.NumIn() != len(args)+1:
+	case ccPos >= 0 && methodRT.NumIn() != len(args.Items)+1:
 		return nil, ErrMethodParameterCountMismatch
 	}
 
@@ -291,11 +288,11 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 			argsRV[i] = reflect.ValueOf(cc)
 			continue
 		}
-		if j >= len(args) {
+		if j >= len(args.Items) {
 			return nil, ErrMethodParameterCountMismatch
 		}
 
-		argRV, err := args[j].Convert(methodRT.In(i))
+		argRV, err := args.Items[j].Convert(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}

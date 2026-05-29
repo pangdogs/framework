@@ -29,84 +29,92 @@ import (
 
 // NewMapFromGoMap 创建map
 func NewMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
-	varMap := make(Map, 0, len(m))
+	ret := Map{
+		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
+	}
 
 	for k, v := range m {
 		varK, err := CastVariant(k)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
 		varV, err := CastVariant(v)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Entries = append(ret.Entries, generic.UnorderedKV[Variant, Variant]{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
 }
 
 // NewMapFromSliceMap 创建map
 func NewMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
-	varMap := make(Map, 0, len(m))
+	ret := Map{
+		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
+	}
 
 	for i := range m {
 		kv := &m[i]
 
 		varK, err := CastVariant(&kv.K)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
 		varV, err := CastVariant(&kv.V)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Entries = append(ret.Entries, generic.UnorderedKV[Variant, Variant]{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
 }
 
 // NewMapFromUnorderedSliceMap 创建map
 func NewMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
-	varMap := make(Map, 0, len(m))
+	ret := Map{
+		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
+	}
 
 	for i := range m {
 		kv := &m[i]
 
 		varK, err := CastVariant(&kv.K)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
 		varV, err := CastVariant(&kv.V)
 		if err != nil {
-			return nil, err
+			return Map{}, err
 		}
 
-		varMap.ToUnorderedSliceMap().Add(varK, varV)
+		ret.Entries = append(ret.Entries, generic.UnorderedKV[Variant, Variant]{K: varK, V: varV})
 	}
 
-	return varMap, nil
+	return ret, nil
 }
 
 // Map map
-type Map generic.UnorderedSliceMap[Variant, Variant]
+type Map struct {
+	Entries generic.UnorderedSliceMap[Variant, Variant]
+}
 
 // Read implements io.Reader
 func (v Map) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
-	if err := bs.WriteUvarint(uint64(len(v))); err != nil {
+	if err := bs.WriteUvarint(uint64(v.Entries.Len())); err != nil {
 		return bs.BytesWritten(), err
 	}
 
-	for i := range v {
-		kv := &v[i]
+	for i := range v.Entries {
+		kv := &v.Entries[i]
 		if _, err := binaryutil.CopyToByteStream(&bs, kv.K); err != nil {
 			return bs.BytesWritten(), err
 		}
@@ -127,7 +135,7 @@ func (v *Map) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	*v = make([]generic.UnorderedKV[Variant, Variant], 0, min(l, 256))
+	v.Entries = make([]generic.UnorderedKV[Variant, Variant], 0, min(l, 256))
 
 	for i := uint64(0); i < l; i++ {
 		var kv generic.UnorderedKV[Variant, Variant]
@@ -137,7 +145,7 @@ func (v *Map) Write(p []byte) (int, error) {
 		if _, err := bs.WriteTo(&kv.V); err != nil {
 			return bs.BytesRead(), err
 		}
-		*v = append(*v, kv)
+		v.Entries = append(v.Entries, kv)
 	}
 
 	return bs.BytesRead(), nil
@@ -145,9 +153,9 @@ func (v *Map) Write(p []byte) (int, error) {
 
 // Size 大小
 func (v Map) Size() int {
-	n := binaryutil.SizeofUvarint(uint64(len(v)))
-	for i := range v {
-		kv := &v[i]
+	n := binaryutil.SizeofUvarint(uint64(v.Entries.Len()))
+	for i := range v.Entries {
+		kv := &v.Entries[i]
 		n += kv.K.Size()
 		n += kv.V.Size()
 	}
@@ -162,9 +170,4 @@ func (Map) TypeId() TypeId {
 // Indirect 原始值
 func (v Map) Indirect() any {
 	return v
-}
-
-// ToUnorderedSliceMap 转换为UnorderedSliceMap
-func (v *Map) ToUnorderedSliceMap() *generic.UnorderedSliceMap[Variant, Variant] {
-	return (*generic.UnorderedSliceMap[Variant, Variant])(v)
 }

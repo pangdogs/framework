@@ -34,7 +34,7 @@ var (
 )
 
 func parseResult[T any](retArr variant.Array, idx int) (T, error) {
-	v := retArr[idx]
+	v := retArr.Items[idx]
 
 	ret, ok := v.Value.Indirect().(T)
 	if ok {
@@ -64,14 +64,14 @@ func ParseResults(ret async.Result) (rvs ResultValues) {
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 1 {
+	if !ok || len(retArr.Items) < 1 {
 		return
 	}
 
-	rets := make([]any, len(retArr))
+	rets := make([]any, len(retArr.Items))
 
 	for i := range rets {
-		rets[i] = retArr[i].Value.Indirect()
+		rets[i] = retArr.Items[i].Value.Indirect()
 	}
 
 	rvs.Values = rets
@@ -98,7 +98,7 @@ func Parse1[T1 any](ret async.Result) (rtp ResultTuple1[T1]) {
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 1 {
+	if !ok || len(retArr.Items) < 1 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -125,7 +125,7 @@ func Parse2[T1 any, T2 any](ret async.Result) (rtp ResultTuple2[T1, T2]) {
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 2 {
+	if !ok || len(retArr.Items) < 2 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -159,7 +159,7 @@ func Parse3[T1 any, T2 any, T3 any](ret async.Result) (rtp ResultTuple3[T1, T2, 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 3 {
+	if !ok || len(retArr.Items) < 3 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -200,7 +200,7 @@ func Parse4[T1 any, T2 any, T3 any, T4 any](ret async.Result) (rtp ResultTuple4[
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 4 {
+	if !ok || len(retArr.Items) < 4 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -248,7 +248,7 @@ func Parse5[T1 any, T2 any, T3 any, T4 any, T5 any](ret async.Result) (rtp Resul
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 5 {
+	if !ok || len(retArr.Items) < 5 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -303,7 +303,7 @@ func Parse6[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any](ret async.Result) (r
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 6 {
+	if !ok || len(retArr.Items) < 6 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -365,7 +365,7 @@ func Parse7[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any](ret async.Re
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 7 {
+	if !ok || len(retArr.Items) < 7 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -434,7 +434,7 @@ func Parse8[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any](ret 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 8 {
+	if !ok || len(retArr.Items) < 8 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -510,7 +510,7 @@ func Parse9[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 a
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 9 {
+	if !ok || len(retArr.Items) < 9 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -593,7 +593,7 @@ func Parse10[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 10 {
+	if !ok || len(retArr.Items) < 10 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -683,7 +683,7 @@ func Parse11[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 11 {
+	if !ok || len(retArr.Items) < 11 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -780,7 +780,7 @@ func Parse12[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 12 {
+	if !ok || len(retArr.Items) < 12 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -884,7 +884,7 @@ func Parse13[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 13 {
+	if !ok || len(retArr.Items) < 13 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -995,7 +995,7 @@ func Parse14[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 14 {
+	if !ok || len(retArr.Items) < 14 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -1113,7 +1113,7 @@ func Parse15[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 15 {
+	if !ok || len(retArr.Items) < 15 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
@@ -1238,7 +1238,7 @@ func Parse16[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	}
 
 	retArr, ok := ret.Value.(variant.Array)
-	if !ok || len(retArr) < 16 {
+	if !ok || len(retArr.Items) < 16 {
 		rtp.Error = ErrMethodResultCountMismatch
 		return
 	}
