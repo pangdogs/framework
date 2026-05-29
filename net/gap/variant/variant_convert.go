@@ -89,8 +89,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make([]any, 0, len(arr.Items))
-			for _, it := range arr.Items {
+			rv := make([]any, 0, len(arr))
+			for _, it := range arr {
 				rv = append(rv, it.Value.Indirect())
 			}
 
@@ -109,8 +109,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make([]reflect.Value, 0, len(arr.Items))
-			for _, it := range arr.Items {
+			rv := make([]reflect.Value, 0, len(arr))
+			for _, it := range arr {
 				rv = append(rv, reflect.ValueOf(it.Value.Indirect()))
 			}
 
@@ -129,8 +129,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make(map[string]any, len(*m))
-			for _, kv := range *m {
+			rv := make(map[string]any, len(m))
+			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -152,8 +152,8 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			rv := make(generic.SliceMap[string, any], 0, len(*m))
-			for _, kv := range *m {
+			rv := make(generic.SliceMap[string, any], 0, len(m))
+			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
@@ -175,16 +175,16 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
-			for _, kv := range *m {
+			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 			}
 
 			if valueRT.Kind() == reflect.Pointer {
-				return reflect.ValueOf(m), nil
+				return reflect.ValueOf(&m), nil
 			} else {
-				return reflect.ValueOf(*m), nil
+				return reflect.ValueOf(m), nil
 			}
 		}
 
@@ -210,23 +210,23 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	return reflect.Value{}, ErrInvalidCast
 }
 
-func indirectArray(v ReadableValue) (Array, bool) {
+func indirectArray(v ReadableValue) ([]Variant, bool) {
 	switch arr := v.(type) {
 	case Array:
-		return arr, true
+		return arr.Items, true
 	case *Array:
-		return *arr, true
+		return arr.Items, true
 	default:
-		return Array{}, false
+		return nil, false
 	}
 }
 
-func indirectMap(v ReadableValue) (*generic.UnorderedSliceMap[Variant, Variant], bool) {
+func indirectMap(v ReadableValue) (generic.UnorderedSliceMap[Variant, Variant], bool) {
 	switch m := v.(type) {
 	case Map:
-		return &m.Entries, true
+		return m.Entries, true
 	case *Map:
-		return &m.Entries, true
+		return m.Entries, true
 	default:
 		return nil, false
 	}
