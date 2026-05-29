@@ -19,28 +19,15 @@
 
 // Package variant 提供 GAP 消息和 RPC 负载使用的动态值模型。
 //
-// 包内以 Variant 作为统一入口，Variant 持有 TypeId 和对应的可读值。
-// 常用内置类型会在初始化时注册，包括整数、浮点、布尔、字节串、字符串、
-// Null、Array、Map、Error 和 CallChain。自定义类型需要实现 Value 接口，
-// 并通过 VariantCreator().Declare 注册后，才能根据 TypeId 反序列化。
+// Variant 是统一的协议值包装，持有 TypeId 和对应的可读值。内置值包括整数、
+// 浮点数、布尔值、字节串、字符串、Null、Array、Map、Error 和 CallChain。
+// 自定义值需要实现 Value 接口，并通过 VariantCreator 注册后，才能根据 TypeId
+// 反序列化。
 //
-// 常用入口包括：
-//   - NewVariant / CastVariant：把值包装为普通 Variant。
-//   - NewSerializedVariant / CastSerializedVariant：把值转换为显式序列化变体。
-//   - NewSerializedArray / NewSerializedMapFrom...：创建由 SerializedVariant
-//     元素组成的序列化容器。
-//   - NewSerializedValue：缓存单个值的编码字节。
-//   - GenTypeId / GenTypeIdT：为自定义类型生成稳定的 TypeId。
-//
-// 当前序列化相关结构主要包括：
-//   - SerializedValue：单个值的已编码字节。
-//   - SerializedArray：数组结果的序列化容器。
-//   - SerializedMap：映射结果的序列化容器。
-//   - SerializedVariant：统一包装上述序列化值或容器。
-//
-// Ref 返回底层普通值视图，用于继续走现有的 Variant / Array / Map 编码链路。
-// Release 用于归还序列化过程中持有的缓存资源。调用方需要自行保证同一底层
-// 序列化对象只释放一次，不要对共享底层资源的多个包装对象重复调用 Release。
-// 当前这套序列化结构主要用于 RPC 返回值回包链，尤其是需要跨异步等待后再写入
-// MsgRPCReply 的场景。
+// 常用入口：
+//   - NewVariant：把已有 ReadableValue 包装为 Variant。
+//   - CastVariant：把常见 Go 值转换为 Variant。
+//   - Variant.Convert：把反序列化后的 GAP 值转换为指定 Go reflect.Type。
+//   - Array.ToSnapshot：冻结 Array 的编码载荷，用于延迟交付或跨 goroutine
+//     交付后的写出。快照 Array 是只读形态，只用于后续编码。
 package variant
