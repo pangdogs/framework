@@ -189,7 +189,13 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case rvRT, reflect.PointerTo(rvRT):
-		rv := v.Reflected.Elem()
+		rv := v.Reflected
+		if !rv.IsValid() {
+			rv = reflect.ValueOf(v.Value)
+		}
+		if rv.Kind() == reflect.Pointer {
+			rv = rv.Elem()
+		}
 
 		if valueRT.Kind() == reflect.Pointer {
 			return reflect.ValueOf(&rv), nil
@@ -213,8 +219,14 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 func indirectArray(v ReadableValue) ([]Variant, bool) {
 	switch arr := v.(type) {
 	case Array:
+		if arr.IsSnapshot {
+			return nil, false
+		}
 		return arr.Items, true
 	case *Array:
+		if arr.IsSnapshot {
+			return nil, false
+		}
 		return arr.Items, true
 	default:
 		return nil, false
