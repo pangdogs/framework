@@ -46,8 +46,11 @@ func parseResult[T any](retArr variant.Array, idx int) (T, error) {
 		return types.Zero[T](), ErrMethodResultTypeMismatch
 	}
 
-	if retRV.IsNil() {
-		return types.Zero[T](), nil
+	switch retRV.Kind() {
+	case reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		if retRV.IsNil() {
+			return types.Zero[T](), nil
+		}
 	}
 
 	return retRV.Interface().(T), nil
