@@ -158,7 +158,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 
 	case callpath.Runtime:
@@ -198,7 +198,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 
 	case callpath.Entity:
@@ -238,7 +238,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 	}
 }
@@ -440,7 +440,7 @@ func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.Msg
 }
 
 func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.Array, retErr error) {
-	defer rets.ReleaseIfSnapshotted()
+	defer rets.ReleaseIfSnapshot()
 
 	if corrId == 0 {
 		return

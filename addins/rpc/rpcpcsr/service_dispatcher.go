@@ -111,7 +111,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 
 	case callpath.Runtime:
@@ -145,7 +145,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 
 	case callpath.Entity:
@@ -179,7 +179,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			rets.ReleaseIfSnapshotted()
+			rets.ReleaseIfSnapshot()
 		}()
 	}
 }
@@ -352,7 +352,7 @@ func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply)
 }
 
 func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
-	defer rets.ReleaseIfSnapshotted()
+	defer rets.ReleaseIfSnapshot()
 
 	if corrId == 0 {
 		return

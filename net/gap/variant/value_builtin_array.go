@@ -150,8 +150,8 @@ func (v Array) ToSnapshot(recyclable bool) (Array, error) {
 	return ret, nil
 }
 
-// ReleaseIfSnapshotted 有快照时释放字节对象
-func (v Array) ReleaseIfSnapshotted() {
+// ReleaseIfSnapshot 释放快照字节对象
+func (v Array) ReleaseIfSnapshot() {
 	if v.IsSnapshot {
 		v.Snapshot.Release()
 	}
