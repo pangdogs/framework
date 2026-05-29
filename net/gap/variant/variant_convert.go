@@ -213,6 +213,101 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 		}
 	}
 
+	switch v.TypeId {
+	case TypeId_Array:
+		switch valueRT.Kind() {
+		case reflect.Array, reflect.Slice:
+			return convertArrayTo(v, valueRT)
+		}
+
+	case TypeId_Map:
+		if valueRT.Kind() == reflect.Map {
+			return convertMapTo(v, valueRT)
+		}
+	}
+
+	return reflect.Value{}, ErrInvalidCast
+}
+
+func convertArrayTo(v Variant, valueRT reflect.Type) (reflect.Value, error) {
+	arr, ok := indirectArray(v.Value)
+	if !ok {
+		return reflect.Value{}, ErrInvalidCast
+	}
+
+	var retRV reflect.Value
+	switch valueRT.Kind() {
+	case reflect.Array:
+		if valueRT.Len() != len(arr) {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		retRV = reflect.New(valueRT).Elem()
+
+	case reflect.Slice:
+		retRV = reflect.MakeSlice(valueRT, len(arr), len(arr))
+
+	default:
+		return reflect.Value{}, ErrInvalidCast
+	}
+
+	elemRT := valueRT.Elem()
+	for i := range arr {
+		elemRV, err := arr[i].Convert(elemRT)
+		if err != nil {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		elemRV, err = assignableOrConvert(elemRV, elemRT)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		retRV.Index(i).Set(elemRV)
+	}
+
+	return retRV, nil
+}
+
+func convertMapTo(v Variant, valueRT reflect.Type) (reflect.Value, error) {
+	m, ok := indirectMap(v.Value)
+	if !ok {
+		return reflect.Value{}, ErrInvalidCast
+	}
+
+	keyRT := valueRT.Key()
+	valueElemRT := valueRT.Elem()
+	retRV := reflect.MakeMapWithSize(valueRT, len(m))
+
+	for _, kv := range m {
+		keyRV, err := kv.K.Convert(keyRT)
+		if err != nil {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		keyRV, err = assignableOrConvert(keyRV, keyRT)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		valueRV, err := kv.V.Convert(valueElemRT)
+		if err != nil {
+			return reflect.Value{}, ErrInvalidCast
+		}
+		valueRV, err = assignableOrConvert(valueRV, valueElemRT)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		retRV.SetMapIndex(keyRV, valueRV)
+	}
+
+	return retRV, nil
+}
+
+func assignableOrConvert(v reflect.Value, rt reflect.Type) (reflect.Value, error) {
+	if v.Type().AssignableTo(rt) {
+		return v, nil
+	}
+	if v.CanConvert(rt) {
+		return v.Convert(rt), nil
+	}
 	return reflect.Value{}, ErrInvalidCast
 }
 
