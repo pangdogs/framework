@@ -38,9 +38,11 @@ var (
 	unorderedSliceMapStringAnyRT = reflect.TypeFor[generic.UnorderedSliceMap[string, any]]()
 	rvRT                         = reflect.TypeFor[reflect.Value]()
 	variantRT                    = reflect.TypeFor[Variant]()
+	readableValueRT              = reflect.TypeFor[ReadableValue]()
+	valueInterfaceRT             = reflect.TypeFor[Value]()
 )
 
-func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
+func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 	if !v.IsValid() {
 		return reflect.Value{}, ErrInvalidCast
 	}
@@ -64,6 +66,12 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 			return retRV.Convert(valueRT), nil
 		}
 
+		if (valueRT == readableValueRT || valueRT == valueInterfaceRT) && reflect.PointerTo(retRT).Implements(valueRT) {
+			ptrRV := reflect.New(retRT)
+			ptrRV.Elem().Set(retRV)
+			return ptrRV, nil
+		}
+
 		if retRT.Kind() == reflect.Pointer {
 			retRV = retRV.Elem()
 			retRT = retRV.Type()
@@ -72,7 +80,7 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 	}
 
 	switch valueRT.Kind() {
-	case reflect.Array, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+	case reflect.Interface, reflect.Array, reflect.Map, reflect.Pointer, reflect.Slice:
 		if v.TypeId == TypeId_Null {
 			return reflect.Zero(valueRT), nil
 		}
@@ -175,16 +183,18 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 				return reflect.Value{}, ErrInvalidCast
 			}
 
+			rv := make(generic.UnorderedSliceMap[string, any], 0, len(m))
 			for _, kv := range m {
 				if kv.K.TypeId != TypeId_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
+				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
 			}
 
 			if valueRT.Kind() == reflect.Pointer {
-				return reflect.ValueOf(&m), nil
+				return reflect.ValueOf(&rv), nil
 			} else {
-				return reflect.ValueOf(m), nil
+				return reflect.ValueOf(rv), nil
 			}
 		}
 
@@ -204,12 +214,10 @@ func (v Variant) Convert(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case variantRT, reflect.PointerTo(variantRT):
-		rv := reflect.ValueOf(v)
-
 		if valueRT.Kind() == reflect.Pointer {
-			return reflect.ValueOf(&rv), nil
+			return reflect.ValueOf(&v), nil
 		} else {
-			return rv, nil
+			return reflect.ValueOf(v), nil
 		}
 	}
 
@@ -252,7 +260,7 @@ func convertArrayTo(v Variant, valueRT reflect.Type) (reflect.Value, error) {
 
 	elemRT := valueRT.Elem()
 	for i := range arr {
-		elemRV, err := arr[i].Convert(elemRT)
+		elemRV, err := arr[i].ToNative(elemRT)
 		if err != nil {
 			return reflect.Value{}, ErrInvalidCast
 		}
@@ -277,7 +285,7 @@ func convertMapTo(v Variant, valueRT reflect.Type) (reflect.Value, error) {
 	retRV := reflect.MakeMapWithSize(valueRT, len(m))
 
 	for _, kv := range m {
-		keyRV, err := kv.K.Convert(keyRT)
+		keyRV, err := kv.K.ToNative(keyRT)
 		if err != nil {
 			return reflect.Value{}, ErrInvalidCast
 		}
@@ -286,7 +294,7 @@ func convertMapTo(v Variant, valueRT reflect.Type) (reflect.Value, error) {
 			return reflect.Value{}, err
 		}
 
-		valueRV, err := kv.V.Convert(valueElemRT)
+		valueRV, err := kv.V.ToNative(valueElemRT)
 		if err != nil {
 			return reflect.Value{}, ErrInvalidCast
 		}

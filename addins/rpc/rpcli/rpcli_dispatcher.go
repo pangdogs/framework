@@ -292,7 +292,7 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 			return nil, ErrMethodParameterCountMismatch
 		}
 
-		argRV, err := args.Items[j].Convert(methodRT.In(i))
+		argRV, err := args.Items[j].ToNative(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}

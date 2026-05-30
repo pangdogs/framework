@@ -47,8 +47,8 @@ func (err RstError) ToEvent() Event[*gtp.MsgRst] {
 	}
 }
 
-// CastRstErr Rst错误事件转换为错误提示
-func CastRstErr(e Event[*gtp.MsgRst]) *RstError {
+// ToRstError Rst错误事件转换为错误提示
+func ToRstError(e Event[*gtp.MsgRst]) *RstError {
 	return &RstError{
 		Code:    e.Msg.Code,
 		Message: strings.Clone(e.Msg.Message),

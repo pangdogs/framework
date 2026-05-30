@@ -17,7 +17,7 @@ func TestRstErrorConversions(t *testing.T) {
 		t.Fatalf("unexpected rst event: %+v", event)
 	}
 
-	cloned := CastRstErr(event)
+	cloned := ToRstError(event)
 	if cloned.Code != err.Code || cloned.Message != err.Message {
 		t.Fatalf("unexpected cloned rst error: %+v", cloned)
 	}

@@ -41,7 +41,7 @@ func parseResult[T any](retArr variant.Array, idx int) (T, error) {
 		return ret, nil
 	}
 
-	retRV, err := v.Convert(reflect.TypeFor[T]())
+	retRV, err := v.ToNative(reflect.TypeFor[T]())
 	if err != nil {
 		return types.Zero[T](), ErrMethodResultTypeMismatch
 	}

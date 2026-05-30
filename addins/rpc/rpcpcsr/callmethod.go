@@ -142,7 +142,7 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 			return async.NewResult(nil, err)
 		}
 
-		return async.NewResult(rets.ToSnapshot(true))
+		return async.NewResult(rets.Snapshot(true))
 	}), nil
 }
 
@@ -194,7 +194,7 @@ func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, 
 			return async.NewResult(nil, err)
 		}
 
-		return async.NewResult(rets.ToSnapshot(true))
+		return async.NewResult(rets.Snapshot(true))
 	}), nil
 }
 
@@ -231,7 +231,7 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 			return nil, ErrMethodParameterCountMismatch
 		}
 
-		argRV, err := args.Items[j].Convert(methodRT.In(i))
+		argRV, err := args.Items[j].ToNative(methodRT.In(i))
 		if err != nil {
 			return nil, ErrMethodParameterTypeMismatch
 		}
@@ -268,6 +268,6 @@ func waitAsyncResult(ctx context.Context, future async.Future) (variant.Array, e
 			return variant.Array{}, err
 		}
 
-		return rets.ToSnapshot(true)
+		return rets.Snapshot(true)
 	}
 }

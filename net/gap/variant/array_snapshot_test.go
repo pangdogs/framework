@@ -12,9 +12,9 @@ func TestArraySnapshotReadSizeAndReadonly(t *testing.T) {
 		t.Fatalf("NewArray failed: %v", err)
 	}
 
-	snapshot, err := arr.ToSnapshot(false)
+	snapshot, err := arr.Snapshot(false)
 	if err != nil {
-		t.Fatalf("ToSnapshot failed: %v", err)
+		t.Fatalf("Snapshot failed: %v", err)
 	}
 
 	if !snapshot.IsSnapshot {
@@ -55,9 +55,9 @@ func TestSnapshotArrayDoesNotConvertAsNormalArray(t *testing.T) {
 		t.Fatalf("NewArray failed: %v", err)
 	}
 
-	snapshot, err := arr.ToSnapshot(false)
+	snapshot, err := arr.Snapshot(false)
 	if err != nil {
-		t.Fatalf("ToSnapshot failed: %v", err)
+		t.Fatalf("Snapshot failed: %v", err)
 	}
 
 	v, err := NewVariant(snapshot)
@@ -65,7 +65,7 @@ func TestSnapshotArrayDoesNotConvertAsNormalArray(t *testing.T) {
 		t.Fatalf("NewVariant failed: %v", err)
 	}
 
-	if _, err := v.Convert(sliceAnyRT); !errors.Is(err, ErrInvalidCast) {
-		t.Fatalf("snapshot Convert error = %v, want ErrInvalidCast", err)
+	if _, err := v.ToNative(sliceAnyRT); !errors.Is(err, ErrInvalidCast) {
+		t.Fatalf("snapshot ToNative error = %v, want ErrInvalidCast", err)
 	}
 }

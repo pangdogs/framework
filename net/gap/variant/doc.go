@@ -26,8 +26,8 @@
 //
 // 常用入口：
 //   - NewVariant：把已有 ReadableValue 包装为 Variant。
-//   - CastVariant：把常见 Go 值转换为 Variant。
-//   - Variant.Convert：把反序列化后的 GAP 值转换为指定 Go reflect.Type。
-//   - Array.ToSnapshot：冻结 Array 的编码载荷，用于延迟交付或跨 goroutine
+//   - ToVariant：把常见 Go 值转换为 Variant。
+//   - Variant.ToNative：把反序列化后的 GAP 值转换为指定 Go reflect.Type。
+//   - Array.Snapshot：冻结 Array 的编码载荷，用于延迟交付或跨 goroutine
 //     交付后的写出。快照 Array 是只读形态，只用于后续编码。
 package variant

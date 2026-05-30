@@ -34,12 +34,12 @@ func NewMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	}
 
 	for k, v := range m {
-		varK, err := CastVariant(k)
+		varK, err := ToVariant(k)
 		if err != nil {
 			return Map{}, err
 		}
 
-		varV, err := CastVariant(v)
+		varV, err := ToVariant(v)
 		if err != nil {
 			return Map{}, err
 		}
@@ -59,12 +59,12 @@ func NewMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, er
 	for i := range m {
 		kv := &m[i]
 
-		varK, err := CastVariant(&kv.K)
+		varK, err := ToVariant(&kv.K)
 		if err != nil {
 			return Map{}, err
 		}
 
-		varV, err := CastVariant(&kv.V)
+		varV, err := ToVariant(&kv.V)
 		if err != nil {
 			return Map{}, err
 		}
@@ -84,12 +84,12 @@ func NewMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMa
 	for i := range m {
 		kv := &m[i]
 
-		varK, err := CastVariant(&kv.K)
+		varK, err := ToVariant(&kv.K)
 		if err != nil {
 			return Map{}, err
 		}
 
-		varV, err := CastVariant(&kv.V)
+		varV, err := ToVariant(&kv.V)
 		if err != nil {
 			return Map{}, err
 		}

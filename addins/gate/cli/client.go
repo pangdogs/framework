@@ -159,7 +159,7 @@ func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 
 // handleRst 接收Rst消息事件
 func (c *Client) handleRst(event transport.Event[*gtp.MsgRst]) {
-	err := transport.CastRstErr(event)
+	err := transport.ToRstError(event)
 	c.logger.Debug("client receive rst",
 		zap.String("session_id", c.SessionId().String()),
 		zap.NamedError("rst_error", err))

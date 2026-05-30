@@ -37,7 +37,7 @@ func NewArray[T any](arr []T) (Array, error) {
 	}
 
 	for i := range arr {
-		item, err := CastVariant(&arr[i])
+		item, err := ToVariant(&arr[i])
 		if err != nil {
 			return Array{}, err
 		}
@@ -49,15 +49,15 @@ func NewArray[T any](arr []T) (Array, error) {
 
 // Array array
 type Array struct {
-	Items      []Variant
-	IsSnapshot bool
-	Snapshot   binaryutil.Bytes
+	Items         []Variant
+	IsSnapshot    bool
+	SnapshotBytes binaryutil.Bytes
 }
 
 // Read implements io.Reader
 func (v Array) Read(p []byte) (int, error) {
 	if v.IsSnapshot {
-		data := v.Snapshot.Payload()
+		data := v.SnapshotBytes.Payload()
 		if len(p) < len(data) {
 			return 0, io.ErrShortWrite
 		}
@@ -108,7 +108,7 @@ func (v *Array) Write(p []byte) (int, error) {
 // Size 大小
 func (v Array) Size() int {
 	if v.IsSnapshot {
-		return len(v.Snapshot.Payload())
+		return len(v.SnapshotBytes.Payload())
 	}
 	n := binaryutil.SizeofUvarint(uint64(len(v.Items)))
 	for i := range v.Items {
@@ -127,19 +127,19 @@ func (v Array) Indirect() any {
 	return v
 }
 
-// ToSnapshot 转换为快照
-func (v Array) ToSnapshot(recyclable bool) (Array, error) {
+// Snapshot 快照
+func (v Array) Snapshot(recyclable bool) (Array, error) {
 	if v.IsSnapshot {
 		return Array{
-			IsSnapshot: true,
-			Snapshot:   binaryutil.CloneBytes(recyclable, v.Snapshot.Payload()),
+			IsSnapshot:    true,
+			SnapshotBytes: binaryutil.CloneBytes(recyclable, v.SnapshotBytes.Payload()),
 		}, nil
 	}
 
 	data := binaryutil.NewBytes(recyclable, v.Size())
 	ret := Array{
-		IsSnapshot: true,
-		Snapshot:   data,
+		IsSnapshot:    true,
+		SnapshotBytes: data,
 	}
 
 	if _, err := binaryutil.CopyToBuff(data.Payload(), v); err != nil {
@@ -153,6 +153,6 @@ func (v Array) ToSnapshot(recyclable bool) (Array, error) {
 // ReleaseIfSnapshot 释放快照字节对象
 func (v Array) ReleaseIfSnapshot() {
 	if v.IsSnapshot {
-		v.Snapshot.Release()
+		v.SnapshotBytes.Release()
 	}
 }

@@ -82,7 +82,7 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.Ms
 	case gtp.MsgId_Hello:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -178,7 +178,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 	case gtp.MsgId_ECDHESecretKeyExchange:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -202,7 +202,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 	case gtp.MsgId_ChangeCipherSpec:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
@@ -446,7 +446,7 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 	case gtp.MsgId_Finished:
 		break
 	case gtp.MsgId_Rst:
-		return fmt.Errorf("%w: %w", ErrProtocol, CastRstErr(AssertEvent[*gtp.MsgRst](recv)))
+		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
 		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
 	}
