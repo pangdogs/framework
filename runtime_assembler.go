@@ -90,12 +90,12 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 	rtInstEntityActivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityActivated)
 	rtInstEntityDeactivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityDeactivating)
 	rtInstEntityDeactivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityDeactivated)
-	rtInstEntityAddingComponentsCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityAddingComponents)
-	rtInstEntityComponentsAdditionAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsAdditionAborted)
-	rtInstEntityComponentsAddedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsAdded)
-	rtInstEntityRemovingComponentCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityRemovingComponent)
-	rtInstEntityComponentRemovalAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentRemovalAborted)
-	rtInstEntityComponentRemovedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentRemoved)
+	rtInstEntityComponentsActivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsActivating)
+	rtInstEntityComponentsActivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsActivationAborted)
+	rtInstEntityComponentsActivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentsActivated)
+	rtInstEntityComponentDeactivatingCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentDeactivating)
+	rtInstEntityComponentDeactivationAbortedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentDeactivationAborted)
+	rtInstEntityComponentDeactivatedCB, _ := rtInstFace.Iface.(LifecycleRuntimeEntityComponentDeactivated)
 
 	frameLoopBeginCB, _ := r.instance.(LifecycleRuntimeFrameLoopBegin)
 	frameUpdateBeginCB, _ := r.instance.(LifecycleRuntimeFrameUpdateBegin)
@@ -110,12 +110,12 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 	entityActivatedCB, _ := r.instance.(LifecycleRuntimeEntityActivated)
 	entityDeactivatingCB, _ := r.instance.(LifecycleRuntimeEntityDeactivating)
 	entityDeactivatedCB, _ := r.instance.(LifecycleRuntimeEntityDeactivated)
-	entityAddingComponentsCB, _ := r.instance.(LifecycleRuntimeEntityAddingComponents)
-	entityComponentsAdditionAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsAdditionAborted)
-	entityComponentsAddedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsAdded)
-	entityRemovingComponentCB, _ := r.instance.(LifecycleRuntimeEntityRemovingComponent)
-	entityComponentRemovalAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentRemovalAborted)
-	entityComponentRemovedCB, _ := r.instance.(LifecycleRuntimeEntityComponentRemoved)
+	entityComponentsActivatingCB, _ := r.instance.(LifecycleRuntimeEntityComponentsActivating)
+	entityComponentsActivationAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsActivationAborted)
+	entityComponentsActivatedCB, _ := r.instance.(LifecycleRuntimeEntityComponentsActivated)
+	entityComponentDeactivatingCB, _ := r.instance.(LifecycleRuntimeEntityComponentDeactivating)
+	entityComponentDeactivationAbortedCB, _ := r.instance.(LifecycleRuntimeEntityComponentDeactivationAborted)
+	entityComponentDeactivatedCB, _ := r.instance.(LifecycleRuntimeEntityComponentDeactivated)
 
 	rtCtx := runtime.NewContext(r.svcInst,
 		runtime.With.InstanceFace(rtInstFace),
@@ -324,7 +324,7 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 				if rtInst.MainEntity() == entity {
 					rtInst.Terminate()
 				}
-			case runtime.RunningEvent_EntityAddingComponents:
+			case runtime.RunningEvent_EntityComponentsActivating:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
 
@@ -340,56 +340,56 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 					})
 				}
 
-				if cb := entityAddingComponentsCB; cb != nil {
-					cb.OnEntityAddingComponents(rtInst, entity, components)
+				if cb := entityComponentsActivatingCB; cb != nil {
+					cb.OnEntityComponentsActivating(rtInst, entity, components)
 				}
-				if cb := rtInstEntityAddingComponentsCB; cb != nil {
-					cb.OnEntityAddingComponents(rtInst, entity, components)
+				if cb := rtInstEntityComponentsActivatingCB; cb != nil {
+					cb.OnEntityComponentsActivating(rtInst, entity, components)
 				}
-			case runtime.RunningEvent_EntityComponentsAdditionAborted:
+			case runtime.RunningEvent_EntityComponentsActivationAborted:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
-				if cb := entityComponentsAdditionAbortedCB; cb != nil {
-					cb.OnEntityComponentsAdditionAborted(rtInst, entity, components)
+				if cb := entityComponentsActivationAbortedCB; cb != nil {
+					cb.OnEntityComponentsActivationAborted(rtInst, entity, components)
 				}
-				if cb := rtInstEntityComponentsAdditionAbortedCB; cb != nil {
-					cb.OnEntityComponentsAdditionAborted(rtInst, entity, components)
+				if cb := rtInstEntityComponentsActivationAbortedCB; cb != nil {
+					cb.OnEntityComponentsActivationAborted(rtInst, entity, components)
 				}
-			case runtime.RunningEvent_EntityComponentsAdded:
+			case runtime.RunningEvent_EntityComponentsActivated:
 				entity := args[0].(ec.Entity)
 				components := args[1].([]ec.Component)
-				if cb := entityComponentsAddedCB; cb != nil {
-					cb.OnEntityComponentsAdded(rtInst, entity, components)
+				if cb := entityComponentsActivatedCB; cb != nil {
+					cb.OnEntityComponentsActivated(rtInst, entity, components)
 				}
-				if cb := rtInstEntityComponentsAddedCB; cb != nil {
-					cb.OnEntityComponentsAdded(rtInst, entity, components)
+				if cb := rtInstEntityComponentsActivatedCB; cb != nil {
+					cb.OnEntityComponentsActivated(rtInst, entity, components)
 				}
-			case runtime.RunningEvent_EntityRemovingComponent:
+			case runtime.RunningEvent_EntityComponentDeactivating:
 				entity := args[0].(ec.Entity)
 				component := args[1].(ec.Component)
-				if cb := entityRemovingComponentCB; cb != nil {
-					cb.OnEntityRemovingComponent(rtInst, entity, component)
+				if cb := entityComponentDeactivatingCB; cb != nil {
+					cb.OnEntityComponentDeactivating(rtInst, entity, component)
 				}
-				if cb := rtInstEntityRemovingComponentCB; cb != nil {
-					cb.OnEntityRemovingComponent(rtInst, entity, component)
+				if cb := rtInstEntityComponentDeactivatingCB; cb != nil {
+					cb.OnEntityComponentDeactivating(rtInst, entity, component)
 				}
-			case runtime.RunningEvent_EntityComponentRemovalAborted:
+			case runtime.RunningEvent_EntityComponentDeactivationAborted:
 				entity := args[0].(ec.Entity)
 				component := args[1].(ec.Component)
-				if cb := entityComponentRemovalAbortedCB; cb != nil {
-					cb.OnEntityComponentRemovalAborted(rtInst, entity, component)
+				if cb := entityComponentDeactivationAbortedCB; cb != nil {
+					cb.OnEntityComponentDeactivationAborted(rtInst, entity, component)
 				}
-				if cb := rtInstEntityComponentRemovalAbortedCB; cb != nil {
-					cb.OnEntityComponentRemovalAborted(rtInst, entity, component)
+				if cb := rtInstEntityComponentDeactivationAbortedCB; cb != nil {
+					cb.OnEntityComponentDeactivationAborted(rtInst, entity, component)
 				}
-			case runtime.RunningEvent_EntityComponentRemoved:
+			case runtime.RunningEvent_EntityComponentDeactivated:
 				entity := args[0].(ec.Entity)
 				component := args[1].(ec.Component)
-				if cb := entityComponentRemovedCB; cb != nil {
-					cb.OnEntityComponentRemoved(rtInst, entity, component)
+				if cb := entityComponentDeactivatedCB; cb != nil {
+					cb.OnEntityComponentDeactivated(rtInst, entity, component)
 				}
-				if cb := rtInstEntityComponentRemovedCB; cb != nil {
-					cb.OnEntityComponentRemoved(rtInst, entity, component)
+				if cb := rtInstEntityComponentDeactivatedCB; cb != nil {
+					cb.OnEntityComponentDeactivated(rtInst, entity, component)
 				}
 			}
 		}),

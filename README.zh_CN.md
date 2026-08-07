@@ -19,7 +19,7 @@
 - `BuildRuntime`、`BuildEntityPT`、`BuildEntity` 是创建运行时、实体原型和实体实例的主要入口。
 
 ### 默认装配的 add-in
-如果业务代码没有在生命周期阶段安装自定义实现，框架会自动装配以下 add-in。
+在 `Birth`/`Built` 阶段，框架会为业务生命周期钩子尚未提供的能力补装默认 add-in。服务级插件集合随后会在 `Starting` 前冻结；运行时级插件仍可热插拔，但应在所属 runtime 的 goroutine 中操作。
 
 服务级默认 add-in：
 
@@ -157,5 +157,9 @@ go get -u git.golaxy.org/framework
 完整示例可参考 [pangdogs/examples](https://github.com/pangdogs/examples)。
 
 ## 相关仓库
-- [Golaxy Distributed Service Development Framework Core](https://github.com/pangdogs/core)
-- [Golaxy 游戏服务脚手架](https://github.com/pangdogs/scaffold)
+- [Golaxy 分布式服务开发框架核心](https://github.com/pangdogs/core)
+- [Golaxy 游戏服务器脚手架](https://github.com/pangdogs/scaffold)
+
+## 许可证
+
+本项目采用 [GNU Lesser General Public License v2.1](./LICENSE)。

@@ -26,7 +26,6 @@ import (
 
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/iface"
@@ -129,6 +128,10 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 					cb.OnBuilt(svcInst)
 				}
 
+				for _, addInStatus := range svcInst.AddInManager().ListStatuses() {
+					cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
+				}
+
 				svcInst.Memory().Store(memEtcdClientOnce, sync.OnceValue(func() *etcdv3.Client {
 					cli, err := etcdv3.New(etcdv3.Config{
 						Endpoints: []string{s.conf.GetString("etcd.address")},
@@ -207,39 +210,6 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 					if cli, ok := v.(*etcdv3.Client); ok {
 						cli.Close()
 					}
-				}
-			case service.RunningEvent_AddInActivating:
-				addInStatus := args[0].(extension.AddInStatus)
-				cacheCallPath(addInStatus.Name(), addInStatus.Reflected().Type())
-				if cb, ok := s.instance.(LifecycleServiceAddInActivating); ok {
-					cb.OnAddInActivating(svcInst, addInStatus)
-				}
-				if cb, ok := svcInst.(LifecycleServiceAddInActivating); ok {
-					cb.OnAddInActivating(svcInst, addInStatus)
-				}
-			case service.RunningEvent_AddInActivated:
-				addInStatus := args[0].(extension.AddInStatus)
-				if cb, ok := s.instance.(LifecycleServiceAddInActivated); ok {
-					cb.OnAddInActivated(svcInst, addInStatus)
-				}
-				if cb, ok := svcInst.(LifecycleServiceAddInActivated); ok {
-					cb.OnAddInActivated(svcInst, addInStatus)
-				}
-			case service.RunningEvent_AddInDeactivating:
-				addInStatus := args[0].(extension.AddInStatus)
-				if cb, ok := s.instance.(LifecycleServiceAddInDeactivating); ok {
-					cb.OnAddInDeactivating(svcInst, addInStatus)
-				}
-				if cb, ok := svcInst.(LifecycleServiceAddInDeactivating); ok {
-					cb.OnAddInDeactivating(svcInst, addInStatus)
-				}
-			case service.RunningEvent_AddInDeactivated:
-				addInStatus := args[0].(extension.AddInStatus)
-				if cb, ok := s.instance.(LifecycleServiceAddInDeactivated); ok {
-					cb.OnAddInDeactivated(svcInst, addInStatus)
-				}
-				if cb, ok := svcInst.(LifecycleServiceAddInDeactivated); ok {
-					cb.OnAddInDeactivated(svcInst, addInStatus)
 				}
 			case service.RunningEvent_EntityPTDeclared:
 				entityPT := args[0].(ec.EntityPT)

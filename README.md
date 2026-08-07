@@ -19,7 +19,7 @@ This repository is organized around three layers:
 - `BuildRuntime`, `BuildEntityPT`, and `BuildEntity` are the main builder APIs for runtime and entity creation.
 
 ### Default add-ins
-Unless a service or runtime installs its own implementation during lifecycle hooks, the framework assembles these add-ins automatically.
+During `Birth`/`Built`, the framework fills in any default that lifecycle hooks have not supplied. The service-level set is then frozen before `Starting`; runtime-level add-ins remain hot-pluggable and should be changed on the owning runtime goroutine.
 
 Service-level defaults:
 
@@ -156,6 +156,10 @@ go get -u git.golaxy.org/framework
 ## Examples
 See [pangdogs/examples](https://github.com/pangdogs/examples) for end-to-end services, gateways, and RPC usage.
 
-## Related repositories
+## Related Repositories
 - [Golaxy Distributed Service Development Framework Core](https://github.com/pangdogs/core)
 - [Golaxy Game Server Scaffold](https://github.com/pangdogs/scaffold)
+
+## License
+
+This project is licensed under the [GNU Lesser General Public License v2.1](./LICENSE).

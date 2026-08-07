@@ -120,26 +120,26 @@ type LifecycleRuntimeEntityDeactivated interface {
 	OnEntityDeactivated(rt IRuntime, entity ec.Entity)
 }
 
-type LifecycleRuntimeEntityAddingComponents interface {
-	OnEntityAddingComponents(rt IRuntime, entity ec.Entity, components []ec.Component)
+type LifecycleRuntimeEntityComponentsActivating interface {
+	OnEntityComponentsActivating(rt IRuntime, entity ec.Entity, components []ec.Component)
 }
 
-type LifecycleRuntimeEntityComponentsAdditionAborted interface {
-	OnEntityComponentsAdditionAborted(rt IRuntime, entity ec.Entity, components []ec.Component)
+type LifecycleRuntimeEntityComponentsActivationAborted interface {
+	OnEntityComponentsActivationAborted(rt IRuntime, entity ec.Entity, components []ec.Component)
 }
 
-type LifecycleRuntimeEntityComponentsAdded interface {
-	OnEntityComponentsAdded(rt IRuntime, entity ec.Entity, components []ec.Component)
+type LifecycleRuntimeEntityComponentsActivated interface {
+	OnEntityComponentsActivated(rt IRuntime, entity ec.Entity, components []ec.Component)
 }
 
-type LifecycleRuntimeEntityRemovingComponent interface {
-	OnEntityRemovingComponent(rt IRuntime, entity ec.Entity, component ec.Component)
+type LifecycleRuntimeEntityComponentDeactivating interface {
+	OnEntityComponentDeactivating(rt IRuntime, entity ec.Entity, component ec.Component)
 }
 
-type LifecycleRuntimeEntityComponentRemovalAborted interface {
-	OnEntityComponentRemovalAborted(rt IRuntime, entity ec.Entity, component ec.Component)
+type LifecycleRuntimeEntityComponentDeactivationAborted interface {
+	OnEntityComponentDeactivationAborted(rt IRuntime, entity ec.Entity, component ec.Component)
 }
 
-type LifecycleRuntimeEntityComponentRemoved interface {
-	OnEntityComponentRemoved(rt IRuntime, entity ec.Entity, component ec.Component)
+type LifecycleRuntimeEntityComponentDeactivated interface {
+	OnEntityComponentDeactivated(rt IRuntime, entity ec.Entity, component ec.Component)
 }

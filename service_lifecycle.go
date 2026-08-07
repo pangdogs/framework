@@ -19,10 +19,7 @@
 
 package framework
 
-import (
-	"git.golaxy.org/core/ec"
-	"git.golaxy.org/core/extension"
-)
+import "git.golaxy.org/core/ec"
 
 type LifecycleServiceBirth interface {
 	OnBirth(svc IService)
@@ -50,22 +47,6 @@ type LifecycleServiceTerminating interface {
 
 type LifecycleServiceTerminated interface {
 	OnTerminated(svc IService)
-}
-
-type LifecycleServiceAddInActivating interface {
-	OnAddInActivating(svc IService, addIn extension.AddInStatus)
-}
-
-type LifecycleServiceAddInActivated interface {
-	OnAddInActivated(svc IService, addIn extension.AddInStatus)
-}
-
-type LifecycleServiceAddInDeactivating interface {
-	OnAddInDeactivating(svc IService, addIn extension.AddInStatus)
-}
-
-type LifecycleServiceAddInDeactivated interface {
-	OnAddInDeactivated(svc IService, addIn extension.AddInStatus)
 }
 
 type LifecycleServiceEntityPTDeclared interface {
