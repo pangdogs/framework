@@ -24,7 +24,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // 注册 pprof 的默认 HTTP 处理器，供 initPProf 启动的服务使用。
 	"os"
 	"os/signal"
 	"strconv"
@@ -40,7 +40,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewApp 创建应用
+// NewApp 创建一个尚未运行的应用，并初始化命令行、配置及服务装配容器。
 func NewApp() *App {
 	app := &App{
 		conf: viper.New(),
@@ -48,15 +48,11 @@ func NewApp() *App {
 	app.cmd = &cobra.Command{
 		Short: "Application for Launching Services",
 		Run: func(*cobra.Command, []string) {
-			// 加载参数配置
+			// Cobra 入口依次合并配置、启动辅助服务、运行服务副本并执行生命周期回调。
 			app.initConf()
-			// 加载pprof
 			app.initPProf()
-			// 执行启动回调
 			app.startingCB.UnsafeCall(app)
-			// 主循环
 			app.mainLoop()
-			// 执行结束回调
 			app.terminatedCB.UnsafeCall(app)
 		},
 		CompletionOptions: cobra.CompletionOptions{
@@ -71,7 +67,8 @@ type _SupportedService struct {
 	count     int
 }
 
-// App 应用
+// App 负责装载应用配置、启动已注册的服务副本，并等待所有服务停止。
+// App 的配置和装配方法应在 Run 前由同一 goroutine 调用。
 type App struct {
 	services                         generic.SliceMap[string, *_SupportedService]
 	conf                             *viper.Viper
@@ -80,7 +77,9 @@ type App struct {
 	initOnce                         bool
 }
 
-// SetAssembler 设置服务实例装配器（传入实例类型时，将会自动创建装配器）
+// SetAssembler 注册名为 name 的服务装配器。
+// assembler 可以是自定义装配器，也可以是实现 IService 的实例或 reflect.Type；
+// 后两者会被转换为按需创建实例的默认装配器。同名注册会替换此前的装配器。
 func (app *App) SetAssembler(name string, assembler any) *App {
 	if app.conf == nil {
 		exception.Panicf("%w: conf is nil", ErrFramework)
@@ -110,25 +109,29 @@ func (app *App) SetAssembler(name string, assembler any) *App {
 	return app
 }
 
-// InitCB 初始化回调（可以用于自定义启动参数）
+// InitCB 设置命令初始化回调。
+// 回调在内置参数注册后、首次执行命令前调用一次，可用于补充 Cobra 参数或子命令。
 func (app *App) InitCB(cb generic.Action1[*App]) *App {
 	app.initCB = cb
 	return app
 }
 
-// StartingCB 启动回调
+// StartingCB 设置应用启动回调。
+// 回调在配置与可选 pprof 服务初始化完成后、启动服务副本前执行。
 func (app *App) StartingCB(cb generic.Action1[*App]) *App {
 	app.startingCB = cb
 	return app
 }
 
-// TerminateCB 终止回调
+// TerminateCB 设置应用终止回调。
+// 回调在全部服务副本停止后执行。
 func (app *App) TerminateCB(cb generic.Action1[*App]) *App {
 	app.terminatedCB = cb
 	return app
 }
 
-// Run 运行
+// Run 初始化并执行应用命令，随后启动配置指定的服务副本。
+// Cobra 返回执行错误时 Run 会 panic；同一个 App 不应并发调用 Run。
 func (app *App) Run() {
 	if app.conf == nil {
 		exception.Panicf("%w: conf is nil", ErrFramework)
@@ -140,24 +143,24 @@ func (app *App) Run() {
 
 	if !app.initOnce {
 		app.initOnce = true
-		// 初始化启动参数
+		// Cmd 与 Run 共用一次初始化，确保内置参数和 InitCB 不会重复注册。
 		app.initFlags()
-		// 执行初始化回调
 		app.initCB.UnsafeCall(app)
 	}
 
-	// 开始运行
+	// Execute 最终进入 NewApp 注册的 Run 回调。
 	if err := app.cmd.Execute(); err != nil {
 		exception.Panicf("%w: %w", ErrFramework, err)
 	}
 }
 
-// Conf 获取参数配置
+// Conf 返回应用持有的 Viper 配置实例。
 func (app *App) Conf() *viper.Viper {
 	return app.conf
 }
 
-// Cmd 获取启动命令
+// Cmd 返回应用的根 Cobra 命令。
+// 首次调用会注册内置参数并执行 InitCB；该初始化与 Run 共享一次性状态。
 func (app *App) Cmd() *cobra.Command {
 	if app.conf == nil {
 		exception.Panicf("%w: conf is nil", ErrFramework)
@@ -167,12 +170,10 @@ func (app *App) Cmd() *cobra.Command {
 		exception.Panicf("%w: cmd is nil", ErrFramework)
 	}
 
-	// 执行初始化回调
 	if !app.initOnce {
 		app.initOnce = true
-		// 初始化启动参数
+		// 允许调用方先通过 Cmd 补充参数，再在之后调用 Run。
 		app.initFlags()
-		// 执行初始化回调
 		app.initCB.UnsafeCall(app)
 	}
 
@@ -182,7 +183,7 @@ func (app *App) Cmd() *cobra.Command {
 func (app *App) initFlags() {
 	cmd := app.cmd
 
-	// 日志参数
+	// 日志参数。
 	cmd.PersistentFlags().String("log.level", zap.InfoLevel.String(), "log level: [debug|info|warn|error|dpanic|panic|fatal]")
 	cmd.PersistentFlags().String("log.encoder", "development", "log encoder: [production|development]")
 	cmd.PersistentFlags().String("log.format", "console", "log format: [console|json]")
@@ -190,24 +191,24 @@ func (app *App) initFlags() {
 	cmd.PersistentFlags().Int("log.buffer_size", 512*1024, "async log buffer size in bytes")
 	cmd.PersistentFlags().Duration("log.flush_interval", time.Second, "async log flush interval, e.g. 1s")
 
-	// 配置参数
+	// 配置参数。
 	cmd.PersistentFlags().String("conf.env_prefix", "", "defines the prefix for environment variables")
 	cmd.PersistentFlags().String("conf.local_path", "", "local config file path")
 	cmd.PersistentFlags().String("conf.remote_provider", "", "remote config provider")
 	cmd.PersistentFlags().String("conf.remote_endpoint", "", "remote config endpoint")
 	cmd.PersistentFlags().String("conf.remote_path", "", "remote config file path")
 
-	// nats参数
+	// NATS 参数。
 	cmd.PersistentFlags().String("nats.address", "localhost:4222", "nats address")
 	cmd.PersistentFlags().String("nats.username", "", "nats auth username")
 	cmd.PersistentFlags().String("nats.password", "", "nats auth password")
 
-	// etcd参数
+	// ETCD 参数。
 	cmd.PersistentFlags().String("etcd.address", "localhost:2379", "etcd address")
 	cmd.PersistentFlags().String("etcd.username", "", "etcd auth username")
 	cmd.PersistentFlags().String("etcd.password", "", "etcd auth password")
 
-	// 分布式服务参数
+	// 分布式服务参数。
 	cmd.PersistentFlags().String("service.version", "v0.0.0", "service version info")
 	cmd.PersistentFlags().StringToString("service.meta", map[string]string{}, "service meta info")
 	cmd.PersistentFlags().Duration("service.ttl", 10*time.Second, "ttl for service keepalive")
@@ -215,7 +216,7 @@ func (app *App) initFlags() {
 	cmd.PersistentFlags().Duration("service.dent_ttl", 10*time.Second, "ttl for distributed entity keepalive")
 	cmd.PersistentFlags().Bool("service.auto_recover", false, "enable panic auto recover")
 
-	// 启动的服务列表
+	// 各类服务默认启动的副本数。
 	cmd.PersistentFlags().StringToString("startup.services", func() map[string]string {
 		ret := map[string]string{}
 		app.services.Each(func(name string, service *_SupportedService) {
@@ -224,7 +225,7 @@ func (app *App) initFlags() {
 		return ret
 	}(), "instances required for each service to start")
 
-	// pprof参数
+	// pprof 参数。
 	cmd.PersistentFlags().Bool("pprof.enable", false, "enable pprof")
 	cmd.PersistentFlags().String("pprof.address", "0.0.0.0:6060", "pprof listening address")
 }
@@ -232,14 +233,14 @@ func (app *App) initFlags() {
 func (app *App) initConf() {
 	conf := app.conf
 
-	// 合并启动参数
+	// 命令行参数参与 Viper 的统一优先级解析。
 	conf.BindPFlags(app.cmd.Flags())
 
-	// 合并环境变量
+	// 环境变量在设置可选前缀后自动参与查找。
 	conf.SetEnvPrefix(conf.GetString("conf.env_prefix"))
 	conf.AutomaticEnv()
 
-	// 加载本地配置文件
+	// 本地配置文件为空时跳过读取。
 	localPath := conf.GetString("conf.local_path")
 
 	if localPath != "" {
@@ -250,7 +251,7 @@ func (app *App) initConf() {
 		}
 	}
 
-	// 加载远程配置文件
+	// 配置了 provider 时，从指定端点和路径读取远程配置。
 	remoteProvider := conf.GetString("conf.remote_provider")
 	remoteEndpoint := conf.GetString("conf.remote_endpoint")
 	remotePath := conf.GetString("conf.remote_path")
@@ -285,7 +286,7 @@ func (app *App) initPProf() {
 }
 
 func (app *App) mainLoop() {
-	// 监听退出信号
+	// 首个退出信号取消共享上下文，通知全部服务副本停止。
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigChan := make(chan os.Signal, 1)
@@ -296,7 +297,7 @@ func (app *App) mainLoop() {
 		cancel()
 	}()
 
-	// 启动所有服务
+	// 配置值覆盖注册时的默认副本数；无效数量按零处理。
 	wg := &sync.WaitGroup{}
 
 	bootstrap := app.conf.GetStringMapString("startup.services")
@@ -315,6 +316,6 @@ func (app *App) mainLoop() {
 		}
 	})
 
-	// 等待运行结束
+	// 所有服务副本的 Done 完成后才返回 Cobra 入口。
 	wg.Wait()
 }

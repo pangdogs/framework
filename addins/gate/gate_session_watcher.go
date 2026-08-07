@@ -30,8 +30,7 @@ import (
 )
 
 type (
-	// SessionEstablishedHandler 首次建立会话完成处理器。
-	// 旧会话迁移重连成功不会触发该处理器。
+	// SessionEstablishedHandler 处理首次建立完成的会话；连接迁移不会重复触发。
 	SessionEstablishedHandler = generic.DelegateVoid1[ISession]
 )
 

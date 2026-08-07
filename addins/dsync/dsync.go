@@ -26,16 +26,16 @@ import (
 )
 
 var (
-	// ErrNotAcquired 锁未获取
+	// ErrNotAcquired 表示当前句柄没有持有锁，或后端已失去该锁的所有权。
 	ErrNotAcquired = errors.New("dsync: lock is not acquired")
-	// ErrAlreadyAcquired 重复加锁
+	// ErrAlreadyAcquired 表示当前句柄已经在持有或尝试获取锁。
 	ErrAlreadyAcquired = errors.New("dsync: lock is already acquired")
 )
 
-// IDistSync 分布式同步接口
+// IDistSync 创建特定后端的分布式互斥锁。
 type IDistSync interface {
-	// NewMutex 创建分布式锁
+	// NewMutex 创建逻辑名称为 name 的分布式锁句柄；创建本身不会获取锁。
 	NewMutex(name string, settings ...option.Setting[DistMutexOptions]) IDistMutex
-	// Separator 获取分隔符
+	// Separator 返回该后端组织层级锁名称时使用的分隔符。
 	Separator() string
 }

@@ -31,24 +31,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// EntityBehavior 实体行为，在需要扩展实体能力时，匿名嵌入至实体结构体中
+// EntityBehavior 扩展 core 实体行为，供自定义实体匿名嵌入。
+// 日志器会按实体实例惰性创建，因此应在实体所属运行时 goroutine 中使用。
 type EntityBehavior struct {
 	ec.EntityBehavior
 	logger      *zap.Logger
 	sugarLogger *zap.SugaredLogger
 }
 
-// Runtime 获取运行时
+// Runtime 返回实体所属的 framework 运行时。
 func (e *EntityBehavior) Runtime() IRuntime {
 	return reinterpret.Cast[IRuntime](runtime.Current(e))
 }
 
-// Service 获取服务
+// Service 返回承载实体所属运行时的服务。
 func (e *EntityBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(e))
 }
 
-// L 结构化日志
+// L 返回附带当前实体字段的结构化日志器。
 func (e *EntityBehavior) L() *zap.Logger {
 	if e.logger == nil {
 		e.logger = log.L(e.Runtime()).With(zap.Any("entity", json.RawMessage(types.String2Bytes(e.String()))))
@@ -56,7 +57,7 @@ func (e *EntityBehavior) L() *zap.Logger {
 	return e.logger
 }
 
-// S 传统日志
+// S 返回附带当前实体字段的 SugaredLogger。
 func (e *EntityBehavior) S() *zap.SugaredLogger {
 	if e.sugarLogger == nil {
 		e.sugarLogger = e.L().Sugar()

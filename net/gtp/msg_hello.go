@@ -28,24 +28,27 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Hello消息标志位
 const (
-	Flag_HelloDone  Flag = 1 << (iota + Flag_Customize) // Hello完成，在服务端返回的Hello消息中携带，表示初步认可客户端连接
-	Flag_Encryption                                     // 开启加密（协议优先考虑性能，要求安全性请直接使用TLS加密链路），在服务端返回的Hello消息中携带，表示链路需要加密，需要执行秘钥交换流程
-	Flag_Auth                                           // 开启鉴权（基于token鉴权），在服务端返回的Hello消息中携带，表示链路需要认证，需要执行鉴权流程
-	Flag_Continue                                       // 断线重连
+	// Flag_HelloDone 表示服务端已初步接受客户端 Hello。
+	Flag_HelloDone Flag = 1 << (iota + Flag_Customize)
+	// Flag_Encryption 表示后续握手需要执行密钥交换并启用加密。
+	Flag_Encryption
+	// Flag_Auth 表示后续握手需要执行令牌鉴权。
+	Flag_Auth
+	// Flag_Continue 表示客户端请求续接既有会话。
+	Flag_Continue
 )
 
-// CipherSuite 密码学套件
+// CipherSuite 组合 GTP 负载加密和认证所需的算法。
 type CipherSuite struct {
-	SecretKeyExchange   SecretKeyExchange   // 秘钥交换函数
-	SymmetricEncryption SymmetricEncryption // 对称加密算法
-	BlockCipherMode     BlockCipherMode     // 分组密码模式
-	PaddingMode         PaddingMode         // 填充方案
-	HMAC                Hash                // HMAC函数
+	SecretKeyExchange   SecretKeyExchange   // 会话密钥交换算法。
+	SymmetricEncryption SymmetricEncryption // 负载对称加密算法。
+	BlockCipherMode     BlockCipherMode     // 分组密码工作模式。
+	PaddingMode         PaddingMode         // 对称加密填充方案。
+	HMAC                Hash                // 消息认证码使用的摘要算法。
 }
 
-// ParseCipherSuite 解析配置字串
+// ParseCipherSuite 解析以连字符分隔的“密钥交换-加密-模式-填充-HMAC”配置；缺省项保持零值。
 func ParseCipherSuite(str string) (CipherSuite, error) {
 	cs := CipherSuite{}
 	var err error
@@ -85,12 +88,12 @@ func ParseCipherSuite(str string) (CipherSuite, error) {
 	return cs, nil
 }
 
-// String implements fmt.Stringer
+// String 返回以连字符分隔的密码套件配置。
 func (cs CipherSuite) String() string {
 	return fmt.Sprintf("%s-%s-%s-%s-%s", cs.SecretKeyExchange, cs.SymmetricEncryption, cs.BlockCipherMode, cs.PaddingMode, cs.HMAC)
 }
 
-// Read implements io.Reader
+// Read 将密码套件编码到 p。
 func (cs CipherSuite) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(cs.SecretKeyExchange)); err != nil {
@@ -111,7 +114,7 @@ func (cs CipherSuite) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码密码套件。
 func (cs *CipherSuite) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -148,22 +151,24 @@ func (cs *CipherSuite) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回密码套件的固定编码字节数。
 func (CipherSuite) Size() int {
 	return binaryutil.SizeofUint8 + binaryutil.SizeofUint8 + binaryutil.SizeofUint8 +
 		binaryutil.SizeofUint8 + binaryutil.SizeofUint8
 }
 
-// MsgHello Hello消息（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
+// MsgHello 协商协议版本、会话、密码套件和压缩算法。
+// 直接通过 Write 或 Unmarshal 解码时，SessionId 和 Random 会引用输入切片；
+// 输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgHello struct {
-	Version     Version     // 协议版本
-	SessionId   string      // 会话Id，如果客户端上传空值，服务端将会分配新会话，如果非空值，服务端将尝试查找会话，查找失败会重置链路
-	Random      []byte      // 随机数，用于秘钥交换
-	CipherSuite CipherSuite // 密码学套件，客户端提交的密码学套件建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
-	Compression Compression // 压缩函数，客户端提交的压缩函数建议，服务端可能不采纳，以服务端返回的为准，若客户端不支持，直接切断链路
+	Version     Version     // 协议版本。
+	SessionId   string      // 会话 ID；客户端留空时由服务端分配，非空时用于查找待续接会话。
+	Random      []byte      // 密钥派生使用的随机数。
+	CipherSuite CipherSuite // 客户端提议或服务端选定的密码套件。
+	Compression Compression // 客户端提议或服务端选定的压缩算法。
 }
 
-// Read implements io.Reader
+// Read 将 Hello 消息编码到 p。
 func (m MsgHello) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
@@ -184,7 +189,7 @@ func (m MsgHello) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码 Hello 消息，引用型字段会引用 p。
 func (m *MsgHello) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -218,18 +223,18 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回 Hello 消息编码后的字节数。
 func (m MsgHello) Size() int {
 	return binaryutil.SizeofUint16 + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8
 }
 
-// MsgId 消息Id
+// MsgId 返回 Hello 消息的内置类型 ID。
 func (MsgHello) MsgId() MsgId {
 	return MsgId_Hello
 }
 
-// Clone 克隆消息对象
+// Clone 深复制所有引用型字段。
 func (m MsgHello) Clone() Msg {
 	return &MsgHello{
 		Version:     m.Version,

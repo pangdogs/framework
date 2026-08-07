@@ -27,7 +27,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// ToVariant 转换为变体
+// ToVariant 将受支持的 Go 值或 reflect.Value 转换为 GAP 动态值。
 func ToVariant(a any) (Variant, error) {
 retry:
 	switch v := a.(type) {

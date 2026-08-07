@@ -34,23 +34,25 @@ import (
 )
 
 type (
-	SessionDataHandler  = generic.DelegateVoid2[ISession, []byte]           // 会话接收的数据的处理器
-	SessionEventHandler = generic.DelegateVoid2[ISession, transport.IEvent] // 会话接收的事件的处理器
+	// SessionDataHandler 处理会话收到的一段原始负载。
+	SessionDataHandler = generic.DelegateVoid2[ISession, []byte]
+	// SessionEventHandler 处理会话收到的一个 GTP 事件。
+	SessionEventHandler = generic.DelegateVoid2[ISession, transport.IEvent]
 )
 
-// IDataIO 数据IO
+// IDataIO 提供会话原始负载的异步发送与监听。
 type IDataIO interface {
-	// Send 发送数据
+	// Send 复制 data 并将其加入发送队列。
 	Send(data []byte) error
-	// Listen 监听数据
+	// Listen 注册监听器，直到 ctx 取消或会话关闭。
 	Listen(ctx context.Context, handler SessionDataHandler) error
 }
 
-// IEventIO 事件IO
+// IEventIO 提供会话 GTP 事件的异步发送与监听。
 type IEventIO interface {
-	// Send 发送事件
+	// Send 将 event 加入发送队列；调用方须保证事件在处理完成前保持有效。
 	Send(event transport.IEvent) error
-	// Listen 监听事件
+	// Listen 注册监听器，直到 ctx 取消或会话关闭。
 	Listen(ctx context.Context, handler SessionEventHandler) error
 }
 
@@ -166,7 +168,7 @@ func (io *_SessionIO) handleEvent(event transport.IEvent) {
 
 type _SessionDataIO _SessionIO
 
-// Send 发送数据
+// Send 复制 data 后加入发送队列；成功仅表示已入队，会话 I/O 正在停止时返回错误。
 func (io *_SessionDataIO) Send(data []byte) error {
 	if !io.barrier.Join(1) {
 		return errors.New("gate: session data i/o is terminating")
@@ -177,7 +179,7 @@ func (io *_SessionDataIO) Send(data []byte) error {
 	return nil
 }
 
-// Listen 监听数据
+// Listen 注册原始负载处理器，直到 ctx 取消或会话关闭；handler 为 nil 时返回错误。
 func (io *_SessionDataIO) Listen(ctx context.Context, handler SessionDataHandler) error {
 	if handler == nil {
 		return errors.New("gate: handler is nil")
@@ -238,7 +240,7 @@ func (io *_SessionDataIO) addListener(ctx context.Context, handler SessionDataHa
 
 type _SessionEventIO _SessionIO
 
-// Send 发送事件
+// Send 将 event 加入发送队列；成功仅表示已入队，调用方须在处理完成前保持事件有效。
 func (io *_SessionEventIO) Send(event transport.IEvent) error {
 	if !io.barrier.Join(1) {
 		return errors.New("gate: session event i/o is terminating")
@@ -249,7 +251,7 @@ func (io *_SessionEventIO) Send(event transport.IEvent) error {
 	return nil
 }
 
-// Listen 监听事件
+// Listen 注册 GTP 事件处理器，直到 ctx 取消或会话关闭；handler 为 nil 时返回错误。
 func (io *_SessionEventIO) Listen(ctx context.Context, handler SessionEventHandler) error {
 	if handler == nil {
 		return errors.New("gate: handler is nil")

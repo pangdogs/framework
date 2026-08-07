@@ -29,23 +29,24 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisSyncOptions 所有选项
+// RedisSyncOptions 配置 Redis 分布式锁实现的客户端、连接及键空间。
 type RedisSyncOptions struct {
-	RedisClient    *redis.Client
-	RedisConfig    *redis.Options
-	RedisURL       string
-	KeyPrefix      string
-	CustomUsername string
-	CustomPassword string
-	CustomAddress  string
-	CustomDB       int
+	RedisClient    *redis.Client  // RedisClient 非 nil 时直接复用，停止时不会关闭它。
+	RedisConfig    *redis.Options // RedisConfig 在未提供客户端时优先于 RedisURL 和 Custom 字段。
+	RedisURL       string         // RedisURL 在未提供完整配置时用于解析连接选项。
+	KeyPrefix      string         // KeyPrefix 是所有锁键的公共前缀。
+	CustomUsername string         // CustomUsername 是自行构造配置时使用的用户名。
+	CustomPassword string         // CustomPassword 是自行构造配置时使用的密码。
+	CustomAddress  string         // CustomAddress 是自行构造配置时使用的服务地址。
+	CustomDB       int            // CustomDB 是自行构造配置时使用的数据库编号。
 }
 
+// With 提供 Redis 分布式锁 add-in 的 Option 构造方法。
 var With _RedisSyncOption
 
 type _RedisSyncOption struct{}
 
-// Default 默认选项
+// Default 返回本地 Redis 0 号库及 golaxy:mutex: 键前缀的默认设置。
 func (_RedisSyncOption) Default() option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		With.RedisClient(nil).Apply(options)
@@ -58,28 +59,28 @@ func (_RedisSyncOption) Default() option.Setting[RedisSyncOptions] {
 	}
 }
 
-// RedisClient redis客户端（优先使用）
+// RedisClient 设置要复用的 Redis 客户端，其优先级最高。
 func (_RedisSyncOption) RedisClient(cli *redis.Client) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		options.RedisClient = cli
 	}
 }
 
-// RedisConfig redis配置（次优先使用）
+// RedisConfig 设置创建 Redis 客户端时使用的完整配置，其优先级次于 RedisClient。
 func (_RedisSyncOption) RedisConfig(conf *redis.Options) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		options.RedisConfig = conf
 	}
 }
 
-// RedisURL redis连接url（次次优先使用）
+// RedisURL 设置 Redis 连接 URL，其优先级次于 RedisConfig。
 func (_RedisSyncOption) RedisURL(url string) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		options.RedisURL = url
 	}
 }
 
-// KeyPrefix key前缀
+// KeyPrefix 设置锁键前缀；非空值会自动补充末尾冒号。
 func (_RedisSyncOption) KeyPrefix(prefix string) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ":") {
@@ -89,7 +90,7 @@ func (_RedisSyncOption) KeyPrefix(prefix string) option.Setting[RedisSyncOptions
 	}
 }
 
-// CustomAuth 自定义redis认证信息（次次次优先使用）
+// CustomAuth 设置自行构造 Redis 配置时使用的用户名和密码。
 func (_RedisSyncOption) CustomAuth(username, password string) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		options.CustomUsername = username
@@ -97,7 +98,7 @@ func (_RedisSyncOption) CustomAuth(username, password string) option.Setting[Red
 	}
 }
 
-// CustomAddress 自定义redis连接地址信息（次次次优先使用）
+// CustomAddress 设置自行构造 Redis 配置时使用的地址，并校验 host:port 格式。
 func (_RedisSyncOption) CustomAddress(addr string) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -107,7 +108,7 @@ func (_RedisSyncOption) CustomAddress(addr string) option.Setting[RedisSyncOptio
 	}
 }
 
-// CustomDB 自定义redis数据库id（次次次优先使用）
+// CustomDB 设置自行构造 Redis 配置时使用的数据库编号。
 func (_RedisSyncOption) CustomDB(db int) option.Setting[RedisSyncOptions] {
 	return func(options *RedisSyncOptions) {
 		options.CustomDB = db

@@ -27,14 +27,15 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgAuth 鉴权（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
+// MsgAuth 携带客户端鉴权信息。直接通过 Write 或 Unmarshal 解码时，字段会引用输入切片；
+// 输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgAuth struct {
-	UserId     string // 用户Id
-	Token      string // 令牌
-	Extensions []byte // 扩展内容
+	UserId     string // 用户 ID。
+	Token      string // 鉴权令牌。
+	Extensions []byte // 业务扩展数据。
 }
 
-// Read implements io.Reader
+// Read 将鉴权消息编码到 p。
 func (m MsgAuth) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(m.UserId); err != nil {
@@ -49,7 +50,7 @@ func (m MsgAuth) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码鉴权消息，字段会引用 p。
 func (m *MsgAuth) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -72,17 +73,17 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回鉴权消息编码后的字节数。
 func (m MsgAuth) Size() int {
 	return binaryutil.SizeofString(m.UserId) + binaryutil.SizeofString(m.Token) + binaryutil.SizeofBytes(m.Extensions)
 }
 
-// MsgId 消息Id
+// MsgId 返回鉴权消息的内置类型 ID。
 func (MsgAuth) MsgId() MsgId {
 	return MsgId_Auth
 }
 
-// Clone 克隆消息对象
+// Clone 深复制所有引用型字段。
 func (m MsgAuth) Clone() Msg {
 	return &MsgAuth{
 		UserId:     strings.Clone(m.UserId),

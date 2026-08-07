@@ -39,16 +39,16 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// handshake 握手过程
+// handshake 完成客户端握手，并初始化或迁移客户端连接。
 func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Client) error {
-	// 编解码器构建器
+	// 每次连接使用独立编解码器，协商出的模块随后随连接移交给客户端。
 	ctor.encoder = codec.NewEncoder()
 	ctor.decoder = codec.NewDecoder(ctor.options.MsgCreator)
 
-	// 设置消息包最大长度
+	// 包长限制从第一条明文握手消息起生效。
 	ctor.decoder.SetMaxPacketSize(ctor.options.MaxPacketSize)
 
-	// 握手协议
+	// 握手阶段尚无时序状态，使用不带序号缓存的同步器。
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
@@ -77,7 +77,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		}
 	}()
 
-	// 生成客户端随机数
+	// 客户端随机数参与签名和共享密钥派生。
 	n, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
 	if err != nil {
 		return err
@@ -95,10 +95,10 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		},
 	}
 
-	// 与服务端互相hello
+	// Hello 阶段提交期望参数，并接收服务端最终选择和可选阶段标志。
 	err = handshake.ClientHello(ctx, cliHello,
 		func(servHello transport.Event[*gtp.MsgHello]) error {
-			// 检查HelloDone标记
+			// 检查 HelloDone 标记
 			if !servHello.Flags.Is(gtp.Flag_HelloDone) {
 				return fmt.Errorf("cli: the expected msg-hello-flag (0x%x) was not received", gtp.Flag_HelloDone)
 			}
@@ -108,7 +108,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 				return fmt.Errorf("cli: version %q not supported", servHello.Msg.Version)
 			}
 
-			// 记录握手参数
+			// 后续阶段严格采用服务端确认的参数和会话 ID。
 			sessionId = uid.From(strings.Clone(servHello.Msg.SessionId))
 			cs = servHello.Msg.CipherSuite
 			cm = servHello.Msg.Compression
@@ -116,16 +116,16 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 			encryptionFlow = servHello.Flags.Is(gtp.Flag_Encryption)
 			authFlow = servHello.Flags.Is(gtp.Flag_Auth)
 
-			// 开启加密流程
+			// 加密流程需要复制服务端随机数并绑定双方 Hello 摘要。
 			if encryptionFlow {
-				// 记录服务端随机数
+				// MsgHello 的切片属于解码结果，复制到握手期池化缓冲区。
 				if len(servHello.Msg.Random) <= 0 {
 					return errors.New("cli: server Hello 'random' is empty")
 				}
 				servRandom = binaryutil.BytesPool.Get(len(servHello.Msg.Random))
 				copy(servRandom, servHello.Msg.Random)
 
-				// 记录双方hello数据，用于ecdh后加密验证
+				// 摘要供 ECDH 签名及切换密码后的验证使用。
 				h := sha256.New()
 
 				hashBuff := binaryutil.BytesPool.Get(4 * 1024)
@@ -152,7 +152,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		return err
 	}
 
-	// 开启加密时，与服务端交换秘钥
+	// 密钥交换完成后，握手 Transceiver 已安装协商出的加密和认证模块。
 	if encryptionFlow {
 		err = ctor.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
 		if err != nil {
@@ -160,13 +160,13 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		}
 	}
 
-	// 安装压缩模块
+	// 压缩在密钥交换之后启用，避免改变参与签名的 Hello 表示。
 	err = ctor.setupCompression(cm)
 	if err != nil {
 		return err
 	}
 
-	// 开启鉴权时，向服务端发起鉴权
+	// 服务端要求鉴权时提交配置的用户、令牌及扩展数据。
 	if authFlow {
 		err = handshake.ClientAuth(ctx, transport.Event[*gtp.MsgAuth]{
 			Msg: &gtp.MsgAuth{
@@ -180,7 +180,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		}
 	}
 
-	// 断线重连流程，需要交换序号，检测是否能补发消息
+	// 续接连接提交旧连接的收发序号，供服务端定位补发起点。
 	if continueFlow {
 		err = handshake.ClientContinue(ctx, transport.Event[*gtp.MsgContinue]{
 			Msg: &gtp.MsgContinue{
@@ -195,7 +195,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 	var remoteSendSeq, remoteRecvSeq uint32
 
-	// 等待服务端通知握手结束
+	// Finished 必须确认所有已协商阶段，并携带服务端当前收发序号。
 	err = handshake.ClientFinished(ctx, func(finished transport.Event[*gtp.MsgFinished]) error {
 		if encryptionFlow && !finished.Flags.Is(gtp.Flag_EncryptOK) {
 			return fmt.Errorf("cli: the expected msg-finished-flag (0x%x) was not received", gtp.Flag_EncryptOK)
@@ -218,29 +218,29 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}
 
 	if continueFlow {
-		// 迁移客户端连接
+		// 续接时切换旧客户端的连接，并保留未确认发送帧。
 		_, _, err = client.migrateConn(conn, remoteRecvSeq)
 		if err != nil {
 			return err
 		}
 	} else {
-		// 初始化客户端连接
+		// 首次连接接管握手使用的连接、编解码器和服务端分配的会话 ID。
 		client.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder, remoteSendSeq, remoteRecvSeq, sessionId)
 	}
 
 	return nil
 }
 
-// secretKeyExchange 秘钥交换过程
+// secretKeyExchange 与服务端完成协商密码套件的密钥交换流程。
 func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
 	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionId uid.Id) error {
-	// 选择秘钥交换函数，并与客户端交换秘钥
+	// 选择密钥交换算法，并与服务端交换密钥
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
-		// 临时共享秘钥
+		// 临时共享密钥
 		var sharedKeyBytes []byte
 
-		// 加密后的hello消息
+		// 加密后的 Hello 消息
 		var encryptedHello binaryutil.Bytes
 		defer encryptedHello.Release()
 
@@ -250,9 +250,9 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		var cipher [2]method.Cipher
 		var encryption [2]codec.IEncryption
 
-		// 与服务端交换秘钥
+		// 与服务端交换密钥
 		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.IEvent) (transport.IEvent, error) {
-			// 解包ECDHESecretKeyExchange消息事件
+			// 解包 ECDHESecretKeyExchange 事件
 			switch e.Msg.MsgId() {
 			case gtp.MsgId_ECDHESecretKeyExchange:
 				break
@@ -294,7 +294,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				return transport.IEvent{}, fmt.Errorf("server ECDHESecretKeyExchange 'PublicKey' is invalid, %s", err)
 			}
 
-			// 临时共享秘钥
+			// 临时共享密钥
 			sharedKeyBytes, err = cliPriv.ECDH(servPub)
 			if err != nil {
 				return transport.IEvent{}, fmt.Errorf("ECDH failed, %s", err)
@@ -314,7 +314,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				return transport.IEvent{}, err
 			}
 
-			// 设置nonce值
+			// 设置 nonce
 			if len(servECDHE.Msg.Nonce) > 0 && len(servECDHE.Msg.NonceStep) > 0 {
 				nonce := big.NewInt(0).SetBytes(servECDHE.Msg.Nonce)
 				nonceStep := big.NewInt(0).SetBytes(servECDHE.Msg.NonceStep)
@@ -365,7 +365,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 				Msg:   &gtp.MsgChangeCipherSpec{},
 			}
 
-			// 加密hello消息
+			// 加密 Hello 消息
 			if verifyEncryption {
 				var err error
 				encryptedHello, err = encryption[0].Transforming(nil, cliHelloHash[:])
@@ -393,7 +393,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 	}
 }
 
-// setupCompression 安装压缩模块
+// setupCompression 安装协商得到的压缩模块。
 func (ctor *_Connector) setupCompression(cm gtp.Compression) error {
 	compression, compressionThreshold, _, err := ctor.newCompression(cm)
 	if err != nil {
@@ -410,13 +410,13 @@ func (ctor *_Connector) setupCompression(cm gtp.Compression) error {
 	return nil
 }
 
-// setupEncryption 安装加密模块
+// setupEncryption 安装发送与接收方向的加密模块。
 func (ctor *_Connector) setupEncryption(encryption [2]codec.IEncryption) {
 	ctor.encoder.SetEncryption(encryption[0])
 	ctor.decoder.SetEncryption(encryption[1])
 }
 
-// setupAuthentication 安装认证模块
+// setupAuthentication 安装发送与接收方向的消息认证模块。
 func (ctor *_Connector) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte) error {
 	authentication, err := ctor.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
@@ -433,7 +433,7 @@ func (ctor *_Connector) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte
 	return nil
 }
 
-// newFetchNonce 构造获取nonce值函数
+// newFetchNonce 构造每次取值后按步长递增的 nonce 函数。
 func (ctor *_Connector) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
@@ -459,7 +459,7 @@ func (ctor *_Connector) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonc
 	}
 }
 
-// newPaddingMode 构造填充方案
+// newPaddingMode 根据分组模式和协商配置构造填充方案。
 func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
 	if !bcm.Padding() {
 		return nil, nil
@@ -477,7 +477,7 @@ func (ctor *_Connector) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.
 	return padding, nil
 }
 
-// newAuthentication 构造认证模块
+// newAuthentication 根据协商摘要和共享密钥构造消息认证模块。
 func (ctor *_Connector) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
 	if hash == gtp.Hash_None {
 		return nil, nil
@@ -491,7 +491,7 @@ func (ctor *_Connector) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) 
 	return codec.NewAuthentication(hmac), nil
 }
 
-// newCompression 构造压缩模块
+// newCompression 构造协商得到的压缩模块。
 func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.ICompression, int, int, error) {
 	if compression == gtp.Compression_None {
 		return nil, 0, 0, nil
@@ -505,7 +505,7 @@ func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.IComp
 	return codec.NewCompression(compressionStream), ctor.options.CompressionThreshold, ctor.options.MaxUncompressedSize, err
 }
 
-// sign 签名
+// sign 使用客户端私钥签署握手参数；未配置签名算法时返回空签名。
 func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) ([]byte, error) {
 	if ctor.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
@@ -543,7 +543,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 	return signature, nil
 }
 
-// verify 验证签名
+// verify 使用服务端公钥验证握手参数签名。
 func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if ctor.options.EncVerifySignaturePublicKey == nil {

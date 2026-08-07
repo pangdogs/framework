@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是 ETCD 分布式锁实现的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newEtcdSync)
 )

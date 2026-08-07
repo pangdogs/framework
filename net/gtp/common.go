@@ -28,22 +28,25 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-// Version 协议版本
+// Version 表示 GTP 协议版本。
 type Version uint16
 
 const (
-	Version_V1_0 Version = 0x0100 // 协议v1.0版本
+	// Version_V1_0 表示 GTP 1.0。
+	Version_V1_0 Version = 0x0100
 )
 
-// SecretKeyExchange 秘钥交换函数
+// SecretKeyExchange 标识会话密钥交换算法。
 type SecretKeyExchange uint8
 
 const (
-	SecretKeyExchange_None  SecretKeyExchange = iota // 未设置
-	SecretKeyExchange_ECDHE                          // ECDHE算法
+	// SecretKeyExchange_None 表示不交换会话密钥。
+	SecretKeyExchange_None SecretKeyExchange = iota
+	// SecretKeyExchange_ECDHE 表示使用临时椭圆曲线 Diffie-Hellman 密钥交换。
+	SecretKeyExchange_ECDHE
 )
 
-// ParseSecretKeyExchange 解析配置字串
+// ParseSecretKeyExchange 解析不区分大小写的密钥交换算法名称。
 func ParseSecretKeyExchange(str string) (SecretKeyExchange, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -55,7 +58,7 @@ func ParseSecretKeyExchange(str string) (SecretKeyExchange, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的密钥交换算法名称。
 func (ske SecretKeyExchange) String() string {
 	switch ske {
 	case SecretKeyExchange_ECDHE:
@@ -65,16 +68,19 @@ func (ske SecretKeyExchange) String() string {
 	}
 }
 
-// AsymmetricEncryption 非对称加密算法
+// AsymmetricEncryption 标识握手签名使用的非对称算法。
 type AsymmetricEncryption uint8
 
 const (
-	AsymmetricEncryption_None  AsymmetricEncryption = iota // 未设置
-	AsymmetricEncryption_RSA                               // RSA算法
-	AsymmetricEncryption_ECDSA                             // ECDSA-NIST算法
+	// AsymmetricEncryption_None 表示不使用非对称签名。
+	AsymmetricEncryption_None AsymmetricEncryption = iota
+	// AsymmetricEncryption_RSA 表示 RSA。
+	AsymmetricEncryption_RSA
+	// AsymmetricEncryption_ECDSA 表示基于 NIST 曲线的 ECDSA。
+	AsymmetricEncryption_ECDSA
 )
 
-// ParseAsymmetricEncryption 解析配置字串
+// ParseAsymmetricEncryption 解析不区分大小写的非对称算法名称。
 func ParseAsymmetricEncryption(str string) (AsymmetricEncryption, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -88,7 +94,7 @@ func ParseAsymmetricEncryption(str string) (AsymmetricEncryption, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的非对称算法名称。
 func (ae AsymmetricEncryption) String() string {
 	switch ae {
 	case AsymmetricEncryption_RSA:
@@ -100,19 +106,25 @@ func (ae AsymmetricEncryption) String() string {
 	}
 }
 
-// SymmetricEncryption 对称加密算法
+// SymmetricEncryption 标识负载加密使用的对称算法。
 type SymmetricEncryption uint8
 
 const (
-	SymmetricEncryption_None               SymmetricEncryption = iota // 未设置
-	SymmetricEncryption_AES                                           // AES算法（分组密码模式）
-	SymmetricEncryption_ChaCha20                                      // ChaCha20算法（流模式）
-	SymmetricEncryption_XChaCha20                                     // XChaCha20算法（流模式）
-	SymmetricEncryption_ChaCha20_Poly1305                             // ChaCha20-Poly1305算法（流模式）
-	SymmetricEncryption_XChaCha20_Poly1305                            // XChaCha20-Poly1305算法（流模式）
+	// SymmetricEncryption_None 表示不加密负载。
+	SymmetricEncryption_None SymmetricEncryption = iota
+	// SymmetricEncryption_AES 表示 AES 分组密码。
+	SymmetricEncryption_AES
+	// SymmetricEncryption_ChaCha20 表示 ChaCha20 流密码。
+	SymmetricEncryption_ChaCha20
+	// SymmetricEncryption_XChaCha20 表示 XChaCha20 流密码。
+	SymmetricEncryption_XChaCha20
+	// SymmetricEncryption_ChaCha20_Poly1305 表示 ChaCha20-Poly1305 AEAD。
+	SymmetricEncryption_ChaCha20_Poly1305
+	// SymmetricEncryption_XChaCha20_Poly1305 表示 XChaCha20-Poly1305 AEAD。
+	SymmetricEncryption_XChaCha20_Poly1305
 )
 
-// ParseSymmetricEncryption 解析配置字串
+// ParseSymmetricEncryption 解析不区分大小写的对称算法名称。
 func ParseSymmetricEncryption(str string) (SymmetricEncryption, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -132,7 +144,7 @@ func ParseSymmetricEncryption(str string) (SymmetricEncryption, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的对称算法名称。
 func (se SymmetricEncryption) String() string {
 	switch se {
 	case SymmetricEncryption_AES:
@@ -150,7 +162,7 @@ func (se SymmetricEncryption) String() string {
 	}
 }
 
-// BlockSize 获取block大小，分组密码模式使用
+// BlockSize 返回分组密码的块大小；算法不是分组密码时返回 false。
 func (se SymmetricEncryption) BlockSize() (int, bool) {
 	switch se {
 	case SymmetricEncryption_AES:
@@ -160,7 +172,7 @@ func (se SymmetricEncryption) BlockSize() (int, bool) {
 	}
 }
 
-// Nonce 获取nonce大小，流密码模式使用
+// Nonce 返回流密码或 AEAD 的 nonce 字节数；算法不需要 nonce 时返回 false。
 func (se SymmetricEncryption) Nonce() (int, bool) {
 	switch se {
 	case SymmetricEncryption_ChaCha20:
@@ -176,7 +188,7 @@ func (se SymmetricEncryption) Nonce() (int, bool) {
 	}
 }
 
-// BlockCipherMode 是否需要使用分组密码模式
+// BlockCipherMode 报告算法是否需要配合分组密码模式。
 func (se SymmetricEncryption) BlockCipherMode() bool {
 	switch se {
 	case SymmetricEncryption_AES:
@@ -186,7 +198,7 @@ func (se SymmetricEncryption) BlockCipherMode() bool {
 	}
 }
 
-// StreamCipherMode 是否需要使用流密码模式
+// StreamCipherMode 报告算法是否属于流密码或 AEAD。
 func (se SymmetricEncryption) StreamCipherMode() bool {
 	switch se {
 	case SymmetricEncryption_ChaCha20, SymmetricEncryption_XChaCha20, SymmetricEncryption_ChaCha20_Poly1305, SymmetricEncryption_XChaCha20_Poly1305:
@@ -196,18 +208,23 @@ func (se SymmetricEncryption) StreamCipherMode() bool {
 	}
 }
 
-// PaddingMode 数据填充方案
+// PaddingMode 标识对称加密填充或 RSA 签名填充方案。
 type PaddingMode uint8
 
 const (
-	PaddingMode_None     PaddingMode = iota // 未设置
-	PaddingMode_Pkcs7                       // pkcs7方案（用于对称加密）
-	PaddingMode_X923                        // x927方案（用于对称加密）
-	PaddingMode_Pkcs1v15                    // Pkcs1v15方案（用于非对称加密RSA算法）
-	PaddingMode_PSS                         // PSS方案（用于非对称加密RSA算法）
+	// PaddingMode_None 表示不使用填充。
+	PaddingMode_None PaddingMode = iota
+	// PaddingMode_Pkcs7 表示对称加密使用 PKCS#7 填充。
+	PaddingMode_Pkcs7
+	// PaddingMode_X923 表示对称加密使用 ANSI X9.23 填充。
+	PaddingMode_X923
+	// PaddingMode_Pkcs1v15 表示 RSA 使用 PKCS#1 v1.5 签名填充。
+	PaddingMode_Pkcs1v15
+	// PaddingMode_PSS 表示 RSA 使用 PSS 签名填充。
+	PaddingMode_PSS
 )
 
-// ParsePaddingMode 解析配置字串
+// ParsePaddingMode 解析不区分大小写的填充方案名称。
 func ParsePaddingMode(str string) (PaddingMode, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -225,7 +242,7 @@ func ParsePaddingMode(str string) (PaddingMode, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的填充方案名称。
 func (pm PaddingMode) String() string {
 	switch pm {
 	case PaddingMode_Pkcs7:
@@ -241,19 +258,25 @@ func (pm PaddingMode) String() string {
 	}
 }
 
-// BlockCipherMode 分组密码模式
+// BlockCipherMode 标识 AES 等分组密码的工作模式。
 type BlockCipherMode uint8
 
 const (
-	BlockCipherMode_None BlockCipherMode = iota // 未设置
-	BlockCipherMode_CTR                         // CTR模式
-	BlockCipherMode_CBC                         // CBC模式
-	BlockCipherMode_CFB                         // CFB模式
-	BlockCipherMode_OFB                         // OFB模式
-	BlockCipherMode_GCM                         // GCM模式
+	// BlockCipherMode_None 表示未设置分组密码模式。
+	BlockCipherMode_None BlockCipherMode = iota
+	// BlockCipherMode_CTR 表示 CTR 模式。
+	BlockCipherMode_CTR
+	// BlockCipherMode_CBC 表示 CBC 模式。
+	BlockCipherMode_CBC
+	// BlockCipherMode_CFB 表示 CFB 模式。
+	BlockCipherMode_CFB
+	// BlockCipherMode_OFB 表示 OFB 模式。
+	BlockCipherMode_OFB
+	// BlockCipherMode_GCM 表示 GCM AEAD 模式。
+	BlockCipherMode_GCM
 )
 
-// ParseBlockCipherMode 解析配置字串
+// ParseBlockCipherMode 解析不区分大小写的分组密码模式名称。
 func ParseBlockCipherMode(str string) (BlockCipherMode, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -273,7 +296,7 @@ func ParseBlockCipherMode(str string) (BlockCipherMode, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的分组密码模式名称。
 func (bcm BlockCipherMode) String() string {
 	switch bcm {
 	case BlockCipherMode_CTR:
@@ -291,7 +314,7 @@ func (bcm BlockCipherMode) String() string {
 	}
 }
 
-// IV 是否需要iv，iv大小与加密算法的blocksize相同
+// IV 报告模式是否需要与密码块等长的初始化向量。
 func (bcm BlockCipherMode) IV() bool {
 	switch bcm {
 	case BlockCipherMode_CTR, BlockCipherMode_CBC, BlockCipherMode_CFB, BlockCipherMode_OFB:
@@ -301,7 +324,7 @@ func (bcm BlockCipherMode) IV() bool {
 	}
 }
 
-// Nonce 是否需要nonce，nonce大小与加密算法的blocksize相同
+// Nonce 报告模式是否需要 nonce。
 func (bcm BlockCipherMode) Nonce() bool {
 	switch bcm {
 	case BlockCipherMode_GCM:
@@ -311,7 +334,7 @@ func (bcm BlockCipherMode) Nonce() bool {
 	}
 }
 
-// Padding 是否需要分组对齐填充数据
+// Padding 报告模式是否要求负载按块大小填充。
 func (bcm BlockCipherMode) Padding() bool {
 	switch bcm {
 	case BlockCipherMode_CBC:
@@ -321,21 +344,29 @@ func (bcm BlockCipherMode) Padding() bool {
 	}
 }
 
-// Hash 摘要函数
+// Hash 标识摘要算法。
 type Hash uint8
 
 const (
-	Hash_None       Hash = iota // 未设置
-	Hash_SHA256                 // SHA-256算法
-	Hash_SHA384                 // SHA-384算法
-	Hash_SHA512                 // SHA-512算法
-	Hash_BLAKE2b256             // BLAKE2b-256算法
-	Hash_BLAKE2b384             // BLAKE2b-384算法
-	Hash_BLAKE2b512             // BLAKE2b-512算法
-	Hash_BLAKE2s256             // BLAKE2s-256算法
+	// Hash_None 表示不使用摘要算法。
+	Hash_None Hash = iota
+	// Hash_SHA256 表示 SHA-256。
+	Hash_SHA256
+	// Hash_SHA384 表示 SHA-384。
+	Hash_SHA384
+	// Hash_SHA512 表示 SHA-512。
+	Hash_SHA512
+	// Hash_BLAKE2b256 表示 BLAKE2b-256。
+	Hash_BLAKE2b256
+	// Hash_BLAKE2b384 表示 BLAKE2b-384。
+	Hash_BLAKE2b384
+	// Hash_BLAKE2b512 表示 BLAKE2b-512。
+	Hash_BLAKE2b512
+	// Hash_BLAKE2s256 表示 BLAKE2s-256。
+	Hash_BLAKE2s256
 )
 
-// ParseHash 解析配置字串
+// ParseHash 解析不区分大小写的摘要算法名称。
 func ParseHash(str string) (Hash, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -359,7 +390,7 @@ func ParseHash(str string) (Hash, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的摘要算法名称。
 func (h Hash) String() string {
 	switch h {
 	case Hash_SHA256:
@@ -381,18 +412,23 @@ func (h Hash) String() string {
 	}
 }
 
-// NamedCurve 曲线类型
+// NamedCurve 标识 ECDHE 或 ECDSA 使用的命名曲线。
 type NamedCurve uint8
 
 const (
-	NamedCurve_None   NamedCurve = iota // 未设置
-	NamedCurve_X25519                   // 曲线x25519
-	NamedCurve_P256                     // 曲线NIST-P256
-	NamedCurve_P384                     // 曲线NIST-P384
-	NamedCurve_P521                     // 曲线NIST-P521
+	// NamedCurve_None 表示未设置命名曲线。
+	NamedCurve_None NamedCurve = iota
+	// NamedCurve_X25519 表示 X25519。
+	NamedCurve_X25519
+	// NamedCurve_P256 表示 NIST P-256。
+	NamedCurve_P256
+	// NamedCurve_P384 表示 NIST P-384。
+	NamedCurve_P384
+	// NamedCurve_P521 表示 NIST P-521。
+	NamedCurve_P521
 )
 
-// ParseNamedCurve 解析配置字串
+// ParseNamedCurve 解析不区分大小写的命名曲线名称。
 func ParseNamedCurve(str string) (NamedCurve, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -410,7 +446,7 @@ func ParseNamedCurve(str string) (NamedCurve, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的命名曲线名称。
 func (nc NamedCurve) String() string {
 	switch nc {
 	case NamedCurve_X25519:
@@ -426,19 +462,25 @@ func (nc NamedCurve) String() string {
 	}
 }
 
-// Compression 压缩函数
+// Compression 标识负载压缩算法。
 type Compression uint8
 
 const (
-	Compression_None    Compression = iota // 未设置
-	Compression_Gzip                       // Gzip压缩算法
-	Compression_Deflate                    // Deflate压缩算法
-	Compression_Brotli                     // Brotli压缩算法
-	Compression_LZ4                        // LZ4压缩算法
-	Compression_Snappy                     // Snappy压缩算法
+	// Compression_None 表示不压缩负载。
+	Compression_None Compression = iota
+	// Compression_Gzip 表示 Gzip。
+	Compression_Gzip
+	// Compression_Deflate 表示 Deflate。
+	Compression_Deflate
+	// Compression_Brotli 表示 Brotli。
+	Compression_Brotli
+	// Compression_LZ4 表示 LZ4。
+	Compression_LZ4
+	// Compression_Snappy 表示 Snappy。
+	Compression_Snappy
 )
 
-// ParseCompression 解析配置字串
+// ParseCompression 解析不区分大小写的压缩算法名称。
 func ParseCompression(str string) (Compression, error) {
 	switch strings.ToLower(str) {
 	case "none":
@@ -458,7 +500,7 @@ func ParseCompression(str string) (Compression, error) {
 	}
 }
 
-// String implements fmt.Stringer
+// String 返回用于配置的压缩算法名称。
 func (c Compression) String() string {
 	switch c {
 	case Compression_Gzip:

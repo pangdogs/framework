@@ -27,6 +27,7 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
+// NewError 将普通 error 转换为可传输错误；nil 转换为成功结果。
 func NewError(err error) *Error {
 	if err == nil {
 		return &Error{}
@@ -40,6 +41,7 @@ func NewError(err error) *Error {
 	return varErr
 }
 
+// Errorf 创建带错误码和格式化消息的可传输错误。
 func Errorf(code int32, format string, args ...any) *Error {
 	return &Error{
 		Code:    code,
@@ -47,6 +49,7 @@ func Errorf(code int32, format string, args ...any) *Error {
 	}
 }
 
+// Errorln 创建带错误码和原始消息的可传输错误。
 func Errorln(code int32, message string) *Error {
 	return &Error{
 		Code:    code,
@@ -54,13 +57,13 @@ func Errorln(code int32, message string) *Error {
 	}
 }
 
-// Error builtin error
+// Error 是包含数值错误码和消息的可传输错误。
 type Error struct {
-	Code    int32
-	Message string
+	Code    int32  // 错误码；零表示成功。
+	Message string // 错误消息。
 }
 
-// Read implements io.Reader
+// Read 将错误编码到 p。
 func (v Error) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt32(v.Code); err != nil {
@@ -72,7 +75,7 @@ func (v Error) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码错误。
 func (v *Error) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -90,25 +93,27 @@ func (v *Error) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回错误编码后的字节数。
 func (v Error) Size() int {
 	return binaryutil.SizeofInt32 + binaryutil.SizeofString(v.Message)
 }
 
-// TypeId 类型
+// TypeId 返回错误的内置类型 ID。
 func (Error) TypeId() TypeId {
 	return TypeId_Error
 }
 
-// Indirect 原始值
+// Indirect 返回错误指针。
 func (v *Error) Indirect() any {
 	return v
 }
 
+// Error 返回包含错误码和消息的文本。
 func (v Error) Error() string {
 	return fmt.Sprintf("(%d) %s", v.Code, v.Message)
 }
 
+// OK 报告错误码是否为零。
 func (v Error) OK() bool {
 	return v.Code == 0
 }

@@ -27,7 +27,7 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// NewMapFromGoMap 创建map
+// NewMapFromGoMap 将 Go map 的键和值转换为动态值映射；迭代顺序不保证稳定。
 func NewMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	ret := Map{
 		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
@@ -50,7 +50,7 @@ func NewMapFromGoMap[K comparable, V any](m map[K]V) (Map, error) {
 	return ret, nil
 }
 
-// NewMapFromSliceMap 创建map
+// NewMapFromSliceMap 按 SliceMap 的顺序转换键值对。
 func NewMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, error) {
 	ret := Map{
 		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
@@ -75,7 +75,7 @@ func NewMapFromSliceMap[K cmp.Ordered, V any](m generic.SliceMap[K, V]) (Map, er
 	return ret, nil
 }
 
-// NewMapFromUnorderedSliceMap 创建map
+// NewMapFromUnorderedSliceMap 按当前存储顺序转换键值对。
 func NewMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMap[K, V]) (Map, error) {
 	ret := Map{
 		Entries: make(generic.UnorderedSliceMap[Variant, Variant], 0, len(m)),
@@ -100,12 +100,13 @@ func NewMapFromUnorderedSliceMap[K comparable, V any](m generic.UnorderedSliceMa
 	return ret, nil
 }
 
-// Map map
+// Map 以无序切片映射保存动态键值对。
 type Map struct {
+	// Entries 保存键值对，允许使用可比较的 Variant 作为键。
 	Entries generic.UnorderedSliceMap[Variant, Variant]
 }
 
-// Read implements io.Reader
+// Read 将动态值映射编码到 p。
 func (v Map) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -126,7 +127,7 @@ func (v Map) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码动态值映射。
 func (v *Map) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -151,7 +152,7 @@ func (v *Map) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回映射编码后的字节数。
 func (v Map) Size() int {
 	n := binaryutil.SizeofUvarint(uint64(v.Entries.Len()))
 	for i := range v.Entries {
@@ -162,12 +163,12 @@ func (v Map) Size() int {
 	return n
 }
 
-// TypeId 类型
+// TypeId 返回映射的内置类型 ID。
 func (Map) TypeId() TypeId {
 	return TypeId_Map
 }
 
-// Indirect 原始值
+// Indirect 返回映射值本身。
 func (v Map) Indirect() any {
 	return v
 }

@@ -32,21 +32,23 @@ import (
 )
 
 var (
-	ErrAuthenticate = errors.New("gtp-authenticate")                 // 认证错误
-	ErrInvalidMAC   = fmt.Errorf("%w: invalid MAC", ErrAuthenticate) // 错误的MAC
+	// ErrAuthenticate 是 GTP 消息认证错误的根错误。
+	ErrAuthenticate = errors.New("gtp-authenticate")
+	// ErrInvalidMAC 表示消息认证码校验失败。
+	ErrInvalidMAC = fmt.Errorf("%w: invalid MAC", ErrAuthenticate)
 )
 
-// IAuthentication 认证模块接口，用于防止消息被篡改
+// IAuthentication 为消息类型、标志位和消息体生成并验证认证码。
 type IAuthentication interface {
-	// Sign 签名
+	// Sign 包装消息体和认证码；返回的池化缓冲区由调用方释放。
 	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (signedBuf binaryutil.Bytes, err error)
-	// Auth 认证
+	// Auth 验证认证码并返回包装中的原始消息体。
 	Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (authBuf []byte, err error)
-	// SizeOfAddition 附加数据大小
+	// SizeOfAddition 返回认证包装相对原消息体增加的字节数。
 	SizeOfAddition(msgLen int) (size int, err error)
 }
 
-// NewAuthentication 创建认证模块
+// NewAuthentication 创建使用指定 HMAC 的消息认证模块；hmac 不得为 nil。
 func NewAuthentication(hmac hash.Hash) IAuthentication {
 	if hmac == nil {
 		exception.Panicf("%w: %w: HMAC is nil", ErrAuthenticate, core.ErrArgs)
@@ -57,13 +59,13 @@ func NewAuthentication(hmac hash.Hash) IAuthentication {
 	}
 }
 
-// Authentication 认证模块
+// Authentication 使用可复用的 HMAC 状态认证消息，不支持并发调用。
 type Authentication struct {
-	HMAC      hash.Hash
+	HMAC      hash.Hash // 消息认证使用的 HMAC。
 	hmacCache []byte
 }
 
-// Sign 签名
+// Sign 计算消息认证码并返回池化的 MsgSigned 编码。
 func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
 	if m.HMAC == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
@@ -93,7 +95,7 @@ func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	return signedBuf, nil
 }
 
-// Auth 认证
+// Auth 验证 MsgSigned 中的认证码，并返回引用 msgBuf 的原始消息体。
 func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
 	if m.HMAC == nil {
 		return nil, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
@@ -121,7 +123,7 @@ func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	return msgSigned.Data, nil
 }
 
-// SizeOfAddition 附加数据大小
+// SizeOfAddition 返回 MsgSigned 编码相对原消息体增加的字节数。
 func (m *Authentication) SizeOfAddition(msgLen int) (int, error) {
 	if m.HMAC == nil {
 		return 0, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)

@@ -23,13 +23,13 @@ import (
 	"io"
 )
 
-// SerializedMsg 已序列化消息
+// SerializedMsg 将已有字节切片作为 GAP 消息体发送，不复制 Data。
 type SerializedMsg struct {
-	Id   MsgId  // 消息Id
-	Data []byte // 消息内容（引用）
+	Id   MsgId  // 消息类型 ID。
+	Data []byte // 已编码消息体；由调用方维护其生命周期。
 }
 
-// Read implements io.Reader
+// Read 将已编码消息体复制到 p。
 func (m SerializedMsg) Read(p []byte) (int, error) {
 	if len(p) < len(m.Data) {
 		return 0, io.ErrShortWrite
@@ -37,12 +37,12 @@ func (m SerializedMsg) Read(p []byte) (int, error) {
 	return copy(p, m.Data), io.EOF
 }
 
-// Size 大小
+// Size 返回已编码消息体的字节数。
 func (m SerializedMsg) Size() int {
 	return len(m.Data)
 }
 
-// MsgId 消息Id
+// MsgId 返回消息类型 ID。
 func (m SerializedMsg) MsgId() MsgId {
 	return m.Id
 }

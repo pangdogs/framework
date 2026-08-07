@@ -62,12 +62,12 @@ type _EtcdSyncMutex struct {
 	locked  atomic.Bool
 }
 
-// Name 名称
+// Name 返回不含 ETCD 键前缀的逻辑锁名称。
 func (m *_EtcdSyncMutex) Name() string {
 	return strings.TrimPrefix(m.name, m.dsync.options.KeyPrefix)
 }
 
-// UID 唯一ID
+// UID 返回当前 ETCD session 的租约 ID；尚未创建 session 时返回空字符串。
 func (m *_EtcdSyncMutex) UID() string {
 	if m.session == nil {
 		return ""
@@ -75,13 +75,13 @@ func (m *_EtcdSyncMutex) UID() string {
 	return strconv.Itoa(int(m.session.Lease()))
 }
 
-// Until 返回锁的有效期结束时间
+// Until 返回零值时间；ETCD 实现不提供本地租约截止时间。
 func (m *_EtcdSyncMutex) Until() time.Time {
 	log.L(m.dsync.svcCtx).Error("etcd mutex does not support retrieving the lock's expiration time")
 	return time.Time{}
 }
 
-// TryLock 尝试加锁，支持错误重试
+// TryLock 创建租约并尝试一次非阻塞加锁；当前句柄已在加锁时返回 ErrAlreadyAcquired。
 func (m *_EtcdSyncMutex) TryLock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -120,7 +120,7 @@ func (m *_EtcdSyncMutex) TryLock(ctx context.Context) error {
 	return nil
 }
 
-// Lock 加锁，支持错误重试
+// Lock 创建租约并等待获取锁，等待时间最多为配置的 Expiry。
 func (m *_EtcdSyncMutex) Lock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -162,7 +162,7 @@ func (m *_EtcdSyncMutex) Lock(ctx context.Context) error {
 	return nil
 }
 
-// Unlock 解锁
+// Unlock 释放 ETCD 锁并关闭租约 session；当前句柄未持锁时返回 ErrNotAcquired。
 func (m *_EtcdSyncMutex) Unlock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -187,7 +187,7 @@ func (m *_EtcdSyncMutex) Unlock(ctx context.Context) error {
 	return nil
 }
 
-// Extend 延长锁的过期时间
+// Extend 始终返回不支持错误；ETCD session 会自行保持租约，无需手动续期。
 func (m *_EtcdSyncMutex) Extend(ctx context.Context) error {
 	log.L(m.dsync.svcCtx).Error("etcd mutex does not support extending the lock's expiration time")
 	return errors.New("dsync: not supported")

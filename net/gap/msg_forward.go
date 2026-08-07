@@ -25,16 +25,16 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgForward 转发
+// MsgForward 将一个已编码 GAP 消息路由到目标地址。
 type MsgForward struct {
-	Src       Origin // 源信息
-	Dst       string // 目标地址
-	CorrId    int64  // 关联Id，用于支持Future等异步模型
-	TransId   MsgId  // 传输消息Id
-	TransData []byte // 传输消息内容（引用）
+	Src       Origin // 原始消息来源。
+	Dst       string // 目标通信地址。
+	CorrId    int64  // 请求关联 ID；无需关联时为零。
+	TransId   MsgId  // 被转发消息的类型 ID。
+	TransData []byte // 被转发消息的已编码内容；解码时引用输入缓冲区。
 }
 
-// Read implements io.Reader
+// Read 将转发消息编码到 p。
 func (m MsgForward) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if _, err := binaryutil.CopyToByteStream(&bs, m.Src); err != nil {
@@ -55,7 +55,7 @@ func (m MsgForward) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码转发消息。
 func (m *MsgForward) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -88,12 +88,12 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回转发消息编码后的字节数。
 func (m MsgForward) Size() int {
 	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32 + binaryutil.SizeofBytes(m.TransData)
 }
 
-// MsgId 消息Id
+// MsgId 返回转发消息的内置类型 ID。
 func (MsgForward) MsgId() MsgId {
 	return MsgId_Forward
 }

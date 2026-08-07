@@ -38,11 +38,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// ISQLDB 按 tag 提供已连接的 GORM 数据库及其反射值。
 type ISQLDB interface {
+	// DB 返回 tag 对应的数据库；不存在时返回 nil。
 	DB(tag string) *gorm.DB
+	// ReflectedDB 返回 tag 对应数据库的反射值；不存在时返回无效值。
 	ReflectedDB(tag string) reflect.Value
 }
 
+// DB 返回 svcCtx 中 SQL add-in 按 tag 注册的数据库；add-in 未安装时会 panic。
 func DB(svcCtx service.Context, tag string) *gorm.DB {
 	return AddIn.Require(svcCtx).DB(tag)
 }

@@ -21,30 +21,30 @@ package variant
 
 import "io"
 
-// Null builtin null
+// Null 是不携带负载的 GAP 空值。
 type Null struct{}
 
-// Read implements io.Reader
+// Read 不写入数据并立即结束。
 func (Null) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
-// Write implements io.Writer
+// Write 不读取数据。
 func (Null) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
-// Size 大小
+// Size 始终返回零。
 func (Null) Size() int {
 	return 0
 }
 
-// TypeId 类型
+// TypeId 返回空值的内置类型 ID。
 func (Null) TypeId() TypeId {
 	return TypeId_Null
 }
 
-// Indirect 原始值
+// Indirect 返回 nil。
 func (Null) Indirect() any {
 	return nil
 }

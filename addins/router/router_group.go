@@ -36,7 +36,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// AddGroup 创建路由组
+// AddGroup 以不少于三秒的 ETCD 租约原子创建路由组及初始成员索引。
+// 同名组已存在时返回 ErrGroupExists。
 func (r *_Router) AddGroup(ctx context.Context, name string, ids []uid.Id, ttl time.Duration) (IGroup, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -120,7 +121,7 @@ func (r *_Router) AddGroup(ctx context.Context, name string, ids []uid.Id, ttl t
 	return group, nil
 }
 
-// DeleteGroup 删除路由组
+// DeleteGroup 撤销 name 对应组的租约；组不存在或后端失败时仅记录日志。
 func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -182,12 +183,12 @@ func (r *_Router) DeleteGroup(ctx context.Context, name string) {
 		zap.Int64("lease_id", int64(leaseId)))
 }
 
-// GetGroupByName 使用名称查询路由组
+// GetGroupByName 按逻辑名称查询并缓存路由组；后端错误与不存在均返回 false。
 func (r *_Router) GetGroupByName(ctx context.Context, name string) (IGroup, bool) {
 	return r.getGroupByName(ctx, name)
 }
 
-// GetGroupByAddr 使用地址查询路由组
+// GetGroupByAddr 校验客户端组播地址后查询并缓存路由组。
 func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool) {
 	name, ok := gate.ClientDetails.DomainMulticast.Relative(addr)
 	if !ok {
@@ -196,7 +197,7 @@ func (r *_Router) GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool
 	return r.getGroupByName(ctx, name)
 }
 
-// GetGroupsByEntity 查询实体所属的所有路由组
+// GetGroupsByEntity 返回实体当前所属且仍可查询到的路由组快照。
 func (r *_Router) GetGroupsByEntity(ctx context.Context, entityId uid.Id) []IGroup {
 	if ctx == nil {
 		ctx = context.Background()

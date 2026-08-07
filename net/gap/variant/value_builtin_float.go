@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Float builtin float
+// Float 是 GAP 的 float32 动态值。
 type Float float32
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Float) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteFloat(float32(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Float) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Float) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadFloat()
@@ -48,17 +48,17 @@ func (v *Float) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (Float) Size() int {
 	return binaryutil.SizeofFloat
 }
 
-// TypeId 类型
+// TypeId 返回 float32 的内置类型 ID。
 func (Float) TypeId() TypeId {
 	return TypeId_Float
 }
 
-// Indirect 原始值
+// Indirect 返回 float32。
 func (v Float) Indirect() any {
 	return float32(v)
 }

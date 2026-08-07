@@ -30,12 +30,13 @@ import (
 )
 
 var (
-	ErrDecode = errors.New("gap-decode") // 解码错误
+	// ErrDecode 是 GAP 消息包解码错误的根错误。
+	ErrDecode = errors.New("gap-decode")
 )
 
 var decoder = &Decoder{MsgCreator: gap.DefaultMsgCreator()}
 
-// NewDecoder 创建消息包解码器
+// NewDecoder 创建使用指定消息构建器的解码器；构建器不得为 nil。
 func NewDecoder(msgCreator gap.IMsgCreator) *Decoder {
 	if msgCreator == nil {
 		exception.Panicf("%w: %w: msgCreator is nil", ErrDecode, core.ErrArgs)
@@ -48,12 +49,12 @@ func NewDecoder(msgCreator gap.IMsgCreator) *Decoder {
 	}
 }
 
-// Decoder 消息包解码器
+// Decoder 根据消息头中的类型 ID 构造并解码消息体。
 type Decoder struct {
-	MsgCreator gap.IMsgCreator // 消息对象构建器
+	MsgCreator gap.IMsgCreator // 用于构造消息体的消息构建器。
 }
 
-// Decode 解码消息包
+// Decode 从 data 解码一个消息包；消息字段可能直接引用 data，调用方不得提前复用它。
 func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 	if d.MsgCreator == nil {
 		return gap.MsgPacket{}, fmt.Errorf("%w: MsgCreator is nil", ErrDecode)
@@ -61,7 +62,7 @@ func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 
 	mp := gap.MsgPacket{}
 
-	// 读取消息头
+	// 先解析消息头，以确定消息类型和完整包长。
 	n, err := mp.Head.Write(data)
 	if err != nil {
 		return gap.MsgPacket{}, fmt.Errorf("%w: read msg-packet-head failed, %w", ErrDecode, err)
@@ -71,13 +72,13 @@ func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 		return gap.MsgPacket{}, fmt.Errorf("%w: %w (%d < %d)", ErrDecode, io.ErrShortBuffer, len(data), mp.Head.Len)
 	}
 
-	// 创建消息体
+	// 按消息类型构造具体消息；未知类型由 MsgCreator 返回错误。
 	msg, err := d.MsgCreator.New(mp.Head.MsgId)
 	if err != nil {
 		return gap.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgId)
 	}
 
-	// 读取消息
+	// 消息的 Write 直接接收输入子切片，引用型字段可能与 data 共享底层存储。
 	if _, err = msg.Write(data[n:]); err != nil {
 		return gap.MsgPacket{}, fmt.Errorf("%w: read msg failed, %w", ErrDecode, err)
 	}

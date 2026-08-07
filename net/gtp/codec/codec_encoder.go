@@ -29,42 +29,43 @@ import (
 )
 
 var (
-	ErrEncode = errors.New("gtp-encode") // 编码错误
+	// ErrEncode 是 GTP 消息包编码错误的根错误。
+	ErrEncode = errors.New("gtp-encode")
 )
 
-// NewEncoder 创建消息包编码器
+// NewEncoder 创建未配置加密、认证和压缩模块的消息包编码器。
 func NewEncoder() *Encoder {
 	return &Encoder{}
 }
 
-// Encoder 消息包编码器
+// Encoder 按“压缩、认证、加密”的顺序编码 GTP 消息包。
 type Encoder struct {
-	Encryption           IEncryption     // 加密模块
-	Authentication       IAuthentication // 认证模块
-	Compression          ICompression    // 压缩模块
-	CompressionThreshold int             // 启用压缩阀值（字节），<=0表示不开启
+	Encryption           IEncryption     // 可选的加密模块。
+	Authentication       IAuthentication // 可选的消息认证模块；仅在启用加密时使用。
+	Compression          ICompression    // 可选的压缩模块。
+	CompressionThreshold int             // 启用压缩的字节阈值；小于等于零时禁用压缩。
 }
 
-// SetEncryption 设置加密模块
+// SetEncryption 设置加密模块；应在开始并发编码前完成配置。
 func (e *Encoder) SetEncryption(encryption IEncryption) *Encoder {
 	e.Encryption = encryption
 	return e
 }
 
-// SetAuthentication 设置认证模块
+// SetAuthentication 设置消息认证模块；应在开始并发编码前完成配置。
 func (e *Encoder) SetAuthentication(authentication IAuthentication) *Encoder {
 	e.Authentication = authentication
 	return e
 }
 
-// SetCompression 设置压缩模块
+// SetCompression 设置压缩模块和启用压缩的字节阈值。
 func (e *Encoder) SetCompression(compression ICompression, compressionThreshold int) *Encoder {
 	e.Compression = compression
 	e.CompressionThreshold = compressionThreshold
 	return e
 }
 
-// Encode 编码消息包
+// Encode 编码消息包并返回池化字节缓冲区；调用方使用完后必须调用 Release。
 func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes, error) {
 	if msg == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)
@@ -77,7 +78,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes
 		Setd(gtp.Flag_Signed, false).
 		Setd(gtp.Flag_Compressed, false)
 
-	// 预估追加的数据大小，因为后续数据可能会被压缩，所以此为评估值，只要保证不会内存溢出即可
+	// 压缩后长度未知，这里只预留认证和加密可能增加的空间。
 	msgAddition := 0
 
 	if e.Encryption != nil {
@@ -106,7 +107,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes
 	}
 	end := head.Size() + int(mn)
 
-	// 消息长度达到阀值，需要压缩消息
+	// 仅在达到阈值且压缩后确实更小时使用压缩结果。
 	if e.Compression != nil && e.CompressionThreshold > 0 && msg.Size() >= e.CompressionThreshold {
 		compressedBuf, compressed, err := e.Compression.Compress(buf.Payload()[head.Size():end])
 		if err != nil {
@@ -161,7 +162,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes
 		encryptBuf.Release()
 	}
 
-	// 调整消息大小
+	// 收缩到最终消息长度。
 	buf = buf.Slice(0, end)
 
 	// 写入消息头

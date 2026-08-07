@@ -38,7 +38,8 @@ var (
 	cache atomic.Pointer[map[uint32]*_Cached]
 )
 
-// Cache using Hash-based Transmission to reduce network transmission overhead
+// Cache 缓存脚本名和方法名，并返回用于压缩调用路径的 FNV-1a 索引。
+// 同一索引对应不同调用路径时 panic；调用双方必须预先缓存一致的条目。
 func Cache(script, method string) uint32 {
 	hash := fnv.New32a()
 

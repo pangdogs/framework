@@ -29,10 +29,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// TypeId 类型Id
+// TypeId 标识 GAP 动态值的具体类型。
 type TypeId uint32
 
-// Read implements io.Reader
+// Read 将类型 ID 编码到 p。
 func (t TypeId) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(uint32(t)); err != nil {
@@ -41,7 +41,7 @@ func (t TypeId) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码类型 ID。
 func (t *TypeId) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -54,22 +54,22 @@ func (t *TypeId) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回类型 ID 的固定编码字节数。
 func (t TypeId) Size() int {
 	return binaryutil.SizeofUint32
 }
 
-// New 创建对象指针
+// New 使用进程级类型构建器创建此类型的新值。
 func (t TypeId) New() (Value, error) {
 	return variantCreator.New(t)
 }
 
-// NewReflected 创建反射对象指针
+// NewReflected 使用进程级类型构建器创建此类型的新反射值。
 func (t TypeId) NewReflected() (reflect.Value, error) {
 	return variantCreator.NewReflected(t)
 }
 
-// GenTypeId 生成类型Id
+// GenTypeId 根据具名 Value 类型的完整名称生成自定义类型 ID。
 func GenTypeId(v any) TypeId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
@@ -80,7 +80,7 @@ func GenTypeId(v any) TypeId {
 	return TypeId(TypeId_Customize + hash.Sum32())
 }
 
-// GenTypeIdT 生成类型Id
+// GenTypeIdT 根据具名类型 T 的完整名称生成自定义类型 ID；*T 必须实现 Value。
 func GenTypeIdT[T any]() TypeId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()

@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Bytes bytes
+// Bytes 是 GAP 的字节切片动态值。
 type Bytes []byte
 
-// Read implements io.Reader
+// Read 将长度前缀和字节内容编码到 p。
 func (v Bytes) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(v); err != nil {
@@ -37,7 +37,7 @@ func (v Bytes) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码并复制字节内容。
 func (v *Bytes) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadBytes()
@@ -48,17 +48,17 @@ func (v *Bytes) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回长度前缀和内容的总字节数。
 func (v Bytes) Size() int {
 	return binaryutil.SizeofBytes(v)
 }
 
-// TypeId 类型
+// TypeId 返回字节切片的内置类型 ID。
 func (Bytes) TypeId() TypeId {
 	return TypeId_Bytes
 }
 
-// Indirect 原始值
+// Indirect 返回底层字节切片，不执行复制。
 func (v Bytes) Indirect() any {
 	return []byte(v)
 }

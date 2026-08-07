@@ -28,22 +28,23 @@ import (
 	"git.golaxy.org/framework/net/gap"
 )
 
-// DistServiceOptions 所有选项
+// DistServiceOptions 配置分布式服务的节点信息、地址空间及消息处理容量。
 type DistServiceOptions struct {
-	Version           string            // 服务版本号
-	Meta              map[string]string // 服务元数据，以键值对的形式保存附加信息
-	DomainRoot        string            // 服务地址根域
-	RegistrationTTL   time.Duration     // 服务注册信息TTL
-	FutureTimeout     time.Duration     // 异步模型Future超时时间
-	ListenerInboxSize int               // 消息监听器的inbox缓存大小
-	MsgCreator        gap.IMsgCreator   // 消息包解码器的消息构建器
+	Version           string            // Version 是对外发布的服务版本。
+	Meta              map[string]string // Meta 是对外发布的服务节点元数据。
+	DomainRoot        string            // DomainRoot 是消息地址空间的根域。
+	RegistrationTTL   time.Duration     // RegistrationTTL 是服务发现注册租约的有效期。
+	FutureTimeout     time.Duration     // FutureTimeout 是请求等待响应的默认超时。
+	ListenerInboxSize int               // ListenerInboxSize 是每个消息监听器的收件箱容量。
+	MsgCreator        gap.IMsgCreator   // MsgCreator 用于按消息 ID 创建解码目标。
 }
 
+// With 提供分布式服务 add-in 的 Option 构造方法。
 var With _DistServiceOption
 
 type _DistServiceOption struct{}
 
-// Default 默认值
+// Default 返回 svc 根域、30 秒注册租约、5 秒 Future 超时和默认 GAP 消息构建器。
 func (_DistServiceOption) Default() option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		With.Version("").Apply(options)
@@ -56,28 +57,28 @@ func (_DistServiceOption) Default() option.Setting[DistServiceOptions] {
 	}
 }
 
-// Version 服务版本号
+// Version 设置对外发布的服务版本。
 func (_DistServiceOption) Version(version string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.Version = version
 	}
 }
 
-// Meta 服务元数据，以键值对的形式保存附加信息
+// Meta 设置对外发布的服务节点元数据；map 不会复制。
 func (_DistServiceOption) Meta(meta map[string]string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.Meta = meta
 	}
 }
 
-// DomainRoot 服务地址根域
+// DomainRoot 设置消息地址空间的根域。
 func (_DistServiceOption) DomainRoot(path string) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		options.DomainRoot = path
 	}
 }
 
-// RegistrationTTL 服务注册信息TTL
+// RegistrationTTL 设置服务发现注册租约有效期，必须不少于三秒。
 func (_DistServiceOption) RegistrationTTL(ttl time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if ttl < 3*time.Second {
@@ -87,7 +88,7 @@ func (_DistServiceOption) RegistrationTTL(ttl time.Duration) option.Setting[Dist
 	}
 }
 
-// FutureTimeout 异步模型Future超时时间
+// FutureTimeout 设置请求 Future 的默认超时，必须不少于 300 毫秒。
 func (_DistServiceOption) FutureTimeout(d time.Duration) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if d < 300*time.Millisecond {
@@ -97,7 +98,7 @@ func (_DistServiceOption) FutureTimeout(d time.Duration) option.Setting[DistServ
 	}
 }
 
-// ListenerInboxSize 消息监听器的inbox缓存大小
+// ListenerInboxSize 设置每个消息监听器的收件箱容量，必须大于 0。
 func (_DistServiceOption) ListenerInboxSize(size int) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if size <= 0 {
@@ -107,7 +108,7 @@ func (_DistServiceOption) ListenerInboxSize(size int) option.Setting[DistService
 	}
 }
 
-// MsgCreator 消息包解码器的消息构建器
+// MsgCreator 设置 GAP 消息构建器，不得为 nil。
 func (_DistServiceOption) MsgCreator(mc gap.IMsgCreator) option.Setting[DistServiceOptions] {
 	return func(options *DistServiceOptions) {
 		if mc == nil {

@@ -29,6 +29,7 @@ func init() {
 	cacheCallPath("", reflect.TypeFor[*EntityBehavior]())
 }
 
+// cacheCallPath 为类型的全部导出方法预注册压缩调用路径。
 func cacheCallPath(script string, rt reflect.Type) {
 	if rt == nil {
 		return

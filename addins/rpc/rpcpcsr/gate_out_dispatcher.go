@@ -30,6 +30,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// handleServiceMsg 接受服务域发往客户端域的转出消息。
 func (p *_GateProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
@@ -45,6 +46,7 @@ func (p *_GateProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 
 }
 
+// acceptOutbound 将单播消息投递到映射会话，将组播消息投递到路由组。
 func (p *_GateProcessor) acceptOutbound(src gap.Origin, req *gap.MsgForward) {
 	// 目标为单播地址，向对端发送消息
 	if entityId, ok := gate.ClientDetails.DomainUnicast.Relative(req.Dst); ok {
@@ -106,6 +108,7 @@ func (p *_GateProcessor) acceptOutbound(src gap.Origin, req *gap.MsgForward) {
 	p.finishOutbound(src.Addr, req.Dst, req.CorrId, ErrIncorrectDestAddress, req.TransId == gap.MsgId_RPC_Request)
 }
 
+// finishOutbound 记录转发结果，并在请求转发失败时向来源服务回复拒绝错误。
 func (p *_GateProcessor) finishOutbound(src, dst string, corrId int64, err error, replyReject bool) {
 	if err == nil {
 		log.L(p.svcCtx).Debug("outbound rpc request/notify/reply forwarded",
@@ -124,6 +127,7 @@ func (p *_GateProcessor) finishOutbound(src, dst string, corrId int64, err error
 	}
 }
 
+// rejectOutbound 将出站请求失败转换为 RPC 响应并发送给来源服务。
 func (p *_GateProcessor) rejectOutbound(src string, corrId int64, rejectedErr error) {
 	if corrId == 0 || rejectedErr == nil {
 		return

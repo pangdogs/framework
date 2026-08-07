@@ -31,21 +31,21 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// DistEntityRegistryOptions 所有选项
+// DistEntityRegistryOptions 配置分布式实体注册端的 ETCD 连接与租约。
 type DistEntityRegistryOptions struct {
-	EtcdClient      *clientv3.Client
-	EtcdConfig      *clientv3.Config
-	KeyPrefix       string
-	RegistrationTTL time.Duration
-	CustomUsername  string
-	CustomPassword  string
-	CustomAddresses []string
-	CustomTLSConfig *tls.Config
+	EtcdClient      *clientv3.Client // EtcdClient 非 nil 时直接复用，停止时不会关闭它。
+	EtcdConfig      *clientv3.Config // EtcdConfig 在未提供客户端时优先于 Custom 字段。
+	KeyPrefix       string           // KeyPrefix 是所有实体注册键的公共前缀。
+	RegistrationTTL time.Duration    // RegistrationTTL 是实体注册租约的有效期。
+	CustomUsername  string           // CustomUsername 是自行构造客户端时使用的用户名。
+	CustomPassword  string           // CustomPassword 是自行构造客户端时使用的密码。
+	CustomAddresses []string         // CustomAddresses 是自行构造客户端时使用的端点。
+	CustomTLSConfig *tls.Config      // CustomTLSConfig 是自行构造客户端时使用的 TLS 配置。
 }
 
 type _DistEntityRegistryOption struct{}
 
-// Default 默认值
+// Default 返回使用本地 ETCD 端点、/golaxy/dent/ 键前缀和一分钟租约的默认设置。
 func (_DistEntityRegistryOption) Default() option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		With.Registry.EtcdClient(nil).Apply(options)
@@ -58,21 +58,21 @@ func (_DistEntityRegistryOption) Default() option.Setting[DistEntityRegistryOpti
 	}
 }
 
-// EtcdClient etcd客户端，最优先使用
+// EtcdClient 设置要复用的 ETCD 客户端，其优先级最高。
 func (_DistEntityRegistryOption) EtcdClient(cli *clientv3.Client) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		options.EtcdClient = cli
 	}
 }
 
-// EtcdConfig etcd配置，次优先使用
+// EtcdConfig 设置创建 ETCD 客户端时使用的完整配置，其优先级次于 EtcdClient。
 func (_DistEntityRegistryOption) EtcdConfig(config *clientv3.Config) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		options.EtcdConfig = config
 	}
 }
 
-// KeyPrefix 所有key的前缀
+// KeyPrefix 设置实体注册键前缀；非空值会自动补充末尾斜杠。
 func (_DistEntityRegistryOption) KeyPrefix(prefix string) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
@@ -82,7 +82,7 @@ func (_DistEntityRegistryOption) KeyPrefix(prefix string) option.Setting[DistEnt
 	}
 }
 
-// RegistrationTTL 注册实体信息TTL
+// RegistrationTTL 设置实体注册租约有效期，必须不少于三秒。
 func (_DistEntityRegistryOption) RegistrationTTL(ttl time.Duration) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		if ttl < 3*time.Second {
@@ -92,7 +92,7 @@ func (_DistEntityRegistryOption) RegistrationTTL(ttl time.Duration) option.Setti
 	}
 }
 
-// CustomAuth 自定义设置etcd鉴权信息
+// CustomAuth 设置自行构造 ETCD 客户端时使用的用户名和密码。
 func (_DistEntityRegistryOption) CustomAuth(username, password string) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		options.CustomUsername = username
@@ -100,7 +100,7 @@ func (_DistEntityRegistryOption) CustomAuth(username, password string) option.Se
 	}
 }
 
-// CustomAddresses 自定义设置etcd服务地址
+// CustomAddresses 设置自行构造 ETCD 客户端时使用的端点，并校验 host:port 格式。
 func (_DistEntityRegistryOption) CustomAddresses(addrs ...string) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		for _, addr := range addrs {
@@ -112,7 +112,7 @@ func (_DistEntityRegistryOption) CustomAddresses(addrs ...string) option.Setting
 	}
 }
 
-// CustomTLSConfig 自定义设置加密etcd连接的配置
+// CustomTLSConfig 设置自行构造 ETCD 客户端时使用的 TLS 配置。
 func (_DistEntityRegistryOption) CustomTLSConfig(conf *tls.Config) option.Setting[DistEntityRegistryOptions] {
 	return func(options *DistEntityRegistryOptions) {
 		options.CustomTLSConfig = conf

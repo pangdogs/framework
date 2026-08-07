@@ -26,14 +26,14 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgOnewayRPC 单程RPC请求
+// MsgOnewayRPC 表示无需响应的 RPC 通知。
 type MsgOnewayRPC struct {
-	CallChain variant.CallChain // 调用链
-	Path      []byte            // 调用路径
-	Args      variant.Array     // 参数列表
+	CallChain variant.CallChain // 调用来源链。
+	Path      []byte            // 已编码调用路径；解码时引用输入缓冲区。
+	Args      variant.Array     // 调用参数。
 }
 
-// Read implements io.Reader
+// Read 将 RPC 通知编码到 p。
 func (m MsgOnewayRPC) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if _, err := binaryutil.CopyToByteStream(&bs, m.CallChain); err != nil {
@@ -48,7 +48,7 @@ func (m MsgOnewayRPC) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码 RPC 通知。
 func (m *MsgOnewayRPC) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -69,12 +69,12 @@ func (m *MsgOnewayRPC) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回 RPC 通知编码后的字节数。
 func (m MsgOnewayRPC) Size() int {
 	return m.CallChain.Size() + binaryutil.SizeofBytes(m.Path) + m.Args.Size()
 }
 
-// MsgId 消息Id
+// MsgId 返回单向 RPC 消息的内置类型 ID。
 func (MsgOnewayRPC) MsgId() MsgId {
 	return MsgId_OnewayRPC
 }

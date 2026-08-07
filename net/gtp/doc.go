@@ -17,7 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-// Package gtp defines the Golaxy Transfer Protocol.
+// Package gtp 定义 Golaxy 传输协议（Golaxy Transfer Protocol）。
 //
 // GTP 面向长连接和实时通信场景，运行在 TCP 或 WebSocket 之上，负责提供：
 //   - 握手协商、链路鉴权与可选的数据加密

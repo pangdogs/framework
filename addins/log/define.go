@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是可安装到 service 或 runtime 的日志 add-in 入口。
 	AddIn = define.AddIn(newLogger)
 )

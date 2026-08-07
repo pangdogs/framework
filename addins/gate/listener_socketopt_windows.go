@@ -28,6 +28,7 @@ import (
 	"git.golaxy.org/core/utils/types"
 )
 
+// newListenConfig 创建尝试在新 socket 上应用可选 TCP 参数的 Windows 监听配置。
 func newListenConfig(options *GateOptions) *net.ListenConfig {
 	var noDelay *int
 	if options.TCPNoDelay != nil {

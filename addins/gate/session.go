@@ -35,47 +35,53 @@ import (
 	"go.uber.org/zap"
 )
 
-// SessionState 客户端会话状态
+// SessionState 表示服务端会话从建立到过期的当前阶段。
 type SessionState int32
 
 const (
-	SessionState_Birth     SessionState = iota // 出生
-	SessionState_Confirmed                     // 已确认客户端连接
-	SessionState_Active                        // 客户端活跃
-	SessionState_Inactive                      // 客户端不活跃，等待重连中
-	SessionState_Death                         // 已过期
+	// SessionState_Birth 表示会话已创建但握手尚未确认。
+	SessionState_Birth SessionState = iota
+	// SessionState_Confirmed 表示客户端身份与连接已经确认。
+	SessionState_Confirmed
+	// SessionState_Active 表示会话连接当前可用。
+	SessionState_Active
+	// SessionState_Inactive 表示连接中断，正在等待迁移重连。
+	SessionState_Inactive
+	// SessionState_Death 表示会话已关闭并从 gate 删除。
+	SessionState_Death
 )
 
-// NetAddr 网络地址
+// NetAddr 保存会话当前连接的本地与对端地址快照。
 type NetAddr struct {
-	Local, Remote net.Addr
+	Local, Remote net.Addr // Local 是服务端地址，Remote 是客户端地址。
 }
 
-// ISession 会话
+// ISession 表示可迁移连接的已鉴权客户端会话。
+// 会话上下文在 Close 时取消；查询和 I/O 门面可被多个 goroutine 使用。
 type ISession interface {
 	context.Context
 	fmt.Stringer
-	// Id 获取会话Id
+	// Id 返回服务端分配的会话 ID。
 	Id() uid.Id
-	// UserId 获取鉴权用户Id
+	// UserId 返回客户端提交的鉴权用户 ID。
 	UserId() string
-	// Token 获取鉴权token
+	// Token 返回客户端提交的鉴权令牌。
 	Token() string
-	// Extensions 获取鉴权扩展数据
+	// Extensions 返回客户端提交的鉴权扩展数据；调用方不得修改。
 	Extensions() []byte
-	// State 获取会话状态
+	// State 返回当前会话状态。
 	State() SessionState
-	// NetAddr 获取网络地址
+	// NetAddr 返回当前连接地址快照；连接迁移后会变化。
 	NetAddr() NetAddr
-	// Migrations 获取会话连接迁移次数
+	// Migrations 返回连接成功迁移的累计次数。
 	Migrations() int64
-	// DataIO 获取数据IO
+	// DataIO 返回原始负载 I/O 门面。
 	DataIO() IDataIO
-	// EventIO 获取事件IO
+	// EventIO 返回 GTP 事件 I/O 门面。
 	EventIO() IEventIO
-	// Close 关闭
+	// Close 请求以 err 为原因关闭会话，并返回关闭完成的 Future。
 	Close(err error) async.Future
-	// Closed 已关闭
+	// Closed 返回会话关闭完成时完成的 Future。
 	Closed() async.Future
 }
 
@@ -102,7 +108,7 @@ type _Session struct {
 	stringerCache   string
 }
 
-// String implements fmt.Stringer
+// String 返回包含会话 ID 和鉴权用户 ID 的缓存 JSON 文本。
 func (s *_Session) String() string {
 	s.stringerOnce.Do(func() {
 		s.stringerCache = fmt.Sprintf(`{"id":%q,"user_id":%q}`, s.Id(), s.UserId())
@@ -110,68 +116,68 @@ func (s *_Session) String() string {
 	return s.stringerCache
 }
 
-// Id 获取会话Id
+// Id 返回服务端分配的会话 ID。
 func (s *_Session) Id() uid.Id {
 	return s.id
 }
 
-// UserId 获取鉴权用户Id
+// UserId 返回客户端提交的鉴权用户 ID。
 func (s *_Session) UserId() string {
 	return s.userId
 }
 
-// Token 获取鉴权token
+// Token 返回客户端提交的鉴权令牌。
 func (s *_Session) Token() string {
 	return s.token
 }
 
-// Extensions 获取鉴权扩展数据
+// Extensions 返回客户端提交的鉴权扩展数据；调用方不得修改返回切片。
 func (s *_Session) Extensions() []byte {
 	return s.extensions
 }
 
-// State 获取会话状态
+// State 返回当前会话状态。
 func (s *_Session) State() SessionState {
 	return SessionState(s.state.Load())
 }
 
-// NetAddr 获取网络地址
+// NetAddr 返回当前连接地址快照；连接迁移后会变化。
 func (s *_Session) NetAddr() NetAddr {
 	return *s.netAddr.Load()
 }
 
-// Migrations 获取会话连接迁移次数
+// Migrations 返回连接成功迁移的累计次数。
 func (s *_Session) Migrations() int64 {
 	return s.migrations.Load()
 }
 
-// DataIO 获取数据IO
+// DataIO 返回原始负载 I/O 门面。
 func (s *_Session) DataIO() IDataIO {
 	return (*_SessionDataIO)(&s.io)
 }
 
-// EventIO 获取事件IO
+// EventIO 返回 GTP 事件 I/O 门面。
 func (s *_Session) EventIO() IEventIO {
 	return (*_SessionEventIO)(&s.io)
 }
 
-// Close 关闭
+// Close 请求以 err 为原因关闭会话，并返回关闭完成的 Future。
 func (s *_Session) Close(err error) async.Future {
 	s.close(err)
 	return s.closed.Out()
 }
 
-// Closed 已关闭
+// Closed 返回会话关闭完成时完成的 Future。
 func (s *_Session) Closed() async.Future {
 	return s.closed.Out()
 }
 
-// setState 调整会话状态
+// setState 原子更新会话状态。
 func (s *_Session) setState(state SessionState) {
 	s.state.Store(int32(state))
 }
 
-// handleHeartbeat 处理Heartbeat消息事件
+// handleHeartbeat 记录收到的 Ping 或 Pong 心跳事件。
 func (s *_Session) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		log.L(s.gate.svcCtx).Debug("session receive ping", zap.String("session_id", s.Id().String()))

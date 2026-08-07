@@ -33,7 +33,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// BuildEntity 创建实体
+// BuildEntity 创建绑定 svcInst 及 prototype 名称的实体构建器。
 func BuildEntity(svcInst IService, prototype string) *EntityCreator {
 	if svcInst == nil {
 		exception.Panicf("%w: %w: svcInst is nil", ErrFramework, core.ErrArgs)
@@ -44,7 +44,8 @@ func BuildEntity(svcInst IService, prototype string) *EntityCreator {
 	}
 }
 
-// EntityCreator 实体构建器
+// EntityCreator 保存一次实体构建所需的运行时目标、元数据与 core 实体选项。
+// 构建器可按值复制，但不应由多个 goroutine 并发修改。
 type EntityCreator struct {
 	svcInst   IService
 	prototype string
@@ -54,7 +55,8 @@ type EntityCreator struct {
 	settings  []option.Setting[ec.EntityOptions]
 }
 
-// SetRuntime 设置运行时（值不为nil时，创建的新实体将会加入此处设置的运行时，不会创建新运行时）
+// SetRuntime 设置实体要加入的既有运行时。
+// rtInst 为 nil 时清除该设置；非 nil 运行时必须属于构建器绑定的服务。
 func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)
@@ -66,7 +68,8 @@ func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
 	return c
 }
 
-// SetRuntimeCreator 设置运行时构建器（如果未设置运行时，将会使用此处设置的构建器创建新运行时，此处值为nil时，将会使用默认运行时构建器；创建出的新实体将会自动成为新运行时的主实体）
+// SetRuntimeCreator 设置没有指定既有运行时时使用的运行时构建器。
+// nil 表示使用服务默认构建器；新实体会成为新运行时的主实体。
 func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreator {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)
@@ -78,43 +81,43 @@ func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCrea
 	return c
 }
 
-// SetInstanceFace 设置实例，用于扩展实体能力
+// SetInstanceFace 设置实体实例面，用于提供自定义实体行为与反射信息。
 func (c *EntityCreator) SetInstanceFace(face iface.Face[ec.Entity]) *EntityCreator {
 	c.settings = append(c.settings, ec.With.InstanceFace(face))
 	return c
 }
 
-// SetInstance 设置实例，用于扩展实体能力
+// SetInstance 设置自定义实体实例。
 func (c *EntityCreator) SetInstance(instance ec.Entity) *EntityCreator {
 	c.settings = append(c.settings, ec.With.InstanceFace(iface.NewFaceT(instance)))
 	return c
 }
 
-// SetScope 设置实体的可访问作用域
+// SetScope 设置实体的可访问作用域。
 func (c *EntityCreator) SetScope(scope ec.Scope) *EntityCreator {
 	c.settings = append(c.settings, ec.With.Scope(scope))
 	return c
 }
 
-// SetPersistId 设置实体持久化Id
+// SetPersistId 设置实体持久化 ID。
 func (c *EntityCreator) SetPersistId(id uid.Id) *EntityCreator {
 	c.settings = append(c.settings, ec.With.PersistId(id))
 	return c
 }
 
-// SetComponentAwakeOnFirstTouch 设置开启组件被首次访问时，检测并调用Awake()
+// SetComponentAwakeOnFirstTouch 设置是否在组件首次访问时检查并调用 Awake。
 func (c *EntityCreator) SetComponentAwakeOnFirstTouch(b bool) *EntityCreator {
 	c.settings = append(c.settings, ec.With.ComponentAwakeOnFirstTouch(b))
 	return c
 }
 
-// SetComponentUniqueID 设置开启组件唯一Id
+// SetComponentUniqueID 设置是否为组件分配唯一 ID。
 func (c *EntityCreator) SetComponentUniqueID(b bool) *EntityCreator {
 	c.settings = append(c.settings, ec.With.ComponentUniqueID(b))
 	return c
 }
 
-// SetMeta 设置Meta信息
+// SetMeta 用 dict 替换实体元数据；dict 的内容会复制到新的 Meta 中。
 func (c *EntityCreator) SetMeta(dict map[string]any) *EntityCreator {
 	if c.meta == nil {
 		c.settings = append(c.settings, c.withMeta())
@@ -123,7 +126,7 @@ func (c *EntityCreator) SetMeta(dict map[string]any) *EntityCreator {
 	return c
 }
 
-// MergeMeta 合并Meta信息，如果存在则覆盖
+// MergeMeta 合并实体元数据，同名键会被覆盖。
 func (c *EntityCreator) MergeMeta(dict map[string]any) *EntityCreator {
 	for k, v := range dict {
 		if c.meta == nil {
@@ -134,7 +137,7 @@ func (c *EntityCreator) MergeMeta(dict map[string]any) *EntityCreator {
 	return c
 }
 
-// MergeMetaIfAbsent 合并Meta信息，如果存在则跳过
+// MergeMetaIfAbsent 合并实体元数据，并保留已有的同名键。
 func (c *EntityCreator) MergeMetaIfAbsent(dict map[string]any) *EntityCreator {
 	for k, v := range dict {
 		if c.meta == nil {
@@ -145,7 +148,7 @@ func (c *EntityCreator) MergeMetaIfAbsent(dict map[string]any) *EntityCreator {
 	return c
 }
 
-// AssignMeta 赋值Meta信息
+// AssignMeta 直接绑定实体元数据；m 不会在此时复制，nil 会替换为空 Meta。
 func (c *EntityCreator) AssignMeta(m meta.Meta) *EntityCreator {
 	if m == nil {
 		m = meta.New(nil)
@@ -157,7 +160,8 @@ func (c *EntityCreator) AssignMeta(m meta.Meta) *EntityCreator {
 	return c
 }
 
-// New 创建实体
+// New 构造实体并将其加入指定运行时。
+// 未指定运行时时会创建自动运行的新运行时，并将实体设为其主实体。
 func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)
@@ -189,7 +193,8 @@ func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 	return entity, nil
 }
 
-// NewAsync 创建实体
+// NewAsync 构造实体并返回其加入运行时的 Future。
+// 使用既有运行时时加入操作由该运行时调度；新建运行时时装配过程仍在调用方同步完成。
 func (c *EntityCreator) NewAsync() async.Future {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)

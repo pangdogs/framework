@@ -33,6 +33,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// addSubscriber 创建事件流或回调订阅，并用 barrier 保证 Shut 等待取消订阅完成。
 func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, handler broker.EventHandler) (<-chan broker.Event, async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()

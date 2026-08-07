@@ -23,8 +23,8 @@ import (
 	"git.golaxy.org/core"
 )
 
-// BuildEntityPT 创建实体原型
+// BuildEntityPT 创建绑定服务上下文及 prototype 名称的实体原型构建器。
 var BuildEntityPT = core.BuildEntityPT
 
-// EntityPTCreator 实体原型构建器
+// EntityPTCreator 是 core 实体原型构建器的别名。
 type EntityPTCreator = core.EntityPTCreator

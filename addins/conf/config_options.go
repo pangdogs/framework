@@ -24,22 +24,24 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ConfigOptions 所有选项
+// ConfigOptions 配置服务使用的 Viper 实例。
 type ConfigOptions struct {
-	Vipper *viper.Viper
+	Vipper *viper.Viper // Vipper 非 nil 时作为应用配置直接使用。
 }
 
+// With 提供配置 add-in 的 Option 构造方法。
 var With _ConfigOption
 
 type _ConfigOption struct{}
 
-// Default 默认值
+// Default 返回使用新建空 Viper 实例的默认设置。
 func (_ConfigOption) Default() option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		With.Vipper(nil).Apply(options)
 	}
 }
 
+// Vipper 设置应用配置实例；nil 表示在 add-in 初始化时新建空配置。
 func (_ConfigOption) Vipper(v *viper.Viper) option.Setting[ConfigOptions] {
 	return func(options *ConfigOptions) {
 		options.Vipper = v

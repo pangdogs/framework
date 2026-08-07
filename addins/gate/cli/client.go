@@ -36,16 +36,19 @@ import (
 )
 
 var (
+	// ErrAutoReconnectRetriesExhausted 表示自动重连已用尽配置的尝试次数。
 	ErrAutoReconnectRetriesExhausted = errors.New("cli: auto reconnect retries exhausted")
-	ErrInactiveTimeout               = errors.New("cli: inactive timeout")
+	// ErrInactiveTimeout 表示未启用自动重连的连接持续失活并超过等待时间。
+	ErrInactiveTimeout = errors.New("cli: inactive timeout")
 )
 
-// NetAddr 网络地址
+// NetAddr 保存客户端当前连接的本地与服务端地址快照。
 type NetAddr struct {
-	Local, Remote net.Addr
+	Local, Remote net.Addr // Local 是客户端地址，Remote 是服务端地址。
 }
 
-// Client 客户端
+// Client 是支持 GTP 握手、心跳和连接迁移的并发安全客户端。
+// 其上下文在父上下文取消或 Close 被调用时取消。
 type Client struct {
 	context.Context
 	close            context.CancelCauseFunc
@@ -69,7 +72,7 @@ type Client struct {
 	stringerCache    string
 }
 
-// String implements fmt.Stringer
+// String 返回包含会话 ID 和用户 ID 的 JSON 形式标识。
 func (c *Client) String() string {
 	c.stringerOnce.Do(func() {
 		c.stringerCache = fmt.Sprintf(`{"session_id":%q,"user_id":%q}`, c.SessionId(), c.UserId())
@@ -77,78 +80,78 @@ func (c *Client) String() string {
 	return c.stringerCache
 }
 
-// SessionId 获取会话Id
+// SessionId 返回服务端分配的会话 ID。
 func (c *Client) SessionId() uid.Id {
 	return c.sessionId
 }
 
-// UserId 获取鉴权用户Id
+// UserId 返回握手使用的用户 ID。
 func (c *Client) UserId() string {
 	return c.options.AuthUserId
 }
 
-// Token 获取鉴权token
+// Token 返回握手使用的鉴权令牌。
 func (c *Client) Token() string {
 	return c.options.AuthToken
 }
 
-// Extensions 获取鉴权扩展数据
+// Extensions 返回握手使用的扩展数据；调用方不得修改。
 func (c *Client) Extensions() []byte {
 	return c.options.AuthExtensions
 }
 
-// Endpoint 获取服务器地址
+// Endpoint 返回建立连接时使用的服务端地址。
 func (c *Client) Endpoint() string {
 	return c.endpoint
 }
 
-// NetAddr 获取网络地址
+// NetAddr 返回当前连接地址快照；连接迁移后会变化。
 func (c *Client) NetAddr() NetAddr {
 	return *c.netAddr.Load()
 }
 
-// Migrations 获取连接迁移次数
+// Migrations 返回连接成功迁移的累计次数。
 func (c *Client) Migrations() int64 {
 	return c.migrations.Load()
 }
 
-// DataIO 获取数据IO
+// DataIO 返回原始负载 I/O 门面。
 func (c *Client) DataIO() IDataIO {
 	return (*_ClientDataIO)(&c.io)
 }
 
-// EventIO 获取事件IO
+// EventIO 返回 GTP 事件 I/O 门面。
 func (c *Client) EventIO() IEventIO {
 	return (*_ClientEventIO)(&c.io)
 }
 
-// FutureController 获取异步模型Future控制器
+// FutureController 返回用于关联请求与响应的 Future 控制器。
 func (c *Client) FutureController() *concurrent.FutureController {
 	return c.futureController
 }
 
-// L 结构化日志
+// L 返回客户端结构化日志器。
 func (c *Client) L() *zap.Logger {
 	return c.logger
 }
 
-// S 传统日志
+// S 返回客户端 SugaredLogger。
 func (c *Client) S() *zap.SugaredLogger {
 	return c.sugarLogger
 }
 
-// Close 关闭
+// Close 请求以 err 为原因关闭客户端，并返回关闭完成的 Future。
 func (c *Client) Close(err error) async.Future {
 	c.close(err)
 	return c.closed.Out()
 }
 
-// Closed 已关闭
+// Closed 返回客户端关闭完成时完成的 Future。
 func (c *Client) Closed() async.Future {
 	return c.closed.Out()
 }
 
-// handleHeartbeat 接收Heartbeat消息事件
+// handleHeartbeat 记录收到的 Ping 或 Pong 心跳事件。
 func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 	if event.Flags.Is(gtp.Flag_Ping) {
 		c.logger.Debug("client receive ping", zap.String("session_id", c.SessionId().String()))
@@ -157,7 +160,7 @@ func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 	}
 }
 
-// handleRst 接收Rst消息事件
+// handleRst 将收到的 RST 事件转换为关闭原因并关闭客户端。
 func (c *Client) handleRst(event transport.Event[*gtp.MsgRst]) {
 	err := transport.ToRstError(event)
 	c.logger.Debug("client receive rst",

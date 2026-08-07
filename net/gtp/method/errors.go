@@ -22,5 +22,6 @@ package method
 import "errors"
 
 var (
+	// ErrInvalidMethod 表示请求的算法或算法组合不受支持。
 	ErrInvalidMethod = errors.New("gtp: invalid method")
 )

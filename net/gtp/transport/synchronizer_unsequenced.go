@@ -28,17 +28,17 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
-// NewUnsequencedSynchronizer 创建无时序同步器，不支持断连重连时同步时序
+// NewUnsequencedSynchronizer 创建不校验序号、也不支持断线补发的同步器。
 func NewUnsequencedSynchronizer() ISynchronizer {
 	return &UnsequencedSynchronizer{}
 }
 
-// UnsequencedSynchronizer 无时序同步器，不支持断连重连时补发消息
+// UnsequencedSynchronizer 只暂存待写字节，不维护发送窗口或消息序号。
 type UnsequencedSynchronizer struct {
 	bytes.Buffer
 }
 
-// WriteTo implements io.WriteTo
+// WriteTo 将全部暂存数据写入 w 并从缓冲区移除。
 func (s *UnsequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
 		return 0, fmt.Errorf("%w: %w: w is nil", ErrSynchronizer, core.ErrArgs)
@@ -46,41 +46,41 @@ func (s *UnsequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	return s.Buffer.WriteTo(w)
 }
 
-// Validate 验证消息包
+// Validate 接受任意消息序号。
 func (s *UnsequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) error {
 	return nil
 }
 
-// Synchronize 同步对端时序，对齐缓存序号
+// Synchronize 始终返回不支持续传的错误。
 func (s *UnsequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
 	return fmt.Errorf("%w: not supported", ErrSynchronizer)
 }
 
-// Ack 确认消息序号
+// Ack 不维护确认状态。
 func (s *UnsequencedSynchronizer) Ack(ack uint32) {
 }
 
-// SendSeq 发送消息序号
+// SendSeq 始终返回零。
 func (s *UnsequencedSynchronizer) SendSeq() uint32 {
 	return 0
 }
 
-// RecvSeq 接收消息序号
+// RecvSeq 始终返回零。
 func (s *UnsequencedSynchronizer) RecvSeq() uint32 {
 	return 0
 }
 
-// AckSeq 当前ack序号
+// AckSeq 始终返回零。
 func (s *UnsequencedSynchronizer) AckSeq() uint32 {
 	return 0
 }
 
-// Cached 已缓存大小
+// Cached 返回当前暂存字节数。
 func (s *UnsequencedSynchronizer) Cached() int {
 	return s.Len()
 }
 
-// Dispose 释放资源
+// Dispose 清空暂存字节。
 func (s *UnsequencedSynchronizer) Dispose() {
 	s.Buffer.Reset()
 }

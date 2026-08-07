@@ -19,7 +19,9 @@
 
 package rpcstack
 
-// Deprecated: UnsafeFrame 访问RPC调用堆栈支持内部方法
+// UnsafeRPCStack 返回可修改 RPC 调用链内部状态的非安全门面。
+//
+// Deprecated: 仅供框架 RPC 处理器维护调用上下文，业务代码不应使用。
 func UnsafeRPCStack(r IRPCStack) _UnsafeRPCStack {
 	return _UnsafeRPCStack{
 		IRPCStack: r,

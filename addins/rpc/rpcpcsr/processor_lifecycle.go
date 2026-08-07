@@ -21,12 +21,14 @@ package rpcpcsr
 
 import "git.golaxy.org/core/service"
 
-// LifecycleInit RPC处理器生命周期开始
+// LifecycleInit 由 RPC 插件在处理器启动时调用。
 type LifecycleInit interface {
+	// Init 初始化处理器。
 	Init(svcCtx service.Context)
 }
 
-// LifecycleShut RPC处理器生命周期结束
+// LifecycleShut 由 RPC 插件在处理器停止时调用。
 type LifecycleShut interface {
+	// Shut 停止处理器并等待其后台任务退出。
 	Shut(svcCtx service.Context)
 }

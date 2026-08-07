@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是服务发现接口的服务级 add-in 描述符，用于查询已安装的具体实现。
 	AddIn = define.ServiceAddInInterface[IRegistry]()
 )

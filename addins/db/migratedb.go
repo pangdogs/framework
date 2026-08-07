@@ -19,10 +19,13 @@
 
 package db
 
+// IMigrateDB 由需要执行数据库迁移的服务或模块实现。
 type IMigrateDB interface {
 	MigrateDB() error
 }
 
+// MigrateDB 按传入顺序调用实现 IMigrateDB 的对象，并在首个错误处停止。
+// 未实现 IMigrateDB 的值会被忽略。
 func MigrateDB(services ...any) error {
 	for _, service := range services {
 		migrateDB, ok := service.(IMigrateDB)

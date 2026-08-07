@@ -28,30 +28,33 @@ import (
 )
 
 var (
-	ErrSynchronizer  = errors.New("gtp-synchronizer")                         // 同步器错误
-	ErrUnexpectedSeq = fmt.Errorf("%w: unexpected sequence", ErrSynchronizer) // 收到非预期的消息序号，表示序号不连续
-	ErrDiscardSeq    = fmt.Errorf("%w: discard sequence", ErrSynchronizer)    // 收到已过期的消息序号，表示次消息已收到过
+	// ErrSynchronizer 是消息时序同步错误的根错误。
+	ErrSynchronizer = errors.New("gtp-synchronizer")
+	// ErrUnexpectedSeq 表示收到的消息序号不连续。
+	ErrUnexpectedSeq = fmt.Errorf("%w: unexpected sequence", ErrSynchronizer)
+	// ErrDiscardSeq 表示消息序号已处理过，应丢弃重复消息。
+	ErrDiscardSeq = fmt.Errorf("%w: discard sequence", ErrSynchronizer)
 )
 
-// ISynchronizer 同步器
+// ISynchronizer 校验消息序号、缓存待确认发送包并支持重连补发。
 type ISynchronizer interface {
 	io.Writer
 	io.WriterTo
 	codec.IValidation
-	// Synchronize 同步对端时序，对齐缓存序号
+	// Synchronize 根据对端已接收序号丢弃已确认缓存，并准备补发剩余消息。
 	Synchronize(remoteRecvSeq uint32) error
-	// Ack 确认消息序号
+	// Ack 确认对端已接收的发送序号。
 	Ack(ack uint32)
-	// SendSeq 发送消息序号
+	// SendSeq 返回当前发送序号。
 	SendSeq() uint32
-	// RecvSeq 接收消息序号
+	// RecvSeq 返回当前接收序号。
 	RecvSeq() uint32
-	// AckSeq 当前ack序号
+	// AckSeq 返回对端最近确认的发送序号。
 	AckSeq() uint32
-	// Cap 缓存区容量
+	// Cap 返回发送缓存的字节容量。
 	Cap() int
-	// Cached 已缓存大小
+	// Cached 返回当前缓存的发送字节数。
 	Cached() int
-	// Dispose 释放资源
+	// Dispose 释放缓存的池化字节缓冲区。
 	Dispose()
 }

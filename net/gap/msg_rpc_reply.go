@@ -26,14 +26,14 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgRPCReply RPC答复
+// MsgRPCReply 表示 RPC 请求的响应。
 type MsgRPCReply struct {
-	CorrId int64         // 关联Id，用于支持Future等异步模型
-	Rets   variant.Array // 调用结果
-	Error  variant.Error // 调用错误
+	CorrId int64         // 对应请求的关联 ID。
+	Rets   variant.Array // 调用返回值。
+	Error  variant.Error // 调用错误；OK 为 true 时表示成功。
 }
 
-// Read implements io.Reader
+// Read 将 RPC 响应编码到 p。
 func (m MsgRPCReply) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteVarint(m.CorrId); err != nil {
@@ -48,7 +48,7 @@ func (m MsgRPCReply) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码 RPC 响应。
 func (m *MsgRPCReply) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -69,12 +69,12 @@ func (m *MsgRPCReply) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回 RPC 响应编码后的字节数。
 func (m MsgRPCReply) Size() int {
 	return binaryutil.SizeofVarint(m.CorrId) + m.Rets.Size() + m.Error.Size()
 }
 
-// MsgId 消息Id
+// MsgId 返回 RPC 响应的内置类型 ID。
 func (MsgRPCReply) MsgId() MsgId {
 	return MsgId_RPC_Reply
 }

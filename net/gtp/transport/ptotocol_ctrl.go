@@ -29,29 +29,32 @@ import (
 )
 
 type (
-	RstHandler       = generic.DelegateVoid1[Event[*gtp.MsgRst]]       // Rst消息事件处理器
-	SyncTimeHandler  = generic.DelegateVoid1[Event[*gtp.MsgSyncTime]]  // SyncTime消息事件处理器
-	HeartbeatHandler = generic.DelegateVoid1[Event[*gtp.MsgHeartbeat]] // Heartbeat消息事件处理器
+	// RstHandler 处理链路重置事件。
+	RstHandler = generic.DelegateVoid1[Event[*gtp.MsgRst]]
+	// SyncTimeHandler 处理时钟同步请求或响应事件。
+	SyncTimeHandler = generic.DelegateVoid1[Event[*gtp.MsgSyncTime]]
+	// HeartbeatHandler 处理心跳探测或响应事件。
+	HeartbeatHandler = generic.DelegateVoid1[Event[*gtp.MsgHeartbeat]]
 )
 
-// CtrlProtocol 控制协议
+// CtrlProtocol 发送并处理链路重置、时钟同步和心跳控制消息。
 type CtrlProtocol struct {
-	AutoRecover      bool             // panic时是否自动恢复
-	ReportError      chan error       // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
-	Transceiver      *Transceiver     // 消息事件收发器
-	RetryTimes       int              // 网络io超时时的重试次数
-	RstHandler       RstHandler       // Rst消息事件处理器
-	SyncTimeHandler  SyncTimeHandler  // SyncTime消息事件处理器
-	HeartbeatHandler HeartbeatHandler // Heartbeat消息事件处理器
+	AutoRecover      bool             // 是否恢复控制消息处理器的 panic。
+	ReportError      chan error       // 恢复 panic 后接收错误；nil 时不报告。
+	Transceiver      *Transceiver     // 事件收发器。
+	RetryTimes       int              // 网络 I/O 超时后的重试次数。
+	RstHandler       RstHandler       // 链路重置处理器。
+	SyncTimeHandler  SyncTimeHandler  // 时钟同步处理器。
+	HeartbeatHandler HeartbeatHandler // 心跳处理器。
 }
 
-// SendRst 发送Rst消息事件
+// SendRst 发送不重试的链路重置事件。
 func (c *CtrlProtocol) SendRst(err error) error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
 
-	// rst消息不重试
+	// 链路已异常时重试 RST 没有可靠意义。
 	retErr := c.Transceiver.SendRst(err)
 	if retErr != nil {
 		return fmt.Errorf("%w: %w", ErrProtocol, retErr)
@@ -60,7 +63,7 @@ func (c *CtrlProtocol) SendRst(err error) error {
 	return nil
 }
 
-// SendPing 发送ping
+// SendPing 发送心跳探测，并在网络 I/O 超时时重试。
 func (c *CtrlProtocol) SendPing() error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -79,7 +82,7 @@ func (c *CtrlProtocol) SendPing() error {
 	return nil
 }
 
-// ProbeTime 探测对端时间
+// ProbeTime 发送带关联 ID 和本地发送时间的时钟同步请求。
 func (c *CtrlProtocol) ProbeTime(corrId int64) error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -108,7 +111,7 @@ func (c *CtrlProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理器
+// HandleEvent 自动响应时间请求和心跳探测，再同步调用对应处理器。
 func (c *CtrlProtocol) HandleEvent(e IEvent) {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Rst:

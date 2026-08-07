@@ -42,14 +42,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// IGate 网关
+// IGate 提供已鉴权客户端会话的并发查询与建立监听能力。
 type IGate interface {
-	// Get 查询会话
+	// Get 按会话 ID 查询当前尚未过期的会话。
 	Get(id uid.Id) (ISession, bool)
-	// Count 会话数量
+	// Count 返回当前会话数量。
 	Count() int64
-	// Watch 监听首次建立会话。
-	// 旧会话迁移重连成功不会触发该回调。
+	// Watch 监听首次建立完成的会话；连接迁移成功不会重复通知。
+	// 返回的 Future 在 ctx 取消或 gate 停止后完成。
 	Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error)
 }
 
@@ -72,7 +72,8 @@ type _Gate struct {
 	sessionWatcher concurrent.Listeners[SessionEstablishedHandler, ISession]
 }
 
-// Init 初始化插件
+// Init 按配置启动 TCP 和 WebSocket 监听器，并异步受理连接以建立会话。
+// 两种监听地址均未配置或监听失败时会 panic。
 func (g *_Gate) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -168,7 +169,7 @@ func (g *_Gate) Init(svcCtx service.Context) {
 	}
 }
 
-// Shut 关闭插件
+// Shut 以服务关闭原因为全部会话发起终止，等待受管任务退出后关闭监听器。
 func (g *_Gate) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -187,18 +188,18 @@ func (g *_Gate) Shut(svcCtx service.Context) {
 	}
 }
 
-// Get 查询会话
+// Get 按会话 ID 查询当前尚未过期的会话。
 func (g *_Gate) Get(sessionId uid.Id) (ISession, bool) {
 	return g.getSession(sessionId)
 }
 
-// Count 会话数量
+// Count 返回当前会话数量。
 func (g *_Gate) Count() int64 {
 	return g.sessionCount.Load()
 }
 
-// Watch 监听首次建立会话。
-// 旧会话迁移重连成功不会触发该回调。
+// Watch 监听首次建立完成的会话；连接迁移成功不会重复通知。
+// 返回的 Future 在 ctx 取消或 gate 停止后完成。
 func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, errors.New("gate: handler is nil")

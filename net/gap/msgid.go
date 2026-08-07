@@ -27,10 +27,10 @@ import (
 	"git.golaxy.org/core/utils/types"
 )
 
-// MsgId 消息Id
+// MsgId 标识 GAP 消息类型。
 type MsgId = uint32
 
-// GenMsgId 生成消息Id
+// GenMsgId 根据具名消息类型的完整名称生成自定义消息 ID。
 func GenMsgId(msg Msg) MsgId {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(msg).Elem().Type()
@@ -41,7 +41,7 @@ func GenMsgId(msg Msg) MsgId {
 	return MsgId(MsgId_Customize + hash.Sum32())
 }
 
-// GenMsgIdT 生成消息Id
+// GenMsgIdT 根据具名类型 T 的完整名称生成自定义消息 ID；*T 必须实现 Msg。
 func GenMsgIdT[T any]() MsgId {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()

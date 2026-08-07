@@ -23,18 +23,18 @@ import (
 	"io"
 )
 
-// ReadableValue 可读取值
+// ReadableValue 表示可编码到 GAP 动态值字节流的值。
 type ReadableValue interface {
 	io.Reader
-	// Size 大小
+	// Size 返回值编码后的字节数。
 	Size() int
-	// TypeId 类型
+	// TypeId 返回动态值类型 ID。
 	TypeId() TypeId
-	// Indirect 原始值
+	// Indirect 返回对应的 Go 值。
 	Indirect() any
 }
 
-// Value 值
+// Value 表示既可编码也可从字节流解码的动态值。
 type Value interface {
 	ReadableValue
 	io.Writer

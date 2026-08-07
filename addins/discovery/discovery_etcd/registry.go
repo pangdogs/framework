@@ -57,7 +57,7 @@ type _EtcdRegistry struct {
 	client    *etcdv3.Client
 }
 
-// Init 初始化插件
+// Init 建立或复用 ETCD 客户端，并逐个检查配置端点的状态。
 func (r *_EtcdRegistry) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -86,7 +86,7 @@ func (r *_EtcdRegistry) Init(svcCtx service.Context) {
 	}
 }
 
-// Shut 关闭插件
+// Shut 取消全部 watcher 和保活任务并等待退出；仅关闭由本 add-in 创建的客户端。
 func (r *_EtcdRegistry) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -101,7 +101,7 @@ func (r *_EtcdRegistry) Shut(svcCtx service.Context) {
 	}
 }
 
-// RegisterNode 注册服务节点
+// RegisterNode 校验服务名和节点 ID 后，以带租约的唯一键注册节点。
 func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration) (discovery.IRegistration, error) {
 	if serviceName == "" {
 		return nil, fmt.Errorf("registry: %w serviceName is empty", core.ErrArgs)
@@ -115,7 +115,7 @@ func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, no
 	return r.registerNode(ctx, serviceName, node, ttl)
 }
 
-// Get 查询服务
+// Get 返回指定服务的节点快照；损坏或不含节点的记录会被记录并跳过。
 func (r *_EtcdRegistry) Get(ctx context.Context, serviceName string) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -163,7 +163,7 @@ func (r *_EtcdRegistry) Get(ctx context.Context, serviceName string) (*discovery
 	return service, nil
 }
 
-// GetNode 查询服务节点
+// GetNode 返回指定服务和节点 ID 的单节点快照。
 func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -194,7 +194,7 @@ func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeId 
 	return serviceNode, nil
 }
 
-// List 查询所有服务
+// List 返回全部服务的聚合快照；损坏或不含节点的记录会被记录并跳过。
 func (r *_EtcdRegistry) List(ctx context.Context) ([]*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -248,7 +248,7 @@ func (r *_EtcdRegistry) List(ctx context.Context) ([]*discovery.Service, error) 
 	return services, nil
 }
 
-// WatchEvent 观察服务变化事件流
+// WatchEvent 从可选 revision 开始监听指定服务，pattern 为空时监听全部服务。
 func (r *_EtcdRegistry) WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan discovery.Event, error) {
 	eventChan, _, err := r.addWatcher(ctx, pattern, nil, pie.First(revision))
 	if err != nil {
@@ -257,7 +257,7 @@ func (r *_EtcdRegistry) WatchEvent(ctx context.Context, pattern string, revision
 	return eventChan, nil
 }
 
-// WatchHandler 观察服务变化事件回调
+// WatchHandler 从可选 revision 开始监听服务变化，并在 watcher goroutine 中调用 handler。
 func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)

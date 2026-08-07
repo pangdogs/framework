@@ -25,15 +25,15 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
-// Padding 填充方案
+// Padding 在预分配缓冲区中添加或验证分组密码填充。
 type Padding interface {
-	// Pad 填充
+	// Pad 将 buf[ori:] 写成填充数据。
 	Pad(buf []byte, ori int) error
-	// Unpad 解除填充
+	// Unpad 验证并返回去除填充后的切片视图。
 	Unpad(padded []byte) ([]byte, error)
 }
 
-// NewPadding 创建填充方案
+// NewPadding 创建 PKCS#7 或 ANSI X9.23 填充器。
 func NewPadding(pm gtp.PaddingMode) (Padding, error) {
 	switch pm {
 	case gtp.PaddingMode_Pkcs7:
@@ -47,7 +47,7 @@ func NewPadding(pm gtp.PaddingMode) (Padding, error) {
 
 type _Pkcs7 struct{}
 
-// Pad 填充
+// Pad 写入 PKCS#7 填充。
 func (_Pkcs7) Pad(buf []byte, ori int) error {
 	padLen := len(buf) - ori
 	if padLen <= 0 || padLen > 0xff {
@@ -59,7 +59,7 @@ func (_Pkcs7) Pad(buf []byte, ori int) error {
 	return nil
 }
 
-// Unpad 解除填充
+// Unpad 验证并去除 PKCS#7 填充。
 func (_Pkcs7) Unpad(padded []byte) ([]byte, error) {
 	padLen := padded[len(padded)-1]
 	padPos := len(padded) - int(padLen)
@@ -78,7 +78,7 @@ func (_Pkcs7) Unpad(padded []byte) ([]byte, error) {
 
 type _X923 struct{}
 
-// Pad 填充
+// Pad 写入 ANSI X9.23 填充。
 func (_X923) Pad(buf []byte, ori int) error {
 	padLen := len(buf) - ori
 	if padLen <= 0 || padLen > 0xff {
@@ -91,7 +91,7 @@ func (_X923) Pad(buf []byte, ori int) error {
 	return nil
 }
 
-// Unpad 解除填充
+// Unpad 验证并去除 ANSI X9.23 填充。
 func (_X923) Unpad(padded []byte) ([]byte, error) {
 	padLen := padded[len(padded)-1]
 	padPos := len(padded) - int(padLen)

@@ -30,7 +30,7 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// NewSequencedSynchronizer 创建有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息
+// NewSequencedSynchronizer 创建从指定序号开始、缓存容量目标为 cap 字节的有序同步器。
 func NewSequencedSynchronizer(sendSeq, recvSeq uint32, cap int) ISynchronizer {
 	s := &SequencedSynchronizer{}
 	s.init(sendSeq, recvSeq, cap)
@@ -41,14 +41,14 @@ const (
 	queueMinSize = 16
 )
 
-// _Frame 帧
+// _Frame 保存一个待确认消息包及其当前发送偏移。
 type _Frame struct {
-	seq    uint32 // 序号
-	offset int    // 帧数据偏移位置
-	data   []byte // 帧数据
+	seq    uint32 // 消息序号。
+	offset int    // 已发送字节偏移。
+	data   []byte // 从池中取得的完整消息包。
 }
 
-// _Queue 环形队列
+// _Queue 是容量保持为二次幂的帧环形队列。
 type _Queue struct {
 	buf               []_Frame
 	head, tail, count int
@@ -125,15 +125,16 @@ func (q *_Queue) resize() {
 	q.buf = newBuf
 }
 
-// SequencedSynchronizer 有时序同步器，支持缓存已发送的消息，在断连重连时同步时序并补发消息
+// SequencedSynchronizer 为消息分配序号并缓存未确认数据，以支持断线续传。
+// 它由 Transceiver 的发送锁和接收锁协调，调用方不应绕过 Transceiver 并发操作。
 type SequencedSynchronizer struct {
-	sendSeq uint32  // 发送消息序号
-	recvSeq uint32  // 接收消息序号
-	ackSeq  uint32  // 当前ack序号
-	cap     int     // 缓存区容量（字节），缓存区满时将会触发清理操作，此时断线重连有可能会失败
-	cached  int     // 已缓存大小（字节）
-	queue   *_Queue // 窗口队列
-	sent    int     // 已发送位置
+	sendSeq uint32  // 下一个发送消息序号。
+	recvSeq uint32  // 下一个期望接收的消息序号。
+	ackSeq  uint32  // 对端最近确认的发送序号。
+	cap     int     // 缓存容量目标；超出时会淘汰已发送帧，可能导致续传失败。
+	cached  int     // 当前缓存字节数。
+	queue   *_Queue // 发送窗口队列。
+	sent    int     // 队列中已完整写入连接的帧数。
 }
 
 func (s *SequencedSynchronizer) init(sendSeq, recvSeq uint32, cap int) {
@@ -146,27 +147,27 @@ func (s *SequencedSynchronizer) init(sendSeq, recvSeq uint32, cap int) {
 	s.sent = 0
 }
 
-// Write implements io.Writer
+// Write 为编码消息包填入序号和确认号，并复制到发送窗口。
 func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
-	// 读取消息头
+	// 只解析头部即可校验序号并覆盖本地时序字段。
 	head := gtp.MsgHead{}
 	if _, err = head.Write(p); err != nil {
 		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}
 
-	// ack消息序号
+	// 先淘汰对端已确认的发送帧，释放补发缓存空间。
 	s.ack(s.getRemoteAck())
 
-	// 缓存区满时，清理缓存
+	// 超出容量目标时淘汰可清理的已发送帧。
 	if s.cached+len(p) > s.cap {
 		s.reduce(len(p))
 	}
 
-	// 填充序号
+	// 出站帧携带本地发送序号和当前期望接收序号。
 	head.Seq = s.sendSeq
 	head.Ack = s.getLocalAck()
 
-	// 分配内存并拷贝数据
+	// 每个帧持有独立副本，调用方可在 Write 后立即复用输入。
 	data := binaryutil.BytesPool.Get(len(p))
 	copy(data, p)
 
@@ -175,7 +176,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 		return 0, fmt.Errorf("%w: %w", ErrSynchronizer, err)
 	}
 
-	// 写入帧队列并自增序号
+	// 入队成功后推进下一发送序号。
 	s.queue.Push(_Frame{seq: s.sendSeq, data: data})
 	s.cached += len(data)
 	s.sendSeq++
@@ -183,7 +184,7 @@ func (s *SequencedSynchronizer) Write(p []byte) (n int, err error) {
 	return len(data), nil
 }
 
-// WriteTo implements io.WriteTo
+// WriteTo 从上次偏移继续向 w 写出尚未完整发送的帧。
 func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 	if w == nil {
 		return 0, fmt.Errorf("%w: %w: w is nil", ErrSynchronizer, core.ErrArgs)
@@ -191,7 +192,7 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 
 	var wn int64
 
-	// 读取帧队列，向输出流写入消息
+	// 从 sent 指向的帧和帧内 offset 继续，支持短写后的断点补发。
 	for i := s.sent; i < s.queue.Length(); i++ {
 		frame := s.queue.Index(i)
 
@@ -209,16 +210,16 @@ func (s *SequencedSynchronizer) WriteTo(w io.Writer) (int64, error) {
 			}
 		}
 
-		// 写入完全成功时，更新已发送位置
+		// 整帧写完后才推进 sent；短写位置保存在 frame.offset。
 		s.sent++
 	}
 
 	return wn, nil
 }
 
-// Validate 验证消息包
+// Validate 要求消息序号等于下一个期望接收序号。
 func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) error {
-	// 检测消息包序号
+	// 只接受当前期望序号，旧帧丢弃，超前帧触发时序错误。
 	d := int32(msgHead.Seq - s.recvSeq)
 	if d > 0 {
 		return ErrUnexpectedSeq
@@ -228,9 +229,9 @@ func (s *SequencedSynchronizer) Validate(msgHead gtp.MsgHead, msgBuf []byte) err
 	return nil
 }
 
-// Synchronize 同步对端时序，对齐缓存序号
+// Synchronize 根据对端下一个期望序号重置补发位置；所需帧已被淘汰时返回错误。
 func (s *SequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
-	// 从时序帧中查询对端序号
+	// 从最新帧反向寻找对端期望序号对应的补发起点。
 	for i := s.queue.Length() - 1; i >= 0; i-- {
 		frame := s.queue.Index(i)
 
@@ -247,7 +248,7 @@ func (s *SequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
 		}
 	}
 
-	// 发送序号与对端接收序号相同
+	// 对端已追上尚未分配的下一序号时无需补发。
 	if s.sendSeq == remoteRecvSeq {
 		return nil
 	}
@@ -255,40 +256,39 @@ func (s *SequencedSynchronizer) Synchronize(remoteRecvSeq uint32) error {
 	return fmt.Errorf("%w: frame %d not found", ErrSynchronizer, remoteRecvSeq)
 }
 
-// Ack 确认消息序号
+// Ack 在成功接收一包后推进接收序号，并记录对端确认号。
 func (s *SequencedSynchronizer) Ack(ack uint32) {
-	// 自增接收消息序号
+	// 完整接收一帧后推进下一期望序号，并记录对端确认号。
 	atomic.AddUint32(&s.recvSeq, 1)
-	// 记录ack序号
 	atomic.StoreUint32(&s.ackSeq, ack)
 }
 
-// SendSeq 发送消息序号
+// SendSeq 返回下一个发送消息序号。
 func (s *SequencedSynchronizer) SendSeq() uint32 {
 	return s.sendSeq
 }
 
-// RecvSeq 接收消息序号
+// RecvSeq 返回下一个期望接收的消息序号。
 func (s *SequencedSynchronizer) RecvSeq() uint32 {
 	return s.recvSeq
 }
 
-// AckSeq 当前ack序号
+// AckSeq 返回对端最近确认的发送序号。
 func (s *SequencedSynchronizer) AckSeq() uint32 {
 	return s.ackSeq
 }
 
-// Cap 缓存区容量
+// Cap 返回发送缓存容量目标。
 func (s *SequencedSynchronizer) Cap() int {
 	return s.cap
 }
 
-// Cached 已缓存大小
+// Cached 返回当前缓存的完整消息包字节数。
 func (s *SequencedSynchronizer) Cached() int {
 	return s.cached
 }
 
-// Dispose 释放资源
+// Dispose 归还全部池化帧并将序号和缓存状态清零。
 func (s *SequencedSynchronizer) Dispose() {
 	s.sendSeq = 0
 	s.recvSeq = 0

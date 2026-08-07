@@ -22,6 +22,8 @@ package dent
 import "git.golaxy.org/core/define"
 
 var (
+	// RegistryAddIn 是自动发布全局实体位置的运行时级 add-in 安装入口。
 	RegistryAddIn = define.RuntimeAddIn(newDistEntityRegistry)
-	QuerierAddIn  = define.ServiceAddIn(newDistEntityQuerier)
+	// QuerierAddIn 是查询分布式实体位置的服务级 add-in 安装入口。
+	QuerierAddIn = define.ServiceAddIn(newDistEntityQuerier)
 )

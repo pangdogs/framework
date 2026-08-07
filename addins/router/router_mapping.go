@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Map 添加路由映射
+// Map 建立实体与会话的一对一映射；任一端已有其他映射时，旧映射会先被移除。
 func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 	select {
 	case <-r.ctx.Done():
@@ -99,7 +99,7 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 	return mapping, nil
 }
 
-// Lookup 查询映射，可传实体id或会话id
+// Lookup 按实体 ID 或会话 ID 查询当前映射。
 func (r *_Router) Lookup(id uid.Id) (IMapping, bool) {
 	mapping, ok := r.getMappingLocked(id)
 	if !ok {

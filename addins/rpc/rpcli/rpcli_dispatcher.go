@@ -36,6 +36,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
+// handleData 解码客户端收到的 GAP 数据，并按消息类型分发 RPC。
 func (c *RPCli) handleData(data []byte) {
 	mp, err := c.decoder.Decode(data)
 	if err != nil {
@@ -57,6 +58,7 @@ func (c *RPCli) handleData(data []byte) {
 	}
 }
 
+// acceptNotify 校验调用路径并同步调用本地客户端脚本，不发送响应。
 func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -100,6 +102,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	}
 }
 
+// acceptRequest 调用本地客户端脚本，并将返回值或错误回复给请求来源。
 func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -150,6 +153,7 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	}
 }
 
+// resolveReply 按关联 ID 完成客户端发起请求时创建的 Future。
 func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 	ret := async.Result{}
 
@@ -178,6 +182,7 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 		zap.Int64("corr_id", reply.CorrId))
 }
 
+// reply 将脚本调用结果包装为转发消息并发回来源地址；零关联 ID 不回复。
 func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	if corrId == 0 {
 		return
@@ -240,6 +245,7 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 		zap.Int64("corr_id", corrId))
 }
 
+// callScript 查找已注册脚本和导出方法，转换参数后通过反射同步调用。
 func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args variant.Array) (rets variant.Array, err error) {
 	scr, ok := c.GetScript(script)
 	if !ok {
@@ -259,12 +265,13 @@ func (c *RPCli) callScript(cc rpcstack.CallChain, script, method string, args va
 	return variant.NewArray(methodRV.Call(argsRV))
 }
 
+// parseArgs 将协议参数转换为方法参数，并在唯一显式声明的 CallChain 位置注入调用链。
 func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array) ([]reflect.Value, error) {
 	methodRT := methodRV.Type()
 	ccPos := -1
 
 	for i := range methodRT.NumIn() {
-		if !callChainRT.AssignableTo(methodRT.In(i)) {
+		if methodRT.In(i) != callChainRT {
 			continue
 		}
 		if ccPos >= 0 {

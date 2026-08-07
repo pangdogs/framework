@@ -25,13 +25,13 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgPacket 消息包
+// MsgPacket 组合 GAP 消息头和消息体。
 type MsgPacket struct {
-	Head MsgHead     // 消息头
-	Body ReadableMsg // 消息体
+	Head MsgHead     // 消息头。
+	Body ReadableMsg // 消息体；nil 表示只有消息头。
 }
 
-// Read implements io.Reader
+// Read 将完整消息包编码到 p。
 func (mp MsgPacket) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -50,7 +50,7 @@ func (mp MsgPacket) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Size 大小
+// Size 返回完整消息包编码后的字节数。
 func (mp MsgPacket) Size() int {
 	n := mp.Head.Size()
 

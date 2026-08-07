@@ -32,6 +32,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// handleServiceMsg 过滤非服务域来源，并分发请求、通知和响应。
 func (p *_ServiceProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	// 只支持服务域通信
 	if !p.dsvc.NodeDetails().DomainRoot.Contains(mp.Head.Src.Addr) {
@@ -50,6 +51,7 @@ func (p *_ServiceProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	}
 }
 
+// acceptNotify 校验来源、排除规则和权限后，异步调用服务、运行时或实体目标。
 func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -184,6 +186,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 	}
 }
 
+// acceptRequest 校验权限并异步调用目标，完成后向来源地址发送响应。
 func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -327,6 +330,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 	}
 }
 
+// resolveReply 按关联 ID 完成本节点发起服务 RPC 时创建的 Future。
 func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply) {
 	ret := async.Result{}
 
@@ -351,6 +355,7 @@ func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply)
 		zap.Int64("corr_id", reply.CorrId))
 }
 
+// reply 向请求来源发送结果并释放临时返回值快照；零关联 ID 不回复。
 func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	defer rets.ReleaseIfSnapshot()
 

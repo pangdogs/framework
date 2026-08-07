@@ -32,22 +32,23 @@ import (
 )
 
 var (
-	ErrNotDeclared = fmt.Errorf("%w: variant not declared", ErrVariant) // 类型未注册
+	// ErrNotDeclared 表示指定动态值类型 ID 尚未注册。
+	ErrNotDeclared = fmt.Errorf("%w: variant not declared", ErrVariant)
 )
 
-// IVariantCreator 变体对象构建器接口
+// IVariantCreator 按类型 ID 注册并构造动态值。
 type IVariantCreator interface {
-	// Declare 注册类型
+	// Declare 注册值指针的具体类型；重复 ID 会 panic。
 	Declare(v Value)
-	// New 创建对象指针
+	// New 创建指定类型 ID 对应的新值指针。
 	New(typeId TypeId) (Value, error)
-	// NewReflected 创建反射对象指针
+	// NewReflected 创建指定类型 ID 对应的新反射值。
 	NewReflected(typeId TypeId) (reflect.Value, error)
 }
 
 var variantCreator = _NewVariantCreator()
 
-// VariantCreator 变体对象构建器
+// VariantCreator 返回已注册全部内置值的进程级类型构建器。
 func VariantCreator() IVariantCreator {
 	return variantCreator
 }
@@ -76,17 +77,17 @@ func init() {
 	VariantCreator().Declare(&CallChain{})
 }
 
-// _NewVariantCreator 创建变体对象构建器
+// _NewVariantCreator 创建空的并发安全类型构建器。
 func _NewVariantCreator() IVariantCreator {
 	return &_VariantCreator{}
 }
 
-// _VariantCreator 变体对象构建器
+// _VariantCreator 使用写时复制快照保存动态值类型映射。
 type _VariantCreator struct {
 	variantTypes atomic.Pointer[map[TypeId]reflect.Type]
 }
 
-// Declare 注册类型
+// Declare 以类型 ID 注册值的元素类型。
 func (c *_VariantCreator) Declare(v Value) {
 	if v == nil {
 		exception.Panicf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
@@ -118,7 +119,7 @@ func (c *_VariantCreator) Declare(v Value) {
 	}
 }
 
-// New 创建对象指针
+// New 根据当前类型快照创建新的值指针。
 func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 	reflected, err := c.NewReflected(typeId)
 	if err != nil {
@@ -127,7 +128,7 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 	return reflected.Interface().(Value), nil
 }
 
-// NewReflected 创建反射对象指针
+// NewReflected 根据当前类型快照创建新的反射值。
 func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
 	m := c.variantTypes.Load()
 	if m == nil || *m == nil {

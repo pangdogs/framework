@@ -31,7 +31,8 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyService 创建服务代理，用于向服务发送RPC
+// ProxyService 使用 provider 所在的服务上下文创建服务 RPC 代理。
+// provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
 func ProxyService(provider any) ServiceProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -49,13 +50,13 @@ func ProxyService(provider any) ServiceProxied {
 	return p
 }
 
-// ServiceProxied 服务代理，用于向服务发送RPC
+// ServiceProxied 用于调用分布式服务节点中的服务插件方法。
 type ServiceProxied struct {
 	svcCtx service.Context
 	rtCtx  runtime.Context
 }
 
-// RPC 向分布式服务指定节点发送RPC
+// RPC 向 nodeId 标识的服务节点发起 RPC；地址构造失败时返回已携带错误的 Future。
 func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -83,7 +84,7 @@ func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) as
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// BalanceRPC 使用负载均衡模式，向分布式服务发送RPC
+// BalanceRPC 向指定服务名的负载均衡地址发起 RPC；service 为空时使用全局负载均衡地址。
 func (p ServiceProxied) BalanceRPC(service, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -114,7 +115,7 @@ func (p ServiceProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// OnewayRPC 向分布式服务指定节点发送单向RPC
+// OnewayRPC 向 nodeId 标识的服务节点发起单向 RPC。
 func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -142,7 +143,7 @@ func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...a
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// BalanceOnewayRPC 使用负载均衡模式，向分布式服务发送单向RPC
+// BalanceOnewayRPC 向指定服务名的负载均衡地址发起单向 RPC；service 为空时使用全局负载均衡地址。
 func (p ServiceProxied) BalanceOnewayRPC(service, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -173,7 +174,7 @@ func (p ServiceProxied) BalanceOnewayRPC(service, addIn, method string, args ...
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// BroadcastOnewayRPC 使用广播模式，向分布式服务发送单向RPC
+// BroadcastOnewayRPC 向指定服务名广播单向 RPC；service 为空时全局广播，excludeSelf 为 true 时排除源节点。
 func (p ServiceProxied) BroadcastOnewayRPC(excludeSelf bool, service, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")

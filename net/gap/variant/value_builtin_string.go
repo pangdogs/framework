@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// String string
+// String 是 GAP 的字符串动态值。
 type String string
 
-// Read implements io.Reader
+// Read 将长度前缀和字符串内容编码到 p。
 func (v String) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(string(v)); err != nil {
@@ -37,7 +37,7 @@ func (v String) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码字符串。
 func (v *String) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadString()
@@ -48,17 +48,17 @@ func (v *String) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回长度前缀和字符串内容的总字节数。
 func (v String) Size() int {
 	return binaryutil.SizeofString(string(v))
 }
 
-// TypeId 类型
+// TypeId 返回字符串的内置类型 ID。
 func (String) TypeId() TypeId {
 	return TypeId_String
 }
 
-// Indirect 原始值
+// Indirect 返回 string。
 func (v String) Indirect() any {
 	return string(v)
 }

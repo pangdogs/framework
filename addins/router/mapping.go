@@ -29,17 +29,17 @@ import (
 	"go.uber.org/zap"
 )
 
-// IMapping 路由映射接口
+// IMapping 表示一个实体、网关会话和客户端地址之间的一对一映射。
 type IMapping interface {
-	// ClientAddr 获取客户端地址
+	// ClientAddr 返回该会话的客户端单播地址。
 	ClientAddr() string
-	// Entity 获取实体
+	// Entity 返回被映射的并发实体。
 	Entity() ec.ConcurrentEntity
-	// Session 获取会话
+	// Session 返回被映射的网关会话。
 	Session() gate.ISession
-	// Unmap 取消映射
+	// Unmap 请求取消映射；重复调用无副作用。
 	Unmap()
-	// Unmapped 已取消映射
+	// Unmapped 返回映射完全取消后完成的 Future。
 	Unmapped() async.Future
 }
 
@@ -53,22 +53,22 @@ type _Mapping struct {
 	unmapped   async.FutureVoid
 }
 
-// ClientAddr 获取客户端地址
+// ClientAddr 返回该会话的客户端单播地址。
 func (m *_Mapping) ClientAddr() string {
 	return m.clientAddr
 }
 
-// Entity 获取实体
+// Entity 返回被映射的并发实体。
 func (m *_Mapping) Entity() ec.ConcurrentEntity {
 	return m.entity
 }
 
-// Session 获取会话
+// Session 返回被映射的网关会话。
 func (m *_Mapping) Session() gate.ISession {
 	return m.session
 }
 
-// Unmap 取消映射
+// Unmap 请求取消映射；重复调用无副作用。
 func (m *_Mapping) Unmap() {
 	m.unmapOnce.Do(func() {
 		if m.router.removeMappingLocked(m) {
@@ -77,7 +77,7 @@ func (m *_Mapping) Unmap() {
 	})
 }
 
-// Unmapped 已取消映射
+// Unmapped 返回映射完全取消后完成的 Future。
 func (m *_Mapping) Unmapped() async.Future {
 	return m.unmapped.Out()
 }

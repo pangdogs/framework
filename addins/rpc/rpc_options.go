@@ -24,20 +24,25 @@ import (
 	"git.golaxy.org/framework/addins/rpc/rpcpcsr"
 )
 
+// RPCOptions 定义 RPC 插件使用的处理器链。
 type RPCOptions struct {
+	// Processors 按顺序保存处理器；实现 IDeliverer 的处理器也按此顺序参与投递匹配。
 	Processors []any
 }
 
+// With 提供 RPCOptions 的设置项。
 var With _Option
 
 type _Option struct{}
 
+// Default 返回默认设置，默认仅安装服务内 RPC 处理器并启用调用路径压缩。
 func (_Option) Default() option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
 		With.Processors(rpcpcsr.NewServiceProcessor(nil, true))(options)
 	}
 }
 
+// Processors 替换 RPC 插件使用的处理器链。
 func (_Option) Processors(processors ...any) option.Setting[RPCOptions] {
 	return func(options *RPCOptions) {
 		options.Processors = processors

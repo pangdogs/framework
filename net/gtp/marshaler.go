@@ -25,7 +25,7 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Marshal 序列化
+// Marshal 编码消息并返回池化字节缓冲区；调用方使用完后必须调用 Release。
 func Marshal[T ReadableMsg](msg T) (binaryutil.Bytes, error) {
 	bs := binaryutil.NewBytes(true, msg.Size())
 	if _, err := binaryutil.CopyToBuff(bs.Payload(), msg); err != nil {
@@ -35,7 +35,7 @@ func Marshal[T ReadableMsg](msg T) (binaryutil.Bytes, error) {
 	return bs, nil
 }
 
-// Unmarshal 反序列化
+// Unmarshal 从 data 解码消息；消息中的引用型字段可能直接引用 data。
 func Unmarshal(msg Msg, data []byte) error {
 	if _, err := msg.Write(data); err != nil {
 		return fmt.Errorf("%w: unmarshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)

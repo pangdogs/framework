@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是 GTP 网关的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newGate)
 )

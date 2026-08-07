@@ -36,7 +36,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// IDistEntityRegistry 分布式实体注册支持接口（自动注册全局实体为分布式实体）
+// IDistEntityRegistry 自动向 ETCD 发布运行时内的全局实体，并暴露上下线事件。
 type IDistEntityRegistry interface {
 	IDistEntityRegistryEventTab
 }
@@ -56,7 +56,7 @@ type _DistEntityRegistry struct {
 	managedHandles [2]event.Handle
 }
 
-// Init 初始化插件
+// Init 建立或复用 ETCD 客户端，申请实体注册租约，发布已有全局实体并绑定增删事件。
 func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 	log.L(rtCtx).Info("initializing add-in", zap.String("name", RegistryAddIn.Name))
 
@@ -84,7 +84,7 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 		}()
 	}
 
-	// 申请租约
+	// 全部实体注册共用一个持续续租的租约。
 	grantRsp, err := d.client.Grant(rtCtx, int64(math.Ceil(d.options.RegistrationTTL.Seconds())))
 	if err != nil {
 		log.L(rtCtx).Panic("grant etcd lease failed", zap.Error(err))
@@ -108,24 +108,24 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 			zap.Int64("lease_id", int64(d.leaseId)))
 	}()
 
-	// 刷新实体信息
+	// 在绑定增删事件前发布运行时中已有的全局实体。
 	rtCtx.EntityManager().EachEntities(d.register)
 
-	// 绑定事件
+	// 后续实体增删由事件回调同步更新到 ETCD。
 	d.managedHandles = [2]event.Handle{
 		runtime.BindEventEntityManagerAddEntity(rtCtx.EntityManager(), d, 1000),
 		runtime.BindEventEntityManagerRemoveEntity(rtCtx.EntityManager(), d, -1000),
 	}
 }
 
-// Shut 关闭插件
+// Shut 解绑实体事件、撤销注册租约并禁用事件表；仅关闭由本 add-in 创建的 ETCD 客户端。
 func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 	log.L(rtCtx).Info("shutting down add-in", zap.String("name", RegistryAddIn.Name))
 
-	// 解绑定事件钩子
+	// 先解绑回调，避免撤销租约期间继续发布实体。
 	event.UnbindHandles(d.managedHandles[:])
 
-	// 废除租约
+	// 撤销共享租约会一次性删除本运行时发布的全部实体键。
 	_, err := d.client.Revoke(context.Background(), d.leaseId)
 	if err != nil {
 		log.L(rtCtx).Error("revoke etcd lease failed", zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
@@ -140,12 +140,12 @@ func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 	d.distEntityRegistryEventTab.SetEnabled(false)
 }
 
-// OnEntityManagerAddEntity 实体管理器添加实体
+// OnEntityManagerAddEntity 发布新加入实体管理器的全局实体；其他作用域会被忽略。
 func (d *_DistEntityRegistry) OnEntityManagerAddEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
 	d.register(entity)
 }
 
-// OnEntityManagerRemoveEntity 实体管理器删除实体
+// OnEntityManagerRemoveEntity 撤销已移出实体管理器的全局实体注册；其他作用域会被忽略。
 func (d *_DistEntityRegistry) OnEntityManagerRemoveEntity(entityMgr runtime.EntityManager, entity ec.Entity) {
 	d.deregister(entity)
 }
@@ -164,7 +164,7 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) {
 	}
 	log.L(d.rtCtx).Debug("put distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
 
-	// 通知分布式实体上线
+	// ETCD 写入成功后同步通知本地监听器实体已上线。
 	_EmitEventDistEntityOnline(d, entity)
 	return
 }
@@ -188,7 +188,7 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 		}
 	}
 
-	// 通知分布式实体下线
+	// 运行时已停止时租约负责清理键，本地监听器仍会收到下线通知。
 	_EmitEventDistEntityOffline(d, entity)
 }
 

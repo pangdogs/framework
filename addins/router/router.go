@@ -39,26 +39,29 @@ import (
 )
 
 var (
-	ErrEntityNotFound  = errors.New("router: entity not found")
+	// ErrEntityNotFound 表示待映射或查询的实体不存在。
+	ErrEntityNotFound = errors.New("router: entity not found")
+	// ErrSessionNotFound 表示待映射或查询的网关会话不存在。
 	ErrSessionNotFound = errors.New("router: session not found")
-	ErrGroupExists     = errors.New("router: group already exists")
+	// ErrGroupExists 表示同名路由组已经存在。
+	ErrGroupExists = errors.New("router: group already exists")
 )
 
-// IRouter 路由器接口
+// IRouter 维护本服务内的实体与会话映射，并通过 ETCD 管理跨节点路由组。
 type IRouter interface {
-	// Map 添加实体与会话的路由映射
+	// Map 建立 entityId 与 sessionId 的一对一路由映射。
 	Map(entityId, sessionId uid.Id) (IMapping, error)
-	// Lookup 查询映射，可传实体id或会话id
+	// Lookup 按实体 ID 或会话 ID 查询映射。
 	Lookup(id uid.Id) (IMapping, bool)
-	// AddGroup 创建路由组
+	// AddGroup 创建带 ttl 租约的路由组，并加入初始实体成员。
 	AddGroup(ctx context.Context, name string, ids []uid.Id, ttl time.Duration) (IGroup, error)
-	// DeleteGroup 删除路由组
+	// DeleteGroup 删除 name 对应的路由组；不存在或删除失败时仅记录日志。
 	DeleteGroup(ctx context.Context, name string)
-	// GetGroupByName 使用名称查询路由组
+	// GetGroupByName 按逻辑名称查询并缓存路由组快照。
 	GetGroupByName(ctx context.Context, name string) (IGroup, bool)
-	// GetGroupByAddr 使用地址查询路由组
+	// GetGroupByAddr 按客户端组播地址查询并缓存路由组快照。
 	GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool)
-	// GetGroupsByEntity 查询实体所属的所有路由组
+	// GetGroupsByEntity 返回实体当前所属的路由组快照。
 	GetGroupsByEntity(ctx context.Context, entityId uid.Id) []IGroup
 }
 
@@ -86,7 +89,7 @@ type _Router struct {
 	groupCount             atomic.Int64
 }
 
-// Init 初始化插件
+// Init 计算 ETCD 键前缀，获取 gate，建立或复用 ETCD 客户端并启动路由组监听。
 func (r *_Router) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -124,7 +127,7 @@ func (r *_Router) Init(svcCtx service.Context) {
 	go r.watchingForGroups()
 }
 
-// Shut 关闭插件
+// Shut 停止路由组监听并等待退出；仅关闭由本 add-in 创建的 ETCD 客户端。
 func (r *_Router) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 

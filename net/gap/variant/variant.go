@@ -30,10 +30,11 @@ import (
 )
 
 var (
-	ErrVariant = errors.New("gap-variant") // 变体错误
+	// ErrVariant 是 GAP 动态值处理错误的根错误。
+	ErrVariant = errors.New("gap-variant")
 )
 
-// NewVariant 创建变体
+// NewVariant 用值自身的类型 ID 创建动态值包装。
 func NewVariant(v ReadableValue) (Variant, error) {
 	if v == nil {
 		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
@@ -44,14 +45,14 @@ func NewVariant(v ReadableValue) (Variant, error) {
 	}, nil
 }
 
-// Variant 变体
+// Variant 将类型 ID 与可编码值关联，并可保留解码时创建的反射值。
 type Variant struct {
-	TypeId    TypeId        // 类型Id
-	Value     ReadableValue // 值
-	Reflected reflect.Value // 反射值
+	TypeId    TypeId        // 动态值类型 ID。
+	Value     ReadableValue // 实际值。
+	Reflected reflect.Value // 解码自定义类型时创建的反射值；自行构造时可为空。
 }
 
-// Read implements io.Reader
+// Read 将带类型信息的动态值编码到 p。
 func (v Variant) Read(p []byte) (int, error) {
 	if !v.IsValid() {
 		return 0, fmt.Errorf("%w: invalid variant", ErrVariant)
@@ -76,7 +77,7 @@ func (v Variant) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码动态值，并通过 VariantCreator 构造其具体类型。
 func (v *Variant) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -110,7 +111,7 @@ func (v *Variant) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回动态值连同类型信息编码后的字节数；无效值返回零。
 func (v Variant) Size() int {
 	if !v.IsValid() {
 		return 0
@@ -129,7 +130,7 @@ func (v Variant) Size() int {
 	return n
 }
 
-// IsValid 是否有效
+// IsValid 报告类型 ID 是否与实际值声明的类型一致。
 func (v Variant) IsValid() bool {
 	if v.Value != nil {
 		return v.TypeId == v.Value.TypeId()

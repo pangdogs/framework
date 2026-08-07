@@ -30,7 +30,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// establishSession 创建会话
+// establishSession 接受连接并建立或迁移会话；成功时返回 true，失败时关闭连接。
 func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 	var err error
 
@@ -91,7 +91,7 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 	return session, true
 }
 
-// getSession 查询会话
+// getSession 按 ID 查询当前会话。
 func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
 	session, ok := g.sessions.Load(id)
 	if !ok {
@@ -100,7 +100,7 @@ func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
 	return session.(*_Session), true
 }
 
-// addSession 添加会话
+// addSession 原子加入会话并更新计数；ID 已存在时返回 false。
 func (g *_Gate) addSession(session *_Session) bool {
 	if _, loaded := g.sessions.LoadOrStore(session.Id(), session); loaded {
 		return false
@@ -109,14 +109,14 @@ func (g *_Gate) addSession(session *_Session) bool {
 	return true
 }
 
-// deleteSession 删除会话
+// deleteSession 原子删除会话并更新计数；ID 不存在时无效果。
 func (g *_Gate) deleteSession(id uid.Id) {
 	if _, loaded := g.sessions.LoadAndDelete(id); loaded {
 		g.sessionCount.Add(-1)
 	}
 }
 
-// validateSession 校验会话
+// validateSession 报告 session 是否仍是其 ID 当前注册的同一实例。
 func (g *_Gate) validateSession(session *_Session) bool {
 	exists, ok := g.sessions.Load(session.Id())
 	if !ok {

@@ -31,7 +31,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewServiceProcessor 创建分布式服务间的RPC处理器
+// NewServiceProcessor 创建服务间 RPC 处理器；reduceCallPath 控制是否压缩调用路径。
 func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool) any {
 	return &_ServiceProcessor{
 		permValidator:  permValidator,
@@ -39,7 +39,7 @@ func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool)
 	}
 }
 
-// _ServiceProcessor 分布式服务间的RPC处理器
+// _ServiceProcessor 通过分布式服务消息通道收发 RPC。
 type _ServiceProcessor struct {
 	svcCtx         service.Context
 	dsvc           dsvc.IDistService
@@ -49,7 +49,7 @@ type _ServiceProcessor struct {
 	reduceCallPath bool
 }
 
-// Init 初始化
+// Init 订阅分布式服务消息并启动处理器。
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
@@ -64,7 +64,7 @@ func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	log.L(p.svcCtx).Debug("rpc processor started", zap.String("processor", types.FullName(*p)))
 }
 
-// Shut 结束
+// Shut 停止订阅并等待消息处理循环退出。
 func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
 	async.ReturnVoid(p.stopping)
 

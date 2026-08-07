@@ -30,13 +30,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// IDataIO 数据IO
+// IDataIO 向路由目标异步投递原始数据。
 type IDataIO interface {
+	// Send 复制 data 并将其加入发送队列。
 	Send(data []byte) error
 }
 
-// IEventIO 事件IO
+// IEventIO 向路由目标异步投递传输事件。
 type IEventIO interface {
+	// Send 将 event 加入发送队列；调用方须保证事件在处理完成前保持有效。
 	Send(event transport.IEvent) error
 }
 

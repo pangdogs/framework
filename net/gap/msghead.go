@@ -25,14 +25,14 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Origin 来源信息
+// Origin 描述消息最初产生的服务、地址和时间。
 type Origin struct {
-	Svc       string // 服务
-	Addr      string // 地址
-	Timestamp int64  // 时间戳
+	Svc       string // 来源服务名。
+	Addr      string // 来源通信地址。
+	Timestamp int64  // 来源 Unix 毫秒时间戳。
 }
 
-// Read implements io.Reader
+// Read 将来源信息编码到 p。
 func (o Origin) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteString(o.Svc); err != nil {
@@ -47,7 +47,7 @@ func (o Origin) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码来源信息。
 func (o *Origin) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -70,20 +70,20 @@ func (o *Origin) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回来源信息编码后的字节数。
 func (o Origin) Size() int {
 	return binaryutil.SizeofString(o.Svc) + binaryutil.SizeofString(o.Addr) + binaryutil.SizeofInt64
 }
 
-// MsgHead 消息头
+// MsgHead 是每个 GAP 消息包的公共头部。
 type MsgHead struct {
-	Len   uint32 // 消息长度
-	MsgId MsgId  // 消息Id
-	Src   Origin // 源信息
-	Seq   int64  // 序号
+	Len   uint32 // 完整消息包的字节数。
+	MsgId MsgId  // 消息类型 ID。
+	Src   Origin // 消息来源。
+	Seq   int64  // 发送方分配的序号。
 }
 
-// Read implements io.Reader
+// Read 将消息头编码到 p。
 func (m MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
@@ -101,7 +101,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码消息头。
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -129,7 +129,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回消息头编码后的字节数。
 func (m MsgHead) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32 + m.Src.Size() + binaryutil.SizeofInt64
 }

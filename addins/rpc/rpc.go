@@ -31,11 +31,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// IRPC RPC支持
+// IRPC 提供跨服务的 RPC 请求与单向通知能力。
 type IRPC interface {
-	// RPC RPC调用
+	// RPC 按调用路径向目标发起请求，并返回用于接收结果的 Future。
 	RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.Future
-	// OnewayRPC 单向RPC调用
+	// OnewayRPC 按调用路径向目标发送无需响应的通知。
 	OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error
 }
 
@@ -52,7 +52,7 @@ type _RPC struct {
 	deliverers []rpcpcsr.IDeliverer
 }
 
-// Init 初始化插件
+// Init 按配置顺序缓存可投递处理器，再依次调用处理器的 LifecycleInit。
 func (r *_RPC) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -71,7 +71,7 @@ func (r *_RPC) Init(svcCtx service.Context) {
 	}
 }
 
-// Shut 关闭插件
+// Shut 停止接收新调用，等待在途调用离开后关闭处理器。
 func (r *_RPC) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -85,7 +85,7 @@ func (r *_RPC) Shut(svcCtx service.Context) {
 	}
 }
 
-// RPC RPC调用
+// RPC 依次选择首个匹配的投递器发起请求。
 func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.Future {
 	if !r.barrier.Join(1) {
 		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrTerminated))
@@ -109,7 +109,7 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args
 	return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrUndeliverable))
 }
 
-// OnewayRPC 单向RPC调用
+// OnewayRPC 依次选择首个匹配的投递器发送通知。
 func (r *_RPC) OnewayRPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) error {
 	if !r.barrier.Join(1) {
 		return rpcpcsr.ErrTerminated

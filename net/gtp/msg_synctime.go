@@ -25,22 +25,23 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// SyncTime消息标志位
 const (
-	Flag_ReqTime  Flag = 1 << (iota + Flag_Customize) // 请求同步时间
-	Flag_RespTime                                     // 响应同步时间
+	// Flag_ReqTime 表示时钟同步请求。
+	Flag_ReqTime Flag = 1 << (iota + Flag_Customize)
+	// Flag_RespTime 表示时钟同步响应。
+	Flag_RespTime
 )
 
-// MsgSyncTime 同步时间
+// MsgSyncTime 携带一次 NTP 风格时钟采样的时间点和时区信息。
 type MsgSyncTime struct {
-	CorrId       int64 // 关联Id，用于支持Future等异步模型
-	OriginTime   int64 // NTP t1，请求方发送请求时间
-	ReceiveTime  int64 // NTP t2，响应方收到请求时间（响应时有效）
-	TransmitTime int64 // NTP t3，响应方发送响应时间（响应时有效）
-	ZoneOffset   int32 // 响应方时区偏移秒数（响应时有效）
+	CorrId       int64 // 请求与响应的关联 ID。
+	OriginTime   int64 // NTP t1，请求方发送请求的 Unix 毫秒时间戳。
+	ReceiveTime  int64 // NTP t2，响应方收到请求的 Unix 毫秒时间戳。
+	TransmitTime int64 // NTP t3，响应方发送响应的 Unix 毫秒时间戳。
+	ZoneOffset   int32 // 响应方相对 UTC 的时区偏移秒数。
 }
 
-// Read implements io.Reader
+// Read 将时钟同步消息编码到 p。
 func (m MsgSyncTime) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt64(m.CorrId); err != nil {
@@ -61,7 +62,7 @@ func (m MsgSyncTime) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码时钟同步消息。
 func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -94,18 +95,18 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回时钟同步消息的固定编码字节数。
 func (m MsgSyncTime) Size() int {
 	return binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 +
 		binaryutil.SizeofInt32
 }
 
-// MsgId 消息Id
+// MsgId 返回时钟同步消息的内置类型 ID。
 func (MsgSyncTime) MsgId() MsgId {
 	return MsgId_SyncTime
 }
 
-// Clone 克隆消息对象
+// Clone 返回消息副本。
 func (m MsgSyncTime) Clone() Msg {
 	return &m
 }

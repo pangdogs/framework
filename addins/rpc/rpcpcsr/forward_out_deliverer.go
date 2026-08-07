@@ -36,7 +36,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Match 是否匹配
+// Match 接受客户端域地址；普通请求仅支持单播，单向通知还支持组播和广播。
 func (p *_ForwardProcessor) Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
 	// 只支持客户端域通信
 	if !gate.ClientDetails.DomainRoot.Contains(dst) {
@@ -52,7 +52,7 @@ func (p *_ForwardProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 	}
 }
 
-// Request 请求
+// Request 将客户端单播 RPC 包装后发送到承载目标实体的中转服务，并返回响应 Future。
 func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
 	handle, err := p.dsvc.FutureController().New()
 	if err != nil {
@@ -118,7 +118,7 @@ func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 	return handle.Future()
 }
 
-// Notify 通知
+// Notify 将客户端域单向 RPC 包装后发送到目标实体的中转服务或中转服务广播地址。
 func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
 	forwardAddr, err := p.getForwardAddr(dst)
 	if err != nil {
@@ -170,6 +170,7 @@ func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 	return nil
 }
 
+// getForwardAddr 将客户端单播地址解析为实体中转节点，将组播或广播地址映射到中转广播地址。
 func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 	nodeId, ok := gate.ClientDetails.DomainUnicast.Relative(dst)
 	if ok {
@@ -185,6 +186,7 @@ func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 	return "", ErrIncorrectDestAddress
 }
 
+// getDistEntityForwardAddr 返回承载实体且服务名匹配中转服务的首个节点地址。
 func (p *_ForwardProcessor) getDistEntityForwardAddr(entId uid.Id) (string, error) {
 	distEntity, ok := p.dentq.GetDistEntity(entId)
 	if !ok {

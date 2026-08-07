@@ -34,7 +34,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewForwardProcessor RPC转发处理器，用于S<->G的通信
+// NewForwardProcessor 创建服务与网关间的 RPC 转发处理器。
 func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidator PermissionValidator, reduceCallPath bool) any {
 	return &_ForwardProcessor{
 		encoder:        codec.NewEncoder(),
@@ -45,7 +45,7 @@ func NewForwardProcessor(transitService string, mc gap.IMsgCreator, permValidato
 	}
 }
 
-// _ForwardProcessor RPC转发处理器，用于S<->G的通信
+// _ForwardProcessor 在服务消息通道与中转服务之间转发 RPC。
 type _ForwardProcessor struct {
 	svcCtx               service.Context
 	dsvc                 dsvc.IDistService
@@ -60,7 +60,7 @@ type _ForwardProcessor struct {
 	reduceCallPath       bool
 }
 
-// Init 初始化
+// Init 获取依赖并启动分布式服务消息监听。
 func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
@@ -77,7 +77,7 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	log.L(p.svcCtx).Debug("rpc processor started", zap.String("processor", types.FullName(*p)))
 }
 
-// Shut 结束
+// Shut 停止监听并等待消息处理循环退出。
 func (p *_ForwardProcessor) Shut(svcCtx service.Context) {
 	async.ReturnVoid(p.stopping)
 

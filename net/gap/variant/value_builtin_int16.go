@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Int16 builtin int16
+// Int16 是 GAP 的 int16 动态值。
 type Int16 int16
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Int16) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteInt16(int16(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Int16) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Int16) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadInt16()
@@ -48,17 +48,17 @@ func (v *Int16) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (Int16) Size() int {
 	return binaryutil.SizeofInt16
 }
 
-// TypeId 类型
+// TypeId 返回 int16 的内置类型 ID。
 func (Int16) TypeId() TypeId {
 	return TypeId_Int16
 }
 
-// Indirect 原始值
+// Indirect 返回 int16。
 func (v Int16) Indirect() any {
 	return int16(v)
 }

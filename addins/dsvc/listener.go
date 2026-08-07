@@ -32,7 +32,8 @@ import (
 )
 
 type (
-	MsgHandler = generic.DelegateVoid2[string, gap.MsgPacket] // 消息处理器
+	// MsgHandler 处理一条已解码的分布式服务消息；第一个参数是接收话题。
+	MsgHandler = generic.DelegateVoid2[string, gap.MsgPacket]
 )
 
 type _BrokerMsg struct {

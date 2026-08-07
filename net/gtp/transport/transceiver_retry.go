@@ -25,14 +25,14 @@ import (
 	"fmt"
 )
 
-// Retry 网络io超时时重试
+// Retry 为 Transceiver 的超时或重复序号错误提供有限次重试。
 type Retry struct {
-	Transceiver *Transceiver
-	Times       int
-	Ctx         context.Context
+	Transceiver *Transceiver    // 被重试的收发器；发生重试时不得为 nil。
+	Times       int             // 最大重试次数；小于等于零时直接返回原错误。
+	Ctx         context.Context // 控制重试过程；nil 表示 context.Background()。
 }
 
-// Send 重试发送
+// Send 在 err 表示 I/O 超时时调用 Resend，最多重试 Times 次；其他错误原样返回。
 func (r Retry) Send(err error) error {
 	if err == nil {
 		return nil
@@ -60,7 +60,8 @@ func (r Retry) Send(err error) error {
 	return err
 }
 
-// Recv 重试接收
+// Recv 在 err 表示 I/O 超时或重复序号时继续接收。
+// 超时会消耗一次重试次数，重复序号只会丢弃当前包，不消耗重试次数。
 func (r Retry) Recv(e IEvent, err error) (IEvent, error) {
 	if err == nil {
 		return e, nil

@@ -26,12 +26,13 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgPayload 数据传输（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
+// MsgPayload 携带上层业务数据。直接通过 Write 或 Unmarshal 解码时，Data 会引用输入切片；
+// 输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgPayload struct {
-	Data []byte // 数据
+	Data []byte // 业务负载。
 }
 
-// Read implements io.Reader
+// Read 将业务负载编码到 p。
 func (m MsgPayload) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -40,7 +41,7 @@ func (m MsgPayload) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码业务负载，Data 会引用 p。
 func (m *MsgPayload) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -53,17 +54,17 @@ func (m *MsgPayload) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回业务负载编码后的字节数。
 func (m MsgPayload) Size() int {
 	return binaryutil.SizeofBytes(m.Data)
 }
 
-// MsgId 消息Id
+// MsgId 返回业务负载消息的内置类型 ID。
 func (MsgPayload) MsgId() MsgId {
 	return MsgId_Payload
 }
 
-// Clone 克隆消息对象
+// Clone 深复制业务负载。
 func (m MsgPayload) Clone() Msg {
 	return &MsgPayload{
 		Data: bytes.Clone(m.Data),

@@ -32,27 +32,27 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-// Cipher 对称密码算法
+// Cipher 是有状态的对称加密或解密变换，不支持并发调用。
 type Cipher interface {
-	// Transforming 变换数据
+	// Transforming 使用 nonce 将 src 变换到 dst，并返回输出字节数。
 	Transforming(dst, src, nonce []byte) (int, error)
-	// BlockSize block大小
+	// BlockSize 返回分组密码块大小；非分组变换返回零。
 	BlockSize() int
-	// NonceSize nonce大小
+	// NonceSize 返回每次变换要求的 nonce 字节数。
 	NonceSize() int
-	// Overhead overhead大小
+	// Overhead 返回认证加密相对明文增加的字节数。
 	Overhead() int
-	// Pad 是否需要填充
+	// Pad 报告变换前是否需要填充输入。
 	Pad() bool
-	// Unpad 是否需要解除填充
+	// Unpad 报告变换后是否需要去除填充。
 	Unpad() bool
-	// InputSize 输入大小
+	// InputSize 返回容纳 size 字节输入所需的缓冲区大小。
 	InputSize(size int) int
-	// OutputSize 输出大小
+	// OutputSize 返回 size 字节输入对应的输出缓冲区大小。
 	OutputSize(size int) int
 }
 
-// NewCipher 创建对称密码算法
+// NewCipher 根据算法和模式创建相互独立的加密器与解密器。
 func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv, nonce []byte) (encryptor, decrypter Cipher, err error) {
 	switch se {
 	case gtp.SymmetricEncryption_AES:
@@ -106,7 +106,7 @@ func NewCipher(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode, key, iv, non
 	}
 }
 
-// NewCipherBlock 创建密码分组
+// NewCipherBlock 创建底层分组密码，并将构造 panic 转换为错误。
 func NewCipherBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
@@ -123,7 +123,7 @@ func NewCipherBlock(se gtp.SymmetricEncryption, key []byte) (block cipher.Block,
 	}
 }
 
-// NewBlockCipherMode 创建分组密码模式
+// NewBlockCipherMode 为分组密码创建成对的加密和解密变换，并将构造 panic 转换为错误。
 func NewBlockCipherMode(bcm gtp.BlockCipherMode, block cipher.Block, iv []byte) (encryptor, decrypter Cipher, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {

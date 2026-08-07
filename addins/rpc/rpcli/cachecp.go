@@ -25,6 +25,7 @@ import (
 	"git.golaxy.org/framework/addins/rpc/callpath"
 )
 
+// cacheCallPath 为脚本的全部导出方法预注册压缩调用路径。
 func cacheCallPath(script string, rt reflect.Type) {
 	if rt == nil {
 		return

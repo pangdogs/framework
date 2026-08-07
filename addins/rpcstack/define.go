@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是 RPC 调用链上下文的运行时级 add-in 安装入口。
 	AddIn = define.RuntimeAddIn(newRPCStack)
 )

@@ -27,7 +27,8 @@ import (
 )
 
 var (
-	ErrInvalidCast = fmt.Errorf("%w: invalid cast", ErrVariant) // 类型转换错误
+	// ErrInvalidCast 表示动态值无法安全转换为目标 Go 类型。
+	ErrInvalidCast = fmt.Errorf("%w: invalid cast", ErrVariant)
 )
 
 var (
@@ -42,6 +43,7 @@ var (
 	valueInterfaceRT             = reflect.TypeFor[Value]()
 )
 
+// ToNative 将动态值转换为 valueRT；数值转换不允许缩窄底层存储宽度。
 func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 	if !v.IsValid() {
 		return reflect.Value{}, ErrInvalidCast

@@ -34,6 +34,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// handleServiceMsg 接受中转服务发来的客户端域转入消息，并交给本地目标处理。
 func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	switch mp.Head.MsgId {
 	case gap.MsgId_Forward:
@@ -48,6 +49,7 @@ func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 	}
 }
 
+// acceptForward 解包被中转的 RPC 请求、通知或响应。
 func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForward) {
 	switch req.TransId {
 	case gap.MsgId_OnewayRPC:
@@ -89,6 +91,7 @@ func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForwar
 	}
 }
 
+// acceptNotify 构造客户端与中转节点调用链，校验权限后异步调用本地目标。
 func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -243,6 +246,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 	}
 }
 
+// acceptRequest 校验权限并异步调用本地目标，再经原中转节点回复客户端。
 func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, req *gap.MsgRPCRequest) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
@@ -413,6 +417,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 	}
 }
 
+// resolveReply 按关联 ID 完成本节点发起客户端 RPC 时创建的 Future。
 func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.MsgRPCReply) {
 	ret := async.Result{}
 
@@ -439,6 +444,7 @@ func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.Msg
 		zap.Int64("corr_id", reply.CorrId))
 }
 
+// reply 将本地调用结果包装为转发消息，经 transit 发回客户端；零关联 ID 不回复。
 func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.Array, retErr error) {
 	defer rets.ReleaseIfSnapshot()
 

@@ -23,14 +23,14 @@ import (
 	"reflect"
 )
 
-// IScript 脚本接口
+// IScript 表示可由远端 RPC 调用的客户端脚本。
 type IScript interface {
 	iScript
-	// Cli 获取RPC客户端
+	// Cli 返回脚本所属的 RPC 客户端。
 	Cli() *RPCli
-	// Name 获取名称
+	// Name 返回脚本注册名称。
 	Name() string
-	// Reflected 获取反射值
+	// Reflected 返回脚本实例的反射值。
 	Reflected() reflect.Value
 }
 
@@ -38,7 +38,7 @@ type iScript interface {
 	init(cli *RPCli, name string, instance any)
 }
 
-// ScriptBehavior 脚本
+// ScriptBehavior 提供客户端脚本所需的基础实现。
 type ScriptBehavior struct {
 	cli       *RPCli
 	name      string
@@ -51,17 +51,17 @@ func (p *ScriptBehavior) init(cli *RPCli, name string, instance any) {
 	p.reflected = reflect.ValueOf(instance)
 }
 
-// Cli 获取RPC客户端
+// Cli 返回脚本所属的 RPC 客户端。
 func (p *ScriptBehavior) Cli() *RPCli {
 	return p.cli
 }
 
-// Name 获取名称
+// Name 返回脚本注册名称。
 func (p *ScriptBehavior) Name() string {
 	return p.name
 }
 
-// Reflected 获取反射值
+// Reflected 返回脚本实例的反射值。
 func (p *ScriptBehavior) Reflected() reflect.Value {
 	return p.reflected
 }

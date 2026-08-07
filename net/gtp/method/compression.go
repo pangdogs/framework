@@ -31,21 +31,25 @@ import (
 )
 
 var (
-	GzipCompressionLevel    = gzip.DefaultCompression   // gzip压缩级别
-	DeflateCompressionLevel = flate.DefaultCompression  // deflate压缩级别
-	BrotliCompressionLevel  = brotli.DefaultCompression // brotli压缩级别
-	LZ4CompressionLevel     = lz4.Level4                // lz4压缩级别
+	// GzipCompressionLevel 是新建 Gzip 写入器使用的压缩级别。
+	GzipCompressionLevel = gzip.DefaultCompression
+	// DeflateCompressionLevel 是新建 Deflate 写入器使用的压缩级别。
+	DeflateCompressionLevel = flate.DefaultCompression
+	// BrotliCompressionLevel 是新建 Brotli 写入器使用的压缩级别。
+	BrotliCompressionLevel = brotli.DefaultCompression
+	// LZ4CompressionLevel 是新建 LZ4 写入器使用的压缩级别。
+	LZ4CompressionLevel = lz4.Level4
 )
 
-// CompressionStream 压缩/解压缩流
+// CompressionStream 复用指定算法的压缩与解压写入器，不支持并发调用。
 type CompressionStream interface {
-	// WrapReader 包装解压缩流
+	// WrapReader 将输入包装为可读取的解压流。
 	WrapReader(r io.Reader) (io.Reader, error)
-	// WrapWriter 包装压缩流
+	// WrapWriter 将输出包装为必须关闭的压缩流。
 	WrapWriter(w io.Writer) (io.WriteCloser, error)
 }
 
-// NewCompressionStream 创建压缩/解压缩流
+// NewCompressionStream 创建可复用的压缩流；不支持的算法返回 ErrInvalidMethod。
 func NewCompressionStream(c gtp.Compression) (CompressionStream, error) {
 	switch c {
 	case gtp.Compression_Gzip:

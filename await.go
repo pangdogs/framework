@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	// ErrAsyncCallerNotAlive 表示等待结果返回时，发起等待的实体或组件已经失活。
 	ErrAsyncCallerNotAlive = errors.New("async/await: async caller is not alive")
 )
 
@@ -37,13 +38,15 @@ type iAsyncCaller interface {
 	isAlive() bool
 }
 
-// AwaitDirector 异步等待分发器
+// AwaitDirector 组合一个或多个 Future，并把后续回调调度回调用方所属运行时。
+// 回调执行前会检查发起等待的实体或组件是否仍然存活。
 type AwaitDirector struct {
 	caller   iAsyncCaller
 	director core.AwaitDirector
 }
 
-// Any 异步等待任意一个结果返回，有返回值
+// Any 等待首个 Future 返回结果，再在所属运行时执行 fun。
+// 结果是否包含错误不影响选择。
 func (ad AwaitDirector) Any(fun generic.FuncVar2[IRuntime, async.Result, any, async.Result], args ...any) async.Future {
 	return ad.director.Any(func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -53,7 +56,7 @@ func (ad AwaitDirector) Any(fun generic.FuncVar2[IRuntime, async.Result, any, as
 	}, args...)
 }
 
-// AnyVoid 异步等待任意一个结果返回，无返回值
+// AnyVoid 等待首个 Future 返回结果，再在所属运行时执行无返回值的 fun。
 func (ad AwaitDirector) AnyVoid(fun generic.ActionVar2[IRuntime, async.Result, any], args ...any) async.Future {
 	return ad.director.Any(func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -64,7 +67,8 @@ func (ad AwaitDirector) AnyVoid(fun generic.ActionVar2[IRuntime, async.Result, a
 	}, args...)
 }
 
-// OK 异步等待任意一个结果成功返回，有返回值
+// OK 等待首个成功结果，再在所属运行时执行 fun。
+// 所有 Future 均失败时返回 core.ErrNoFutureSucceeded。
 func (ad AwaitDirector) OK(fun generic.FuncVar2[IRuntime, async.Result, any, async.Result], args ...any) async.Future {
 	return ad.director.OK(func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -74,7 +78,8 @@ func (ad AwaitDirector) OK(fun generic.FuncVar2[IRuntime, async.Result, any, asy
 	}, args...)
 }
 
-// OKVoid 异步等待任意一个结果成功返回，无返回值
+// OKVoid 等待首个成功结果，再在所属运行时执行无返回值的 fun。
+// 所有 Future 均失败时返回 core.ErrNoFutureSucceeded。
 func (ad AwaitDirector) OKVoid(fun generic.ActionVar2[IRuntime, async.Result, any], args ...any) async.Future {
 	return ad.director.OK(func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -85,7 +90,7 @@ func (ad AwaitDirector) OKVoid(fun generic.ActionVar2[IRuntime, async.Result, an
 	}, args...)
 }
 
-// All 异步等待所有结果返回，有返回值
+// All 按传入顺序收集所有 Future 的结果，再在所属运行时执行 fun。
 func (ad AwaitDirector) All(fun generic.FuncVar2[IRuntime, []async.Result, any, async.Result], args ...any) async.Future {
 	return ad.director.All(func(ctx runtime.Context, rets []async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -95,7 +100,7 @@ func (ad AwaitDirector) All(fun generic.FuncVar2[IRuntime, []async.Result, any, 
 	}, args...)
 }
 
-// AllVoid 异步等待所有结果返回，无返回值
+// AllVoid 按传入顺序收集所有 Future 的结果，再在所属运行时执行无返回值的 fun。
 func (ad AwaitDirector) AllVoid(fun generic.ActionVar2[IRuntime, []async.Result, any], args ...any) async.Future {
 	return ad.director.All(func(ctx runtime.Context, rets []async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -106,7 +111,7 @@ func (ad AwaitDirector) AllVoid(fun generic.ActionVar2[IRuntime, []async.Result,
 	}, args...)
 }
 
-// Transform 异步等待产出（yield）返回，并变换结果
+// Transform 合并所有 Future 的连续产出，在所属运行时逐项执行 fun，并产出转换结果。
 func (ad AwaitDirector) Transform(fun generic.FuncVar2[IRuntime, async.Result, any, async.Result], args ...any) async.Future {
 	return ad.director.Transform(func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
 		if !ad.caller.isAlive() {
@@ -116,7 +121,7 @@ func (ad AwaitDirector) Transform(fun generic.FuncVar2[IRuntime, async.Result, a
 	}, args...)
 }
 
-// Foreach 异步等待产出（yield）返回
+// Foreach 合并所有 Future 的连续产出，并在所属运行时逐项执行 fun。
 func (ad AwaitDirector) Foreach(fun generic.ActionVar2[IRuntime, async.Result, any], args ...any) async.Future {
 	return ad.director.Foreach(func(ctx runtime.Context, ret async.Result, args ...any) {
 		if !ad.caller.isAlive() {

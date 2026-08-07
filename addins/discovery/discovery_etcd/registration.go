@@ -40,7 +40,7 @@ type _EtcdRegistration struct {
 	leaseId     etcdv3.LeaseID
 }
 
-// KeepAliveContinuous 节点持续保活
+// KeepAliveContinuous 持续刷新节点租约，直到 ctx、registry 或 ETCD 保活流结束。
 func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -112,7 +112,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 	return stopped.Out(), nil
 }
 
-// KeepAliveOnce 节点保活一次
+// KeepAliveOnce 立即向 ETCD 刷新一次节点租约。
 func (r *_EtcdRegistration) KeepAliveOnce(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -137,7 +137,7 @@ func (r *_EtcdRegistration) KeepAliveOnce(ctx context.Context) error {
 	return nil
 }
 
-// Deregister 注销服务节点
+// Deregister 撤销 ETCD 租约，从而注销服务节点及所有租约关联键。
 func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -162,6 +162,7 @@ func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 	return nil
 }
 
+// registerNode 以不少于三秒的租约原子创建节点键；键已存在时返回重复注册错误。
 func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, node *discovery.Node, ttl time.Duration) (discovery.IRegistration, error) {
 	if ctx == nil {
 		ctx = context.Background()

@@ -28,6 +28,7 @@ import (
 	"git.golaxy.org/core/utils/types"
 )
 
+// newDialer 创建尝试在新 socket 上应用可选 TCP 参数的 Windows 拨号器。
 func newDialer(options *ClientOptions) *net.Dialer {
 	var noDelay *int
 	if options.TCPNoDelay != nil {

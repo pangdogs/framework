@@ -22,5 +22,6 @@ package router
 import "git.golaxy.org/core/define"
 
 var (
+	// AddIn 是实体与网关会话路由能力的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newRouter)
 )

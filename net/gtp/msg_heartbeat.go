@@ -21,36 +21,37 @@ package gtp
 
 import "io"
 
-// Heartbeat消息标志位
 const (
-	Flag_Ping Flag = 1 << (iota + Flag_Customize) // 心跳ping
-	Flag_Pong                                     // 心跳pong
+	// Flag_Ping 表示心跳探测。
+	Flag_Ping Flag = 1 << (iota + Flag_Customize)
+	// Flag_Pong 表示心跳响应。
+	Flag_Pong
 )
 
-// MsgHeartbeat 心跳，消息体为空，可以不解析
+// MsgHeartbeat 是无消息体的心跳探测或响应。
 type MsgHeartbeat struct{}
 
-// Read implements io.Reader
+// Read 不写入数据并立即结束。
 func (MsgHeartbeat) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
-// Write implements io.Writer
+// Write 不读取数据。
 func (*MsgHeartbeat) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
-// Size 大小
+// Size 始终返回零。
 func (MsgHeartbeat) Size() int {
 	return 0
 }
 
-// MsgId 消息Id
+// MsgId 返回心跳消息的内置类型 ID。
 func (MsgHeartbeat) MsgId() MsgId {
 	return MsgId_Heartbeat
 }
 
-// Clone 克隆消息对象
+// Clone 返回消息副本。
 func (m MsgHeartbeat) Clone() Msg {
 	return &m
 }

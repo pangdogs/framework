@@ -39,16 +39,16 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// handshake 握手过程
+// handshake 完成服务端握手，并返回新建或迁移后的会话。
 func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, bool, error) {
-	// 编解码器构建器
+	// 每条待握手连接使用独立编解码器，协商出的模块随后随连接移交给会话。
 	acc.encoder = codec.NewEncoder()
 	acc.decoder = codec.NewDecoder(acc.options.MsgCreator)
 
-	// 设置消息包最大长度
+	// 包长限制从第一条明文握手消息起生效。
 	acc.decoder.SetMaxPacketSize(acc.options.MaxPacketSize)
 
-	// 握手协议
+	// 握手阶段尚无时序状态，使用不带序号缓存的同步器。
 	handshake := &transport.HandshakeProtocol{
 		Transceiver: &transport.Transceiver{
 			Conn:         conn,
@@ -79,7 +79,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 	}()
 
-	// 与客户端互相hello
+	// Hello 阶段完成版本检查、会话续接判断及密码和压缩方案选择。
 	err := handshake.ServerHello(ctx, func(cliHello transport.Event[*gtp.MsgHello]) (transport.Event[*gtp.MsgHello], error) {
 		// 检查协议版本
 		if cliHello.Msg.Version != gtp.Version_V1_0 {
@@ -118,9 +118,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			cm = acc.options.Compression
 		}
 
-		// 开启加密时，需要交换随机数
+		// 需要密钥交换时保留客户端随机数，并生成服务端随机数。
 		if cs.SecretKeyExchange != gtp.SecretKeyExchange_None {
-			// 记录客户端随机数
+			// MsgHello 的切片属于解码结果，复制到握手期池化缓冲区。
 			if len(cliHello.Msg.Random) <= 0 {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_EncryptFailed,
@@ -130,7 +130,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			cliRandom = binaryutil.BytesPool.Get(len(cliHello.Msg.Random))
 			copy(cliRandom, cliHello.Msg.Random)
 
-			// 生成服务端随机数
+			// 随机数参与签名和共享密钥派生。
 			n, err := rand.Int(rand.Reader, big.NewInt(0).Lsh(big.NewInt(1), 256))
 			if err != nil {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
@@ -144,7 +144,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			encryptionFlow = true
 		}
 
-		// 返回服务端Hello
+		// 服务端 Hello 回显最终采用的协议参数及新建或续接的会话 ID。
 		servHello := transport.Event[*gtp.MsgHello]{
 			Flags: gtp.Flags(gtp.Flag_HelloDone),
 			Msg: &gtp.MsgHello{
@@ -158,14 +158,12 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 		authFlow = len(acc.options.Authenticator) > 0
 
-		// 标记是否开启加密
+		// 标志位告知客户端后续需要执行的可选握手阶段。
 		servHello.Flags.Set(gtp.Flag_Encryption, encryptionFlow)
-		// 标记是否开启鉴权
 		servHello.Flags.Set(gtp.Flag_Auth, authFlow)
-		// 标记是否走断线重连流程
 		servHello.Flags.Set(gtp.Flag_Continue, continueFlow)
 
-		// 开启加密时，记录双方hello数据，用于ecdh后加密验证
+		// Hello 摘要绑定协商参数，供 ECDH 签名及切换密码后的验证使用。
 		if encryptionFlow {
 			h := sha256.New()
 
@@ -199,7 +197,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		return nil, false, err
 	}
 
-	// 开启加密时，与客户端交换秘钥
+	// 密钥交换完成后，握手 Transceiver 已安装协商出的加密和认证模块。
 	if encryptionFlow {
 		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
 		if err != nil {
@@ -207,16 +205,16 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 	}
 
-	// 安装压缩模块
+	// 压缩在密钥交换之后启用，避免改变参与签名的 Hello 表示。
 	err = acc.setupCompression(cm)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// 开启鉴权时，鉴权客户端
+	// 新会话保存鉴权信息；续接会话还必须与原会话身份和令牌一致。
 	if authFlow {
 		err = handshake.ServerAuth(ctx, func(e transport.Event[*gtp.MsgAuth]) error {
-			// 断线重连流程，检查会话Id与token是否匹配，防止hack客户端猜测会话Id，恶意通过断线重连登录
+			// 续接时校验身份与令牌，拒绝伪造的会话续接请求。
 			if continueFlow {
 				if e.Msg.UserId != userId || e.Msg.Token != token {
 					return &transport.RstError{
@@ -252,10 +250,10 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	var session *_Session
 	var sendSeq, recvSeq uint32
 
-	// 断线重连流程，需要交换序号，检测是否能补发消息
+	// 续接连接交换收发序号，并在旧会话的 Transceiver 中定位补发起点。
 	if continueFlow {
 		err = handshake.ServerContinue(ctx, func(e transport.Event[*gtp.MsgContinue]) error {
-			// 查询旧会话
+			// Hello 后会话仍可能因超时并发删除，因此再次查询。
 			var ok bool
 			session, ok = acc.getSession(sessionId)
 			if !ok {
@@ -265,7 +263,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 				}
 			}
 
-			// 旧会话迁移连接
+			// 迁移成功后旧连接关闭，新连接接管未确认帧。
 			var err error
 			sendSeq, recvSeq, err = session.migrateConn(handshake.Transceiver.Conn, e.Msg.RecvSeq)
 			if err != nil {
@@ -280,12 +278,12 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			return nil, false, err
 		}
 	} else {
-		// 创建新会话，并初始化连接
+		// 新会话从随机序号开始，并接管握手使用的连接和编解码器。
 		session = acc.newSession(sessionId, userId, token, extensions)
 		sendSeq, recvSeq = session.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder)
 	}
 
-	// 通知客户端握手结束
+	// Finished 确认各可选阶段成功，并返回服务端当前收发序号。
 	err = handshake.ServerFinished(ctx, transport.Event[*gtp.MsgFinished]{
 		Flags: gtp.Flags_None().
 			Setd(gtp.Flag_EncryptOK, encryptionFlow).
@@ -314,39 +312,36 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	}
 
 	if continueFlow {
-		// 检测会话有效性
+		// Finished 发送期间会话仍可能过期，返回前再验证一次注册身份。
 		if !acc.validateSession(session) {
 			return nil, false, sendRst(gtp.Code_Reject, "session has expired")
 		}
 	} else {
-		// 占用屏障
+		// 新会话必须先加入关闭屏障和会话表，主循环退出时负责 Done。
 		if !acc.barrier.Join(1) {
 			return nil, false, sendRst(gtp.Code_Shutdown, "service shutdown")
 		}
-		// 添加会话
 		if !acc.addSession(session) {
 			acc.barrier.Done()
 			return nil, false, sendRst(gtp.Code_Reject, "session can't be confirmed")
 		}
-		// 调整会话状态为已确认
 		session.setState(SessionState_Confirmed)
-		// 启动会话主线程
 		go session.mainLoop()
 	}
 
 	return session, continueFlow, nil
 }
 
-// secretKeyExchange 秘钥交换过程
+// secretKeyExchange 与客户端完成协商密码套件的密钥交换流程。
 func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
 	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionId uid.Id) (err error) {
-	// 控制协议
+	// 密钥交换失败时通过独立控制门面尽力发送一次 RST。
 	ctrl := transport.CtrlProtocol{
 		Transceiver: handshake.Transceiver,
 		RetryTimes:  handshake.RetryTimes,
 	}
 
-	// 是否已发送rst
+	// HandshakeProtocol 内部已发送 RST 时避免在 defer 中重复发送。
 	rstSent := false
 
 	defer func() {
@@ -358,7 +353,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		}
 	}()
 
-	// 选择秘钥交换函数，并与客户端交换秘钥
+	// 选择密钥交换算法，并与客户端交换密钥
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
 		// 创建曲线
@@ -397,13 +392,13 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 			return err
 		}
 
-		// 创建iv值
+		// 创建 IV
 		iv, err := acc.newIV(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
 		}
 
-		// 创建nonce值
+		// 创建 nonce
 		nonce, err := acc.newNonce(cs.SymmetricEncryption, cs.BlockCipherMode)
 		if err != nil {
 			return err
@@ -422,14 +417,14 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 			fetchNonce[1] = acc.newFetchNonce(nonce, acc.options.EncNonceStep)
 		}
 
-		// 临时共享秘钥
+		// 临时共享密钥
 		var sharedKeyBytes []byte
 
-		// 加密后的hello消息
+		// 加密后的 Hello 消息
 		var encryptedHello binaryutil.Bytes
 		defer encryptedHello.Release()
 
-		// 与客户端交换秘钥
+		// 与客户端交换密钥
 		err = handshake.ServerECDHESecretKeyExchange(ctx,
 			transport.Event[*gtp.MsgECDHESecretKeyExchange]{
 				Flags: gtp.Flags_None().Setd(gtp.Flag_Signature, len(signature) > 0),
@@ -478,7 +473,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 					}
 				}
 
-				// 临时共享秘钥
+				// 临时共享密钥
 				sharedKeyBytes, err = servPriv.ECDH(cliPub)
 				if err != nil {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
@@ -499,7 +494,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 				// 加密模块
 				encryption[0] = codec.NewEncryption(cipher[0], padding[0], fetchNonce[0])
 
-				// 加密hello消息
+				// 加密 Hello 消息
 				encryptedHello, err = encryption[0].Transforming(nil, servHelloHash[:])
 				if err != nil {
 					return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
@@ -558,7 +553,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 	}
 }
 
-// setupCompression 安装压缩模块
+// setupCompression 安装协商得到的压缩模块。
 func (acc *_Acceptor) setupCompression(cm gtp.Compression) error {
 	compression, compressionThreshold, _, err := acc.newCompression(cm)
 	if err != nil {
@@ -575,13 +570,13 @@ func (acc *_Acceptor) setupCompression(cm gtp.Compression) error {
 	return nil
 }
 
-// setupEncryption 安装加密模块
+// setupEncryption 安装发送与接收方向的加密模块。
 func (acc *_Acceptor) setupEncryption(encryption [2]codec.IEncryption) {
 	acc.encoder.SetEncryption(encryption[0])
 	acc.decoder.SetEncryption(encryption[1])
 }
 
-// setupAuthentication 安装认证模块
+// setupAuthentication 安装发送与接收方向的消息认证模块。
 func (acc *_Acceptor) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte) error {
 	authentication, err := acc.newAuthentication(hash, sharedKeyBytes)
 	if err != nil {
@@ -598,7 +593,7 @@ func (acc *_Acceptor) setupAuthentication(hash gtp.Hash, sharedKeyBytes []byte) 
 	return nil
 }
 
-// newIV 构造iv值
+// newIV 构造配置长度的随机 IV。
 func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
 	if !se.BlockCipherMode() || !bcm.IV() {
 		return nil, nil
@@ -617,7 +612,7 @@ func (acc *_Acceptor) newIV(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode)
 	return iv, nil
 }
 
-// newNonce 构造nonce值
+// newNonce 构造配置长度的随机 nonce。
 func (acc *_Acceptor) newNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMode) (*big.Int, error) {
 	size, ok := se.Nonce()
 	if !ok {
@@ -638,7 +633,7 @@ func (acc *_Acceptor) newNonce(se gtp.SymmetricEncryption, bcm gtp.BlockCipherMo
 	return nonce, nil
 }
 
-// newFetchNonce 构造获取nonce值函数
+// newFetchNonce 构造每次取值后按步长递增的 nonce 函数。
 func (acc *_Acceptor) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce {
 	if nonce == nil {
 		return nil
@@ -664,7 +659,7 @@ func (acc *_Acceptor) newFetchNonce(nonce, nonceStep *big.Int) codec.FetchNonce 
 	}
 }
 
-// newPaddingMode 构造填充方案
+// newPaddingMode 根据分组模式和协商配置构造填充方案。
 func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.PaddingMode) (method.Padding, error) {
 	if !bcm.Padding() {
 		return nil, nil
@@ -682,7 +677,7 @@ func (acc *_Acceptor) newPaddingMode(bcm gtp.BlockCipherMode, paddingMode gtp.Pa
 	return padding, nil
 }
 
-// newAuthentication 构造认证模块
+// newAuthentication 根据协商摘要和共享密钥构造消息认证模块。
 func (acc *_Acceptor) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (codec.IAuthentication, error) {
 	if hash == gtp.Hash_None {
 		return nil, nil
@@ -696,7 +691,7 @@ func (acc *_Acceptor) newAuthentication(hash gtp.Hash, sharedKeyBytes []byte) (c
 	return codec.NewAuthentication(hmac), nil
 }
 
-// newCompression 构造压缩模块
+// newCompression 构造协商得到的压缩模块。
 func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompression, int, int, error) {
 	if compression == gtp.Compression_None {
 		return nil, 0, 0, nil
@@ -710,7 +705,7 @@ func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompre
 	return codec.NewCompression(compressionStream), acc.options.CompressionThreshold, acc.options.MaxUncompressedSize, err
 }
 
-// sign 签名
+// sign 使用服务端私钥签署握手参数；未配置签名算法时返回空签名。
 func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) ([]byte, error) {
 	// 无需签名
 	if acc.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
@@ -749,7 +744,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 	return signature, nil
 }
 
-// verify 验证签名
+// verify 使用客户端公钥验证握手参数签名。
 func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if acc.options.EncVerifySignaturePublicKey == nil {

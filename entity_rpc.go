@@ -24,52 +24,52 @@ import (
 	"git.golaxy.org/framework/addins/rpc"
 )
 
-// RPC 向分布式实体目标服务发送RPC
+// RPC 向承载当前实体的首个指定服务节点发起 RPC。
 func (e *EntityBehavior) RPC(service, comp, method string, args ...any) async.Future {
 	return rpc.ProxyEntity(e, e.Id()).RPC(service, comp, method, args...)
 }
 
-// BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
+// BalanceRPC 从承载当前实体且服务名匹配的节点中随机选择一个发起 RPC。
 func (e *EntityBehavior) BalanceRPC(service, comp, method string, args ...any) async.Future {
 	return rpc.ProxyEntity(e, e.Id()).BalanceRPC(service, comp, method, args...)
 }
 
-// GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
+// GlobalBalanceRPC 从承载当前实体的全部节点中随机选择一个发起 RPC；excludeSelf 为 true 时排除本节点。
 func (e *EntityBehavior) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.Future {
 	return rpc.ProxyEntity(e, e.Id()).GlobalBalanceRPC(excludeSelf, comp, method, args...)
 }
 
-// OnewayRPC 向分布式实体目标服务发送单向RPC
+// OnewayRPC 向承载当前实体的首个指定服务节点发起单向 RPC。
 func (e *EntityBehavior) OnewayRPC(service, comp, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).OnewayRPC(service, comp, method, args...)
 }
 
-// BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
+// BalanceOnewayRPC 从承载当前实体且服务名匹配的节点中随机选择一个发起单向 RPC。
 func (e *EntityBehavior) BalanceOnewayRPC(service, comp, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).BalanceOnewayRPC(service, comp, method, args...)
 }
 
-// GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
+// GlobalBalanceOnewayRPC 从承载当前实体的全部节点中随机选择一个发起单向 RPC；excludeSelf 为 true 时排除本节点。
 func (e *EntityBehavior) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).GlobalBalanceOnewayRPC(excludeSelf, comp, method, args...)
 }
 
-// BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
+// BroadcastOnewayRPC 向指定服务中承载当前实体的节点广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (e *EntityBehavior) BroadcastOnewayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).BroadcastOnewayRPC(excludeSelf, service, comp, method, args...)
 }
 
-// GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
+// GlobalBroadcastOnewayRPC 向所有服务中承载当前实体的节点广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (e *EntityBehavior) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).GlobalBroadcastOnewayRPC(excludeSelf, comp, method, args...)
 }
 
-// CliRPC 向客户端发送RPC
+// CliRPC 向当前实体 ID 对应的客户端单播地址发起 RPC。
 func (e *EntityBehavior) CliRPC(proc, method string, args ...any) async.Future {
 	return rpc.ProxyEntity(e, e.Id()).CliRPC(proc, method, args...)
 }
 
-// CliOnewayRPC 向客户端发送单向RPC
+// CliOnewayRPC 向当前实体 ID 对应的客户端单播地址发起单向 RPC。
 func (e *EntityBehavior) CliOnewayRPC(proc, method string, args ...any) error {
 	return rpc.ProxyEntity(e, e.Id()).CliOnewayRPC(proc, method, args...)
 }

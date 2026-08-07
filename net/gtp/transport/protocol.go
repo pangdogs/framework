@@ -25,6 +25,8 @@ import (
 )
 
 var (
-	ErrProtocol      = errors.New("gtp-protocol")                    // 消息协议错误
-	ErrUnexpectedMsg = fmt.Errorf("%w: unexpected msg", ErrProtocol) // 收到非预期的消息
+	// ErrProtocol 是 GTP 传输流程错误的根错误。
+	ErrProtocol = errors.New("gtp-protocol")
+	// ErrUnexpectedMsg 表示当前协议阶段收到不允许的消息类型。
+	ErrUnexpectedMsg = fmt.Errorf("%w: unexpected msg", ErrProtocol)
 )

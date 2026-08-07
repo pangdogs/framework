@@ -29,7 +29,7 @@ import (
 	"golang.org/x/crypto/blake2s"
 )
 
-// NewHMAC 创建HMAC
+// NewHMAC 使用指定摘要算法和密钥创建消息认证码；不支持的摘要返回 ErrInvalidMethod。
 func NewHMAC(h gtp.Hash, key []byte) (hash.Hash, error) {
 	switch h {
 	case gtp.Hash_SHA256:

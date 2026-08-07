@@ -24,5 +24,6 @@ import (
 )
 
 var (
-	ErrFramework = errors.New("framework") // 框架错误
+	// ErrFramework 是 framework 包错误的根错误，可通过 errors.Is 判断错误类别。
+	ErrFramework = errors.New("framework")
 )

@@ -26,10 +26,13 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// DefaultWebSocketLocalAddrResolver 返回 WebSocket 底层连接的本地地址。
 func DefaultWebSocketLocalAddrResolver(conn *websocket.Conn) net.Addr {
 	return conn.LocalAddr()
 }
 
+// DefaultWebSocketRemoteAddrResolver 优先从 X-Real-Ip、X-Forwarded-For 解析客户端 IP，
+// 否则使用请求的 RemoteAddr。该实现不校验代理可信度；直接暴露公网时应自定义解析器。
 func DefaultWebSocketRemoteAddrResolver(conn *websocket.Conn) net.Addr {
 	if xrip := conn.Request().Header.Get("X-Real-Ip"); xrip != "" {
 		return _WebSocketAddr(strings.TrimSpace(xrip))

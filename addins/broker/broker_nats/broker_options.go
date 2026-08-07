@@ -29,21 +29,22 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// NatsBrokerOptions 所有选项
+// NatsBrokerOptions 配置 NATS 连接及对外话题、队列组前缀。
 type NatsBrokerOptions struct {
-	NatsClient      *nats.Conn
-	TopicPrefix     string
-	QueuePrefix     string
-	CustomAddresses []string
-	CustomUsername  string
-	CustomPassword  string
+	NatsClient      *nats.Conn // NatsClient 非 nil 时直接复用，add-in 停止时不会关闭它。
+	TopicPrefix     string     // TopicPrefix 会添加到发布和订阅话题前。
+	QueuePrefix     string     // QueuePrefix 会添加到非空队列组名称前。
+	CustomAddresses []string   // CustomAddresses 是自行建立连接时使用的服务地址。
+	CustomUsername  string     // CustomUsername 是自行建立连接时使用的用户名。
+	CustomPassword  string     // CustomPassword 是自行建立连接时使用的密码。
 }
 
+// With 提供 NATS broker 的 Option 构造方法。
 var With _NatsBrokerOption
 
 type _NatsBrokerOption struct{}
 
-// Default 默认选项
+// Default 返回默认设置：连接 127.0.0.1:4222，且不添加话题或队列组前缀。
 func (_NatsBrokerOption) Default() option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		With.NatsClient(nil).Apply(options)
@@ -54,14 +55,14 @@ func (_NatsBrokerOption) Default() option.Setting[NatsBrokerOptions] {
 	}
 }
 
-// NatsClient nats客户端（优先使用）
+// NatsClient 设置要复用的 NATS 客户端；非 nil 时忽略自定义连接参数。
 func (_NatsBrokerOption) NatsClient(cli *nats.Conn) option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		options.NatsClient = cli
 	}
 }
 
-// TopicPrefix 订阅话题前缀
+// TopicPrefix 设置话题前缀；非空值会自动补充末尾的点号。
 func (_NatsBrokerOption) TopicPrefix(prefix string) option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
@@ -71,7 +72,7 @@ func (_NatsBrokerOption) TopicPrefix(prefix string) option.Setting[NatsBrokerOpt
 	}
 }
 
-// QueuePrefix 订阅队列组前缀
+// QueuePrefix 设置队列组前缀；非空值会自动补充末尾的点号。
 func (_NatsBrokerOption) QueuePrefix(prefix string) option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, ".") {
@@ -81,7 +82,7 @@ func (_NatsBrokerOption) QueuePrefix(prefix string) option.Setting[NatsBrokerOpt
 	}
 }
 
-// CustomAuth 自定义认证信息
+// CustomAuth 设置自行建立 NATS 连接时使用的用户名和密码。
 func (_NatsBrokerOption) CustomAuth(username, password string) option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		options.CustomUsername = username
@@ -89,7 +90,7 @@ func (_NatsBrokerOption) CustomAuth(username, password string) option.Setting[Na
 	}
 }
 
-// CustomAddresses 自定义地址
+// CustomAddresses 设置自行建立 NATS 连接时使用的服务地址，并校验 host:port 格式。
 func (_NatsBrokerOption) CustomAddresses(addrs ...string) option.Setting[NatsBrokerOptions] {
 	return func(options *NatsBrokerOptions) {
 		for _, addr := range addrs {

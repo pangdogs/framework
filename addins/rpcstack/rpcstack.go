@@ -28,19 +28,24 @@ import (
 )
 
 type (
-	Call      = variant.Call
+	// Call 是调用链中的单个调用节点。
+	Call = variant.Call
+	// CallChain 是从入口到当前处理器的 RPC 调用节点序列。
 	CallChain = variant.CallChain
+	// Variables 保存当前 RPC 调用期间的运行时本地变量。
 	Variables = generic.UnorderedSliceMap[string, any]
 )
 
+// EmptyCallChain 表示当前运行时没有正在处理的 RPC 调用。
 var EmptyCallChain = CallChain{}
 
-// IRPCStack RPC调用堆栈支持
+// IRPCStack 暴露当前运行时正在处理的 RPC 调用链及其临时变量。
+// 仅应在所属运行时 goroutine 中访问。
 type IRPCStack interface {
 	iRPCStack
-	// CallChain 调用链
+	// CallChain 返回当前调用链；没有正在处理的 RPC 时返回 EmptyCallChain。
 	CallChain() CallChain
-	// Variables 栈变量
+	// Variables 返回当前调用的可变变量表；进入下一次调用时会被清空。
 	Variables() *Variables
 }
 
@@ -71,12 +76,12 @@ func (r *_RPCStack) Shut(rtCtx runtime.Context) {
 	log.L(rtCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 }
 
-// CallChain 调用链
+// CallChain 返回当前调用链；没有正在处理的 RPC 时返回 EmptyCallChain。
 func (r *_RPCStack) CallChain() CallChain {
 	return r.callChain
 }
 
-// Variables 栈变量
+// Variables 返回当前调用的可变变量表；进入下一次调用时会被清空。
 func (r *_RPCStack) Variables() *Variables {
 	return &r.variables
 }

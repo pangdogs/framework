@@ -27,19 +27,20 @@ import (
 )
 
 type (
-	EventHandler = generic.DelegateVoid1[IEvent] // 消息事件处理器
+	// EventHandler 处理一个类型擦除的 GTP 事件。
+	EventHandler = generic.DelegateVoid1[IEvent]
 )
 
-// EventDispatcher 消息事件分发器
+// EventDispatcher 每次接收并分发一个 GTP 事件。
 type EventDispatcher struct {
-	AutoRecover  bool         // panic时是否自动恢复
-	ReportError  chan error   // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
-	Transceiver  *Transceiver // 消息事件收发器
-	RetryTimes   int          // 网络io超时时的重试次数
-	EventHandler EventHandler // 消息事件处理器列表
+	AutoRecover  bool         // 是否恢复事件处理器的 panic。
+	ReportError  chan error   // 恢复 panic 后接收错误；nil 时不报告。
+	Transceiver  *Transceiver // 事件收发器。
+	RetryTimes   int          // 网络 I/O 超时后的重试次数。
+	EventHandler EventHandler // 事件处理器。
 }
 
-// Dispatch 分发事件
+// Dispatch 接收一个事件并同步调用处理器；ctx 为 nil 时使用 Background。
 func (d *EventDispatcher) Dispatch(ctx context.Context) error {
 	if d.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrEvent)

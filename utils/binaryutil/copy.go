@@ -21,6 +21,8 @@ package binaryutil
 
 import "io"
 
+// CopyToBuff 调用 reader.Read 一次，将数据读入 p，并将 io.EOF 视为成功。
+// 它不会循环填满 p。
 func CopyToBuff[T io.Reader](p []byte, reader T) (int64, error) {
 	n, err := reader.Read(p)
 	if err == io.EOF {
@@ -29,6 +31,8 @@ func CopyToBuff[T io.Reader](p []byte, reader T) (int64, error) {
 	return int64(n), err
 }
 
+// CopyToByteStream 调用 reader.Read 一次，将数据读入 bs 的未写区域并推进写游标。
+// 它不会循环填满剩余区域，并将 io.EOF 视为成功。
 func CopyToByteStream[T io.Reader](bs *ByteStream, reader T) (int64, error) {
 	n, err := reader.Read(bs.wp)
 	if err == io.EOF {

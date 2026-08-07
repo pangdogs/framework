@@ -22,5 +22,6 @@ package redisdb
 import "git.golaxy.org/core/define"
 
 var (
+	// AddIn 是 Redis 客户端集合的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newRedisDB)
 )

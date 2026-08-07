@@ -25,13 +25,13 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgContinue 重连
+// MsgContinue 携带客户端续接会话时已发送和已接收的序号。
 type MsgContinue struct {
-	SendSeq uint32 // 客户端请求消息序号
-	RecvSeq uint32 // 客户端响应消息序号
+	SendSeq uint32 // 客户端当前发送序号。
+	RecvSeq uint32 // 客户端当前接收序号。
 }
 
-// Read implements io.Reader
+// Read 将会话续接消息编码到 p。
 func (m MsgContinue) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
@@ -43,7 +43,7 @@ func (m MsgContinue) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码会话续接消息。
 func (m *MsgContinue) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -61,17 +61,17 @@ func (m *MsgContinue) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回会话续接消息的固定编码字节数。
 func (MsgContinue) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
-// MsgId 消息Id
+// MsgId 返回会话续接消息的内置类型 ID。
 func (MsgContinue) MsgId() MsgId {
 	return MsgId_Continue
 }
 
-// Clone 克隆消息对象
+// Clone 返回消息副本。
 func (m MsgContinue) Clone() Msg {
 	return &m
 }

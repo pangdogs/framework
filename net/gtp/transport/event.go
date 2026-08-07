@@ -28,22 +28,24 @@ import (
 )
 
 var (
-	ErrEvent        = errors.New("gtp-event")                        // 消息事件错误
-	ErrIncorrectMsg = fmt.Errorf("%w: incorrect msg type", ErrEvent) // 错误的消息类型
+	// ErrEvent 是 GTP 传输事件处理错误的根错误。
+	ErrEvent = errors.New("gtp-event")
+	// ErrIncorrectMsg 表示事件消息与要求的具体类型不匹配。
+	ErrIncorrectMsg = fmt.Errorf("%w: incorrect msg type", ErrEvent)
 )
 
-// IEvent 消息事件接口
+// IEvent 是消息类型擦除后的 GTP 传输事件。
 type IEvent = Event[gtp.ReadableMsg]
 
-// Event 消息事件
+// Event 组合消息头的传输元数据与具体消息。
 type Event[T gtp.ReadableMsg] struct {
-	Flags gtp.Flags // 标志位
-	Seq   uint32    // 消息序号
-	Ack   uint32    // 应答序号
-	Msg   T         // 消息
+	Flags gtp.Flags // 消息标志位。
+	Seq   uint32    // 消息序号。
+	Ack   uint32    // 对端确认序号。
+	Msg   T         // 具体消息。
 }
 
-// Interface 接口化事件，转换为事件接口
+// Interface 将具体事件转换为类型擦除事件；消息未实现 gtp.Msg 时 panic。
 func (e Event[T]) Interface() IEvent {
 	msg, ok := any(e.Msg).(gtp.Msg)
 	if !ok {
@@ -61,7 +63,7 @@ func (e Event[T]) Interface() IEvent {
 	}
 }
 
-// AssertEvent 断言事件，转换为事件具体类型
+// AssertEvent 将类型擦除事件断言为具体消息事件；类型不匹配时 panic。
 func AssertEvent[T gtp.ReadableMsg](e IEvent) Event[T] {
 	ret := Event[T]{
 		Flags: e.Flags,

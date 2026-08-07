@@ -31,24 +31,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// ComponentBehavior 组件行为，在开发新组件时，匿名嵌入至组件结构体中
+// ComponentBehavior 扩展 core 组件行为，供自定义组件匿名嵌入。
+// 日志器会按组件实例惰性创建，因此应在组件所属运行时 goroutine 中使用。
 type ComponentBehavior struct {
 	ec.ComponentBehavior
 	logger      *zap.Logger
 	sugarLogger *zap.SugaredLogger
 }
 
-// Runtime 获取运行时
+// Runtime 返回组件所属的 framework 运行时。
 func (c *ComponentBehavior) Runtime() IRuntime {
 	return reinterpret.Cast[IRuntime](runtime.Current(c))
 }
 
-// Service 获取服务
+// Service 返回承载组件所属运行时的服务。
 func (c *ComponentBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(c))
 }
 
-// L 结构化日志
+// L 返回附带当前组件字段的结构化日志器。
 func (c *ComponentBehavior) L() *zap.Logger {
 	if c.logger == nil {
 		c.logger = log.L(c.Runtime()).With(zap.Any("component", json.RawMessage(types.String2Bytes(c.String()))))
@@ -56,7 +57,7 @@ func (c *ComponentBehavior) L() *zap.Logger {
 	return c.logger
 }
 
-// S 传统日志
+// S 返回附带当前组件字段的 SugaredLogger。
 func (c *ComponentBehavior) S() *zap.SugaredLogger {
 	if c.sugarLogger == nil {
 		c.sugarLogger = c.L().Sugar()

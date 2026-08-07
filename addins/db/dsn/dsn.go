@@ -19,6 +19,8 @@
 
 package dsn
 
+// MySQL、PostgreSQL、SQLServer 和 SQLite 是 SQL add-in 支持的数据库类型；
+// Redis 与 Mongo 分别用于对应的非 SQL add-in。
 const (
 	MySQL      = "mysql"
 	PostgreSQL = "postgresql"
@@ -28,8 +30,9 @@ const (
 	Mongo      = "mongo"
 )
 
+// DBInfo 描述一条带 tag 的数据库连接配置。
 type DBInfo struct {
-	Tag     string `json:"tag,omitempty"`
-	Type    string `json:"type,omitempty"`
-	ConnStr string `json:"conn_str,omitempty"`
+	Tag     string `json:"tag,omitempty"`      // Tag 是服务内查询连接时使用的名称，可为空。
+	Type    string `json:"type,omitempty"`     // Type 选择数据库后端，应使用本包定义的常量。
+	ConnStr string `json:"conn_str,omitempty"` // ConnStr 是交给对应驱动解析的连接字符串。
 }

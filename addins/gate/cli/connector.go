@@ -38,14 +38,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// _Connector 网络连接器
+// _Connector 按客户端选项建立 TCP 或 WebSocket 连接并完成 GTP 握手。
 type _Connector struct {
 	options ClientOptions
 	encoder *codec.Encoder
 	decoder *codec.Decoder
 }
 
-// connect 连接服务端
+// connect 建立新客户端连接，握手成功后启动客户端主循环；失败时关闭底层连接。
 func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *Client, err error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -76,7 +76,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 			}
 		}
 
-		wsConn, err := websocket.DialConfig(conf)
+		wsConn, err := conf.DialContext(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +116,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 	return client, nil
 }
 
-// reconnect 重连服务端
+// reconnect 为现有客户端建立新连接并执行会话续接；失败时关闭新连接。
 func (ctor *_Connector) reconnect(client *Client) (err error) {
 	if client == nil {
 		return errors.New("cli: client is nil")
@@ -156,7 +156,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 			}
 		}
 
-		wsConn, err := websocket.DialConfig(conf)
+		wsConn, err := conf.DialContext(client)
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 	return nil
 }
 
-// newClient 创建客户端
+// newClient 创建尚未绑定连接的客户端，并装配传输、控制、Future 和 I/O 处理器。
 func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client {
 	client := &Client{
 		closed:        async.NewFutureVoid(),
@@ -203,27 +203,27 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	}
 	client.Context, client.close = context.WithCancelCause(ctx)
 
-	// 初始化日志
+	// 未配置日志器时使用静默日志器，避免在热路径反复判空。
 	if client.logger == nil {
 		client.logger = zap.NewNop()
 	}
 	client.sugarLogger = client.logger.Sugar()
 
-	// 初始化消息事件分发器
+	// 分发器按传输、控制、业务事件的顺序尝试处理同一事件。
 	client.eventDispatcher.AutoRecover = ctor.options.AutoRecover
 	client.eventDispatcher.ReportError = ctor.options.ReportError
 	client.eventDispatcher.Transceiver = &client.transceiver
 	client.eventDispatcher.RetryTimes = ctor.options.IORetryTimes
 	client.eventDispatcher.EventHandler = generic.CastDelegateVoid1(client.trans.HandleEvent, client.ctrl.HandleEvent, client.io.handleEvent)
 
-	// 初始化传输协议
+	// 传输协议负责业务负载与重试。
 	client.trans.AutoRecover = ctor.options.AutoRecover
 	client.trans.ReportError = ctor.options.ReportError
 	client.trans.Transceiver = &client.transceiver
 	client.trans.RetryTimes = ctor.options.IORetryTimes
 	client.trans.PayloadHandler = generic.CastDelegateVoid1(client.io.handlePayload)
 
-	// 初始化控制协议
+	// 控制协议负责心跳、时钟同步和链路重置事件。
 	client.ctrl.AutoRecover = ctor.options.AutoRecover
 	client.ctrl.ReportError = ctor.options.ReportError
 	client.ctrl.Transceiver = &client.transceiver
@@ -232,10 +232,10 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	client.ctrl.SyncTimeHandler = generic.CastDelegateVoid1(client.handleSyncTime)
 	client.ctrl.RstHandler = generic.CastDelegateVoid1(client.handleRst)
 
-	// 初始化异步模型Future控制器
+	// Future 控制器随客户端上下文取消，统一终止未完成请求。
 	client.futureController = concurrent.NewFutureController(client.Context, ctor.options.FutureTimeout)
 
-	// 初始化IO
+	// I/O 门面使用独立队列异步发送数据和事件。
 	client.io.init(client)
 
 	return client

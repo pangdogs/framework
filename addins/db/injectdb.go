@@ -42,10 +42,16 @@ var (
 	mongoClientRT = reflect.TypeFor[*mongo.Client]()
 )
 
+// InjectDB 将 svcCtx 中按 tag 注册的数据库客户端注入 target。
+// target 必须是指向可寻址结构体的非 nil 指针；支持 *gorm.DB、*redis.Client 和
+// *mongo.Client 字段。字段的 db 标签指定连接 tag，值为 "-" 时跳过。
+// 为兼容既有用法，未导出字段也会通过 unsafe 写入。
 func InjectDB(svcCtx service.Context, target any) error {
 	return InjectDBRV(svcCtx, reflect.ValueOf(target))
 }
 
+// InjectDBRV 是 InjectDB 的 reflect.Value 版本。
+// target 必须有效，并最终解引用为可寻址结构体。
 func InjectDBRV(svcCtx service.Context, target reflect.Value) error {
 	if svcCtx == nil {
 		return fmt.Errorf("db: %w: svcCtx is nil", exception.ErrArgs)

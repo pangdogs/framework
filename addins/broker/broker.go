@@ -27,49 +27,53 @@ import (
 	"git.golaxy.org/core/utils/generic"
 )
 
-// DeliveryReliability 消息投递模式
+// DeliveryReliability 表示 broker 对单条消息提供的投递保证。
 type DeliveryReliability int8
 
 const (
-	DeliveryReliability_AtMostOnce  DeliveryReliability = iota // 最多一次
-	DeliveryReliability_AtLeastOnce                            // 最少一次
+	// DeliveryReliability_AtMostOnce 表示消息最多投递一次，丢失后不会重发。
+	DeliveryReliability_AtMostOnce DeliveryReliability = iota
+	// DeliveryReliability_AtLeastOnce 表示消息至少投递一次，消费方需要处理重复消息。
+	DeliveryReliability_AtLeastOnce
 )
 
-// Event 消息事件
+// Event 描述一次 broker 消息投递。
 type Event struct {
-	// Pattern 订阅话题模式
+	// Pattern 是创建订阅时使用的话题模式。
 	Pattern string
-	// Topic 订阅话题
+	// Topic 是消息实际发布到的话题。
 	Topic string
-	// Queue 订阅队列组
+	// Queue 是订阅所属的队列组；空字符串表示普通订阅。
 	Queue string
-	// Message 消息数据
+	// Message 是消息负载，其所有权规则由具体 broker 实现决定。
 	Message []byte
-	// Ack 确认
+	// Ack 向支持确认机制的 broker 确认消息；不支持时返回错误。
 	Ack func(ctx context.Context) error
-	// Nak 拒绝确认
+	// Nak 向支持确认机制的 broker 拒绝消息；不支持时返回错误。
 	Nak func(ctx context.Context) error
 }
 
 type (
-	// EventHandler 消息事件处理器
+	// EventHandler 处理一次 broker 消息投递。
 	EventHandler = generic.DelegateVoid1[Event]
 )
 
-// IBroker 消息中间件接口
+// IBroker 定义发布、订阅及连接状态刷新所需的消息代理能力。
 type IBroker interface {
-	// Publish 发布
+	// Publish 向 topic 发布 data。
 	Publish(ctx context.Context, topic string, data []byte) error
-	// SubscribeEvent 订阅消息事件流
+	// SubscribeEvent 订阅 pattern，并在 ctx 取消时关闭返回的事件流。
+	// 非空 queue 会创建队列组订阅；autoAck 的支持情况由具体实现决定。
 	SubscribeEvent(ctx context.Context, pattern, queue string, autoAck ...bool) (<-chan Event, error)
-	// SubscribeHandler 订阅消息事件回调
+	// SubscribeHandler 订阅 pattern 并调用 handler；返回的 Future 在订阅结束后完成。
+	// 非空 queue 会创建队列组订阅；autoAck 的支持情况由具体实现决定。
 	SubscribeHandler(ctx context.Context, pattern, queue string, handler EventHandler, autoAck ...bool) (async.Future, error)
-	// Flush 刷新
+	// Flush 等待当前已缓冲的发布操作发送完成。
 	Flush(ctx context.Context) error
-	// DeliveryReliability 获取消息投递模式
+	// DeliveryReliability 返回当前实现的投递保证。
 	DeliveryReliability() DeliveryReliability
-	// MaxPayload 获取最大消息长度
+	// MaxPayload 返回单条消息允许的最大负载字节数。
 	MaxPayload() int64
-	// Separator 获取地址分隔符
+	// Separator 返回层级话题的分隔符。
 	Separator() string
 }

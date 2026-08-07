@@ -44,7 +44,7 @@ type _EtcdSync struct {
 	client  *etcdv3.Client
 }
 
-// Init 初始化插件
+// Init 建立或复用 ETCD 客户端，并逐个检查配置端点的状态。
 func (s *_EtcdSync) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -72,7 +72,7 @@ func (s *_EtcdSync) Init(svcCtx service.Context) {
 	}
 }
 
-// Shut 关闭插件
+// Shut 仅关闭由本 add-in 创建的 ETCD 客户端。
 func (s *_EtcdSync) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -83,12 +83,12 @@ func (s *_EtcdSync) Shut(svcCtx service.Context) {
 	}
 }
 
-// NewMutex 创建分布式锁
+// NewMutex 创建带配置键前缀的 ETCD 锁句柄；创建本身不会获取锁。
 func (s *_EtcdSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.New(dsync.With.Default(), settings...))
 }
 
-// Separator 获取分隔符
+// Separator 返回 ETCD 锁名称使用的斜杠分隔符。
 func (s *_EtcdSync) Separator() string {
 	return "/"
 }

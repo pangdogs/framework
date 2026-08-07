@@ -36,7 +36,8 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyRuntime 创建运行时代理，用于向实体的运行时发送RPC
+// ProxyRuntime 使用 provider 所在的服务上下文创建实体 entityId 的运行时 RPC 代理。
+// provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
 func ProxyRuntime(provider any, entityId uid.Id) RuntimeProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -56,14 +57,14 @@ func ProxyRuntime(provider any, entityId uid.Id) RuntimeProxied {
 	return p
 }
 
-// RuntimeProxied 运行时代理，用于向实体的运行时发送RPC
+// RuntimeProxied 绑定一个实体 ID，用于调用承载该实体的运行时插件方法。
 type RuntimeProxied struct {
 	svcCtx   service.Context
 	rtCtx    runtime.Context
 	entityId uid.Id
 }
 
-// RPC 向分布式实体目标服务的运行时发送RPC
+// RPC 向承载实体的首个指定服务节点发起运行时插件 RPC；查询失败时返回已携带错误的 Future。
 func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -100,7 +101,7 @@ func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Fu
 	return AddIn.Require(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
-// BalanceRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送RPC
+// BalanceRPC 从承载实体且服务名匹配的节点中随机选择一个发起运行时插件 RPC。
 func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -154,7 +155,7 @@ func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送RPC
+// GlobalBalanceRPC 从承载实体的全部节点中随机选择一个发起运行时插件 RPC；excludeSelf 为 true 时排除本节点。
 func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -207,7 +208,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// OnewayRPC 向分布式实体目标服务的运行时发送单向RPC
+// OnewayRPC 向承载实体的首个指定服务节点发起运行时插件单向 RPC。
 func (p RuntimeProxied) OnewayRPC(service, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -244,7 +245,7 @@ func (p RuntimeProxied) OnewayRPC(service, addIn, method string, args ...any) er
 	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
-// BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务的运行时发送单向RPC
+// BalanceOnewayRPC 从承载实体且服务名匹配的节点中随机选择一个发起运行时插件单向 RPC。
 func (p RuntimeProxied) BalanceOnewayRPC(service, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -298,7 +299,7 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, addIn, method string, args ...
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务的运行时发送单向RPC
+// GlobalBalanceOnewayRPC 从承载实体的全部节点中随机选择一个发起运行时插件单向 RPC；excludeSelf 为 true 时排除本节点。
 func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -351,7 +352,7 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, addIn, method s
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务的运行时发送单向RPC
+// BroadcastOnewayRPC 向指定服务中承载该实体的运行时广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -389,7 +390,7 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, addIn, met
 	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
 }
 
-// GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务的运行时发送单向RPC
+// GlobalBroadcastOnewayRPC 向所有承载该实体的运行时广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")

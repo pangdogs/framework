@@ -40,6 +40,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
+// 以下变量集中导出 framework 内置 add-in 的描述符及 Option 入口。
 var (
 	Broker            = broker.AddIn
 	BrokerNats        = broker_nats.AddIn

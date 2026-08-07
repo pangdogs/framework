@@ -28,27 +28,27 @@ import (
 	"git.golaxy.org/framework/net/netpath"
 )
 
-// NodeDetails 服务节点地址信息
+// NodeDetails 汇总当前节点在分布式服务地址空间中的广播、负载均衡及单播地址。
 type NodeDetails struct {
 	netpath.NodeDetails
-	GlobalBroadcastAddr string `json:"global_broadcast_addr"` // 全局广播地址
-	GlobalBalanceAddr   string `json:"global_balance_addr"`   // 全局负载均衡地址
-	BroadcastAddr       string `json:"broadcast_addr"`        // 服务广播地址
-	BalanceAddr         string `json:"balance_addr"`          // 服务负载均衡地址
-	LocalAddr           string `json:"local_addr"`            // 本服务节点地址
+	GlobalBroadcastAddr string `json:"global_broadcast_addr"` // GlobalBroadcastAddr 面向所有服务节点广播。
+	GlobalBalanceAddr   string `json:"global_balance_addr"`   // GlobalBalanceAddr 在所有服务节点间负载均衡。
+	BroadcastAddr       string `json:"broadcast_addr"`        // BroadcastAddr 面向同名服务的所有节点广播。
+	BalanceAddr         string `json:"balance_addr"`          // BalanceAddr 在同名服务节点间负载均衡。
+	LocalAddr           string `json:"local_addr"`            // LocalAddr 唯一寻址当前服务节点。
 }
 
-// MakeBroadcastAddr 创建服务广播地址
+// MakeBroadcastAddr 返回指定逻辑服务的广播地址。
 func (d *NodeDetails) MakeBroadcastAddr(service string) string {
 	return unique.Make(d.DomainBroadcast.Join(service)).Value()
 }
 
-// MakeBalanceAddr 创建服务负载均衡地址
+// MakeBalanceAddr 返回指定逻辑服务的负载均衡地址。
 func (d *NodeDetails) MakeBalanceAddr(service string) string {
 	return unique.Make(d.DomainBalance.Join(service)).Value()
 }
 
-// MakeNodeAddr 创建服务节点地址
+// MakeNodeAddr 返回指定节点 ID 的单播地址；nodeId 为空时返回错误。
 func (d *NodeDetails) MakeNodeAddr(nodeId uid.Id) (string, error) {
 	if nodeId.IsNil() {
 		return "", fmt.Errorf("dsvc: %w: nodeId is nil", core.ErrArgs)

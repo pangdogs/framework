@@ -22,5 +22,6 @@ package sqldb
 import "git.golaxy.org/core/define"
 
 var (
+	// AddIn 是 GORM 数据库集合的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newSQLDB)
 )

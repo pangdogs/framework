@@ -38,25 +38,26 @@ import (
 	"go.uber.org/zap"
 )
 
-// DistEntity 分布式实体信息
+// DistEntity 描述一个全局实体当前所在的服务节点集合。
 type DistEntity struct {
-	Id       uid.Id `json:"id"`       // 实体Id
-	Nodes    []Node `json:"nodes"`    // 实体节点
-	Revision int64  `json:"revision"` // 查询时的全局数据版本号
+	Id       uid.Id `json:"id"`       // Id 是实体 ID。
+	Nodes    []Node `json:"nodes"`    // Nodes 是当前发布该实体的节点。
+	Revision int64  `json:"revision"` // Revision 是查询时的 ETCD 全局修订号。
 }
 
-// Node 实体节点信息
+// Node 描述一个发布了分布式实体的服务节点及其消息地址。
 type Node struct {
-	Service       string `json:"service"`        // 服务名称
-	Id            uid.Id `json:"id"`             // 服务Id
-	BroadcastAddr string `json:"broadcast_addr"` // 服务广播地址
-	BalanceAddr   string `json:"balance_addr"`   // 服务负载均衡地址
-	RemoteAddr    string `json:"remote_addr"`    // 远端服务节点地址
+	Service       string `json:"service"`        // Service 是服务名称。
+	Id            uid.Id `json:"id"`             // Id 是服务节点 ID。
+	BroadcastAddr string `json:"broadcast_addr"` // BroadcastAddr 是该服务的广播地址。
+	BalanceAddr   string `json:"balance_addr"`   // BalanceAddr 是该服务的负载均衡地址。
+	RemoteAddr    string `json:"remote_addr"`    // RemoteAddr 是该节点的单播地址。
 }
 
-// IDistEntityQuerier 分布式实体信息查询器接口
+// IDistEntityQuerier 查询全局实体当前可达的服务节点。
 type IDistEntityQuerier interface {
-	// GetDistEntity 查询分布式实体
+	// GetDistEntity 查询 id 对应的分布式实体信息。
+	// 未找到或查询失败时返回 false；返回值可能来自缓存，不应由调用方修改。
 	GetDistEntity(id uid.Id) (*DistEntity, bool)
 }
 
@@ -77,7 +78,7 @@ type _DistEntityQuerier struct {
 	cache     *ristretto.Cache[uid.Id, *DistEntity]
 }
 
-// Init 初始化插件
+// Init 建立或复用 ETCD 客户端，检查端点状态，创建查询缓存并启动实体变更监听。
 func (d *_DistEntityQuerier) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", QuerierAddIn.Name))
 
@@ -123,12 +124,13 @@ func (d *_DistEntityQuerier) Init(svcCtx service.Context) {
 	go d.watchingForEntitiesChanges()
 }
 
-// Shut 关闭插件
+// Shut 停止实体变更监听并等待退出，关闭本地缓存；仅关闭由本 add-in 创建的 ETCD 客户端。
 func (d *_DistEntityQuerier) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", QuerierAddIn.Name))
 
 	d.terminate()
 	d.wg.Wait()
+	d.cache.Close()
 
 	if d.options.EtcdClient == nil {
 		if d.client != nil {
@@ -137,7 +139,8 @@ func (d *_DistEntityQuerier) Shut(svcCtx service.Context) {
 	}
 }
 
-// GetDistEntity 查询分布式实体
+// GetDistEntity 优先读取缓存，未命中时查询 ETCD 并组装节点地址。
+// 未找到或查询失败时返回 false；返回对象可能是共享缓存值，调用方不得修改。
 func (d *_DistEntityQuerier) GetDistEntity(id uid.Id) (*DistEntity, bool) {
 	entity, ok := d.cache.Get(id)
 	if ok {

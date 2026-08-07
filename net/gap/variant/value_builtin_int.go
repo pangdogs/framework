@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Int builtin int
+// Int 是 GAP 的 int 动态值，按变长有符号整数编码。
 type Int int
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Int) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteVarint(int64(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Int) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Int) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadVarint()
@@ -48,17 +48,17 @@ func (v *Int) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (v Int) Size() int {
 	return binaryutil.SizeofVarint(int64(v))
 }
 
-// TypeId 类型
+// TypeId 返回 int 的内置类型 ID。
 func (Int) TypeId() TypeId {
 	return TypeId_Int
 }
 
-// Indirect 原始值
+// Indirect 返回 int。
 func (v Int) Indirect() any {
 	return int(v)
 }

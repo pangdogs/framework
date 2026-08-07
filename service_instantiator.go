@@ -26,7 +26,8 @@ import (
 	"git.golaxy.org/core/utils/exception"
 )
 
-// IServiceInstantiator 服务实例化接口
+// IServiceInstantiator 为 ServiceAssembler 提供自定义 IService 实例。
+// 每个服务副本都会调用一次 Instantiate，且返回值必须是新的非 nil 实例。
 type IServiceInstantiator interface {
 	Instantiate() IService
 }

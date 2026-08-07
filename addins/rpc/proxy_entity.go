@@ -37,7 +37,8 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyEntity 创建实体代理，用于向实体发送RPC
+// ProxyEntity 使用 provider 所在的服务上下文创建实体 id 的 RPC 代理。
+// provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
 func ProxyEntity(provider any, id uid.Id) EntityProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -57,14 +58,14 @@ func ProxyEntity(provider any, id uid.Id) EntityProxied {
 	return p
 }
 
-// EntityProxied 实体代理，用于向实体发送RPC
+// EntityProxied 绑定一个实体 ID，用于向承载该实体的服务节点或关联客户端发起 RPC 调用。
 type EntityProxied struct {
 	svcCtx service.Context
 	rtCtx  runtime.Context
 	id     uid.Id
 }
 
-// RPC 向分布式实体目标服务发送RPC
+// RPC 向承载实体的首个指定服务节点发起 RPC；查询失败时返回已携带错误的 Future。
 func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -101,7 +102,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Futu
 	return AddIn.Require(p.svcCtx).RPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
-// BalanceRPC 使用负载均衡模式，向分布式实体目标服务发送RPC
+// BalanceRPC 从承载实体且服务名匹配的节点中随机选择一个发起 RPC。
 func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -155,7 +156,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// GlobalBalanceRPC 使用全局负载均衡模式，向分布式实体任意服务发送RPC
+// GlobalBalanceRPC 从承载实体的全部节点中随机选择一个发起 RPC；excludeSelf 为 true 时排除本节点。
 func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -208,7 +209,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// OnewayRPC 向分布式实体目标服务发送单向RPC
+// OnewayRPC 向承载实体的首个指定服务节点发起单向 RPC。
 func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -245,7 +246,7 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].RemoteAddr, cc, cp, args...)
 }
 
-// BalanceOnewayRPC 使用负载均衡模式，向分布式实体目标服务发送单向RPC
+// BalanceOnewayRPC 从承载实体且服务名匹配的节点中随机选择一个发起单向 RPC。
 func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -299,7 +300,7 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// GlobalBalanceOnewayRPC 使用全局负载均衡模式，向分布式实体任意服务发送单向RPC
+// GlobalBalanceOnewayRPC 从承载实体的全部节点中随机选择一个发起单向 RPC；excludeSelf 为 true 时排除本节点。
 func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -352,7 +353,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// BroadcastOnewayRPC 使用广播模式，向分布式实体目标服务发送单向RPC
+// BroadcastOnewayRPC 向指定服务中承载该实体的节点广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -390,7 +391,7 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 	return AddIn.Require(p.svcCtx).OnewayRPC(distEntity.Nodes[nodeIdx].BroadcastAddr, cc, cp, args...)
 }
 
-// GlobalBroadcastOnewayRPC 使用全局广播模式，向分布式实体所有服务发送单向RPC
+// GlobalBroadcastOnewayRPC 向所有服务中承载该实体的节点广播单向 RPC；excludeSelf 为 true 时排除源节点。
 func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -417,7 +418,7 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 	return AddIn.Require(p.svcCtx).OnewayRPC(dst, cc, cp, args...)
 }
 
-// CliRPC 向客户端发送RPC
+// CliRPC 向实体 ID 对应的客户端单播地址发起 RPC。
 func (p EntityProxied) CliRPC(script, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
@@ -442,7 +443,7 @@ func (p EntityProxied) CliRPC(script, method string, args ...any) async.Future {
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// CliOnewayRPC 向客户端发送单向RPC
+// CliOnewayRPC 向实体 ID 对应的客户端单播地址发起单向 RPC。
 func (p EntityProxied) CliOnewayRPC(script, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")

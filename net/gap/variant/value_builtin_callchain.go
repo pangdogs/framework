@@ -26,16 +26,18 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
+// Call 描述 RPC 调用链中的一个来源或中转节点。
 type Call struct {
-	Svc       string    // 服务
-	Addr      string    // 地址
-	Timestamp time.Time // 时间戳
-	Transit   bool      // 是否为中转
+	Svc       string    // 服务名。
+	Addr      string    // 通信地址。
+	Timestamp time.Time // 产生或转发调用的时间。
+	Transit   bool      // 是否为中转节点。
 }
 
+// CallChain 按调用传播顺序保存来源和中转节点。
 type CallChain []Call
 
-// Read implements io.Reader
+// Read 将调用链编码到 p。
 func (v CallChain) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -61,7 +63,7 @@ func (v CallChain) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码调用链，时间戳转换为本地时区。
 func (v *CallChain) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
@@ -101,7 +103,7 @@ func (v *CallChain) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回调用链编码后的字节数。
 func (v CallChain) Size() int {
 	n := binaryutil.SizeofUvarint(uint64(len(v)))
 	for i := range v {
@@ -113,16 +115,17 @@ func (v CallChain) Size() int {
 	return n
 }
 
-// TypeId 类型
+// TypeId 返回调用链的内置类型 ID。
 func (CallChain) TypeId() TypeId {
 	return TypeId_CallChain
 }
 
-// Indirect 原始值
+// Indirect 返回调用链值本身。
 func (v CallChain) Indirect() any {
 	return v
 }
 
+// First 返回调用链首项；空调用链返回零值。
 func (v CallChain) First() Call {
 	if len(v) <= 0 {
 		return Call{}
@@ -130,6 +133,7 @@ func (v CallChain) First() Call {
 	return v[0]
 }
 
+// Last 返回调用链末项；空调用链返回零值。
 func (v CallChain) Last() Call {
 	if len(v) <= 0 {
 		return Call{}

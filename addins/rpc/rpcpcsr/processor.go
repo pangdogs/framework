@@ -29,30 +29,46 @@ import (
 )
 
 var (
-	ErrUndeliverable                = errors.New("rpc: undeliverable")                     // 无法投递
-	ErrTerminated                   = errors.New("rpc: processor terminated")              // 已终止处理
-	ErrEntityNotFound               = errors.New("rpc: routing to entity not found")       // 找不到路由会话映射的实体
-	ErrSessionNotFound              = errors.New("rpc: routing to session not found")      // 找不到路由实体映射的会话
-	ErrGroupNotFound                = errors.New("rpc: group not found")                   // 找不到分组
-	ErrDistEntityNotFound           = errors.New("rpc: distributed entity not found")      // 找不到分布式实体
-	ErrDistEntityNodeNotFound       = errors.New("rpc: distributed entity node not found") // 找不到分布式实体的服务节点
-	ErrIncorrectDestAddress         = errors.New("rpc: incorrect destination Address")     // 错误的目的地址
-	ErrAddInNotFound                = errors.New("rpc: add-in not found")                  // 找不到插件
-	ErrAddInInactive                = errors.New("rpc: add-in is inactive")                // 插件未激活
-	ErrMethodNotFound               = errors.New("rpc: method not found")                  // 找不到方法
-	ErrComponentNotFound            = errors.New("rpc: component not found")               // 找不到组件
-	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")   // 方法参数数量不匹配
-	ErrMethodParameterTypeMismatch  = errors.New("rpc: method parameter type mismatch")    // 方法参数类型不匹配
-	ErrAsyncMethodReturnedNil       = errors.New("rpc: async method returned nil")         // 异步方法返回值为nil
-	ErrPermissionDenied             = errors.New("rpc: permission denied")                 // 权限不足
+	// ErrUndeliverable 表示没有处理器可投递当前 RPC。
+	ErrUndeliverable = errors.New("rpc: undeliverable")
+	// ErrTerminated 表示 RPC 处理器已停止接收调用。
+	ErrTerminated = errors.New("rpc: processor terminated")
+	// ErrEntityNotFound 表示找不到会话路由所关联的实体。
+	ErrEntityNotFound = errors.New("rpc: routing to entity not found")
+	// ErrSessionNotFound 表示找不到实体路由所关联的会话。
+	ErrSessionNotFound = errors.New("rpc: routing to session not found")
+	// ErrGroupNotFound 表示找不到客户端分组。
+	ErrGroupNotFound = errors.New("rpc: group not found")
+	// ErrDistEntityNotFound 表示分布式实体未注册。
+	ErrDistEntityNotFound = errors.New("rpc: distributed entity not found")
+	// ErrDistEntityNodeNotFound 表示分布式实体没有匹配的服务节点。
+	ErrDistEntityNodeNotFound = errors.New("rpc: distributed entity node not found")
+	// ErrIncorrectDestAddress 表示目标地址不符合 RPC 路由格式。
+	ErrIncorrectDestAddress = errors.New("rpc: incorrect destination Address")
+	// ErrAddInNotFound 表示目标服务或运行时插件不存在。
+	ErrAddInNotFound = errors.New("rpc: add-in not found")
+	// ErrAddInInactive 表示目标插件未处于运行状态。
+	ErrAddInInactive = errors.New("rpc: add-in is inactive")
+	// ErrMethodNotFound 表示目标对象未提供指定方法。
+	ErrMethodNotFound = errors.New("rpc: method not found")
+	// ErrComponentNotFound 表示目标实体没有指定组件。
+	ErrComponentNotFound = errors.New("rpc: component not found")
+	// ErrMethodParameterCountMismatch 表示调用参数数量与方法签名不匹配。
+	ErrMethodParameterCountMismatch = errors.New("rpc: method parameter count mismatch")
+	// ErrMethodParameterTypeMismatch 表示调用参数类型与方法签名不匹配。
+	ErrMethodParameterTypeMismatch = errors.New("rpc: method parameter type mismatch")
+	// ErrAsyncMethodReturnedNil 表示异步 RPC 方法返回了 nil Future。
+	ErrAsyncMethodReturnedNil = errors.New("rpc: async method returned nil")
+	// ErrPermissionDenied 表示调用路径未通过权限校验。
+	ErrPermissionDenied = errors.New("rpc: permission denied")
 )
 
-// IDeliverer RPC投递器接口
+// IDeliverer 选择并投递 RPC 请求或通知。
 type IDeliverer interface {
-	// Match 是否匹配
+	// Match 报告投递器是否接受当前目标和调用路径。
 	Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool
-	// Request 请求
+	// Request 投递需要响应的请求。
 	Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future
-	// Notify 通知
+	// Notify 投递无需响应的通知。
 	Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error
 }

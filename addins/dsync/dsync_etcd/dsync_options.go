@@ -30,22 +30,23 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// EtcdSyncOptions 所有选项
+// EtcdSyncOptions 配置 ETCD 分布式锁实现的客户端与键空间。
 type EtcdSyncOptions struct {
-	EtcdClient      *clientv3.Client
-	EtcdConfig      *clientv3.Config
-	KeyPrefix       string
-	CustomUsername  string
-	CustomPassword  string
-	CustomAddresses []string
-	CustomTLSConfig *tls.Config
+	EtcdClient      *clientv3.Client // EtcdClient 非 nil 时直接复用，停止时不会关闭它。
+	EtcdConfig      *clientv3.Config // EtcdConfig 在未提供客户端时优先于 Custom 字段。
+	KeyPrefix       string           // KeyPrefix 是所有锁键的公共前缀。
+	CustomUsername  string           // CustomUsername 是自行构造客户端时使用的用户名。
+	CustomPassword  string           // CustomPassword 是自行构造客户端时使用的密码。
+	CustomAddresses []string         // CustomAddresses 是自行构造客户端时使用的端点。
+	CustomTLSConfig *tls.Config      // CustomTLSConfig 是自行构造客户端时使用的 TLS 配置。
 }
 
+// With 提供 ETCD 分布式锁 add-in 的 Option 构造方法。
 var With _EtcdSyncOption
 
 type _EtcdSyncOption struct{}
 
-// Default 默认选项
+// Default 返回使用本地 ETCD 端点及 /golaxy/mutex/ 键前缀的默认设置。
 func (_EtcdSyncOption) Default() option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		With.EtcdClient(nil).Apply(options)
@@ -57,21 +58,21 @@ func (_EtcdSyncOption) Default() option.Setting[EtcdSyncOptions] {
 	}
 }
 
-// EtcdClient etcd客户端（优先使用）
+// EtcdClient 设置要复用的 ETCD 客户端，其优先级最高。
 func (_EtcdSyncOption) EtcdClient(cli *clientv3.Client) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		options.EtcdClient = cli
 	}
 }
 
-// EtcdConfig etcd配置（次优先使用）
+// EtcdConfig 设置创建 ETCD 客户端时使用的完整配置，其优先级次于 EtcdClient。
 func (_EtcdSyncOption) EtcdConfig(config *clientv3.Config) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		options.EtcdConfig = config
 	}
 }
 
-// KeyPrefix key前缀
+// KeyPrefix 设置锁键前缀；非空值会自动补充末尾斜杠。
 func (_EtcdSyncOption) KeyPrefix(prefix string) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		if prefix != "" && !strings.HasSuffix(prefix, "/") {
@@ -81,7 +82,7 @@ func (_EtcdSyncOption) KeyPrefix(prefix string) option.Setting[EtcdSyncOptions] 
 	}
 }
 
-// CustomAuth 自定义etcd认证信息（次次优先使用）
+// CustomAuth 设置自行构造 ETCD 客户端时使用的用户名和密码。
 func (_EtcdSyncOption) CustomAuth(username, password string) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		options.CustomUsername = username
@@ -89,7 +90,7 @@ func (_EtcdSyncOption) CustomAuth(username, password string) option.Setting[Etcd
 	}
 }
 
-// CustomAddresses 自定义etcd连接地址信息（次次优先使用）
+// CustomAddresses 设置自行构造 ETCD 客户端时使用的端点，并校验 host:port 格式。
 func (_EtcdSyncOption) CustomAddresses(addrs ...string) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		for _, addr := range addrs {
@@ -101,7 +102,7 @@ func (_EtcdSyncOption) CustomAddresses(addrs ...string) option.Setting[EtcdSyncO
 	}
 }
 
-// CustomTLSConfig 自定义etcd的TLS加密（次次优先使用）
+// CustomTLSConfig 设置自行构造 ETCD 客户端时使用的 TLS 配置。
 func (_EtcdSyncOption) CustomTLSConfig(conf *tls.Config) option.Setting[EtcdSyncOptions] {
 	return func(options *EtcdSyncOptions) {
 		options.CustomTLSConfig = conf

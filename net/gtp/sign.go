@@ -28,7 +28,7 @@ import (
 	"os"
 )
 
-// LoadPublicKeyFile 加载公钥文件
+// LoadPublicKeyFile 从 PEM 文件读取 PKCS#1 RSA 公钥。
 func LoadPublicKeyFile(filePath string) (*rsa.PublicKey, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -39,7 +39,7 @@ func LoadPublicKeyFile(filePath string) (*rsa.PublicKey, error) {
 	return ReadPublicKey(f)
 }
 
-// LoadPrivateKeyFile 加载私钥文件
+// LoadPrivateKeyFile 从 PEM 文件读取 PKCS#1 RSA 私钥。
 func LoadPrivateKeyFile(filePath string) (*rsa.PrivateKey, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -50,7 +50,7 @@ func LoadPrivateKeyFile(filePath string) (*rsa.PrivateKey, error) {
 	return ReadPrivateKey(f)
 }
 
-// ReadPublicKey 读取公钥
+// ReadPublicKey 从 reader 读取 PEM 编码的 PKCS#1 RSA 公钥。
 func ReadPublicKey(reader io.Reader) (*rsa.PublicKey, error) {
 	bs, err := io.ReadAll(reader)
 	if err != nil {
@@ -70,7 +70,7 @@ func ReadPublicKey(reader io.Reader) (*rsa.PublicKey, error) {
 	return pubKey, nil
 }
 
-// ReadPrivateKey 读取私钥
+// ReadPrivateKey 从 reader 读取 PEM 编码的 PKCS#1 RSA 私钥。
 func ReadPrivateKey(reader io.Reader) (*rsa.PrivateKey, error) {
 	bs, err := io.ReadAll(reader)
 	if err != nil {

@@ -19,13 +19,13 @@
 
 package binaryutil
 
-// BytesWriter will only write bytes to the underlying writer until the limit is reached.
+// BytesWriter 将数据顺序写入固定字节切片，且不允许一次写入越过剩余空间。
 type BytesWriter struct {
-	N     int
-	Bytes []byte
+	N     int    // 已写入的字节数。
+	Bytes []byte // 目标字节切片。
 }
 
-// NewBytesWriter creates a new instance of BytesWriter.
+// NewBytesWriter 创建从 bs 起始位置写入的固定缓冲区 writer。
 func NewBytesWriter(bs []byte) *BytesWriter {
 	return &BytesWriter{
 		N:     0,
@@ -33,13 +33,13 @@ func NewBytesWriter(bs []byte) *BytesWriter {
 	}
 }
 
-// Write implements io.Writer
+// Write 将 p 完整写入剩余空间；空间不足时不写入任何数据并返回 ErrLimitReached。
 func (l *BytesWriter) Write(p []byte) (int, error) {
 	if l.N >= len(l.Bytes) {
 		return 0, ErrLimitReached
 	}
 
-	// Write 0 bytes if the limit is to be exceeded.
+	// 超出限制时保持全有或全无语义。
 	if len(p) > len(l.Bytes)-l.N {
 		return 0, ErrLimitReached
 	}

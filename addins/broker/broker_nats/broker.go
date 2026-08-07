@@ -51,7 +51,7 @@ type _NatsBroker struct {
 	client    *nats.Conn
 }
 
-// Init 初始化插件
+// Init 建立或复用 NATS 连接，并通过 RTT 请求验证连接可用性。
 func (b *_NatsBroker) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -77,7 +77,7 @@ func (b *_NatsBroker) Init(svcCtx service.Context) {
 	}
 }
 
-// Shut 关闭插件
+// Shut 取消全部订阅并等待其退出；由本 add-in 创建的 NATS 连接会被 Drain。
 func (b *_NatsBroker) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -94,7 +94,8 @@ func (b *_NatsBroker) Shut(svcCtx service.Context) {
 	}
 }
 
-// Publish 发布
+// Publish 将 data 异步发布到带配置前缀的 topic；此 NATS 实现不会使用 ctx。
+// 需要确认已发送到服务端时应随后调用 Flush。
 func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) error {
 	if b.options.TopicPrefix != "" {
 		topic = b.options.TopicPrefix + topic
@@ -108,7 +109,7 @@ func (b *_NatsBroker) Publish(ctx context.Context, topic string, data []byte) er
 	return nil
 }
 
-// SubscribeEvent 订阅消息事件流
+// SubscribeEvent 订阅消息并返回事件流；ctx 取消或 add-in 停止时通道关闭。
 func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string, _ ...bool) (<-chan broker.Event, error) {
 	eventChan, _, err := b.addSubscriber(ctx, pattern, queue, nil)
 	if err != nil {
@@ -117,7 +118,7 @@ func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string,
 	return eventChan, nil
 }
 
-// SubscribeHandler 订阅消息事件回调
+// SubscribeHandler 订阅消息并同步调用 handler；返回的 Future 在取消订阅后完成。
 func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue string, handler broker.EventHandler, _ ...bool) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
@@ -129,7 +130,7 @@ func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue strin
 	return unsubscribed, nil
 }
 
-// Flush 刷新
+// Flush 等待 NATS 客户端已缓冲的发布操作完成；ctx 没有 deadline 时使用三秒超时。
 func (b *_NatsBroker) Flush(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -149,17 +150,17 @@ func (b *_NatsBroker) Flush(ctx context.Context) error {
 	return nil
 }
 
-// DeliveryReliability 获取消息投递模式
+// DeliveryReliability 返回 NATS Core 的最多一次投递保证。
 func (b *_NatsBroker) DeliveryReliability() broker.DeliveryReliability {
 	return broker.DeliveryReliability_AtMostOnce
 }
 
-// MaxPayload 获取最大消息长度
+// MaxPayload 返回当前 NATS 服务端允许的单条消息最大负载字节数。
 func (b *_NatsBroker) MaxPayload() int64 {
 	return b.client.MaxPayload()
 }
 
-// Separator 获取地址分隔符
+// Separator 返回 NATS 层级 subject 使用的点号分隔符。
 func (b *_NatsBroker) Separator() string {
 	return "."
 }

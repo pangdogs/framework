@@ -25,20 +25,22 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Finished消息标志位
 const (
-	Flag_EncryptOK  Flag = 1 << (iota + Flag_Customize) // 加密成功，在服务端发起的Finished消息携带
-	Flag_AuthOK                                         // 鉴权成功，在服务端发起的Finished消息携带
-	Flag_ContinueOK                                     // 断线重连成功，在服务端发起的Finished消息携带
+	// Flag_EncryptOK 表示服务端确认加密协商成功。
+	Flag_EncryptOK Flag = 1 << (iota + Flag_Customize)
+	// Flag_AuthOK 表示服务端确认鉴权成功。
+	Flag_AuthOK
+	// Flag_ContinueOK 表示服务端确认会话续接成功。
+	Flag_ContinueOK
 )
 
-// MsgFinished 握手结束，表示认可对端，可以开始传输数据
+// MsgFinished 确认握手完成并交换双方当前的传输序号。
 type MsgFinished struct {
-	SendSeq uint32 // 服务端请求序号
-	RecvSeq uint32 // 服务端响应序号
+	SendSeq uint32 // 发送方当前发送序号。
+	RecvSeq uint32 // 发送方当前接收序号。
 }
 
-// Read implements io.Reader
+// Read 将握手完成消息编码到 p。
 func (m MsgFinished) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.SendSeq); err != nil {
@@ -50,7 +52,7 @@ func (m MsgFinished) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码握手完成消息。
 func (m *MsgFinished) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -68,17 +70,17 @@ func (m *MsgFinished) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回握手完成消息的固定编码字节数。
 func (MsgFinished) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
-// MsgId 消息Id
+// MsgId 返回握手完成消息的内置类型 ID。
 func (MsgFinished) MsgId() MsgId {
 	return MsgId_Finished
 }
 
-// Clone 克隆消息对象
+// Clone 返回消息副本。
 func (m MsgFinished) Clone() Msg {
 	return &m
 }

@@ -25,19 +25,20 @@ import (
 )
 
 var (
+	// ErrLimitReached 表示写入已达到或将超过配置的字节上限。
 	ErrLimitReached = errors.New("i/o limit reached")
 )
 
-// LimitWriter will only write bytes to the underlying writer until the limit is reached.
+// LimitWriter 限制写入底层 writer 的累计字节数，并保证超限的单次写入不会触达底层 writer。
 type LimitWriter struct {
-	Limit int
-	N     int
-	W     io.Writer
+	Limit int       // 允许写入的总字节数。
+	N     int       // 底层 writer 已接受的累计字节数。
+	W     io.Writer // 接收数据的底层 writer。
 }
 
-// NewLimitWriter creates a new instance of LimitWriter.
+// NewLimitWriter 创建累计写入上限为 n 的 writer；负数 n 按零处理。
 func NewLimitWriter(w io.Writer, n int) *LimitWriter {
-	// If anyone tries this, just make a 0 writer.
+	// 负数限制等同于禁止写入。
 	if n < 0 {
 		n = 0
 	}
@@ -48,13 +49,14 @@ func NewLimitWriter(w io.Writer, n int) *LimitWriter {
 	}
 }
 
-// Write implements io.Writer
+// Write 将 p 交给底层 writer；若 p 会使累计字节数超过 Limit，则不写入并返回 ErrLimitReached。
+// 底层 writer 的短写和错误会原样返回，N 按其实际返回的字节数增加。
 func (l *LimitWriter) Write(p []byte) (int, error) {
 	if l.N >= l.Limit {
 		return 0, ErrLimitReached
 	}
 
-	// Write 0 bytes if the limit is to be exceeded.
+	// 超出限制时不向底层 writer 写入任何数据。
 	if len(p) > l.Limit-l.N {
 		return 0, ErrLimitReached
 	}

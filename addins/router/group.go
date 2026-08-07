@@ -38,27 +38,28 @@ import (
 	"go.uber.org/zap"
 )
 
-// IGroup 路由组接口
+// IGroup 表示由 ETCD 租约维护、可向成员实体对应会话组播的路由组。
 type IGroup interface {
-	// Name 获取名称
+	// Name 返回组播地址对应的逻辑组名。
 	Name() string
-	// ClientAddr 获取客户端地址
+	// ClientAddr 返回客户端使用的组播地址。
 	ClientAddr() string
-	// KeepAliveContinuous 路由组持续保活
+	// KeepAliveContinuous 持续刷新组租约，直到 ctx 取消或组过期。
+	// 返回的 Future 在保活停止后完成。
 	KeepAliveContinuous(ctx context.Context) (async.Future, error)
-	// KeepAliveOnce 路由组保活一次
+	// KeepAliveOnce 立即刷新一次组租约。
 	KeepAliveOnce(ctx context.Context) error
-	// Deleted 等待路由组被删除
+	// Deleted 返回仅在组记录被显式删除时完成的 Future。
 	Deleted() async.Future
-	// Add 添加成员实体id
+	// Add 将实体 ID 加入组；重复成员不会产生额外条目。
 	Add(ctx context.Context, ids []uid.Id) error
-	// Remove 移除成员实体id
+	// Remove 从组中移除实体 ID；不存在的成员会被忽略。
 	Remove(ctx context.Context, ids []uid.Id) error
-	// List 列出成员实体id
+	// List 返回当前成员实体 ID 的快照。
 	List() []uid.Id
-	// DataIO 获取数据IO
+	// DataIO 返回向当前可达成员会话发送原始数据的 I/O 门面。
 	DataIO() IDataIO
-	// EventIO 获取事件IO
+	// EventIO 返回向当前可达成员会话发送传输事件的 I/O 门面。
 	EventIO() IEventIO
 }
 
@@ -76,18 +77,18 @@ type _Group struct {
 	deleteOnce      sync.Once
 }
 
-// Name 获取名称
+// Name 返回组播地址对应的逻辑组名。
 func (g *_Group) Name() string {
 	name, _ := gate.ClientDetails.DomainMulticast.Relative(g.clientAddr)
 	return name
 }
 
-// ClientAddr 获取客户端地址
+// ClientAddr 返回客户端使用的组播地址。
 func (g *_Group) ClientAddr() string {
 	return g.clientAddr
 }
 
-// KeepAliveContinuous 路由组持续保活
+// KeepAliveContinuous 持续刷新组租约，直到 ctx 取消、路由器停止或组过期。
 func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -155,7 +156,7 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) 
 	return stopped.Out(), nil
 }
 
-// KeepAliveOnce 路由组保活一次
+// KeepAliveOnce 立即刷新一次组租约。
 func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -178,12 +179,12 @@ func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 	return nil
 }
 
-// Deleted 等待路由组被删除
+// Deleted 返回仅在组记录被显式删除时完成的 Future。
 func (g *_Group) Deleted() async.Future {
 	return g.deleted.Out()
 }
 
-// Add 添加成员实体id
+// Add 在同一 ETCD 事务中将实体 ID 加入组及其反向索引。
 func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -219,7 +220,7 @@ func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
 	return nil
 }
 
-// Remove 移除成员实体id
+// Remove 在同一 ETCD 事务中移除实体 ID 及其反向索引。
 func (g *_Group) Remove(ctx context.Context, ids []uid.Id) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -254,7 +255,7 @@ func (g *_Group) Remove(ctx context.Context, ids []uid.Id) error {
 	return nil
 }
 
-// List 列出成员实体id
+// List 返回当前成员实体 ID 的快照。
 func (g *_Group) List() []uid.Id {
 	entities := g.getEntities()
 	if len(entities) == 0 {
@@ -263,12 +264,12 @@ func (g *_Group) List() []uid.Id {
 	return entities.Keys()
 }
 
-// DataIO 获取数据IO
+// DataIO 返回向当前可达成员会话发送原始数据的 I/O 门面。
 func (g *_Group) DataIO() IDataIO {
 	return (*_GroupDataIO)(&g.io)
 }
 
-// EventIO 获取事件IO
+// EventIO 返回向当前可达成员会话发送传输事件的 I/O 门面。
 func (g *_Group) EventIO() IEventIO {
 	return (*_GroupEventIO)(&g.io)
 }

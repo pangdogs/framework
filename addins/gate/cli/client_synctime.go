@@ -28,41 +28,41 @@ import (
 	"go.uber.org/zap"
 )
 
-// TimeSample 时间采样，所有时间均按对端时区表示
+// TimeSample 保存一次类 NTP 时钟探测的四个时间点，时间值以对端时区显示。
 type TimeSample struct {
-	OriginTime       time.Time // NTP t1，请求方发送请求时间（对端时区）
-	ReceiveTime      time.Time // NTP t2，响应方收到请求时间（对端时区）
-	TransmitTime     time.Time // NTP t3，响应方发送响应时间（对端时区）
-	DestinationTime  time.Time // NTP t4，请求方收到响应时间（对端时区）
-	RemoteZoneOffset int       // 响应方时区偏移秒数
+	OriginTime       time.Time // OriginTime 是请求方发送请求的 t1。
+	ReceiveTime      time.Time // ReceiveTime 是响应方收到请求的 t2。
+	TransmitTime     time.Time // TransmitTime 是响应方发送响应的 t3。
+	DestinationTime  time.Time // DestinationTime 是请求方收到响应的 t4。
+	RemoteZoneOffset int       // RemoteZoneOffset 是响应方相对 UTC 的偏移秒数。
 }
 
-// RTT 往返时间
+// RTT 根据四个采样点估算扣除服务端处理时间后的网络往返时延。
 func (ts TimeSample) RTT() time.Duration {
 	return ts.DestinationTime.Sub(ts.OriginTime) - ts.TransmitTime.Sub(ts.ReceiveTime)
 }
 
-// Offset 对端时间相对于本地时间的偏移量
+// Offset 估算对端时钟相对于本地时钟的偏移量。
 func (ts TimeSample) Offset() time.Duration {
 	return (ts.ReceiveTime.Sub(ts.OriginTime) + ts.TransmitTime.Sub(ts.DestinationTime)) / 2
 }
 
-// RemoteTime 估算请求方收到响应时刻的对端时间
+// RemoteTime 估算请求方收到响应时刻的对端时间。
 func (ts TimeSample) RemoteTime() time.Time {
 	return ts.DestinationTime.Add(ts.Offset())
 }
 
-// RemoteNow 估算当前对端时间
+// RemoteNow 使用本次采样的固定偏移估算当前对端时间。
 func (ts TimeSample) RemoteNow() time.Time {
 	return time.Now().Add(ts.Offset())
 }
 
-// RemoteLocation 对端时区
+// RemoteLocation 返回由采样时区偏移构造的固定时区。
 func (ts TimeSample) RemoteLocation() *time.Location {
 	return time.FixedZone("", ts.RemoteZoneOffset)
 }
 
-// ProbeTime 探测对端时间
+// ProbeTime 发起一次时钟探测，并返回承载 *TimeSample 的 Future。
 func (c *Client) ProbeTime() async.Future {
 	handle, err := c.FutureController().New()
 	if err != nil {

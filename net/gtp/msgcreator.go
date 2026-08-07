@@ -32,20 +32,21 @@ import (
 )
 
 var (
-	ErrNotDeclared = fmt.Errorf("%w: msg not declared", ErrGTP) // 消息未注册
+	// ErrNotDeclared 表示指定消息 ID 尚未注册。
+	ErrNotDeclared = fmt.Errorf("%w: msg not declared", ErrGTP)
 )
 
-// IMsgCreator 消息对象构建器接口
+// IMsgCreator 按消息 ID 注册并构造 GTP 消息。
 type IMsgCreator interface {
-	// Declare 注册消息
+	// Declare 注册消息指针的具体类型；重复 ID 会 panic。
 	Declare(msg Msg)
-	// New 创建消息指针
+	// New 创建指定消息 ID 对应的新消息指针。
 	New(msgId MsgId) (Msg, error)
 }
 
 var msgCreator = NewMsgCreator()
 
-// DefaultMsgCreator 默认消息对象构建器
+// DefaultMsgCreator 返回已注册内置消息的进程级消息构建器。
 func DefaultMsgCreator() IMsgCreator {
 	return msgCreator
 }
@@ -63,17 +64,17 @@ func init() {
 	DefaultMsgCreator().Declare(&MsgPayload{})
 }
 
-// NewMsgCreator 创建消息对象构建器
+// NewMsgCreator 创建空的并发安全消息构建器。
 func NewMsgCreator() IMsgCreator {
 	return &_MsgCreator{}
 }
 
-// _MsgCreator 消息对象构建器
+// _MsgCreator 使用写时复制快照保存消息类型映射。
 type _MsgCreator struct {
 	msgTypes atomic.Pointer[map[MsgId]reflect.Type]
 }
 
-// Declare 注册消息
+// Declare 以消息 ID 注册消息的元素类型。
 func (c *_MsgCreator) Declare(msg Msg) {
 	if msg == nil {
 		exception.Panicf("%w: %w: msg is nil", ErrGTP, core.ErrArgs)
@@ -105,7 +106,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 	}
 }
 
-// New 创建消息指针
+// New 根据当前类型快照创建新的消息指针。
 func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
 	m := c.msgTypes.Load()
 	if m == nil || *m == nil {

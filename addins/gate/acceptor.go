@@ -30,7 +30,7 @@ import (
 	"git.golaxy.org/framework/net/gtp/codec"
 )
 
-// _Acceptor 网络连接接受器
+// _Acceptor 接受底层连接并按 gate 配置完成服务端 GTP 握手。
 type _Acceptor struct {
 	*_Gate
 	encoder *codec.Encoder
@@ -51,12 +51,12 @@ func (acc *_Acceptor) accept(conn net.Conn) (*_Session, bool, error) {
 	return acc.handshake(ctx, conn)
 }
 
-// genSessionId 生成会话ID
+// genSessionId 生成新的会话 ID。
 func (acc *_Acceptor) genSessionId() uid.Id {
 	return uid.New()
 }
 
-// newSession 创建会话，无连接初始状态
+// newSession 创建尚未绑定连接的会话，并装配传输、控制和 I/O 处理器。
 func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []byte) *_Session {
 	session := &_Session{
 		closed:        async.NewFutureVoid(),
@@ -69,28 +69,28 @@ func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []b
 	}
 	session.Context, session.close = context.WithCancelCause(acc.ctx)
 
-	// 初始化消息事件分发器
+	// 分发器按传输、控制、业务事件的顺序尝试处理同一事件。
 	session.eventDispatcher.AutoRecover = acc.svcCtx.AutoRecover()
 	session.eventDispatcher.ReportError = acc.svcCtx.ReportError()
 	session.eventDispatcher.Transceiver = &session.transceiver
 	session.eventDispatcher.RetryTimes = acc.options.IORetryTimes
 	session.eventDispatcher.EventHandler = generic.CastDelegateVoid1(session.trans.HandleEvent, session.ctrl.HandleEvent, session.io.handleEvent)
 
-	// 初始化传输协议
+	// 传输协议负责业务负载与重试。
 	session.trans.AutoRecover = acc.svcCtx.AutoRecover()
 	session.trans.ReportError = acc.svcCtx.ReportError()
 	session.trans.Transceiver = &session.transceiver
 	session.trans.RetryTimes = acc.options.IORetryTimes
 	session.trans.PayloadHandler = generic.CastDelegateVoid1(session.io.handlePayload)
 
-	// 初始化控制协议
+	// 控制协议负责心跳和链路重置等会话控制事件。
 	session.ctrl.AutoRecover = acc.svcCtx.AutoRecover()
 	session.ctrl.ReportError = acc.svcCtx.ReportError()
 	session.ctrl.Transceiver = &session.transceiver
 	session.ctrl.RetryTimes = acc.options.IORetryTimes
 	session.ctrl.HeartbeatHandler = generic.CastDelegateVoid1(session.handleHeartbeat)
 
-	// 初始化IO
+	// I/O 门面使用独立队列异步发送数据和事件。
 	session.io.init(session)
 
 	return session

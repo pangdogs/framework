@@ -25,19 +25,20 @@ import (
 )
 
 var (
-	ErrGAP = errors.New("gap") // 消息协议错误
+	// ErrGAP 是 GAP 消息处理错误的根错误。
+	ErrGAP = errors.New("gap")
 )
 
-// ReadableMsg 可读消息接口
+// ReadableMsg 表示可编码到字节流的 GAP 消息。
 type ReadableMsg interface {
 	io.Reader
-	// Size 大小
+	// Size 返回消息编码后的字节数。
 	Size() int
-	// MsgId 消息Id
+	// MsgId 返回消息类型 ID。
 	MsgId() MsgId
 }
 
-// Msg 消息接口
+// Msg 表示既可编码也可从字节流解码的 GAP 消息。
 type Msg interface {
 	ReadableMsg
 	io.Writer

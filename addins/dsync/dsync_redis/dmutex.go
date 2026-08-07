@@ -60,17 +60,17 @@ type _RedisSyncMutex struct {
 	locked atomic.Bool
 }
 
-// Name 名称
+// Name 返回不含 Redis 键前缀的逻辑锁名称。
 func (m *_RedisSyncMutex) Name() string {
 	return strings.TrimPrefix(m.Mutex.Name(), m.dsync.options.KeyPrefix)
 }
 
-// UID 唯一ID
+// UID 返回 Redsync 用于校验锁所有权的值。
 func (m *_RedisSyncMutex) UID() string {
 	return m.Value()
 }
 
-// TryLock 尝试加锁，支持错误重试
+// TryLock 仅尝试一次非阻塞加锁，不使用配置的 Tries 和 RetryDelay。
 func (m *_RedisSyncMutex) TryLock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -101,7 +101,7 @@ func (m *_RedisSyncMutex) TryLock(ctx context.Context) error {
 	return nil
 }
 
-// Lock 加锁，支持错误重试
+// Lock 按配置的 Redsync 重试策略等待获取锁。
 func (m *_RedisSyncMutex) Lock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -132,7 +132,7 @@ func (m *_RedisSyncMutex) Lock(ctx context.Context) error {
 	return nil
 }
 
-// Unlock 解锁
+// Unlock 仅在所有权值匹配时释放 Redis 锁；当前句柄未持锁时返回 ErrNotAcquired。
 func (m *_RedisSyncMutex) Unlock(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -165,7 +165,7 @@ func (m *_RedisSyncMutex) Unlock(ctx context.Context) error {
 	return nil
 }
 
-// Extend 延长锁的过期时间
+// Extend 在所有权仍有效时刷新 Redis 锁的过期时间。
 func (m *_RedisSyncMutex) Extend(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()

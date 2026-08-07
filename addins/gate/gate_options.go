@@ -37,53 +37,56 @@ import (
 )
 
 type (
-	WebSocketAddrResolver = generic.Func1[*websocket.Conn, net.Addr]                          // WebSocket的地址解析器
-	Authenticator         = generic.Delegate5[IGate, net.Conn, string, string, []byte, error] // 鉴权客户端处理器（args: [gate, conn, userId, token, extensions], ret: [error]）
+	// WebSocketAddrResolver 从 WebSocket 握手与连接信息中解析一个网络地址。
+	WebSocketAddrResolver = generic.Func1[*websocket.Conn, net.Addr]
+	// Authenticator 校验客户端提交的用户 ID、令牌和扩展数据；返回错误会拒绝连接。
+	Authenticator = generic.Delegate5[IGate, net.Conn, string, string, []byte, error]
 )
 
-// GateOptions 网关所有选项
+// GateOptions 配置监听端点、GTP 协商、安全限制、会话及监听器容量。
 type GateOptions struct {
-	TCPAddress                     string                 // TCP监听地址
-	TCPNoDelay                     *bool                  // TCP的NoDelay选项，nil表示使用系统默认值
-	TCPQuickAck                    *bool                  // TCP的QuickAck选项，nil表示使用系统默认值
-	TCPRecvBuf                     *int                   // TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
-	TCPSendBuf                     *int                   // TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
-	TCPLinger                      *int                   // TCP的Linger选项，nil表示使用系统默认值
-	TCPTLSConfig                   *tls.Config            // TCP的TLS配置，nil表示不使用TLS加密链路
-	WebSocketURL                   *url.URL               // WebSocket监听地址
-	WebSocketTLSConfig             *tls.Config            // WebSocket的TLS配置，nil表示不使用TLS加密链路
-	WebSocketLocalAddrResolver     WebSocketAddrResolver  // WebSocket的本地地址解析器
-	WebSocketRemoteAddrResolver    WebSocketAddrResolver  // WebSocket的对端地址解析器
-	IOTimeout                      time.Duration          // 网络io超时时间
-	IORetryTimes                   int                    // 网络io超时后的重试次数
-	IOBufferCap                    int                    // 网络io缓存容量（字节）
-	MsgCreator                     gtp.IMsgCreator        // 消息包解码器的消息构建器
-	AgreeClientEncryptionProposal  bool                   // 是否同意使用客户端建议的加密方案
-	EncCipherSuite                 gtp.CipherSuite        // 加密通信中的密码学套件
-	EncNonceStep                   *big.Int               // 加密通信中，使用需要nonce的加密算法时，每次加解密自增值
-	EncECDHENamedCurve             gtp.NamedCurve         // 加密通信中，在ECDHE交换秘钥时使用的曲线类型
-	EncSignatureAlgorithm          gtp.SignatureAlgorithm // 加密通信中的签名算法
-	EncSignaturePrivateKey         crypto.PrivateKey      // 加密通信中，签名用的私钥
-	EncVerifyClientSignature       bool                   // 加密通信中，是否验证客户端签名
-	EncVerifySignaturePublicKey    crypto.PublicKey       // 加密通信中，验证客户端签名用的公钥
-	AgreeClientCompressionProposal bool                   // 是否同意使用客户端建议的压缩方案
-	Compression                    gtp.Compression        // 通信中的压缩函数
-	CompressionThreshold           int                    // 通信中启用压缩阀值（字节），<=0表示不开启
-	MaxUncompressedSize            int                    // 通信中最大解压缩大小，用于防御压缩包炸弹
-	MaxPacketSize                  int                    // 通信中最大消息包大小，用于防御长度炸弹
-	AcceptTimeout                  time.Duration          // 接受连接超时时间
-	Authenticator                  Authenticator          // 鉴权客户端处理器
-	SessionInactiveTimeout         time.Duration          // 会话不活跃后的超时时间
-	SessionWatcherInboxSize        int                    // 会话监听器inbox缓存大小
-	SessionDataListenerInboxSize   int                    // 会话数据监听器inbox缓存大小
-	SessionEventListenerInboxSize  int                    // 会话事件监听器inbox缓存大小
+	TCPAddress                     string                 // TCPAddress 是 TCP 监听地址；空字符串禁用 TCP。
+	TCPNoDelay                     *bool                  // TCPNoDelay 为 nil 时沿用系统默认值。
+	TCPQuickAck                    *bool                  // TCPQuickAck 为 nil 时沿用系统默认值。
+	TCPRecvBuf                     *int                   // TCPRecvBuf 是接收缓冲区字节数；nil 沿用系统默认值。
+	TCPSendBuf                     *int                   // TCPSendBuf 是发送缓冲区字节数；nil 沿用系统默认值。
+	TCPLinger                      *int                   // TCPLinger 是关闭等待秒数；nil 沿用系统默认值。
+	TCPTLSConfig                   *tls.Config            // TCPTLSConfig 非 nil 时为 TCP 监听启用 TLS。
+	WebSocketURL                   *url.URL               // WebSocketURL 是监听 URL；nil 禁用 WebSocket。
+	WebSocketTLSConfig             *tls.Config            // WebSocketTLSConfig 用于 https/wss 监听。
+	WebSocketLocalAddrResolver     WebSocketAddrResolver  // WebSocketLocalAddrResolver 解析服务端地址。
+	WebSocketRemoteAddrResolver    WebSocketAddrResolver  // WebSocketRemoteAddrResolver 解析客户端地址。
+	IOTimeout                      time.Duration          // IOTimeout 是单次网络 I/O 的超时。
+	IORetryTimes                   int                    // IORetryTimes 是 I/O 超时后的重试次数。
+	IOBufferCap                    int                    // IOBufferCap 是断线重连时保留的发送数据字节上限。
+	MsgCreator                     gtp.IMsgCreator        // MsgCreator 用于按消息 ID 创建 GTP 解码目标。
+	AgreeClientEncryptionProposal  bool                   // AgreeClientEncryptionProposal 允许采用客户端加密提案。
+	EncCipherSuite                 gtp.CipherSuite        // EncCipherSuite 是服务端首选密码套件。
+	EncNonceStep                   *big.Int               // EncNonceStep 是每次加解密后的 nonce 增量。
+	EncECDHENamedCurve             gtp.NamedCurve         // EncECDHENamedCurve 是 ECDHE 密钥交换曲线。
+	EncSignatureAlgorithm          gtp.SignatureAlgorithm // EncSignatureAlgorithm 是握手签名算法。
+	EncSignaturePrivateKey         crypto.PrivateKey      // EncSignaturePrivateKey 是服务端握手签名私钥。
+	EncVerifyClientSignature       bool                   // EncVerifyClientSignature 要求验证客户端握手签名。
+	EncVerifySignaturePublicKey    crypto.PublicKey       // EncVerifySignaturePublicKey 是客户端签名验证公钥。
+	AgreeClientCompressionProposal bool                   // AgreeClientCompressionProposal 允许采用客户端压缩提案。
+	Compression                    gtp.Compression        // Compression 是服务端首选压缩算法。
+	CompressionThreshold           int                    // CompressionThreshold 是启用压缩的字节阈值；小于等于 0 时禁用。
+	MaxUncompressedSize            int                    // MaxUncompressedSize 限制解压后负载，防御压缩炸弹。
+	MaxPacketSize                  int                    // MaxPacketSize 限制单个 GTP 包大小。
+	AcceptTimeout                  time.Duration          // AcceptTimeout 是握手完成前的最长等待时间。
+	Authenticator                  Authenticator          // Authenticator 校验客户端凭据；nil 表示不额外鉴权。
+	SessionInactiveTimeout         time.Duration          // SessionInactiveTimeout 是断线后等待连接迁移的时间。
+	SessionWatcherInboxSize        int                    // SessionWatcherInboxSize 是每个会话观察器的收件箱容量。
+	SessionDataListenerInboxSize   int                    // SessionDataListenerInboxSize 是每个数据监听器的收件箱容量。
+	SessionEventListenerInboxSize  int                    // SessionEventListenerInboxSize 是每个事件监听器的收件箱容量。
 }
 
+// With 提供 gate add-in 的 Option 构造方法。
 var With _GateOption
 
 type _GateOption struct{}
 
-// Default 默认选项
+// Default 返回同时监听 TCP :9090 和 WebSocket :80 的默认设置。
 func (_GateOption) Default() option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		With.TCPAddress("0.0.0.0:9090")(options)
@@ -133,7 +136,7 @@ func (_GateOption) Default() option.Setting[GateOptions] {
 	}
 }
 
-// TCPAddress 设置TCP监听地址
+// TCPAddress 设置 TCP 监听地址并校验 host:port 格式；空字符串禁用 TCP。
 func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if addr != "" {
@@ -145,49 +148,50 @@ func (_GateOption) TCPAddress(addr string) option.Setting[GateOptions] {
 	}
 }
 
-// TCPNoDelay 设置TCP的NoDelay选项，nil表示使用系统默认值
+// TCPNoDelay 设置 TCP_NODELAY；nil 表示使用系统默认值。
 func (_GateOption) TCPNoDelay(b *bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPNoDelay = b
 	}
 }
 
-// TCPQuickAck 设置TCP的QuickAck选项，nil表示使用系统默认值
+// TCPQuickAck 设置 TCP_QUICKACK；nil 表示使用系统默认值。
 func (_GateOption) TCPQuickAck(b *bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPQuickAck = b
 	}
 }
 
-// TCPRecvBuf 设置TCP的RecvBuf大小（字节）选项，nil表示使用系统默认值
+// TCPRecvBuf 设置 TCP 接收缓冲区字节数；nil 表示使用系统默认值。
 func (_GateOption) TCPRecvBuf(size *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPRecvBuf = size
 	}
 }
 
-// TCPSendBuf 设置TCP的SendBuf大小（字节）选项，nil表示使用系统默认值
+// TCPSendBuf 设置 TCP 发送缓冲区字节数；nil 表示使用系统默认值。
 func (_GateOption) TCPSendBuf(size *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPSendBuf = size
 	}
 }
 
-// TCPLinger 设置TCP的Linger选项，nil表示使用系统默认值
+// TCPLinger 设置 TCP 关闭等待秒数；nil 表示使用系统默认值。
 func (_GateOption) TCPLinger(sec *int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPLinger = sec
 	}
 }
 
-// TCPTLSConfig 设置TCP的TLS配置，nil表示不使用TLS加密链路
+// TCPTLSConfig 设置 TCP TLS 配置；nil 表示不启用 TLS。
 func (_GateOption) TCPTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.TCPTLSConfig = tlsConfig
 	}
 }
 
-// WebSocketURL WebSocket监听地址
+// WebSocketURL 设置 WebSocket 监听 URL；空字符串禁用 WebSocket。
+// 支持 http、https、ws 和 wss，未提供路径时使用根路径。
 func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if raw == "" {
@@ -213,14 +217,14 @@ func (_GateOption) WebSocketURL(raw string) option.Setting[GateOptions] {
 	}
 }
 
-// WebSocketTLSConfig 设置WebSocket的TLS配置，nil表示不使用TLS加密链路
+// WebSocketTLSConfig 设置 https/wss 监听使用的 TLS 配置。
 func (_GateOption) WebSocketTLSConfig(tlsConfig *tls.Config) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.WebSocketTLSConfig = tlsConfig
 	}
 }
 
-// WebSocketLocalAddrResolver 设置WebSocket的本地地址解析器
+// WebSocketLocalAddrResolver 设置 WebSocket 服务端地址解析器，不得为 nil。
 func (_GateOption) WebSocketLocalAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if resolver == nil {
@@ -230,7 +234,7 @@ func (_GateOption) WebSocketLocalAddrResolver(resolver WebSocketAddrResolver) op
 	}
 }
 
-// WebSocketRemoteAddrResolver 设置WebSocket的对端地址解析器
+// WebSocketRemoteAddrResolver 设置 WebSocket 客户端地址解析器，不得为 nil。
 func (_GateOption) WebSocketRemoteAddrResolver(resolver WebSocketAddrResolver) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if resolver == nil {
@@ -240,7 +244,7 @@ func (_GateOption) WebSocketRemoteAddrResolver(resolver WebSocketAddrResolver) o
 	}
 }
 
-// IOTimeout 设置网络io超时时间
+// IOTimeout 设置单次网络 I/O 超时，必须不少于 100 毫秒。
 func (_GateOption) IOTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if d < 100*time.Millisecond {
@@ -250,7 +254,7 @@ func (_GateOption) IOTimeout(d time.Duration) option.Setting[GateOptions] {
 	}
 }
 
-// IORetryTimes 设置网络io超时后的重试次数
+// IORetryTimes 设置网络 I/O 超时后的重试次数，必须大于等于 0。
 func (_GateOption) IORetryTimes(times int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if times < 0 {
@@ -260,7 +264,7 @@ func (_GateOption) IORetryTimes(times int) option.Setting[GateOptions] {
 	}
 }
 
-// IOBufferCap 设置网络io缓存容量（字节）
+// IOBufferCap 设置断线重连时保留的发送数据字节上限，必须不少于 1024。
 func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if cap < 1024 {
@@ -270,7 +274,7 @@ func (_GateOption) IOBufferCap(cap int) option.Setting[GateOptions] {
 	}
 }
 
-// MsgCreator 设置消息包解码器的消息构建器
+// MsgCreator 设置 GTP 消息构建器，不得为 nil。
 func (_GateOption) MsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if mc == nil {
@@ -280,98 +284,98 @@ func (_GateOption) MsgCreator(mc gtp.IMsgCreator) option.Setting[GateOptions] {
 	}
 }
 
-// AgreeClientEncryptionProposal 设置是否同意使用客户端建议的加密方案
+// AgreeClientEncryptionProposal 设置是否允许采用客户端建议的加密方案。
 func (_GateOption) AgreeClientEncryptionProposal(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.AgreeClientEncryptionProposal = b
 	}
 }
 
-// EncCipherSuite 设置加密通信中的密码学套件
+// EncCipherSuite 设置服务端首选密码套件。
 func (_GateOption) EncCipherSuite(cs gtp.CipherSuite) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncCipherSuite = cs
 	}
 }
 
-// EncNonceStep 设置加密通信中，使用需要nonce的加密算法时，每次加解密自增值
+// EncNonceStep 设置需要 nonce 的算法每次加解密后的增量。
 func (_GateOption) EncNonceStep(v *big.Int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncNonceStep = v
 	}
 }
 
-// EncECDHENamedCurve 设置加密通信中，在ECDHE交换秘钥时使用的曲线类型
+// EncECDHENamedCurve 设置 ECDHE 密钥交换使用的命名曲线。
 func (_GateOption) EncECDHENamedCurve(nc gtp.NamedCurve) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncECDHENamedCurve = nc
 	}
 }
 
-// EncSignatureAlgorithm 设置加密通信中的签名算法
+// EncSignatureAlgorithm 设置握手签名算法。
 func (_GateOption) EncSignatureAlgorithm(sa gtp.SignatureAlgorithm) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncSignatureAlgorithm = sa
 	}
 }
 
-// EncSignaturePrivateKey 设置加密通信中，签名用的私钥
+// EncSignaturePrivateKey 设置服务端握手签名私钥。
 func (_GateOption) EncSignaturePrivateKey(priv crypto.PrivateKey) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncSignaturePrivateKey = priv
 	}
 }
 
-// EncVerifyClientSignature 设置加密通信中，是否验证客户端签名
+// EncVerifyClientSignature 设置是否验证客户端握手签名。
 func (_GateOption) EncVerifyClientSignature(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncVerifyClientSignature = b
 	}
 }
 
-// EncVerifySignaturePublicKey 设置加密通信中，验证客户端签名用的公钥
+// EncVerifySignaturePublicKey 设置验证客户端握手签名使用的公钥。
 func (_GateOption) EncVerifySignaturePublicKey(pub crypto.PublicKey) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.EncVerifySignaturePublicKey = pub
 	}
 }
 
-// AgreeClientCompressionProposal 设置是否同意使用客户端建议的压缩方案
+// AgreeClientCompressionProposal 设置是否允许采用客户端建议的压缩方案。
 func (_GateOption) AgreeClientCompressionProposal(b bool) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.AgreeClientCompressionProposal = b
 	}
 }
 
-// Compression 设置通信中的压缩函数
+// Compression 设置服务端首选压缩算法。
 func (_GateOption) Compression(c gtp.Compression) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.Compression = c
 	}
 }
 
-// CompressionThreshold 设置通信中启用压缩阀值（字节），<=0表示不开启
+// CompressionThreshold 设置启用压缩的字节阈值；小于等于 0 时禁用压缩。
 func (_GateOption) CompressionThreshold(threshold int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.CompressionThreshold = threshold
 	}
 }
 
-// MaxUncompressedSize 设置通信中最大解压缩大小，用于防御压缩包炸弹
+// MaxUncompressedSize 设置解压后负载字节上限，用于防御压缩炸弹。
 func (_GateOption) MaxUncompressedSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.MaxUncompressedSize = size
 	}
 }
 
-// MaxPacketSize 设置通信中最大消息包大小，用于防御长度炸弹
+// MaxPacketSize 设置单个 GTP 包的字节上限。
 func (_GateOption) MaxPacketSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.MaxPacketSize = size
 	}
 }
 
-// AcceptTimeout 设置接受连接超时时间
+// AcceptTimeout 设置握手完成前的最长等待时间，必须不少于 300 毫秒。
 func (_GateOption) AcceptTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if d < 300*time.Millisecond {
@@ -381,14 +385,14 @@ func (_GateOption) AcceptTimeout(d time.Duration) option.Setting[GateOptions] {
 	}
 }
 
-// Authenticator 设置鉴权客户端处理器
+// Authenticator 设置客户端凭据校验器；nil 表示不额外鉴权。
 func (_GateOption) Authenticator(auth Authenticator) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		options.Authenticator = auth
 	}
 }
 
-// SessionInactiveTimeout 设置会话不活跃后的超时时间
+// SessionInactiveTimeout 设置断线后等待连接迁移的时间，必须大于等于 0。
 func (_GateOption) SessionInactiveTimeout(d time.Duration) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if d < 0 {
@@ -398,7 +402,7 @@ func (_GateOption) SessionInactiveTimeout(d time.Duration) option.Setting[GateOp
 	}
 }
 
-// SessionWatcherInboxSize 设置会话监听器inbox缓存大小
+// SessionWatcherInboxSize 设置每个会话观察器的收件箱容量，必须大于 0。
 func (_GateOption) SessionWatcherInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if size <= 0 {
@@ -408,7 +412,7 @@ func (_GateOption) SessionWatcherInboxSize(size int) option.Setting[GateOptions]
 	}
 }
 
-// SessionDataListenerInboxSize 设置会话数据监听器inbox缓存大小
+// SessionDataListenerInboxSize 设置每个会话数据监听器的收件箱容量，必须大于 0。
 func (_GateOption) SessionDataListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if size <= 0 {
@@ -418,7 +422,7 @@ func (_GateOption) SessionDataListenerInboxSize(size int) option.Setting[GateOpt
 	}
 }
 
-// SessionEventListenerInboxSize 设置会话事件监听器inbox缓存大小
+// SessionEventListenerInboxSize 设置每个会话事件监听器的收件箱容量，必须大于 0。
 func (_GateOption) SessionEventListenerInboxSize(size int) option.Setting[GateOptions] {
 	return func(options *GateOptions) {
 		if size <= 0 {

@@ -22,5 +22,6 @@ package dsync
 import "git.golaxy.org/core/define"
 
 var (
+	// AddIn 是分布式同步接口的服务级 add-in 描述符，用于查询已安装的具体实现。
 	AddIn = define.ServiceAddInInterface[IDistSync]()
 )

@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Uint32 builtin uint32
+// Uint32 是 GAP 的 uint32 动态值。
 type Uint32 uint32
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Uint32) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(uint32(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Uint32) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Uint32) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadUint32()
@@ -48,17 +48,17 @@ func (v *Uint32) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (Uint32) Size() int {
 	return binaryutil.SizeofUint32
 }
 
-// TypeId 类型
+// TypeId 返回 uint32 的内置类型 ID。
 func (Uint32) TypeId() TypeId {
 	return TypeId_Uint32
 }
 
-// Indirect 原始值
+// Indirect 返回 uint32。
 func (v Uint32) Indirect() any {
 	return uint32(v)
 }

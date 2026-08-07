@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Bool builtin bool
+// Bool 是 GAP 的 bool 动态值。
 type Bool bool
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Bool) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBool(bool(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Bool) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Bool) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadBool()
@@ -48,17 +48,17 @@ func (v *Bool) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (Bool) Size() int {
 	return binaryutil.SizeofBool
 }
 
-// TypeId 类型
+// TypeId 返回 bool 的内置类型 ID。
 func (Bool) TypeId() TypeId {
 	return TypeId_Bool
 }
 
-// Indirect 原始值
+// Indirect 返回 bool。
 func (v Bool) Indirect() any {
 	return bool(v)
 }

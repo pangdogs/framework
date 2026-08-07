@@ -20,10 +20,16 @@
 package gap
 
 const (
-	MsgId_None        MsgId = iota // 未设置
-	MsgId_RPC_Request              // RPC请求
-	MsgId_RPC_Reply                // RPC答复
-	MsgId_OnewayRPC                // 单程RPC请求
-	MsgId_Forward                  // 转发
-	MsgId_Customize   = 32         // 自定义消息起点
+	// MsgId_None 表示未设置消息类型。
+	MsgId_None MsgId = iota
+	// MsgId_RPC_Request 标识需要响应的 RPC 请求。
+	MsgId_RPC_Request
+	// MsgId_RPC_Reply 标识 RPC 响应。
+	MsgId_RPC_Reply
+	// MsgId_OnewayRPC 标识无需响应的 RPC 通知。
+	MsgId_OnewayRPC
+	// MsgId_Forward 标识封装其他消息的路由转发消息。
+	MsgId_Forward
+	// MsgId_Customize 是自定义消息 ID 的起始偏移。
+	MsgId_Customize = 32
 )

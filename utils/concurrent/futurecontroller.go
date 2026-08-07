@@ -32,10 +32,14 @@ import (
 )
 
 var (
+	// ErrFutureControllerClosed 表示控制器的父 context 已结束，不再接受或等待任务。
 	ErrFutureControllerClosed = errors.New("future controller closed")
-	ErrFutureExceeded         = errors.New("future exceeded deadline")
+	// ErrFutureExceeded 表示 Future 已超过截止时间、已完成或不存在。
+	ErrFutureExceeded = errors.New("future exceeded deadline")
 )
 
+// NewFutureController 创建以 ctx 控制生命周期、以 timeout 设置每个 Future 截止时间的控制器。
+// ctx 为 nil 时使用 context.Background；调用方应取消 ctx 以终止内部 watcher。
 func NewFutureController(ctx context.Context, timeout time.Duration) *FutureController {
 	if ctx == nil {
 		ctx = context.Background()
@@ -55,6 +59,8 @@ func NewFutureController(ctx context.Context, timeout time.Duration) *FutureCont
 	return fc
 }
 
+// FutureController 并发管理带唯一 ID 和统一超时时长的 Future，并将 Resolve 与等待方匹配。
+// 控制器初始化后不得复制。
 type FutureController struct {
 	_                noCopy
 	ctx              context.Context
@@ -67,6 +73,7 @@ type FutureController struct {
 	pendingTimeout   *generic.UnboundedChannel[*FutureHandle]
 }
 
+// New 注册一个待完成的 Future；控制器已结束时返回 ErrFutureControllerClosed。
 func (fc *FutureController) New() (*FutureHandle, error) {
 	select {
 	case <-fc.ctx.Done():
@@ -95,6 +102,8 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 	return handle, nil
 }
 
+// Resolve 以 ret 完成指定 Future。
+// ID 不存在、Future 已完成或已到截止时间时返回 ErrFutureExceeded。
 func (fc *FutureController) Resolve(id int64, ret async.Result) error {
 	fc.pendingResolveMu.Lock()
 	handle := fc.pendingResolve[id]
@@ -117,6 +126,7 @@ func (fc *FutureController) Resolve(id int64, ret async.Result) error {
 	return nil
 }
 
+// Terminated 返回控制器结束 Future；父 context 取消且所有待处理项完成收尾后该 Future 才会完成。
 func (fc *FutureController) Terminated() async.Future {
 	return fc.terminated.Out()
 }

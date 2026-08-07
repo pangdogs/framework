@@ -39,43 +39,44 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetService 获取服务实例
+// GetService 返回 provider 所属的 framework 服务实例。
 func GetService(provider runtime.ConcurrentContextProvider) IService {
 	return reinterpret.Cast[IService](service.Current(provider))
 }
 
-// IService 服务实例接口
+// IService 扩展 core service.Context，并聚合 framework 的服务级 add-in 与构建入口。
+// 服务上下文可被多个 goroutine 访问；具体 add-in 的并发约束由各自接口说明。
 type IService interface {
 	service.Context
-	// AppConf 获取当前应用程序配置
+	// AppConf 返回合并后的应用配置。
 	AppConf() *viper.Viper
-	// ServiceConf 获取当前服务配置
+	// ServiceConf 返回以服务名为键的配置子树；不存在时可能返回 nil。
 	ServiceConf() *viper.Viper
-	// Registry 获取服务发现插件
+	// Registry 返回服务发现 add-in；未安装时会 panic。
 	Registry() discovery.IRegistry
-	// Broker 获取消息队列中间件插件
+	// Broker 返回消息代理 add-in；未安装时会 panic。
 	Broker() broker.IBroker
-	// DistSync 获取分布式同步插件
+	// DistSync 返回分布式同步 add-in；未安装时会 panic。
 	DistSync() dsync.IDistSync
-	// DistService 获取分布式服务插件
+	// DistService 返回分布式服务 add-in；未安装时会 panic。
 	DistService() dsvc.IDistService
-	// DistEntityQuerier 获取分布式实体查询插件
+	// DistEntityQuerier 返回分布式实体查询 add-in；未安装时会 panic。
 	DistEntityQuerier() dent.IDistEntityQuerier
-	// RPC 获取RPC支持插件
+	// RPC 返回 RPC add-in；未安装时会 panic。
 	RPC() rpc.IRPC
-	// ReplicaNo 获取副本序号
+	// ReplicaNo 返回当前服务在本次应用启动中的副本序号，从 0 开始。
 	ReplicaNo() int
-	// Memory 获取服务内存KV存储
+	// Memory 返回服务私有的并发键值存储。
 	Memory() *sync.Map
-	// BuildRuntime 创建运行时
+	// BuildRuntime 创建绑定当前服务的运行时构建器。
 	BuildRuntime() *RuntimeCreator
-	// BuildEntityPT 创建实体原型
+	// BuildEntityPT 创建绑定当前服务及 prototype 名称的实体原型构建器。
 	BuildEntityPT(prototype string) *EntityPTCreator
-	// BuildEntity 创建实体
+	// BuildEntity 创建绑定当前服务及 prototype 名称的实体构建器。
 	BuildEntity(prototype string) *EntityCreator
-	// L 结构化日志
+	// L 返回当前服务的结构化日志器。
 	L() *zap.Logger
-	// S 传统日志
+	// S 返回当前服务的 SugaredLogger。
 	S() *zap.SugaredLogger
 }
 
@@ -84,7 +85,7 @@ type iService interface {
 	getRuntimeAssembler() *RuntimeAssembler
 }
 
-// ServiceBehavior 服务实例行为
+// ServiceBehavior 提供 IService 的默认实现，供自定义服务匿名嵌入。
 type ServiceBehavior struct {
 	service.ContextBehavior
 	started          atomic.Bool
@@ -92,7 +93,8 @@ type ServiceBehavior struct {
 	runtimeAssembler RuntimeAssembler
 }
 
-// AppConf 获取当前应用配置
+// AppConf 返回合并后的应用配置。
+// 服务启动前直接读取装配配置，启动后通过 conf add-in 读取。
 func (svc *ServiceBehavior) AppConf() *viper.Viper {
 	if !svc.started.Load() {
 		return svc.getConf()
@@ -100,7 +102,7 @@ func (svc *ServiceBehavior) AppConf() *viper.Viper {
 	return addins.Conf.Require(svc).AppConf()
 }
 
-// ServiceConf 获取当前服务配置
+// ServiceConf 返回以当前服务名为键的配置子树；不存在时可能返回 nil。
 func (svc *ServiceBehavior) ServiceConf() *viper.Viper {
 	if !svc.started.Load() {
 		return svc.getConf().Sub(svc.Name())
@@ -108,37 +110,37 @@ func (svc *ServiceBehavior) ServiceConf() *viper.Viper {
 	return addins.Conf.Require(svc).ServiceConf()
 }
 
-// Registry 获取服务发现插件
+// Registry 返回服务发现 add-in；未安装时会 panic。
 func (svc *ServiceBehavior) Registry() discovery.IRegistry {
 	return addins.Discovery.Require(svc)
 }
 
-// Broker 获取消息队列中间件插件
+// Broker 返回消息代理 add-in；未安装时会 panic。
 func (svc *ServiceBehavior) Broker() broker.IBroker {
 	return addins.Broker.Require(svc)
 }
 
-// DistSync 获取分布式同步插件
+// DistSync 返回分布式同步 add-in；未安装时会 panic。
 func (svc *ServiceBehavior) DistSync() dsync.IDistSync {
 	return addins.Dsync.Require(svc)
 }
 
-// DistService 获取分布式服务插件
+// DistService 返回分布式服务 add-in；未安装时会 panic。
 func (svc *ServiceBehavior) DistService() dsvc.IDistService {
 	return addins.Dsvc.Require(svc)
 }
 
-// DistEntityQuerier 获取分布式实体查询插件
+// DistEntityQuerier 返回分布式实体查询 add-in；未安装时会 panic。
 func (svc *ServiceBehavior) DistEntityQuerier() dent.IDistEntityQuerier {
 	return addins.Dentq.Require(svc)
 }
 
-// RPC 获取RPC支持插件
+// RPC 返回 RPC add-in；未安装时会 panic。
 func (svc *ServiceBehavior) RPC() rpc.IRPC {
 	return addins.RPC.Require(svc)
 }
 
-// ReplicaNo 获取副本序号
+// ReplicaNo 返回当前服务在本次应用启动中的副本序号，从 0 开始。
 func (svc *ServiceBehavior) ReplicaNo() int {
 	v, _ := svc.Memory().Load(memReplicaNo)
 	startupNo, ok := v.(int)
@@ -148,27 +150,27 @@ func (svc *ServiceBehavior) ReplicaNo() int {
 	return startupNo
 }
 
-// Memory 获取服务内存KV存储
+// Memory 返回服务私有的并发键值存储。
 func (svc *ServiceBehavior) Memory() *sync.Map {
 	return &svc.memory
 }
 
-// BuildRuntime 创建运行时
+// BuildRuntime 创建绑定当前服务的运行时构建器。
 func (svc *ServiceBehavior) BuildRuntime() *RuntimeCreator {
 	return BuildRuntime(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()))
 }
 
-// BuildEntityPT 创建实体原型
+// BuildEntityPT 创建绑定当前服务及 prototype 名称的实体原型构建器。
 func (svc *ServiceBehavior) BuildEntityPT(prototype string) *EntityPTCreator {
 	return BuildEntityPT(service.UnsafeContext(svc).Instance(), prototype)
 }
 
-// BuildEntity 创建实体
+// BuildEntity 创建绑定当前服务及 prototype 名称的实体构建器。
 func (svc *ServiceBehavior) BuildEntity(prototype string) *EntityCreator {
 	return BuildEntity(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()), prototype).SetRuntimeCreator(svc.BuildRuntime())
 }
 
-// L 结构化日志
+// L 返回当前服务的结构化日志器。
 func (svc *ServiceBehavior) L() *zap.Logger {
 	if !svc.started.Load() {
 		return svc.getLogger()
@@ -176,7 +178,7 @@ func (svc *ServiceBehavior) L() *zap.Logger {
 	return log.L(svc)
 }
 
-// S 传统日志
+// S 返回当前服务的 SugaredLogger。
 func (svc *ServiceBehavior) S() *zap.SugaredLogger {
 	if !svc.started.Load() {
 		return svc.getLogger().Sugar()

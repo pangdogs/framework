@@ -25,21 +25,22 @@ import (
 )
 
 var (
-	ErrGTP = errors.New("gtp") // 消息协议错误
+	// ErrGTP 是 GTP 消息处理错误的根错误。
+	ErrGTP = errors.New("gtp")
 )
 
-// ReadableMsg 可读消息接口
+// ReadableMsg 表示可编码到字节流并可复制的 GTP 消息。
 type ReadableMsg interface {
 	io.Reader
-	// Size 大小
+	// Size 返回消息编码后的字节数。
 	Size() int
-	// MsgId 消息Id
+	// MsgId 返回消息类型 ID。
 	MsgId() MsgId
-	// Clone 克隆消息对象
+	// Clone 返回可独立修改的消息副本。
 	Clone() Msg
 }
 
-// Msg 消息接口
+// Msg 表示既可编码也可从字节流解码的 GTP 消息。
 type Msg interface {
 	ReadableMsg
 	io.Writer

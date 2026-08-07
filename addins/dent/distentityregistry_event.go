@@ -25,14 +25,16 @@ import (
 	"git.golaxy.org/core/ec"
 )
 
-// EventDistEntityOnline 事件：分布式实体上线
+// EventDistEntityOnline 在全局实体完成分布式注册后同步通知监听者。
 // +event-tab-gen:recursion=allow
 type EventDistEntityOnline interface {
+	// OnDistEntityOnline 处理已上线的全局实体。
 	OnDistEntityOnline(entity ec.Entity)
 }
 
-// EventDistEntityOffline 事件：分布式实体下线
+// EventDistEntityOffline 在全局实体从当前运行时移除时同步通知监听者。
 // +event-tab-gen:recursion=allow
 type EventDistEntityOffline interface {
+	// OnDistEntityOffline 处理已下线的全局实体。
 	OnDistEntityOffline(entity ec.Entity)
 }

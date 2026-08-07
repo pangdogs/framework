@@ -26,20 +26,24 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
+// MongoDBOptions 配置需要在 add-in 启动时连接的 MongoDB 实例。
 type MongoDBOptions struct {
-	DBInfos []*dsn.DBInfo
+	DBInfos []*dsn.DBInfo // DBInfos 仅保留 Type 为 dsn.Mongo 的非 nil 项。
 }
 
+// With 提供 MongoDB add-in 的 Option 构造方法。
 var With _MongoDBOption
 
 type _MongoDBOption struct{}
 
+// Default 返回不连接任何 MongoDB 实例的默认设置。
 func (_MongoDBOption) Default() option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
 		With.DBInfos().Apply(options)
 	}
 }
 
+// DBInfos 设置具名连接列表；nil 项和非 MongoDB 类型会被过滤。
 func (_MongoDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[MongoDBOptions] {
 	return func(options *MongoDBOptions) {
 		infos = pie.Filter(infos, func(info *dsn.DBInfo) bool {

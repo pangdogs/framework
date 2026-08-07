@@ -27,10 +27,11 @@ import (
 )
 
 var (
+	// ErrSnapshotReadonly 表示试图向只读数组快照解码数据。
 	ErrSnapshotReadonly = fmt.Errorf("%w: snapshot array is readonly", ErrVariant)
 )
 
-// NewArray 创建array
+// NewArray 将 Go 切片逐项转换为动态值数组。
 func NewArray[T any](arr []T) (Array, error) {
 	ret := Array{
 		Items: make([]Variant, 0, len(arr)),
@@ -47,14 +48,14 @@ func NewArray[T any](arr []T) (Array, error) {
 	return ret, nil
 }
 
-// Array array
+// Array 保存有序动态值；快照形态只保留已编码字节且不可写入。
 type Array struct {
-	Items         []Variant
-	IsSnapshot    bool
-	SnapshotBytes binaryutil.Bytes
+	Items         []Variant        // 非快照形态的数组项。
+	IsSnapshot    bool             // 是否为只读编码快照。
+	SnapshotBytes binaryutil.Bytes // 快照编码；可回收快照使用完后必须释放。
 }
 
-// Read implements io.Reader
+// Read 将数组或其快照编码到 p。
 func (v Array) Read(p []byte) (int, error) {
 	if v.IsSnapshot {
 		data := v.SnapshotBytes.Payload()
@@ -79,7 +80,7 @@ func (v Array) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码数组；快照形态返回 ErrSnapshotReadonly。
 func (v *Array) Write(p []byte) (int, error) {
 	if v.IsSnapshot {
 		return 0, ErrSnapshotReadonly
@@ -105,7 +106,7 @@ func (v *Array) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回数组编码后的字节数。
 func (v Array) Size() int {
 	if v.IsSnapshot {
 		return len(v.SnapshotBytes.Payload())
@@ -117,17 +118,17 @@ func (v Array) Size() int {
 	return n
 }
 
-// TypeId 类型
+// TypeId 返回数组的内置类型 ID。
 func (Array) TypeId() TypeId {
 	return TypeId_Array
 }
 
-// Indirect 原始值
+// Indirect 返回数组值本身。
 func (v Array) Indirect() any {
 	return v
 }
 
-// Snapshot 快照
+// Snapshot 创建数组编码的只读副本；recyclable 为 true 时使用完必须调用 ReleaseIfSnapshot。
 func (v Array) Snapshot(recyclable bool) (Array, error) {
 	if v.IsSnapshot {
 		return Array{
@@ -150,7 +151,7 @@ func (v Array) Snapshot(recyclable bool) (Array, error) {
 	return ret, nil
 }
 
-// ReleaseIfSnapshot 释放快照字节对象
+// ReleaseIfSnapshot 释放快照持有的可回收字节缓冲区；非快照调用无效。
 func (v Array) ReleaseIfSnapshot() {
 	if v.IsSnapshot {
 		v.SnapshotBytes.Release()

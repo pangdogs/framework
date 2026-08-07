@@ -34,13 +34,17 @@ import (
 )
 
 var (
-	ErrScriptNotFound               = errors.New("rpcli: script not found")                // 找不到脚本
-	ErrMethodNotFound               = errors.New("rpcli: method not found")                // 找不到方法
-	ErrMethodParameterCountMismatch = errors.New("rpcli: method parameter count mismatch") // 方法参数数量不匹配
-	ErrMethodParameterTypeMismatch  = errors.New("rpcli: method parameter type mismatch")  // 方法参数类型不匹配
+	// ErrScriptNotFound 表示找不到目标客户端脚本。
+	ErrScriptNotFound = errors.New("rpcli: script not found")
+	// ErrMethodNotFound 表示找不到目标脚本方法。
+	ErrMethodNotFound = errors.New("rpcli: method not found")
+	// ErrMethodParameterCountMismatch 表示调用参数数量与方法签名不匹配。
+	ErrMethodParameterCountMismatch = errors.New("rpcli: method parameter count mismatch")
+	// ErrMethodParameterTypeMismatch 表示调用参数类型与方法签名不匹配。
+	ErrMethodParameterTypeMismatch = errors.New("rpcli: method parameter type mismatch")
 )
 
-// RPCli RCP客户端
+// RPCli 是通过网关连接服务的 RPC 客户端。
 type RPCli struct {
 	*cli.Client
 	encoder        *codec.Encoder
@@ -51,12 +55,12 @@ type RPCli struct {
 	scripts        generic.SliceMap[string, IScript]
 }
 
-// RemoteClock 获取对端时钟
+// RemoteClock 返回连接建立时选出的最低 RTT 对端时钟样本。
 func (c *RPCli) RemoteClock() cli.TimeSample {
 	return c.remoteClock
 }
 
-// RPC RPC调用
+// RPC 向服务的实体目标发起请求，并返回用于接收响应的 Future。
 func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 	handle, err := c.FutureController().New()
 	if err != nil {
@@ -123,7 +127,7 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 	return handle.Future()
 }
 
-// OnewayRPC 单向RPC调用
+// OnewayRPC 向服务的实体目标发送无需响应的通知。
 func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 	vargs, err := variant.NewArray(args)
 	if err != nil {

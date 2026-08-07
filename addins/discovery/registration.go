@@ -25,12 +25,13 @@ import (
 	"git.golaxy.org/core/utils/async"
 )
 
-// IRegistration 服务注册句柄
+// IRegistration 控制一次带租约的服务节点注册。
 type IRegistration interface {
-	// KeepAliveContinuous 节点持续保活
+	// KeepAliveContinuous 持续刷新租约，直到 ctx 取消或保活流结束。
+	// 返回的 Future 在保活停止后完成。
 	KeepAliveContinuous(ctx context.Context) (async.Future, error)
-	// KeepAliveOnce 节点保活一次
+	// KeepAliveOnce 立即刷新一次租约。
 	KeepAliveOnce(ctx context.Context) error
-	// Deregister 注销服务节点
+	// Deregister 撤销租约并注销服务节点。
 	Deregister(ctx context.Context) error
 }

@@ -30,7 +30,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Match 是否匹配
+// Match 接受服务域地址；普通请求支持单播和负载均衡，单向通知还支持广播。
 func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, oneway bool) bool {
 	details := p.dsvc.NodeDetails()
 
@@ -48,7 +48,7 @@ func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 	}
 }
 
-// Request 请求
+// Request 编码并发送服务域 RPC 请求，返回由关联 ID 匹配响应的 Future。
 func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
 	handle, err := p.dsvc.FutureController().New()
 	if err != nil {
@@ -86,7 +86,7 @@ func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 	return handle.Future()
 }
 
-// Notify 通知
+// Notify 编码并发送无需响应的服务域 RPC 通知。
 func (p *_ServiceProcessor) Notify(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) error {
 	vargs, err := variant.NewArray(args)
 	if err != nil {

@@ -30,24 +30,33 @@ import (
 )
 
 type (
-	HelloAccept               = generic.FuncPair1[Event[*gtp.MsgHello], Event[*gtp.MsgHello], error]                             // 服务端确认客户端Hello请求
-	HelloFin                  = generic.Func1[Event[*gtp.MsgHello], error]                                                       // 客户端获取服务端Hello响应
-	SecretKeyExchangeAccept   = generic.FuncPair1[IEvent, IEvent, error]                                                         // 客户端确认服务端SecretKeyExchange请求，需要自己判断消息Id并处理，用于支持多种秘钥交换函数
-	ECDHESecretKeyExchangeFin = generic.FuncPair1[Event[*gtp.MsgECDHESecretKeyExchange], Event[*gtp.MsgChangeCipherSpec], error] // 服务端获取客户端ECDHESecretKeyExchange响应
-	ChangeCipherSpecAccept    = generic.FuncPair1[Event[*gtp.MsgChangeCipherSpec], Event[*gtp.MsgChangeCipherSpec], error]       // 客户端确认服务端ChangeCipherSpec请求
-	ChangeCipherSpecFin       = generic.Func1[Event[*gtp.MsgChangeCipherSpec], error]                                            // 服务端获取客户端ChangeCipherSpec响应
-	AuthAccept                = generic.Func1[Event[*gtp.MsgAuth], error]                                                        // 服务端确认客户端Auth请求
-	ContinueAccept            = generic.Func1[Event[*gtp.MsgContinue], error]                                                    // 服务端确认客户端Continue请求
-	FinishedAccept            = generic.Func1[Event[*gtp.MsgFinished], error]                                                    // 客户端确认服务端Finished请求
+	// HelloAccept 在服务端校验客户端 Hello 并生成 Hello 响应。
+	HelloAccept = generic.FuncPair1[Event[*gtp.MsgHello], Event[*gtp.MsgHello], error]
+	// HelloFin 在客户端校验服务端 Hello 响应。
+	HelloFin = generic.Func1[Event[*gtp.MsgHello], error]
+	// SecretKeyExchangeAccept 在客户端处理服务端选择的密钥交换消息并生成响应。
+	SecretKeyExchangeAccept = generic.FuncPair1[IEvent, IEvent, error]
+	// ECDHESecretKeyExchangeFin 在服务端校验客户端 ECDHE 响应并生成密码规范切换消息。
+	ECDHESecretKeyExchangeFin = generic.FuncPair1[Event[*gtp.MsgECDHESecretKeyExchange], Event[*gtp.MsgChangeCipherSpec], error]
+	// ChangeCipherSpecAccept 在客户端校验服务端密码规范切换消息并生成响应。
+	ChangeCipherSpecAccept = generic.FuncPair1[Event[*gtp.MsgChangeCipherSpec], Event[*gtp.MsgChangeCipherSpec], error]
+	// ChangeCipherSpecFin 在服务端校验客户端密码规范切换响应。
+	ChangeCipherSpecFin = generic.Func1[Event[*gtp.MsgChangeCipherSpec], error]
+	// AuthAccept 在服务端校验客户端鉴权消息。
+	AuthAccept = generic.Func1[Event[*gtp.MsgAuth], error]
+	// ContinueAccept 在服务端校验并恢复客户端会话状态。
+	ContinueAccept = generic.Func1[Event[*gtp.MsgContinue], error]
+	// FinishedAccept 在客户端校验服务端握手完成消息。
+	FinishedAccept = generic.Func1[Event[*gtp.MsgFinished], error]
 )
 
-// HandshakeProtocol 握手协议
+// HandshakeProtocol 按客户端或服务端角色执行 GTP 握手阶段。
 type HandshakeProtocol struct {
-	Transceiver *Transceiver // 消息事件收发器
-	RetryTimes  int          // 网络io超时时的重试次数
+	Transceiver *Transceiver // 事件收发器。
+	RetryTimes  int          // 网络 I/O 超时后的重试次数。
 }
 
-// ClientHello 客户端Hello
+// ClientHello 发送客户端 Hello，接收并校验服务端 Hello。
 func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.MsgHello], helloFin HelloFin) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -95,7 +104,7 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.Ms
 	return nil
 }
 
-// ServerHello 服务端Hello
+// ServerHello 接收客户端 Hello，经回调生成并发送服务端 Hello；失败时尝试发送 RST。
 func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAccept) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -144,7 +153,7 @@ func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAc
 	return nil
 }
 
-// ClientSecretKeyExchange 客户端交换秘钥
+// ClientSecretKeyExchange 完成客户端密钥交换和密码规范切换两个往返阶段。
 func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretKeyExchangeAccept SecretKeyExchangeAccept, changeCipherSpecAccept ChangeCipherSpecAccept) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -220,7 +229,7 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 	return nil
 }
 
-// ServerECDHESecretKeyExchange 服务端交换秘钥（ECDHE）
+// ServerECDHESecretKeyExchange 完成服务端 ECDHE 密钥交换和密码规范切换两个往返阶段。
 func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, secretKeyExchange Event[*gtp.MsgECDHESecretKeyExchange], secretKeyExchangeFin ECDHESecretKeyExchangeFin, changeCipherSpecFin ChangeCipherSpecFin) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -295,7 +304,7 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 	return nil
 }
 
-// ClientAuth 客户端发起鉴权
+// ClientAuth 发送客户端鉴权消息。
 func (h *HandshakeProtocol) ClientAuth(ctx context.Context, auth Event[*gtp.MsgAuth]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -320,7 +329,7 @@ func (h *HandshakeProtocol) ClientAuth(ctx context.Context, auth Event[*gtp.MsgA
 	return nil
 }
 
-// ServerAuth 服务端验证鉴权
+// ServerAuth 接收并校验客户端鉴权消息；失败时尝试发送 RST。
 func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccept) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -360,7 +369,7 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 	return nil
 }
 
-// ClientContinue 客户端发起重连
+// ClientContinue 发送客户端会话续接消息。
 func (h *HandshakeProtocol) ClientContinue(ctx context.Context, cont Event[*gtp.MsgContinue]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -381,7 +390,7 @@ func (h *HandshakeProtocol) ClientContinue(ctx context.Context, cont Event[*gtp.
 	return nil
 }
 
-// ServerContinue 服务端处理重连
+// ServerContinue 接收并恢复客户端会话；失败时尝试发送 RST。
 func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept ContinueAccept) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -421,7 +430,7 @@ func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept C
 	return nil
 }
 
-// ClientFinished 客户端握手结束
+// ClientFinished 接收并校验服务端握手完成消息。
 func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept FinishedAccept) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -459,7 +468,7 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 	return nil
 }
 
-// ServerFinished 服务端握手结束
+// ServerFinished 发送服务端握手完成消息；失败时尝试发送 RST。
 func (h *HandshakeProtocol) ServerFinished(ctx context.Context, finished Event[*gtp.MsgFinished]) (err error) {
 	if h.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)

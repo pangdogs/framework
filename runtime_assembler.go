@@ -53,7 +53,8 @@ type iRuntimeAssembler interface {
 	assemble(settings _RuntimeSettings) (core.Runtime, error)
 }
 
-// RuntimeAssembler 运行时装配器
+// RuntimeAssembler 将 IRuntime 实例接入 framework 的 add-in、生命周期及实体事件。
+// 自定义运行时装配类型通常匿名嵌入它并实现所需的生命周期或安装钩子接口。
 type RuntimeAssembler struct {
 	svcInst  IService
 	instance any

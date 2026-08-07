@@ -26,20 +26,24 @@ import (
 	"github.com/elliotchance/pie/v2"
 )
 
+// SQLDBOptions 配置需要在 add-in 启动时连接的 SQL 数据库。
 type SQLDBOptions struct {
-	DBInfos []*dsn.DBInfo
+	DBInfos []*dsn.DBInfo // DBInfos 仅保留受支持 SQL 类型的非 nil 项。
 }
 
+// With 提供 SQL add-in 的 Option 构造方法。
 var With _SQLDBOption
 
 type _SQLDBOption struct{}
 
+// Default 返回不连接任何 SQL 数据库的默认设置。
 func (_SQLDBOption) Default() option.Setting[SQLDBOptions] {
 	return func(options *SQLDBOptions) {
 		With.DBInfos().Apply(options)
 	}
 }
 
+// DBInfos 设置具名连接列表；nil 项和不受支持的数据库类型会被过滤。
 func (_SQLDBOption) DBInfos(infos ...*dsn.DBInfo) option.Setting[SQLDBOptions] {
 	return func(options *SQLDBOptions) {
 		infos = pie.Filter(infos, func(info *dsn.DBInfo) bool {

@@ -28,16 +28,16 @@ import (
 	"git.golaxy.org/framework/net/gtp/transport"
 )
 
-// initConn 初始化连接
+// initConn 绑定首次握手建立的连接，以随机序号初始化同步器并返回双方起始序号。
 func (s *_Session) initConn(conn net.Conn, encoder *codec.Encoder, decoder *codec.Decoder) (sendSeq, recvSeq uint32) {
-	// 初始化消息收发器
+	// 首次连接使用随机收发序号，并保留未确认帧用于后续迁移补发。
 	s.transceiver.Conn = conn
 	s.transceiver.Encoder = encoder
 	s.transceiver.Decoder = decoder
 	s.transceiver.Timeout = s.gate.options.IOTimeout
 	s.transceiver.Synchronizer = transport.NewSequencedSynchronizer(rand.Uint32(), rand.Uint32(), s.gate.options.IOBufferCap)
 
-	// 记录连接信息
+	// 地址快照与收发器同时提交，供并发查询。
 	s.netAddr.Store(&NetAddr{
 		Local:  conn.LocalAddr(),
 		Remote: conn.RemoteAddr(),
@@ -46,14 +46,15 @@ func (s *_Session) initConn(conn net.Conn, encoder *codec.Encoder, decoder *code
 	return s.transceiver.Synchronizer.SendSeq(), s.transceiver.Synchronizer.RecvSeq()
 }
 
-// migrateConn 迁移连接
+// migrateConn 串行提交新连接，更新地址与迁移计数，然后通知会话主循环。
+// 已有迁移正在进行时立即返回错误。
 func (s *_Session) migrateConn(conn net.Conn, remoteRecvSeq uint32) (sendSeq, recvSeq uint32, err error) {
 	if !s.migrationMu.TryLock() {
 		return 0, 0, errors.New("concurrent session connection migration rejected")
 	}
 	defer s.migrationMu.Unlock()
 
-	// 迁移连接
+	// Transceiver 在收发锁内同步序号并原子切换底层连接。
 	sendSeq, recvSeq, err = s.transceiver.Migrate(conn, remoteRecvSeq)
 	if err != nil {
 		return
@@ -62,13 +63,13 @@ func (s *_Session) migrateConn(conn net.Conn, remoteRecvSeq uint32) (sendSeq, re
 	// 迁移成功后立即更新计数，保证外部观察到的是已提交状态
 	s.migrations.Add(1)
 
-	// 记录连接信息
+	// 迁移成功后发布新地址快照。
 	s.netAddr.Store(&NetAddr{
 		Local:  conn.LocalAddr(),
 		Remote: conn.RemoteAddr(),
 	})
 
-	// 通知连接已迁移
+	// 唤醒会话主循环执行缓存补发并恢复活跃状态。
 	select {
 	case s.migrationChan <- struct{}{}:
 	case <-s.Done():

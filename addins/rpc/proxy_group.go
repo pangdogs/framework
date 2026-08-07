@@ -29,7 +29,8 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyGroup 创建分组代理，用于向分组发送RPC
+// ProxyGroup 使用 provider 所在的服务上下文创建客户端组 name 的 RPC 代理。
+// provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
 func ProxyGroup(provider any, name string) GroupProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
@@ -49,14 +50,14 @@ func ProxyGroup(provider any, name string) GroupProxied {
 	return p
 }
 
-// GroupProxied 分组代理，用于向分组发送RPC
+// GroupProxied 绑定一个客户端组播地址。
 type GroupProxied struct {
 	svcCtx service.Context
 	rtCtx  runtime.Context
 	addr   string
 }
 
-// CliOnewayRPC 向分组发送单向RPC
+// CliOnewayRPC 向组内客户端广播单向 RPC。
 func (p GroupProxied) CliOnewayRPC(script, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")

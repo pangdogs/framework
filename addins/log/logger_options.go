@@ -24,23 +24,24 @@ import (
 	"go.uber.org/zap"
 )
 
-// LoggerOptions 所有选项
+// LoggerOptions 配置日志 add-in 使用的基础 Zap 日志器。
 type LoggerOptions struct {
-	Logger *zap.Logger
+	Logger *zap.Logger // Logger 为 nil 时创建输出到标准输出的开发日志器。
 }
 
+// With 提供日志 add-in 的 Option 构造方法。
 var With _Option
 
 type _Option struct{}
 
-// Default 默认值
+// Default 返回使用内置开发日志器的默认设置。
 func (_Option) Default() option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		With.Logger(nil)(options)
 	}
 }
 
-// Logger 日志
+// Logger 设置要派生 service 或 runtime 日志器的基础 Zap 日志器。
 func (_Option) Logger(logger *zap.Logger) option.Setting[LoggerOptions] {
 	return func(options *LoggerOptions) {
 		options.Logger = logger

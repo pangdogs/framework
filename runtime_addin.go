@@ -19,14 +19,20 @@
 
 package framework
 
+// InstallRuntimeLogger 为运行时提供自定义日志 add-in 安装钩子。
+// 仅当 Birth 阶段尚未安装同名 add-in 时调用；实现必须在返回前完成安装。
 type InstallRuntimeLogger interface {
 	InstallLogger(rt IRuntime)
 }
 
+// InstallRuntimeRPCStack 为运行时提供自定义 RPC 调用栈 add-in 安装钩子。
+// 仅当 Birth 阶段尚未安装同名 add-in 时调用；实现必须在返回前完成安装。
 type InstallRuntimeRPCStack interface {
 	InstallRPCStack(rt IRuntime)
 }
 
+// InstallRuntimeDistEntityRegistry 为运行时提供自定义分布式实体注册 add-in 安装钩子。
+// 仅当 Birth 阶段尚未安装同名 add-in 时调用；实现必须在返回前完成安装。
 type InstallRuntimeDistEntityRegistry interface {
 	InstallDistEntityRegistry(rt IRuntime)
 }

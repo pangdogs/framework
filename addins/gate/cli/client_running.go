@@ -28,7 +28,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// mainLoop 客户端主线程
+// mainLoop 运行客户端的接收、心跳、重连、迁移和关闭主循环。
 func (c *Client) mainLoop() {
 	addr := c.NetAddr()
 	c.logger.Debug("client started",
@@ -42,7 +42,7 @@ func (c *Client) mainLoop() {
 	pinged := false
 	var timeout time.Time
 
-	// 启动i/o线程
+	// 启动 I/O 发送循环
 	go c.io.sendLoop()
 
 	autoReconnect := func() {
@@ -62,7 +62,7 @@ func (c *Client) mainLoop() {
 					zap.Int("retries", i+1),
 					zap.Error(err))
 
-				// 服务端返回rst拒绝连接，恢复链路失败，这两种情况下不再重试，关闭客户端
+				// 服务端返回 RST 或链路迁移失败时不再重试，直接关闭客户端
 				var rstErr *transport.RstError
 				if errors.As(err, &rstErr) || errors.Is(err, transport.ErrMigrateConn) {
 					c.logger.Error("client auto reconnect aborted, close client", zap.String("session_id", c.SessionId().String()))
@@ -169,24 +169,24 @@ loop:
 		if err := c.eventDispatcher.Dispatch(c); err != nil {
 			// 网络传输错误
 			if errors.Is(err, transport.ErrTrans) {
-				// 网络io错误
+				// 网络 I/O 错误
 				if errors.Is(err, transport.ErrNetIO) {
-					// 网络io超时，触发心跳检测，向对方发送ping
+					// 网络 I/O 超时，触发心跳检测并向对端发送 Ping
 					if errors.Is(err, transport.ErrDeadlineExceeded) {
 						if !pinged {
-							// 尝试ping对端
+							// 尝试 Ping 对端
 							c.logger.Debug("client send ping", zap.String("session_id", c.SessionId().String()))
 							c.ctrl.SendPing()
 							pinged = true
 						} else {
-							// 未收到对方回复pong或其他消息事件，再次网络io超时，调整连接状态不活跃
+							// 未收到 Pong 或其他事件且再次 I/O 超时，将连接标记为不活跃
 							c.logger.Debug("client no pong received", zap.String("session_id", c.SessionId().String()))
 							changeActive(false)
 						}
 						continue
 					}
 
-					// 其他网络io类错误，调整连接状态不活跃，并重试
+					// 其他网络 I/O 错误将连接标记为不活跃，并按配置重连
 					c.logger.Error("client dispatching event failed, retry it", zap.String("session_id", c.SessionId().String()))
 					changeActive(false)
 					continue
@@ -202,21 +202,21 @@ loop:
 			c.logger.Error("session dispatching event failed, discard it", zap.String("session_id", c.SessionId().String()))
 		}
 
-		// 没有错误，或非网络传输错误，调整客户端状态为活跃，并重置ping状态
+		// 没有错误或只有非传输错误时，将客户端标记为活跃并重置 Ping 状态
 		changeActive(true)
 		pinged = false
 	}
 
-	// 关闭客户端
+	// 主循环退出后取消客户端，并等待异步发送队列排空。
 	c.close(nil)
-	// 等待i/o线程结束
 	<-c.io.terminated
-	// 关闭网络连接
+
+	// 发送队列停止后再释放连接和编解码资源。
 	if c.transceiver.Conn != nil {
 		c.transceiver.Conn.Close()
 	}
 	c.transceiver.Dispose()
-	// 返回关闭结果
+	// 资源清理完成后兑现 Closed Future。
 	async.ReturnVoid(c.closed)
 
 	c.logger.Debug("client closed", zap.String("session_id", c.SessionId().String()))

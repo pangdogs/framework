@@ -25,13 +25,13 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgSigned 已签名消息
+// MsgSigned 包装原始消息体及其消息认证码。
 type MsgSigned struct {
-	Data []byte
-	MAC  []byte
+	Data []byte // 被认证数据；解码时引用输入缓冲区。
+	MAC  []byte // 消息认证码；解码时引用输入缓冲区。
 }
 
-// Read implements io.Reader
+// Read 将认证包装编码到 p。
 func (m MsgSigned) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -43,7 +43,7 @@ func (m MsgSigned) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码认证包装。
 func (m *MsgSigned) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -61,7 +61,7 @@ func (m *MsgSigned) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回认证包装编码后的字节数。
 func (m MsgSigned) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofBytes(m.MAC)
 }

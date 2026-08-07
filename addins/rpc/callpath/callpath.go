@@ -29,23 +29,35 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
+// TargetKind 标识 RPC 调用路径指向的对象类型。
 type TargetKind uint8
 
 const (
+	// Service 表示服务实例。
 	Service TargetKind = 'S'
+	// Runtime 表示实体所在的运行时。
 	Runtime TargetKind = 'R'
-	Entity  TargetKind = 'E'
-	Client  TargetKind = 'C'
+	// Entity 表示实体或实体组件。
+	Entity TargetKind = 'E'
+	// Client 表示网关客户端脚本。
+	Client TargetKind = 'C'
 )
 
+// CallPath 描述 RPC 的目标类型、目标 ID、脚本及方法。
 type CallPath struct {
+	// TargetKind 指定调用目标的类型。
 	TargetKind TargetKind
+	// ExcludeSrc 指示路由时是否排除调用来源。
 	ExcludeSrc bool
-	Id         uid.Id
-	Script     string
-	Method     string
+	// Id 是 Runtime 或 Entity 目标的实体 ID，其他目标类型忽略此字段。
+	Id uid.Id
+	// Script 是服务插件、运行时插件、实体组件或客户端脚本的名称；为空时表示目标本身。
+	Script string
+	// Method 是要调用的方法名。
+	Method string
 }
 
+// Encode 编码调用路径。short 为 true 时使用进程内缓存索引压缩脚本名和方法名。
 func (cp CallPath) Encode(short bool) ([]byte, error) {
 	var sb bytes.Buffer
 
@@ -76,6 +88,7 @@ func (cp CallPath) Encode(short bool) ([]byte, error) {
 	return sb.Bytes(), nil
 }
 
+// String 返回便于诊断的调用路径文本。
 func (cp CallPath) String() string {
 	switch cp.TargetKind {
 	case Service:
@@ -90,6 +103,7 @@ func (cp CallPath) String() string {
 	return ""
 }
 
+// Parse 解码调用路径；压缩路径要求本进程已缓存对应的脚本和方法。
 func Parse(data []byte) (CallPath, error) {
 	if len(data) < 2 {
 		return CallPath{}, errors.New("rpc: invalid call path data format")

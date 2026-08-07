@@ -32,6 +32,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// addWatcher 创建 ETCD 前缀 watcher，并将变化投递到事件流或回调。
 func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, async.Future, error) {
 	if ctx == nil {
 		ctx = context.Background()

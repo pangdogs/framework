@@ -32,18 +32,19 @@ import (
 )
 
 var (
-	ErrCompress = errors.New("gtp-compress") // 压缩错误
+	// ErrCompress 是 GTP 消息压缩和解压错误的根错误。
+	ErrCompress = errors.New("gtp-compress")
 )
 
-// ICompression 压缩模块接口
+// ICompression 压缩和还原 GTP 消息体。
 type ICompression interface {
-	// Compress 压缩数据
+	// Compress 仅在编码结果更小时返回压缩数据；池化结果由调用方释放。
 	Compress(src []byte) (compressedBuf binaryutil.Bytes, compressed bool, err error)
-	// Uncompress 解压缩数据
+	// Uncompress 在 max 字节上限内还原数据；池化结果由调用方释放。
 	Uncompress(src []byte, max int) (uncompressedBuf binaryutil.Bytes, err error)
 }
 
-// NewCompression 创建压缩模块
+// NewCompression 创建使用指定压缩流的模块；压缩流不得为 nil。
 func NewCompression(cs method.CompressionStream) ICompression {
 	if cs == nil {
 		exception.Panicf("%w: %w: cs is nil", ErrCompress, core.ErrArgs)
@@ -54,12 +55,12 @@ func NewCompression(cs method.CompressionStream) ICompression {
 	}
 }
 
-// Compression 压缩模块
+// Compression 通过 CompressionStream 压缩和还原消息体。
 type Compression struct {
-	CompressionStream method.CompressionStream // 压缩流
+	CompressionStream method.CompressionStream // 压缩算法适配器。
 }
 
-// Compress 压缩数据
+// Compress 压缩 src；空输入或压缩无收益时返回 compressed=false。
 func (c *Compression) Compress(src []byte) (binaryutil.Bytes, bool, error) {
 	if len(src) <= 0 {
 		return binaryutil.EmptyBytes, false, nil
@@ -115,7 +116,7 @@ func (c *Compression) Compress(src []byte) (binaryutil.Bytes, bool, error) {
 	return compressedBuf, true, nil
 }
 
-// Uncompress 解压缩数据
+// Uncompress 解码 MsgCompressed 并将数据还原到池化缓冲区；max 必须容纳原始大小。
 func (c *Compression) Uncompress(src []byte, max int) (binaryutil.Bytes, error) {
 	if len(src) <= 0 {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: src too small", ErrCompress, core.ErrArgs)

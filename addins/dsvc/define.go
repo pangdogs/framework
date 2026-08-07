@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 是分布式服务通信能力的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newDistService)
 )

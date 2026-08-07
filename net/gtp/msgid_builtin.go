@@ -20,16 +20,28 @@
 package gtp
 
 const (
-	MsgId_None                   MsgId = iota // 未设置
-	MsgId_Hello                               // Hello Handshake C<->S 不加密
-	MsgId_ECDHESecretKeyExchange              // ECDHE秘钥交换 Handshake S<->C 不加密
-	MsgId_ChangeCipherSpec                    // 变更密码规范 Handshake S<->C 不加密
-	MsgId_Auth                                // 鉴权 Handshake C->S 加密
-	MsgId_Continue                            // 重连 Handshake C->S 加密
-	MsgId_Finished                            // 握手结束 Handshake S<->C 加密
-	MsgId_Rst                                 // 重置链路 Ctrl S->C 加密
-	MsgId_Heartbeat                           // 心跳 Ctrl C<->S or S<->C 加密
-	MsgId_SyncTime                            // 时钟同步 Ctrl C<->S 加密
-	MsgId_Payload                             // 数据传输 Trans C<->S or S<->C 加密
-	MsgId_Customize              = 16         // 自定义消息起点
+	// MsgId_None 表示未设置消息类型。
+	MsgId_None MsgId = iota
+	// MsgId_Hello 标识双向、明文的 Hello 握手消息。
+	MsgId_Hello
+	// MsgId_ECDHESecretKeyExchange 标识双向、明文的 ECDHE 密钥交换消息。
+	MsgId_ECDHESecretKeyExchange
+	// MsgId_ChangeCipherSpec 标识双向、明文的密码规范切换消息。
+	MsgId_ChangeCipherSpec
+	// MsgId_Auth 标识客户端发往服务端的加密鉴权消息。
+	MsgId_Auth
+	// MsgId_Continue 标识客户端发往服务端的加密会话续接消息。
+	MsgId_Continue
+	// MsgId_Finished 标识双向、加密的握手完成消息。
+	MsgId_Finished
+	// MsgId_Rst 标识服务端发往客户端的加密链路重置消息。
+	MsgId_Rst
+	// MsgId_Heartbeat 标识双向、加密的心跳消息。
+	MsgId_Heartbeat
+	// MsgId_SyncTime 标识双向、加密的时钟同步消息。
+	MsgId_SyncTime
+	// MsgId_Payload 标识双向、加密的业务负载消息。
+	MsgId_Payload
+	// MsgId_Customize 是自定义消息 ID 的起始偏移。
+	MsgId_Customize = 16
 )

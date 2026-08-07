@@ -25,10 +25,10 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Uint8 builtin uint8
+// Uint8 是 GAP 的 uint8 动态值。
 type Uint8 uint8
 
-// Read implements io.Reader
+// Read 将值编码到 p。
 func (v Uint8) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint8(uint8(v)); err != nil {
@@ -37,7 +37,7 @@ func (v Uint8) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码值。
 func (v *Uint8) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	val, err := bs.ReadUint8()
@@ -48,17 +48,17 @@ func (v *Uint8) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回值编码后的字节数。
 func (Uint8) Size() int {
 	return binaryutil.SizeofUint8
 }
 
-// TypeId 类型
+// TypeId 返回 uint8 的内置类型 ID。
 func (Uint8) TypeId() TypeId {
 	return TypeId_Uint8
 }
 
-// Indirect 原始值
+// Indirect 返回 uint8。
 func (v Uint8) Indirect() any {
 	return uint8(v)
 }

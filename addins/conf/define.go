@@ -22,5 +22,6 @@ package conf
 import "git.golaxy.org/core/define"
 
 var (
+	// AddIn 是 Viper 配置实现的服务级 add-in 安装入口。
 	AddIn = define.ServiceAddIn(newConfig)
 )

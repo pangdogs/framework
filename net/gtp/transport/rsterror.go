@@ -26,18 +26,18 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
-// RstError Rst错误提示
+// RstError 将 GTP 链路重置码和消息表示为 Go error。
 type RstError struct {
-	Code    gtp.Code // 错误码
-	Message string   // 错误信息
+	Code    gtp.Code // 链路重置原因码。
+	Message string   // 可读错误消息。
 }
 
-// Error 错误信息
+// Error 返回包含重置码和消息的文本。
 func (err RstError) Error() string {
 	return fmt.Sprintf("(%d) %s", err.Code, err.Message)
 }
 
-// ToEvent 转换为消息事件
+// ToEvent 将错误转换为链路重置事件。
 func (err RstError) ToEvent() Event[*gtp.MsgRst] {
 	return Event[*gtp.MsgRst]{
 		Msg: &gtp.MsgRst{
@@ -47,7 +47,7 @@ func (err RstError) ToEvent() Event[*gtp.MsgRst] {
 	}
 }
 
-// ToRstError Rst错误事件转换为错误提示
+// ToRstError 将链路重置事件转换为独立持有消息文本的错误。
 func ToRstError(e Event[*gtp.MsgRst]) *RstError {
 	return &RstError{
 		Code:    e.Msg.Code,

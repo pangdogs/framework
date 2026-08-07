@@ -53,7 +53,8 @@ const (
 	memEtcdClient        = "etcd-client"
 )
 
-// ServiceAssembler 服务装配器
+// ServiceAssembler 将 IService 实例接入应用配置、默认 add-in 及生命周期事件。
+// 自定义服务装配类型通常匿名嵌入它并实现所需的生命周期或安装钩子接口。
 type ServiceAssembler struct {
 	conf     *viper.Viper
 	cmd      *cobra.Command

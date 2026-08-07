@@ -29,20 +29,21 @@ import (
 )
 
 var (
-	ErrEncode = errors.New("gap-encode") // 编码错误
+	// ErrEncode 是 GAP 消息包编码错误的根错误。
+	ErrEncode = errors.New("gap-encode")
 )
 
 var encoder = &Encoder{}
 
-// NewEncoder 创建消息包编码器
+// NewEncoder 返回无状态的共享消息包编码器。
 func NewEncoder() *Encoder {
 	return encoder
 }
 
-// Encoder 消息包编码器
+// Encoder 将 GAP 消息和来源信息编码为完整消息包。
 type Encoder struct{}
 
-// Encode 编码消息包
+// Encode 编码消息包并返回池化字节缓冲区；调用方使用完后必须调用 Release。
 func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret binaryutil.Bytes, err error) {
 	if msg == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: %w: msg is nil", ErrEncode, core.ErrArgs)

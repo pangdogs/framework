@@ -29,8 +29,10 @@ import (
 )
 
 var (
+	// ErrMethodResultCountMismatch 表示 RPC 返回值数量少于调用方要求。
 	ErrMethodResultCountMismatch = errors.New("rpc: method result count mismatch")
-	ErrMethodResultTypeMismatch  = errors.New("rpc: method result type mismatch")
+	// ErrMethodResultTypeMismatch 表示 RPC 返回值无法转换为调用方指定的类型。
+	ErrMethodResultTypeMismatch = errors.New("rpc: method result type mismatch")
 )
 
 func parseResult[T any](retArr variant.Array, idx int) (T, error) {
@@ -56,6 +58,7 @@ func parseResult[T any](retArr variant.Array, idx int) (T, error) {
 	return retRV.Interface().(T), nil
 }
 
+// ParseResults 从异步结果中解析未指定类型的返回值列表。
 func ParseResults(ret async.Result) (rvs ResultValues) {
 	if !ret.OK() {
 		rvs.Error = ret.Error
@@ -81,6 +84,7 @@ func ParseResults(ret async.Result) (rvs ResultValues) {
 	return
 }
 
+// ParseVoid 将异步结果解析为无返回值结果。
 func ParseVoid(ret async.Result) (rtp ResultTupleVoid) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -89,6 +93,7 @@ func ParseVoid(ret async.Result) (rtp ResultTupleVoid) {
 	return
 }
 
+// Parse1 从异步结果中解析至少一个指定类型的返回值，多余项会被忽略。
 func Parse1[T1 any](ret async.Result) (rtp ResultTuple1[T1]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -116,6 +121,7 @@ func Parse1[T1 any](ret async.Result) (rtp ResultTuple1[T1]) {
 	return
 }
 
+// Parse2 从异步结果中解析至少两个指定类型的返回值，多余项会被忽略。
 func Parse2[T1 any, T2 any](ret async.Result) (rtp ResultTuple2[T1, T2]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -150,6 +156,7 @@ func Parse2[T1 any, T2 any](ret async.Result) (rtp ResultTuple2[T1, T2]) {
 	return
 }
 
+// Parse3 从异步结果中解析至少三个指定类型的返回值，多余项会被忽略。
 func Parse3[T1 any, T2 any, T3 any](ret async.Result) (rtp ResultTuple3[T1, T2, T3]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -191,6 +198,7 @@ func Parse3[T1 any, T2 any, T3 any](ret async.Result) (rtp ResultTuple3[T1, T2, 
 	return
 }
 
+// Parse4 从异步结果中解析至少四个指定类型的返回值，多余项会被忽略。
 func Parse4[T1 any, T2 any, T3 any, T4 any](ret async.Result) (rtp ResultTuple4[T1, T2, T3, T4]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -239,6 +247,7 @@ func Parse4[T1 any, T2 any, T3 any, T4 any](ret async.Result) (rtp ResultTuple4[
 	return
 }
 
+// Parse5 从异步结果中解析至少五个指定类型的返回值，多余项会被忽略。
 func Parse5[T1 any, T2 any, T3 any, T4 any, T5 any](ret async.Result) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -294,6 +303,7 @@ func Parse5[T1 any, T2 any, T3 any, T4 any, T5 any](ret async.Result) (rtp Resul
 	return
 }
 
+// Parse6 从异步结果中解析至少六个指定类型的返回值，多余项会被忽略。
 func Parse6[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any](ret async.Result) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -356,6 +366,7 @@ func Parse6[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any](ret async.Result) (r
 	return
 }
 
+// Parse7 从异步结果中解析至少七个指定类型的返回值，多余项会被忽略。
 func Parse7[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any](ret async.Result) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -425,6 +436,7 @@ func Parse7[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any](ret async.Re
 	return
 }
 
+// Parse8 从异步结果中解析至少八个指定类型的返回值，多余项会被忽略。
 func Parse8[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any](ret async.Result) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -501,6 +513,7 @@ func Parse8[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any](ret 
 	return
 }
 
+// Parse9 从异步结果中解析至少九个指定类型的返回值，多余项会被忽略。
 func Parse9[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any](ret async.Result) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -584,6 +597,7 @@ func Parse9[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 a
 	return
 }
 
+// Parse10 从异步结果中解析至少十个指定类型的返回值，多余项会被忽略。
 func Parse10[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any](ret async.Result) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -674,6 +688,7 @@ func Parse10[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse11 从异步结果中解析至少十一个指定类型的返回值，多余项会被忽略。
 func Parse11[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any](ret async.Result) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -771,6 +786,7 @@ func Parse11[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse12 从异步结果中解析至少十二个指定类型的返回值，多余项会被忽略。
 func Parse12[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any, T12 any](ret async.Result) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -875,6 +891,7 @@ func Parse12[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse13 从异步结果中解析至少十三个指定类型的返回值，多余项会被忽略。
 func Parse13[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any, T12 any, T13 any](ret async.Result) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -986,6 +1003,7 @@ func Parse13[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse14 从异步结果中解析至少十四个指定类型的返回值，多余项会被忽略。
 func Parse14[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any, T12 any, T13 any, T14 any](ret async.Result) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -1104,6 +1122,7 @@ func Parse14[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse15 从异步结果中解析至少十五个指定类型的返回值，多余项会被忽略。
 func Parse15[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any, T12 any, T13 any, T14 any, T15 any](ret async.Result) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error
@@ -1229,6 +1248,7 @@ func Parse15[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 
 	return
 }
 
+// Parse16 从异步结果中解析至少十六个指定类型的返回值，多余项会被忽略。
 func Parse16[T1 any, T2 any, T3 any, T4 any, T5 any, T6 any, T7 any, T8 any, T9 any, T10 any, T11 any, T12 any, T13 any, T14 any, T15 any, T16 any](ret async.Result) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
 	if !ret.OK() {
 		rtp.Error = ret.Error

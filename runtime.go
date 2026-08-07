@@ -32,29 +32,30 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetRuntime 获取运行时实例
+// GetRuntime 返回 provider 所属的 framework 运行时实例。
 func GetRuntime(provider runtime.CurrentContextProvider) IRuntime {
 	return reinterpret.Cast[IRuntime](runtime.Current(provider))
 }
 
-// IRuntime 运行时实例接口
+// IRuntime 扩展 core runtime.Context，并聚合 framework 的运行时级 add-in 与构建入口。
+// 除明确标注可并发的 API 外，应在所属运行时 goroutine 中访问运行时状态。
 type IRuntime interface {
 	runtime.Context
-	// DistEntityRegistry 获取分布式实体注册支持
+	// DistEntityRegistry 返回分布式实体注册 add-in；未安装时会 panic。
 	DistEntityRegistry() dent.IDistEntityRegistry
-	// RPCStack 获取RPC调用堆栈支持
+	// RPCStack 返回 RPC 调用栈 add-in；未安装时会 panic。
 	RPCStack() rpcstack.IRPCStack
-	// Service 获取服务实例
+	// Service 返回承载当前运行时的服务实例。
 	Service() IService
-	// MainEntity 获取主实体（主实体和运行时生命周期绑定，主实体销毁时，运行时将会停止运行）
+	// MainEntity 返回与运行时生命周期绑定的主实体；主实体停用后运行时会终止。
 	MainEntity() ec.Entity
-	// AutoInjection 获取是否自动注入组件
+	// AutoInjection 报告实体或组件激活时是否自动注入组件依赖。
 	AutoInjection() bool
-	// BuildEntity 创建实体
+	// BuildEntity 创建绑定当前运行时及 prototype 名称的 core 实体构建器。
 	BuildEntity(prototype string) *core.EntityCreator
-	// L 结构化日志
+	// L 返回当前运行时的结构化日志器。
 	L() *zap.Logger
-	// S 传统日志
+	// S 返回当前运行时的 SugaredLogger。
 	S() *zap.SugaredLogger
 }
 
@@ -63,49 +64,49 @@ type iRuntime interface {
 	setAutoInjection(b bool)
 }
 
-// RuntimeBehavior 运行时实例行为
+// RuntimeBehavior 提供 IRuntime 的默认实现，供自定义运行时匿名嵌入。
 type RuntimeBehavior struct {
 	runtime.ContextBehavior
 	mainEntity    ec.Entity
 	autoInjection bool
 }
 
-// DistEntityRegistry 获取分布式实体注册支持
+// DistEntityRegistry 返回分布式实体注册 add-in；未安装时会 panic。
 func (rt *RuntimeBehavior) DistEntityRegistry() dent.IDistEntityRegistry {
 	return addins.Dentr.Require(rt)
 }
 
-// RPCStack 获取RPC调用堆栈支持
+// RPCStack 返回 RPC 调用栈 add-in；未安装时会 panic。
 func (rt *RuntimeBehavior) RPCStack() rpcstack.IRPCStack {
 	return addins.RPCStack.Require(rt)
 }
 
-// Service 获取服务
+// Service 返回承载当前运行时的服务实例。
 func (rt *RuntimeBehavior) Service() IService {
 	return reinterpret.Cast[IService](service.Current(rt))
 }
 
-// MainEntity 获取主实体（主实体和运行时生命周期绑定，主实体销毁时，运行时将会停止运行）
+// MainEntity 返回与运行时生命周期绑定的主实体；主实体停用后运行时会终止。
 func (rt *RuntimeBehavior) MainEntity() ec.Entity {
 	return rt.mainEntity
 }
 
-// AutoInjection 获取是否自动注入组件
+// AutoInjection 报告实体或组件激活时是否自动注入组件依赖。
 func (rt *RuntimeBehavior) AutoInjection() bool {
 	return rt.autoInjection
 }
 
-// BuildEntity 创建实体
+// BuildEntity 创建绑定当前运行时及 prototype 名称的 core 实体构建器。
 func (rt *RuntimeBehavior) BuildEntity(prototype string) *core.EntityCreator {
 	return core.BuildEntity(runtime.Current(rt), prototype)
 }
 
-// L 结构化日志
+// L 返回当前运行时的结构化日志器。
 func (rt *RuntimeBehavior) L() *zap.Logger {
 	return log.L(rt)
 }
 
-// S 传统日志
+// S 返回当前运行时的 SugaredLogger。
 func (rt *RuntimeBehavior) S() *zap.SugaredLogger {
 	return log.S(rt)
 }

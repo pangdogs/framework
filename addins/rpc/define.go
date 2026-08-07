@@ -24,5 +24,6 @@ import (
 )
 
 var (
+	// AddIn 定义 RPC 服务插件。
 	AddIn = define.ServiceAddIn(newRPC)
 )

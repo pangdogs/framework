@@ -25,15 +25,15 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// Flags 所有标志位
+// Flags 是消息头中的标志位集合。
 type Flags uint8
 
-// Is 判断标志位
+// Is 报告指定标志位是否已设置。
 func (f Flags) Is(b Flag) bool {
 	return f&Flags(b) != 0
 }
 
-// Set 设置标志位
+// Set 原地设置或清除指定标志位，并返回接收者。
 func (f *Flags) Set(b Flag, v bool) *Flags {
 	if v {
 		*f |= Flags(b)
@@ -43,7 +43,7 @@ func (f *Flags) Set(b Flag, v bool) *Flags {
 	return f
 }
 
-// Setd 拷贝并设置标志位
+// Setd 在副本上设置或清除指定标志位并返回副本。
 func (f Flags) Setd(b Flag, v bool) Flags {
 	if v {
 		f |= Flags(b)
@@ -53,31 +53,35 @@ func (f Flags) Setd(b Flag, v bool) Flags {
 	return f
 }
 
+// Flags_None 返回不包含任何标志位的集合。
 func Flags_None() Flags {
 	return 0
 }
 
-// Flag 标志位
+// Flag 表示一个消息头标志位掩码。
 type Flag = uint8
 
-// 固定标志位
 const (
-	Flag_Encrypted  Flag   = 1 << iota // 已加密
-	Flag_Signed                        // 已签名
-	Flag_Compressed                    // 已压缩
-	Flag_Customize  = iota             // 自定义标志位起点
+	// Flag_Encrypted 表示消息体已加密。
+	Flag_Encrypted Flag = 1 << iota
+	// Flag_Signed 表示消息体附带认证码。
+	Flag_Signed
+	// Flag_Compressed 表示消息体已压缩。
+	Flag_Compressed
+	// Flag_Customize 是自定义标志位的起始位序号。
+	Flag_Customize = iota
 )
 
-// MsgHead 消息头
+// MsgHead 是每个 GTP 消息包的固定长度头部。
 type MsgHead struct {
-	Len   uint32 // 消息包长度
-	MsgId MsgId  // 消息Id
-	Flags Flags  // 标志位
-	Seq   uint32 // 消息序号
-	Ack   uint32 // 应答序号
+	Len   uint32 // 完整消息包的字节数。
+	MsgId MsgId  // 消息类型 ID。
+	Flags Flags  // 加密、认证和压缩标志。
+	Seq   uint32 // 当前消息序号。
+	Ack   uint32 // 已确认接收的消息序号。
 }
 
-// Read implements io.Reader
+// Read 将消息头编码到 p。
 func (m MsgHead) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(m.Len); err != nil {
@@ -98,7 +102,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码消息头。
 func (m *MsgHead) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -132,7 +136,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回消息头的固定编码字节数。
 func (MsgHead) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint8 + binaryutil.SizeofUint8 +
 		binaryutil.SizeofUint32 + binaryutil.SizeofUint32

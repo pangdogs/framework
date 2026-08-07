@@ -27,19 +27,20 @@ import (
 )
 
 type (
-	PayloadHandler = generic.DelegateVoid1[Event[*gtp.MsgPayload]] // Payload消息事件处理器
+	// PayloadHandler 处理业务负载事件。
+	PayloadHandler = generic.DelegateVoid1[Event[*gtp.MsgPayload]]
 )
 
-// TransProtocol 传输协议
+// TransProtocol 发送业务负载并将收到的负载事件交给处理器。
 type TransProtocol struct {
-	AutoRecover    bool           // panic时是否自动恢复
-	ReportError    chan error     // 在开启panic时自动恢复时，将会恢复并将错误写入此error channel
-	Transceiver    *Transceiver   // 消息事件收发器
-	RetryTimes     int            // 网络io超时时的重试次数
-	PayloadHandler PayloadHandler // Payload消息事件处理器
+	AutoRecover    bool           // 是否恢复负载处理器的 panic。
+	ReportError    chan error     // 恢复 panic 后接收错误；nil 时不报告。
+	Transceiver    *Transceiver   // 事件收发器。
+	RetryTimes     int            // 网络 I/O 超时后的重试次数。
+	PayloadHandler PayloadHandler // 业务负载处理器。
 }
 
-// SendData 发送数据
+// SendData 发送一个业务负载事件，并在网络 I/O 超时时重试。
 func (t *TransProtocol) SendData(data []byte) error {
 	if t.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
@@ -62,7 +63,7 @@ func (t *TransProtocol) retrySend(err error) error {
 	}.Send(err)
 }
 
-// HandleEvent 消息事件处理器
+// HandleEvent 将业务负载事件同步分发给 PayloadHandler，其他消息会被忽略。
 func (t *TransProtocol) HandleEvent(e IEvent) {
 	switch e.Msg.MsgId() {
 	case gtp.MsgId_Payload:

@@ -29,13 +29,14 @@ import (
 	"github.com/fufuok/bytespool"
 )
 
-// BytesPool 字节对象池，用于减少GC提高编解码性能
+// BytesPool 按容量复用字节切片，以降低协议编解码产生的 GC 压力。
 var BytesPool = bytespool.NewCapacityPools(32, math.MaxInt32)
 
-// EmptyBytes 空字节对象
+// EmptyBytes 是不可回收的空字节缓冲区。
 var EmptyBytes = NewBytes(false, 0)
 
-// NewBytes 创建字节对象
+// NewBytes 创建长度为 size 的零值字节缓冲区；负数 size 按零处理。
+// recyclable 为 true 时缓冲区取自 BytesPool，调用方使用完后必须调用 Release。
 func NewBytes(recyclable bool, size int) Bytes {
 	if size < 0 {
 		size = 0
@@ -53,7 +54,8 @@ func NewBytes(recyclable bool, size int) Bytes {
 	return bs
 }
 
-// CloneBytes 克隆并创建字节对象
+// CloneBytes 复制 buff 并创建独立缓冲区。
+// recyclable 为 true 时缓冲区取自 BytesPool，调用方使用完后必须调用 Release。
 func CloneBytes(recyclable bool, buff []byte) Bytes {
 	bs := Bytes{
 		low:        0,
@@ -68,7 +70,7 @@ func CloneBytes(recyclable bool, buff []byte) Bytes {
 	return bs
 }
 
-// RefBytes 引用并创建字节对象（不能回收）
+// RefBytes 创建直接引用 buff 的不可回收缓冲区，不复制数据。
 func RefBytes(buff []byte) Bytes {
 	return Bytes{
 		data:       buff,
@@ -78,26 +80,30 @@ func RefBytes(buff []byte) Bytes {
 	}
 }
 
-// Bytes 字节对象
+// Bytes 表示一个可切片、可选池化的字节缓冲区视图。
+//
+// Bytes 及其 Slice 结果可能共享底层存储。对于可回收缓冲区，所有共享视图只能由其所有者
+// 调用一次 Release；释放后所有视图及 Payload 返回的切片均不得再使用。
 type Bytes struct {
 	data       []byte
 	low, high  int
 	recyclable bool
 }
 
-// SameRef 是否引用相同数据
+// SameRef 报告两个缓冲区是否具有相同的底层切片起始地址。
 func (bs Bytes) SameRef(other Bytes) bool {
 	refA := (*reflect.SliceHeader)(unsafe.Pointer(&bs.data)).Data
 	refB := (*reflect.SliceHeader)(unsafe.Pointer(&other.data)).Data
 	return refA == refB
 }
 
-// Payload 载荷数据
+// Payload 返回当前视图的可修改切片；返回值与 Bytes 共享底层存储。
 func (bs Bytes) Payload() []byte {
 	return bs.data[bs.low:bs.high]
 }
 
-// Slice 切片
+// Slice 返回当前视图区间 [low, high) 的共享视图。
+// 索引越界或区间无效时 panic；返回值不会获得独立的 Release 责任。
 func (bs Bytes) Slice(low, high int) Bytes {
 	if low < 0 || high < 0 {
 		exception.Panic("negative index")
@@ -116,12 +122,13 @@ func (bs Bytes) Slice(low, high int) Bytes {
 	}
 }
 
-// Recyclable 可否回收
+// Recyclable 报告底层切片是否应归还 BytesPool。
 func (bs Bytes) Recyclable() bool {
 	return bs.recyclable
 }
 
-// Release 释放字节对象，释放后不可再使用，不能重复释放
+// Release 将可回收缓冲区归还 BytesPool；不可回收缓冲区调用此方法无效果。
+// 可回收缓冲区释放后及其所有共享视图均不得再使用，也不得重复释放。
 func (bs Bytes) Release() {
 	if bs.recyclable {
 		BytesPool.Put(bs.data)

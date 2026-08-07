@@ -31,22 +31,24 @@ import (
 )
 
 var (
-	ErrEncrypt = errors.New("gtp-encrypt") // 加密错误
+	// ErrEncrypt 是 GTP 消息加密和解密错误的根错误。
+	ErrEncrypt = errors.New("gtp-encrypt")
 )
 
-// IEncryption 加密模块接口
+// IEncryption 对 GTP 消息体执行加密或解密变换。
 type IEncryption interface {
-	// Transforming 变换数据
+	// Transforming 将 src 变换到 dst 或新池化缓冲区；结果由调用方释放。
 	Transforming(dst, src []byte) (transformedBuf binaryutil.Bytes, err error)
-	// SizeOfAddition 附加数据大小
+	// SizeOfAddition 返回变换结果相对输入可能增加的字节数。
 	SizeOfAddition(msgLen int) (size int, err error)
 }
 
 type (
-	FetchNonce = generic.FuncPair0[[]byte, error] // 获取nonce值
+	// FetchNonce 为每次加密或解密变换提供 nonce。
+	FetchNonce = generic.FuncPair0[[]byte, error]
 )
 
-// NewEncryption 创建加密模块
+// NewEncryption 创建加密或解密模块，并校验密码所需的填充器和 nonce 来源。
 func NewEncryption(cipher method.Cipher, padding method.Padding, fetchNonce FetchNonce) IEncryption {
 	if cipher == nil {
 		exception.Panicf("%w: %w: cipher is nil", ErrEncrypt, core.ErrArgs)
@@ -71,14 +73,14 @@ func NewEncryption(cipher method.Cipher, padding method.Padding, fetchNonce Fetc
 	}
 }
 
-// Encryption 加密模块
+// Encryption 组合对称密码、可选填充和 nonce 来源。
 type Encryption struct {
-	Cipher     method.Cipher  // 对称密码算法
-	Padding    method.Padding // 填充方案
-	FetchNonce FetchNonce     // 获取nonce值
+	Cipher     method.Cipher  // 加密或解密变换。
+	Padding    method.Padding // 密码要求时使用的填充方案。
+	FetchNonce FetchNonce     // 密码要求时为每次变换提供 nonce。
 }
 
-// Transforming 变换数据
+// Transforming 准备输入、获取 nonce、执行密码变换并按需填充或去除填充。
 func (e *Encryption) Transforming(dst, src []byte) (binaryutil.Bytes, error) {
 	if e.Cipher == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: Cipher is nil", ErrEncrypt)
@@ -160,7 +162,7 @@ func (e *Encryption) Transforming(dst, src []byte) (binaryutil.Bytes, error) {
 	return outBuf, nil
 }
 
-// SizeOfAddition 附加数据大小
+// SizeOfAddition 返回当前密码变换最多增加的字节数。
 func (e *Encryption) SizeOfAddition(msgLen int) (int, error) {
 	if e.Cipher == nil {
 		return 0, fmt.Errorf("%w: Cipher is nil", ErrEncrypt)

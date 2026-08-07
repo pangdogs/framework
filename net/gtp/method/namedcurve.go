@@ -25,7 +25,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
-// NewNamedCurve 创建曲线
+// NewNamedCurve 返回指定 ECDH 命名曲线；不支持的曲线返回 ErrInvalidMethod。
 func NewNamedCurve(nc gtp.NamedCurve) (ecdh.Curve, error) {
 	switch nc {
 	case gtp.NamedCurve_X25519:

@@ -19,5 +19,5 @@
 
 package gtp
 
-// MsgId 消息Id
+// MsgId 标识 GTP 消息类型。
 type MsgId = uint8

@@ -26,17 +26,18 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgChangeCipherSpec消息标志位
 const (
-	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize) // 交换秘钥后，在双方变更密码规范消息中携带，表示需要验证加密是否成功
+	// Flag_VerifyEncryption 表示密码规范切换消息携带用于验证加密结果的数据。
+	Flag_VerifyEncryption Flag = 1 << (iota + Flag_Customize)
 )
 
-// MsgChangeCipherSpec 变更密码规范（注意：为了提高解码性能，减少内存碎片，解码string与bytes字段时均使用引用类型，引用字节池中的bytes，GC时会被归还字节池，不要直接持有此类型字段）
+// MsgChangeCipherSpec 通知对端启用协商后的密码规范。直接通过 Write 或 Unmarshal 解码时，
+// EncryptedHello 会引用输入切片；输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgChangeCipherSpec struct {
-	EncryptedHello []byte // 加密Hello消息，用于双方验证加密是否成功
+	EncryptedHello []byte // 可选的加密 Hello，用于双方验证加密是否成功。
 }
 
-// Read implements io.Reader
+// Read 将密码规范切换消息编码到 p。
 func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.EncryptedHello); err != nil {
@@ -45,7 +46,7 @@ func (m MsgChangeCipherSpec) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码密码规范切换消息，字段会引用 p。
 func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -58,17 +59,17 @@ func (m *MsgChangeCipherSpec) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回密码规范切换消息编码后的字节数。
 func (m MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }
 
-// MsgId 消息Id
+// MsgId 返回密码规范切换消息的内置类型 ID。
 func (MsgChangeCipherSpec) MsgId() MsgId {
 	return MsgId_ChangeCipherSpec
 }
 
-// Clone 克隆消息对象
+// Clone 深复制加密 Hello 数据。
 func (m MsgChangeCipherSpec) Clone() Msg {
 	return &MsgChangeCipherSpec{
 		EncryptedHello: bytes.Clone(m.EncryptedHello),

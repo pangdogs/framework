@@ -36,7 +36,9 @@ import (
 	"git.golaxy.org/framework/net/gap/variant"
 )
 
+// ICallee 允许对象按名称动态提供可调用方法。
 type ICallee interface {
+	// Callee 返回指定名称的方法；无对应方法时返回无效 reflect.Value。
 	Callee(method string) reflect.Value
 }
 
@@ -44,6 +46,7 @@ var (
 	callChainRT = reflect.TypeFor[rpcstack.CallChain]()
 )
 
+// CallService 在当前服务或其运行中的插件上同步调用方法，并将 panic 转换为错误。
 func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method string, args variant.Array) (_ variant.Array, err error) {
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
@@ -89,6 +92,7 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 	return variant.NewArray(methodRV.Call(argsRV))
 }
 
+// CallRuntime 将方法调用调度到实体所在的运行时；addIn 为空时调用运行时本身。
 func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addIn, method string, args variant.Array) (_ async.Future, err error) {
 	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
@@ -146,6 +150,7 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 	}), nil
 }
 
+// CallEntity 将方法调用调度到实体；component 为空时调用实体本身。
 func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.Future, err error) {
 	return svcCtx.CallAsync(entityId, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
@@ -203,7 +208,7 @@ func parseArgs(methodRV reflect.Value, cc rpcstack.CallChain, args variant.Array
 	ccPos := -1
 
 	for i := range methodRT.NumIn() {
-		if !callChainRT.AssignableTo(methodRT.In(i)) {
+		if methodRT.In(i) != callChainRT {
 			continue
 		}
 		if ccPos >= 0 {

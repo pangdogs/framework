@@ -26,7 +26,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// SetScripts 设置脚本
+// SetScripts 批量更新脚本：非 nil 值注册或替换脚本，nil 值删除同名脚本。
 func (c *RPCli) SetScripts(scripts map[string]IScript) {
 	c.scriptsMu.Lock()
 	defer c.scriptsMu.Unlock()
@@ -57,7 +57,7 @@ func (c *RPCli) SetScripts(scripts map[string]IScript) {
 	}
 }
 
-// GetScript 查询脚本
+// GetScript 按注册名称查询脚本。
 func (c *RPCli) GetScript(name string) (IScript, bool) {
 	c.scriptsMu.RLock()
 	defer c.scriptsMu.RUnlock()

@@ -19,6 +19,7 @@
 
 package dent
 
+// With 按 Querier 和 Registry 分组提供分布式实体 add-in 的 Option 构造方法。
 var With _Option
 
 type _Option struct {

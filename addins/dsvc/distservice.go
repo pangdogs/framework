@@ -43,17 +43,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// IDistService 分布式服务支持
+// IDistService 提供服务节点发布、GAP 消息收发及请求 Future 管理。
 type IDistService interface {
-	// BringUp 服务上线
+	// BringUp 订阅节点地址并将当前节点注册到服务发现；重复调用不会重复上线。
 	BringUp()
-	// NodeDetails 获取节点地址信息
+	// NodeDetails 返回当前服务节点的地址信息；调用方不得修改。
 	NodeDetails() *NodeDetails
-	// FutureController 获取异步模型Future控制器
+	// FutureController 返回用于关联请求与响应的 Future 控制器。
 	FutureController() *concurrent.FutureController
-	// Send 发送消息
+	// Send 编码 msg 并发布到 dst。
 	Send(dst string, msg gap.Msg) error
-	// Listen 监听消息
+	// Listen 注册消息处理器，直到 ctx 取消或 add-in 停止。
+	// 返回的 Future 在监听器移除后完成。
 	Listen(ctx context.Context, handler MsgHandler) (async.Future, error)
 }
 
@@ -80,35 +81,35 @@ type _DistService struct {
 	listeners        concurrent.Listeners[MsgHandler, _BrokerMsg]
 }
 
-// Init 初始化插件
+// Init 获取服务发现、消息中间件和分布式同步依赖，并创建编解码器、Future 控制器及节点地址。
 func (d *_DistService) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	d.svcCtx = svcCtx
 	d.ctx, d.terminate = context.WithCancel(context.Background())
 
-	// 获取依赖的插件
+	// 获取上线及消息收发所需的 add-in。
 	d.registry = discovery.AddIn.Require(svcCtx)
 	d.broker = broker.AddIn.Require(svcCtx)
 	d.dsync = dsync.AddIn.Require(svcCtx)
 
-	// 检测broker的交付模式
+	// 当前分布式服务处理链仅支持至多一次交付。
 	if d.broker.DeliveryReliability() != broker.DeliveryReliability_AtMostOnce {
 		log.L(svcCtx).Panic("broker delivery reliability must be at most once")
 	}
 
-	// 初始化消息包编解码器
+	// 初始化 GAP 消息包编解码器。
 	d.decoder = codec.NewDecoder(d.options.MsgCreator)
 	d.encoder = codec.NewEncoder()
 
-	// 初始化异步模型Future控制器
+	// Future 控制器随 add-in 的内部上下文一起停止。
 	d.futureController = concurrent.NewFutureController(d.ctx, d.options.FutureTimeout)
 
-	// 初始化地址信息
+	// 根据 broker 分隔符和服务身份生成各级消息地址。
 	d.initNodeDetails()
 }
 
-// Shut 关闭插件
+// Shut 取消内部上下文，拒绝新任务，并等待节点注销、消息退订及监听器退出。
 func (d *_DistService) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -117,7 +118,8 @@ func (d *_DistService) Shut(svcCtx service.Context) {
 	d.barrier.Wait()
 }
 
-// BringUp 服务上线
+// BringUp 仅执行一次：先订阅节点地址，再通过分布式锁检查并注册当前服务节点。
+// add-in 停止时会注销节点、等待订阅退出并刷新 broker。
 func (d *_DistService) BringUp() {
 	d.bringUpOnce.Do(func() {
 		svcCtx := d.svcCtx
@@ -131,28 +133,28 @@ func (d *_DistService) BringUp() {
 			zap.String("node", svcCtx.Id().String()),
 			log.JSON("details", d.details))
 
-		// 订阅消息事件
+		// 在注册节点前订阅全部五类接收地址，避免上线后遗漏消息。
 		subs := []async.Future{
-			// 订阅全服消息事件
+			// 全局广播与全局负载均衡地址。
 			d.subscribe(d.details.GlobalBroadcastAddr, ""),
 			d.subscribe(d.details.GlobalBalanceAddr, "balance"),
 
-			// 订阅服务类型消息事件
+			// 当前服务类型的广播与负载均衡地址。
 			d.subscribe(d.details.BroadcastAddr, ""),
 			d.subscribe(d.details.BalanceAddr, "balance"),
 
-			// 订阅服务节点消息事件
+			// 当前节点的单播地址。
 			d.subscribe(d.details.LocalAddr, ""),
 		}
 
-		// 加分布式锁
+		// 串行化同名、同 ID 节点的查重与注册。
 		mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.Id().String()))
 		if err := mutex.Lock(svcCtx); err != nil {
 			log.L(svcCtx).Panic("lock dsync mutex failed", zap.String("name", mutex.Name()), zap.Error(err))
 		}
 		defer mutex.Unlock(context.Background())
 
-		// 检查服务节点是否已被注册
+		// 已存在的同名节点视为配置冲突，不接管其租约。
 		_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.Id())
 		if err == nil {
 			log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()))
@@ -161,7 +163,7 @@ func (d *_DistService) BringUp() {
 			log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()), zap.Error(err))
 		}
 
-		// 服务节点信息
+		// 发布节点单播地址及调用方配置的版本和元数据。
 		node := &discovery.Node{
 			Id:      svcCtx.Id(),
 			Address: d.details.LocalAddr,
@@ -169,7 +171,7 @@ func (d *_DistService) BringUp() {
 			Meta:    d.options.Meta,
 		}
 
-		// 注册服务节点
+		// 注册后持续续租，直到 add-in 的内部上下文取消。
 		reg, err := d.registry.RegisterNode(d.ctx, svcCtx.Name(), node, d.options.RegistrationTTL)
 		if err != nil {
 			log.L(svcCtx).Panic("register service node failed",
@@ -192,29 +194,28 @@ func (d *_DistService) BringUp() {
 		go func() {
 			defer d.barrier.Done()
 			<-d.ctx.Done()
-			// 取消注册服务节点
+			// 停止时先注销节点，使发现端不再把流量路由到本节点。
 			reg.Deregister(context.Background())
-			// 等待消息事件已取消订阅
+			// 各订阅随 d.ctx 取消；等待全部退订完成后再刷新 broker。
 			for _, sub := range subs {
 				<-sub.Done()
 			}
-			// 刷新消息中间件缓存
 			d.broker.Flush(context.Background())
 		}()
 	})
 }
 
-// NodeDetails 获取节点地址信息
+// NodeDetails 返回当前服务节点的地址信息；调用方不得修改。
 func (d *_DistService) NodeDetails() *NodeDetails {
 	return d.details
 }
 
-// FutureController 获取异步模型Future控制器
+// FutureController 返回用于关联请求与响应的 Future 控制器。
 func (d *_DistService) FutureController() *concurrent.FutureController {
 	return d.futureController
 }
 
-// Send 发送消息
+// Send 将 msg 编码为 GAP 消息包并发布到 dst。
 func (d *_DistService) Send(dst string, msg gap.Msg) error {
 	if msg == nil {
 		return fmt.Errorf("dsvc: %w: msg is nil", core.ErrArgs)
@@ -246,7 +247,7 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 	return nil
 }
 
-// Listen 监听消息
+// Listen 注册消息处理器，直到 ctx 取消或 add-in 停止；handler 为 nil 时返回错误。
 func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) (async.Future, error) {
 	if handler == nil {
 		return async.Future{}, errors.New("dsvc: handler is nil")

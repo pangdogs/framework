@@ -33,23 +33,25 @@ import (
 )
 
 type (
-	DataHandler  = generic.DelegateVoid1[[]byte]
+	// DataHandler 处理客户端收到的一段原始负载。
+	DataHandler = generic.DelegateVoid1[[]byte]
+	// EventHandler 处理客户端收到的一个 GTP 事件。
 	EventHandler = transport.EventHandler
 )
 
-// IDataIO 数据IO
+// IDataIO 提供客户端原始负载的异步发送与监听。
 type IDataIO interface {
-	// Send 发送数据
+	// Send 复制 data 并将其加入发送队列。
 	Send(data []byte) error
-	// Listen 监听数据
+	// Listen 注册监听器，直到 ctx 取消或客户端关闭。
 	Listen(ctx context.Context, handler DataHandler) error
 }
 
-// IEventIO 事件IO
+// IEventIO 提供客户端 GTP 事件的异步发送与监听。
 type IEventIO interface {
-	// Send 发送事件
+	// Send 将 event 加入发送队列；调用方须保证事件在处理完成前保持有效。
 	Send(event transport.IEvent) error
-	// Listen 监听事件
+	// Listen 注册监听器，直到 ctx 取消或客户端关闭。
 	Listen(ctx context.Context, handler EventHandler) error
 }
 

@@ -24,20 +24,21 @@ import (
 	"time"
 )
 
-// IDistMutex 分布式锁接口
+// IDistMutex 表示一个具有实现特定租约语义的分布式互斥锁。
+// 同一个句柄不能并发执行加锁、解锁或续期操作。
 type IDistMutex interface {
-	// Name 名称
+	// Name 返回不含后端键前缀的锁名称。
 	Name() string
-	// UID 唯一ID
+	// UID 返回当前锁所有权标识；后端不支持或尚未加锁时可能为空。
 	UID() string
-	// Until 返回锁的有效期结束时间
+	// Until 返回当前租约的预计失效时间；后端不支持时返回零值。
 	Until() time.Time
-	// TryLock 尝试加锁，支持错误重试
+	// TryLock 尝试获取锁；重试策略由具体后端和 Option 决定。
 	TryLock(ctx context.Context) error
-	// Lock 加锁，支持错误重试
+	// Lock 等待并获取锁；等待受 ctx 及具体后端超时策略约束。
 	Lock(ctx context.Context) error
-	// Unlock 解锁
+	// Unlock 释放当前持有的锁。
 	Unlock(ctx context.Context) error
-	// Extend 延长锁的过期时间
+	// Extend 延长当前锁租约；不支持续期的后端会返回错误。
 	Extend(ctx context.Context) error
 }

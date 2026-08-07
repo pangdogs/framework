@@ -30,17 +30,17 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 )
 
-// Signer 签名器
+// Signer 生成密钥并对握手数据进行非对称签名和验证。
 type Signer interface {
-	// GenerateKey 生成私钥
+	// GenerateKey 生成与签名配置匹配的私钥。
 	GenerateKey() (crypto.PrivateKey, error)
-	// Sign 签名
+	// Sign 使用私钥签名 data。
 	Sign(priv crypto.PrivateKey, data []byte) ([]byte, error)
-	// Verify 验证签名
+	// Verify 使用公钥验证 data 和 sig。
 	Verify(pub crypto.PublicKey, data, sig []byte) error
 }
 
-// NewSigner 创建签名器
+// NewSigner 创建 RSA 或 ECDSA 签名器，并校验填充与摘要组合。
 func NewSigner(ae gtp.AsymmetricEncryption, padding gtp.PaddingMode, hash gtp.Hash) (Signer, error) {
 	switch ae {
 	case gtp.AsymmetricEncryption_RSA:

@@ -21,7 +21,8 @@ package gate
 
 import "git.golaxy.org/framework/net/netpath"
 
-// ClientDetails 客户端地址信息
+// ClientDetails 定义客户端广播、组播及单播地址的公共命名空间。
+// 该值由所有 gate/router 实例共享，调用方应将其视为只读。
 var ClientDetails = &netpath.NodeDetails{
 	DomainRoot:      netpath.Domain{Path: "cli", Sep: "."},
 	DomainBroadcast: netpath.Domain{Path: "cli.bc", Sep: "."},

@@ -33,15 +33,20 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// ILogger 提供结构化及糖化的 Zap 日志器。
 type ILogger interface {
+	// Logger 返回带当前 service 或 runtime 字段的结构化日志器。
 	Logger() *zap.Logger
+	// SugaredLogger 返回与 Logger 共享底层 Core 的 SugaredLogger。
 	SugaredLogger() *zap.SugaredLogger
 }
 
+// L 返回 provider 上安装的结构化日志器；日志 add-in 未安装时会 panic。
 func L(provider extension.AddInProvider) *zap.Logger {
 	return AddIn.Require(provider).Logger()
 }
 
+// S 返回 provider 上安装的 SugaredLogger；日志 add-in 未安装时会 panic。
 func S(provider extension.AddInProvider) *zap.SugaredLogger {
 	return AddIn.Require(provider).SugaredLogger()
 }
@@ -58,6 +63,8 @@ func (l lazyJSON) MarshalJSON() ([]byte, error) {
 	return data, nil
 }
 
+// JSON 创建一个在日志编码时才执行 json.Marshal 的字段。
+// 编码失败时字段值会替换为描述错误的 JSON 字符串。
 func JSON(key string, v any) zap.Field {
 	return zap.Reflect(key, lazyJSON{v: v})
 }
@@ -73,14 +80,18 @@ func (l lazyJSONRawStringer) MarshalJSON() ([]byte, error) {
 	return types.String2Bytes(l.v.String()), nil
 }
 
+// JSONRawStringer 创建一个延迟调用 String 的原始 JSON 字段。
+// String 的返回值必须是有效 JSON。
 func JSONRawStringer(key string, v fmt.Stringer) zap.Field {
 	return zap.Reflect(key, lazyJSONRawStringer{v: v})
 }
 
+// JSONRawString 将 v 作为未经校验的原始 JSON 写入字段。
 func JSONRawString(key string, v string) zap.Field {
 	return zap.Any(key, json.RawMessage(types.String2Bytes(v)))
 }
 
+// JSONRawByteString 将 v 作为未经校验的原始 JSON 写入字段。
 func JSONRawByteString(key string, v []byte) zap.Field {
 	return zap.Any(key, json.RawMessage(v))
 }
@@ -97,7 +108,7 @@ type _Logger struct {
 	sugaredLogger *zap.SugaredLogger
 }
 
-// Init 初始化插件
+// Init 采用配置的 Zap 日志器（未提供时创建开发日志器），并附加当前 service 或 runtime 字段。
 func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 	logger := l.options.Logger
 	if logger == nil {
@@ -126,17 +137,19 @@ func (l *_Logger) Init(svcCtx service.Context, rtCtx runtime.Context) {
 	l.logger.Info("initializing add-in", zap.String("name", AddIn.Name))
 }
 
-// Shut 关闭插件
+// Shut 记录 add-in 停止并调用 Sync 刷新日志器；同步错误会被忽略。
 func (l *_Logger) Shut(svcCtx service.Context, rtCtx runtime.Context) {
 	l.logger.Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	l.logger.Sync()
 }
 
+// Logger 返回附加了当前 service 或 runtime 字段的结构化日志器。
 func (l *_Logger) Logger() *zap.Logger {
 	return l.logger
 }
 
+// SugaredLogger 返回与 Logger 共享底层 Core 的 SugaredLogger。
 func (l *_Logger) SugaredLogger() *zap.SugaredLogger {
 	return l.sugaredLogger
 }

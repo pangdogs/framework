@@ -32,6 +32,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// handleSessionEstablished 为新会话注册原始数据监听器。
 func (p *_GateProcessor) handleSessionEstablished(session gate.ISession) {
 	err := session.DataIO().Listen(p.stoppingCtx, generic.CastDelegateVoid2(p.handleSessionData))
 	if err != nil {
@@ -43,6 +44,7 @@ func (p *_GateProcessor) handleSessionEstablished(session gate.ISession) {
 	log.L(p.svcCtx).Debug("listen session data started", zap.String("session_id", session.Id().String()))
 }
 
+// handleSessionData 解码客户端 GAP 数据并接收入站转发消息。
 func (p *_GateProcessor) handleSessionData(session gate.ISession, data []byte) {
 	mp, err := p.decoder.Decode(data)
 	if err != nil {
@@ -58,6 +60,7 @@ func (p *_GateProcessor) handleSessionData(session gate.ISession, data []byte) {
 	}
 }
 
+// acceptInbound 根据会话映射和分布式实体位置，将客户端 RPC 转发到目标服务节点。
 func (p *_GateProcessor) acceptInbound(session gate.ISession, timestamp int64, req *gap.MsgForward) {
 	switch req.TransId {
 	case gap.MsgId_RPC_Request, gap.MsgId_OnewayRPC, gap.MsgId_RPC_Reply:
@@ -107,6 +110,7 @@ func (p *_GateProcessor) acceptInbound(session gate.ISession, timestamp int64, r
 	p.finishInbound(session, mapping.ClientAddr(), req.Dst, req.CorrId, nil, req.TransId == gap.MsgId_RPC_Request)
 }
 
+// finishInbound 记录转发结果，并在请求转发失败时向客户端回复拒绝错误。
 func (p *_GateProcessor) finishInbound(session gate.ISession, src, dst string, corrId int64, err error, replyReject bool) {
 	if err == nil {
 		log.L(p.svcCtx).Debug("inbound rpc request/notify/reply forwarded",
@@ -131,6 +135,7 @@ func (p *_GateProcessor) finishInbound(session gate.ISession, src, dst string, c
 	}
 }
 
+// rejectInbound 将入站请求失败转换为 RPC 响应并直接发送给客户端。
 func (p *_GateProcessor) rejectInbound(session gate.ISession, corrId int64, rejectedErr error) {
 	if corrId == 0 || rejectedErr == nil {
 		return

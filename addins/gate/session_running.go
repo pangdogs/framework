@@ -32,7 +32,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// mainLoop 会话主线程
+// mainLoop 运行会话的接收、心跳、迁移和关闭主循环。
 func (s *_Session) mainLoop() {
 	defer s.gate.barrier.Done()
 
@@ -44,7 +44,7 @@ func (s *_Session) mainLoop() {
 	pinged := false
 	var timeout time.Time
 
-	// 启动i/o发送线程
+	// 启动 I/O 发送循环
 	go s.io.sendLoop()
 
 	handleMigration := func() {
@@ -63,7 +63,7 @@ func (s *_Session) mainLoop() {
 			zap.Int64("migrations", migrations),
 			zap.NamedError("resend_error", err))
 
-		// 调整会话状态为活跃，并重置ping状态
+		// 调整会话状态为活跃，并重置 Ping 状态
 		s.setState(SessionState_Active)
 		pinged = false
 	}
@@ -117,17 +117,17 @@ loop:
 		if err := s.eventDispatcher.Dispatch(s); err != nil {
 			// 网络传输错误
 			if errors.Is(err, transport.ErrTrans) {
-				// 网络io错误
+				// 网络 I/O 错误
 				if errors.Is(err, transport.ErrNetIO) {
-					// 网络io超时，触发心跳检测，向对方发送ping
+					// 网络 I/O 超时，触发心跳检测并向对端发送 Ping
 					if errors.Is(err, transport.ErrDeadlineExceeded) {
 						if !pinged {
-							// 尝试ping对端
+							// 尝试 Ping 对端
 							log.L(s.gate.svcCtx).Debug("session send ping", zap.String("session_id", s.Id().String()))
 							s.ctrl.SendPing()
 							pinged = true
 						} else {
-							// 未收到对方回复pong或其他消息事件，再次网络io超时，调整会话状态不活跃
+							// 未收到 Pong 或其他事件且再次 I/O 超时，将会话标记为不活跃
 							log.L(s.gate.svcCtx).Debug("session no pong received", zap.String("session_id", s.Id().String()))
 							s.setState(SessionState_Inactive)
 							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
@@ -135,7 +135,7 @@ loop:
 						continue
 					}
 
-					// 其他网络io类错误，调整会话状态不活跃，并重试
+					// 其他网络 I/O 错误将会话标记为不活跃，等待连接迁移
 					log.L(s.gate.svcCtx).Error("session dispatching event failed, retry it",
 						zap.String("session_id", s.Id().String()),
 						zap.Error(err))
@@ -161,27 +161,24 @@ loop:
 				zap.Error(err))
 		}
 
-		// 没有错误，或非网络传输错误，调整会话状态为活跃，并重置ping状态
+		// 没有错误或只有非传输错误时，将会话标记为活跃并重置 Ping 状态
 		s.setState(SessionState_Active)
 		pinged = false
 	}
 
-	// 关闭会话
+	// 主循环退出后取消会话，并等待异步发送队列排空。
 	s.close(nil)
-	// 等待i/o线程结束
 	<-s.io.terminated
-	// 调整会话状态为已过期
 	s.setState(SessionState_Death)
-	// 发送关闭原因
+
+	// 尽力向对端发送关闭原因，再撤销注册并释放连接资源。
 	s.ctrl.SendRst(context.Cause(s))
-	// 删除会话
 	s.gate.deleteSession(s.Id())
-	// 关闭连接和释放资源
 	if s.transceiver.Conn != nil {
 		s.transceiver.Conn.Close()
 	}
 	s.transceiver.Dispose()
-	// 返回关闭结果
+	// 资源清理完成后兑现 Closed Future。
 	async.ReturnVoid(s.closed)
 
 	log.L(s.gate.svcCtx).Debug("session closed", zap.String("session_id", s.Id().String()))

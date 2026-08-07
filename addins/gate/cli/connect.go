@@ -27,7 +27,9 @@ import (
 	"git.golaxy.org/core/utils/option"
 )
 
-// Connect 连接服务端
+// Connect 使用 settings 连接 endpoint，完成 GTP 握手后启动客户端循环。
+// TCP 模式下 endpoint 为 host:port；WebSocket 模式下为 ws/wss URL。
+// ctx 为 nil 时使用 context.Background，取消 ctx 会关闭返回的客户端。
 func Connect(ctx context.Context, endpoint string, settings ...option.Setting[ClientOptions]) (*Client, error) {
 	connector := _Connector{
 		options: option.New(With.Default(), settings...),
@@ -35,7 +37,7 @@ func Connect(ctx context.Context, endpoint string, settings ...option.Setting[Cl
 	return connector.connect(ctx, endpoint)
 }
 
-// Reconnect 重连服务端
+// Reconnect 为尚未关闭的 client 建立新连接并迁移现有 GTP 会话。
 func Reconnect(client *Client) error {
 	if client == nil {
 		return fmt.Errorf("cli: %w: client is nil", core.ErrArgs)

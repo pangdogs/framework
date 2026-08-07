@@ -17,8 +17,7 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-// Package framework provides the application bootstrap and assembly layer for
-// Golaxy distributed services.
+// Package framework 提供 Golaxy 分布式服务的应用启动、装配与业务开发入口。
 //
 // 它在 git.golaxy.org/core 之上补齐了服务端开发常用的组合能力，包括：
 //   - App 启动入口，以及基于 Cobra/Viper 的统一配置装载

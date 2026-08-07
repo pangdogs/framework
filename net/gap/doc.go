@@ -17,12 +17,12 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-// Package gap defines the Golaxy Application Protocol.
+// Package gap 定义 Golaxy 应用层协议（Golaxy Application Protocol）。
 //
 // GAP 运行在 GTP 或消息队列之上，负责承载应用层消息，适合服务到服务、
 // 服务到客户端、以及路由转发等通信场景。当前包提供：
 //   - 统一的消息接口、消息头和消息创建器
-//   - Forward、RPC request/reply、oneway RPC 等基础消息模型
+//   - Forward、RPC 请求/响应、单向 RPC 等基础消息模型
 //   - 序列化与反序列化入口
 //   - 配套的 codec 与 variant 子包，用于编解码和动态类型参数传输
 //

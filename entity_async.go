@@ -31,7 +31,8 @@ import (
 	"git.golaxy.org/core/utils/reinterpret"
 )
 
-// CallAsync 异步执行代码，有返回值
+// CallAsync 将 fun 提交到实体所属运行时执行，并返回承载调用结果的 Future。
+// 执行时实体若已失活，Future 返回 ErrAsyncCallerNotAlive。
 func (e *EntityBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
 	return core.CallAsync(e, func(ctx runtime.Context, args ...any) async.Result {
 		if !e.isAlive() {
@@ -41,7 +42,8 @@ func (e *EntityBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Res
 	}, args...)
 }
 
-// CallVoidAsync 异步执行代码，无返回值
+// CallVoidAsync 将无返回值的 fun 提交到实体所属运行时执行，并返回完成信号。
+// 执行时实体若已失活，Future 返回 ErrAsyncCallerNotAlive。
 func (e *EntityBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
 	return core.CallAsync(e, func(ctx runtime.Context, args ...any) async.Result {
 		if !e.isAlive() {
@@ -52,41 +54,43 @@ func (e *EntityBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], ar
 	}, args...)
 }
 
-// GoAsync 使用新线程执行代码，有返回值（注意线程安全）
+// GoAsync 在新的 goroutine 中执行 fun，并返回承载调用结果的 Future。
+// 传入的上下文跟随实体生命周期；fun 不得直接并发访问运行时状态。
 func (e *EntityBehavior) GoAsync(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
 	return core.GoAsync(e, func(ctx context.Context, args ...any) async.Result {
 		return fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// GoVoidAsync 使用新线程执行代码，无返回值（注意线程安全）
+// GoVoidAsync 在新的 goroutine 中执行无返回值的 fun，并返回完成信号。
+// 传入的上下文跟随实体生命周期；fun 不得直接并发访问运行时状态。
 func (e *EntityBehavior) GoVoidAsync(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
 	return core.GoVoidAsync(e, func(ctx context.Context, args ...any) {
 		fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// TimeAfterAsync 定时器，指定时长
+// TimeAfterAsync 在 dur 后产出一次当前时间；实体失活时直接结束。
 func (e *EntityBehavior) TimeAfterAsync(dur time.Duration) async.Future {
 	return core.TimeAfterAsync(e, dur)
 }
 
-// TimeAtAsync 定时器，指定时间点
+// TimeAtAsync 在 at 到达时产出一次当前时间；实体失活时直接结束。
 func (e *EntityBehavior) TimeAtAsync(at time.Time) async.Future {
 	return core.TimeAtAsync(e, at)
 }
 
-// TimeTickAsync 心跳器
+// TimeTickAsync 按 dur 周期持续产出当前时间，直到实体失活。
 func (e *EntityBehavior) TimeTickAsync(dur time.Duration) async.Future {
 	return core.TimeTickAsync(e, dur)
 }
 
-// ReadChanAsync 读取channel
+// ReadChanAsync 将 ch 中的值转换为连续产出，直到通道关闭或实体失活。
 func (e *EntityBehavior) ReadChanAsync(ch <-chan any) async.Future {
 	return core.ReadChanAsync(e, ch)
 }
 
-// Await 异步等待结果返回
+// Await 创建与实体关联的等待分发器；nil Future 会被忽略。
 func (e *EntityBehavior) Await(futures ...async.Future) AwaitDirector {
 	return AwaitDirector{
 		caller:   e,

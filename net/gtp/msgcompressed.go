@@ -25,13 +25,13 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// MsgCompressed 压缩消息
+// MsgCompressed 包装压缩后的消息体和原始字节数。
 type MsgCompressed struct {
-	Data         []byte
-	OriginalSize int64
+	Data         []byte // 压缩数据；解码时引用输入缓冲区。
+	OriginalSize int64  // 解压后的预期字节数。
 }
 
-// Read implements io.Reader
+// Read 将压缩消息编码到 p。
 func (m MsgCompressed) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteBytes(m.Data); err != nil {
@@ -43,7 +43,7 @@ func (m MsgCompressed) Read(p []byte) (int, error) {
 	return bs.BytesWritten(), io.EOF
 }
 
-// Write implements io.Writer
+// Write 从 p 解码压缩消息。
 func (m *MsgCompressed) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
@@ -61,7 +61,7 @@ func (m *MsgCompressed) Write(p []byte) (int, error) {
 	return bs.BytesRead(), nil
 }
 
-// Size 大小
+// Size 返回压缩消息编码后的字节数。
 func (m MsgCompressed) Size() int {
 	return binaryutil.SizeofBytes(m.Data) + binaryutil.SizeofVarint(m.OriginalSize)
 }

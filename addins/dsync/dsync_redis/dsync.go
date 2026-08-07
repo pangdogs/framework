@@ -43,7 +43,7 @@ type _RedisSync struct {
 	redSync *redsync.Redsync
 }
 
-// Init 初始化插件
+// Init 建立或复用 Redis 客户端，验证连接后创建 Redsync 实例。
 func (s *_RedisSync) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -63,7 +63,7 @@ func (s *_RedisSync) Init(svcCtx service.Context) {
 	s.redSync = redsync.New(goredis.NewPool(s.client))
 }
 
-// Shut 关闭插件
+// Shut 仅关闭由本 add-in 创建的 Redis 客户端。
 func (s *_RedisSync) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
@@ -74,12 +74,12 @@ func (s *_RedisSync) Shut(svcCtx service.Context) {
 	}
 }
 
-// NewMutex 创建分布式锁
+// NewMutex 创建带配置键前缀和重试策略的 Redis 锁句柄；创建本身不会获取锁。
 func (s *_RedisSync) NewMutex(name string, settings ...option.Setting[dsync.DistMutexOptions]) dsync.IDistMutex {
 	return s.newMutex(name, option.New(dsync.With.Default(), settings...))
 }
 
-// Separator 获取分隔符
+// Separator 返回 Redis 锁名称使用的冒号分隔符。
 func (s *_RedisSync) Separator() string {
 	return ":"
 }
