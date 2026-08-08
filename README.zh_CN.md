@@ -59,15 +59,35 @@ flowchart TB
         Runtime -.-> RuntimeAddins[运行时级 add-ins]
     end
 
-    subgraph Communication[通信模型]
-        Client[Client] <-->|TCP / WebSocket| GTP[GTP 传输层]
-        GTP <--> Gate[Gate / Router]
-        Gate <--> GAP[GAP 应用层]
-        GAP <--> RPC[RPC]
-        RPC <-->|Broker / NATS| Peer[其他服务节点]
-        ServiceAddins <-->|注册、查询、租约与锁| ETCD[ETCD]
+    subgraph ClientPath[客户端长连接 RPC 链路]
+        direction LR
+        ClientRPC[Client / RPCli] <-->|RPC / Oneway RPC| ClientGAP[GAP<br/>Forward 封装 RPC]
+        ClientGAP <-->|作为 GTP Payload| GTPLink[GTP<br/>TCP / WebSocket]
+        GTPLink <--> GateNode[Gate<br/>会话、鉴权、重连]
+        GateNode <-->|Payload| GateProcessor[Gate RPC Processor<br/>GAP 编解码与路由]
     end
+
+    subgraph InternalPath[服务间 RPC 链路]
+        direction LR
+        ServiceCaller[Service / Runtime / Entity] <--> ServiceProcessor[Service RPC Processor]
+    end
+
+    GateProcessor <-->|GAP Forward| NatsBus[NATS Broker<br/>仅承载 GAP 消息]
+    ServiceProcessor <-->|GAP RPC Request / Reply / Oneway| NatsBus
+    NatsBus <-->|GAP| TargetProcessor[Service / Forward RPC Processor]
+    TargetProcessor -.->|分发到 Service / Runtime / Entity| Service
+    ServiceAddins <-->|注册、查询、租约与锁| ETCD[ETCD]
 ```
+
+### RPC 通信链路
+
+| 链路 | 实际协议路径 | 说明 |
+| --- | --- | --- |
+| Client → Service | RPC → GAP `MsgForward` → GTP Payload → Gate → GAP `MsgForward` → NATS → `ForwardProcessor` | 客户端通过长连接发起的同样是 RPC。Gate 负责解码 GAP、根据 Session/Entity 映射定位服务节点并转发。 |
+| Service → Service | RPC → GAP `MsgRPCRequest` / `MsgOnewayRPC` → NATS → `ServiceProcessor` | 内部服务通信直接使用 GAP over NATS，不经过 GTP。RPC Reply 沿相同链路反向返回。 |
+| Service → Client | RPC → GAP `MsgForward` → NATS → Gate → GAP → GTP Payload → Client | Gate 根据客户端单播地址或逻辑分组找到 Session，再通过 GTP 长连接下发；客户端 `RPCli` 解码 GAP 并调用本地脚本。 |
+
+客户端调用时，`RPCli` 会把 `MsgRPCRequest`、`MsgOnewayRPC` 或 `MsgRPCReply` 序列化到 `MsgForward.TransData` 中；外层 `MsgForward` 经 GAP 编码后作为 GTP Payload 发送。Gate 的 RPC Processor 从 GTP 会话取得 Payload、解码 GAP 并重新构造转发来源和目标，然后交给 `dsvc` 通过 NATS 发布。由此，GTP 的职责止于客户端长连接传输，进入服务消息总线后的协议统一为 GAP。
 
 ### 核心对象
 
@@ -110,15 +130,15 @@ Golaxy 将两个相互正交的模型组合在一起：Actor 负责**状态由�
 sequenceDiagram
     participant Source as 外部 goroutine / RPC / 定时器
     participant Queue as Runtime 任务队列
-    participant Actor as Runtime goroutine
+    participant RuntimeLoop as Runtime goroutine
     participant EC as Entity / Components
     Source->>Queue: CallAsync / RPC 投递
-    Queue->>Actor: 依次取出任务
-    Actor->>EC: 执行业务并修改状态
-    EC-->>Actor: async.Result
-    Actor-->>Source: 完成 Future
+    Queue->>RuntimeLoop: 依次取出任务
+    RuntimeLoop->>EC: 执行业务并修改状态
+    EC-->>RuntimeLoop: async.Result
+    RuntimeLoop-->>Source: 完成 Future
     Source->>Queue: Await 回调重新入队
-    Note over Queue,Actor: Update 与 LateUpdate 也在同一边界内串行执行
+    Note over Queue,RuntimeLoop: Update 与 LateUpdate 也在同一边界内串行执行
 ```
 
 - Runtime 内的普通任务、实体生命周期和帧回调不会彼此并行执行，因此同一 Runtime 内通常不需要为业务状态加锁。
@@ -630,6 +650,8 @@ RPC 在此寻址模型上提供：
 | GAP Variant | 在协议中表达 Null、整数、浮点数、布尔、字节串、字符串、Array、Map、Error、CallChain 及自定义值。 |
 | GTP（Golaxy Transfer Protocol） | 面向 TCP/WebSocket 长连接，处理握手、鉴权、消息时序、心跳、时钟同步、断线重连、压缩和可选加密。 |
 | GTP Codec / Transport | 分别负责线格式编解码，以及连接收发、重试、事件分发和协议状态机。 |
+
+> **协议边界：** GTP 只用于 Client 与 Gate 之间的 TCP/WebSocket 长连接。客户端 RPC 是由 GTP Payload 承载的 GAP 消息；Gate 进入服务域后以及所有服务间 RPC 都只通过 NATS 传输 GAP，不会在 NATS 上继续封装 GTP。
 
 > **安全说明：** GTP 支持 ECDHE、签名和验证，但自身不提供证书校验。高安全要求场景应在 TCP/WebSocket 下层启用 TLS，并考虑关闭 GTP 自带的数据加密，避免把协议签名误当作完整的 PKI 信任链。pprof 也不应直接暴露到不可信网络。
 

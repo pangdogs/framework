@@ -59,15 +59,35 @@ flowchart TB
         Runtime -.-> RuntimeAddins[runtime add-ins]
     end
 
-    subgraph Communication[Communication model]
-        Client[Client] <-->|TCP / WebSocket| GTP[GTP transport]
-        GTP <--> Gate[Gate / Router]
-        Gate <--> GAP[GAP application layer]
-        GAP <--> RPC[RPC]
-        RPC <-->|Broker / NATS| Peer[peer service nodes]
-        ServiceAddins <-->|registration, lookup, leases, locks| ETCD[ETCD]
+    subgraph ClientPath[Client long-connection RPC path]
+        direction LR
+        ClientRPC[Client / RPCli] <-->|RPC / Oneway RPC| ClientGAP[GAP<br/>Forward wrapping RPC]
+        ClientGAP <-->|as GTP Payload| GTPLink[GTP<br/>TCP / WebSocket]
+        GTPLink <--> GateNode[Gate<br/>session, authentication, reconnect]
+        GateNode <-->|Payload| GateProcessor[Gate RPC Processor<br/>GAP codec and routing]
     end
+
+    subgraph InternalPath[Service-to-service RPC path]
+        direction LR
+        ServiceCaller[Service / Runtime / Entity] <--> ServiceProcessor[Service RPC Processor]
+    end
+
+    GateProcessor <-->|GAP Forward| NatsBus[NATS Broker<br/>GAP messages only]
+    ServiceProcessor <-->|GAP RPC Request / Reply / Oneway| NatsBus
+    NatsBus <-->|GAP| TargetProcessor[Service / Forward RPC Processor]
+    TargetProcessor -.->|dispatch to Service / Runtime / Entity| Service
+    ServiceAddins <-->|registration, lookup, leases, locks| ETCD[ETCD]
 ```
+
+### RPC transport paths
+
+| Path | Actual protocol path | Description |
+| --- | --- | --- |
+| Client → Service | RPC → GAP `MsgForward` → GTP Payload → Gate → GAP `MsgForward` → NATS → `ForwardProcessor` | A client sends RPC as well. Gate decodes GAP, resolves the service node from the Session/Entity mapping, and forwards the call. |
+| Service → Service | RPC → GAP `MsgRPCRequest` / `MsgOnewayRPC` → NATS → `ServiceProcessor` | Internal service communication uses GAP over NATS directly and never enters GTP. RPC Reply returns over the same path. |
+| Service → Client | RPC → GAP `MsgForward` → NATS → Gate → GAP → GTP Payload → Client | Gate resolves a Session from a client unicast address or logical group and sends it over the GTP connection. Client `RPCli` decodes GAP and invokes a local script. |
+
+For a client call, `RPCli` serializes `MsgRPCRequest`, `MsgOnewayRPC`, or `MsgRPCReply` into `MsgForward.TransData`. The outer `MsgForward` is GAP-encoded and sent as a GTP Payload. The Gate RPC Processor receives that Payload from the GTP session, decodes GAP, rebuilds the forwarding origin and destination, and passes it to `dsvc` for publication through NATS. Consequently, GTP ends at the client connection boundary; the service message bus uniformly carries GAP.
 
 ### Core objects
 
@@ -110,15 +130,15 @@ Every Runtime owns a task queue, entity manager, entity tree, and optional frame
 sequenceDiagram
     participant Source as External goroutine / RPC / timer
     participant Queue as Runtime task queue
-    participant Actor as Runtime goroutine
+    participant RuntimeLoop as Runtime goroutine
     participant EC as Entity / Components
     Source->>Queue: CallAsync / RPC dispatch
-    Queue->>Actor: Dequeue in order
-    Actor->>EC: Execute logic and mutate state
-    EC-->>Actor: async.Result
-    Actor-->>Source: Complete Future
+    Queue->>RuntimeLoop: Dequeue in order
+    RuntimeLoop->>EC: Execute logic and mutate state
+    EC-->>RuntimeLoop: async.Result
+    RuntimeLoop-->>Source: Complete Future
     Source->>Queue: Re-enqueue Await continuation
-    Note over Queue,Actor: Update and LateUpdate are serialized in the same boundary
+    Note over Queue,RuntimeLoop: Update and LateUpdate are serialized in the same boundary
 ```
 
 - Ordinary tasks, entity lifecycle transitions, and frame callbacks never run concurrently inside one Runtime, so business state within that Runtime normally needs no locks.
@@ -630,6 +650,8 @@ RPC builds on this addressing model and provides:
 | GAP Variant | Represents Null, integers, floating-point numbers, booleans, bytes, strings, Array, Map, Error, CallChain, and custom values on the wire. |
 | GTP (Golaxy Transfer Protocol) | Runs over TCP/WebSocket and handles handshakes, authentication, message ordering, heartbeats, clock synchronization, reconnection, compression, and optional encryption. |
 | GTP Codec / Transport | Implements the wire codec and the connection I/O, retries, event delivery, and protocol state machine. |
+
+> **Protocol boundary:** GTP is used only for the TCP/WebSocket connection between Client and Gate. Client RPC is a GAP message carried in a GTP Payload. After Gate enters the service domain, and for every service-to-service RPC, NATS transports GAP only; GTP is never nested into the NATS path.
 
 > **Security note:** GTP supports ECDHE, signing, and verification, but does not provide certificate validation itself. For high-security deployments, enable TLS below GTP on TCP/WebSocket and consider disabling GTP's built-in payload encryption; protocol signatures are not a replacement for a complete PKI trust chain. Do not expose pprof directly to untrusted networks either.
 
