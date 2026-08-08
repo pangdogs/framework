@@ -1,54 +1,262 @@
-# Framework
-[English](./README.md) | [简体中文](./README.zh_CN.md)
+# Golaxy Framework
 
-## 简介
-[**Golaxy 分布式服务开发框架**](https://github.com/pangdogs/framework) 是 [**Golaxy Core**](https://github.com/pangdogs/core) 的服务端扩展层。它建立在 EC 系统和 Actor 线程模型之上，把实时通信系统常见的基础设施能力封装为统一的服务框架，适合游戏服务端、网关、远程控制平台等场景。
+[English](./README.md) | **简体中文**
 
-仓库当前主要分为三层：
+Golaxy Framework 是面向实时、分布式后端的 Go 服务开发框架。它以 [Golaxy Core](https://github.com/pangdogs/core) 的 EC（Entity-Component）系统和 Actor 风格串行执行模型为内核，在其上提供应用启动、服务与运行时装配、分布式基础设施、RPC、网关和网络协议栈。
 
-- `framework`：应用启动、服务/运行时装配、生命周期接口，以及实体/组件构建辅助。
-- `addins`：可复用的基础设施插件，例如 broker、服务发现、路由、RPC、网关和数据库访问。
-- `net`：通信层协议栈，包括 GTP 传输协议和 GAP 应用层消息协议。
+项目适用于游戏服务端、长连接网关、状态型业务服务、远程控制平台，以及其他需要实体化状态管理和跨节点通信的实时系统。
 
-## 架构说明
-### 核心概念
-- `App` 负责收集服务装配器，使用 Cobra/Viper 加载命令行与配置，并按配置启动多个服务副本。
-- `IService` 封装服务上下文，统一暴露 broker、服务发现、分布式同步、分布式服务、分布式实体查询和 RPC 等能力。
-- `IRuntime` 封装运行时上下文，负责安装运行时级 add-in，并承载实体执行。
-- `EntityBehavior` 和 `ComponentBehavior` 为实体、组件提供回到所属 runtime 和 service 的强类型访问。
-- `BuildRuntime`、`BuildEntityPT`、`BuildEntity` 是创建运行时、实体原型和实体实例的主要入口。
+## 目录
 
-### 默认装配的 add-in
-在 `Birth`/`Built` 阶段，框架会为业务生命周期钩子尚未提供的能力补装默认 add-in。服务级插件集合随后会在 `Starting` 前冻结；运行时级插件仍可热插拔，但应在所属 runtime 的 goroutine 中操作。
+- [项目定位](#项目定位)
+- [核心能力](#核心能力)
+- [架构](#架构)
+- [Actor + EC 框架详解](#actor--ec-框架详解)
+- [环境要求](#环境要求)
+- [快速开始](#快速开始)
+- [配置](#配置)
+- [编程模型](#编程模型)
+- [Add-in 扩展体系](#add-in-扩展体系)
+- [分布式通信与协议栈](#分布式通信与协议栈)
+- [项目结构](#项目结构)
+- [可观测性与运行建议](#可观测性与运行建议)
+- [开发与验证](#开发与验证)
+- [生态与许可证](#生态与许可证)
 
-服务级默认 add-in：
+## 项目定位
 
-- `log`
-- `conf`
-- `broker`，默认实现为 NATS
-- `discovery`，默认实现为 ETCD
-- `dsync`，默认实现为 ETCD
-- `dsvc`
-- `dent` 查询端
-- `rpc`
+Golaxy Framework 是 Golaxy 体系的服务端扩展层，主要解决以下问题：
 
-运行时级默认 add-in：
+- 将一个进程中的多个逻辑服务及其副本统一装配、启动和停止。
+- 以 Runtime 隔离有状态业务，每个 Runtime 在所属 goroutine 中串行处理任务和实体状态。
+- 通过 Entity、Component 和 Prototype 组织可组合、可持久化、可分布式寻址的业务对象。
+- 统一接入日志、配置、消息代理、服务发现、分布式锁、分布式实体和 RPC。
+- 为服务间消息与客户端长连接提供配套的 GAP、GTP 协议和网关能力。
 
-- `log`
-- `rpcstack`
-- `dent` 注册端
+本仓库是框架库，不包含具体业务服务或基础设施进程。默认装配会连接 NATS 和 ETCD；完整业务项目可基于 [Golaxy Scaffold](https://github.com/pangdogs/scaffold) 创建，端到端用法可参考 [Golaxy Examples](https://github.com/pangdogs/examples)。
 
-## 功能特性
-- 支持有状态或无状态服务，并支持按副本数启动多个实例。
-- 支持从命令行、环境变量、本地配置文件、Viper 远程配置源加载配置。
-- 支持服务注册发现、节点发布，以及基于 `Future` 的跨服务调用。
-- 支持分布式实体注册、查询，以及 runtime 内实体创建。
-- 内置 broker 层、分布式同步能力，以及 SQL/Redis/MongoDB 集成。
-- 提供基于 TCP/WebSocket 的 GTP 长连接传输层。
-- 提供 GAP 应用层消息、转发、RPC 请求/响应与动态变体类型。
-- 可在统一协议栈上构建网关、路由、RPC 处理器和 RPC 客户端。
+## 核心能力
 
-## 最小启动示例
+- **应用与服务编排**：基于 Cobra/Viper 的命令行和配置入口，支持多服务、多副本、信号驱动的优雅退出以及可选 pprof。
+- **Actor + EC 执行模型**：Runtime 串行化状态访问，Entity/Component 负责业务组合，可按需启用实时帧循环和依赖自动注入。
+- **异步协作**：提供 Runtime 调度、后台 goroutine、定时器、通道转 Future，以及 `Any`、`OK`、`All`、`Transform`、`Foreach` 等 Await 组合方式。
+- **分布式基础设施**：内置 NATS broker、ETCD 服务发现、ETCD/Redis 分布式互斥锁、服务节点注册和分布式实体定位。
+- **RPC**：支持 Service、Runtime、Entity 和 Client 四类目标，覆盖单播、负载均衡、广播、单向调用和 Future 返回值。
+- **网关与路由**：支持 TCP/WebSocket 会话、认证、重连、时钟同步、实体与会话映射、逻辑分组和组播。
+- **数据库接入**：提供 GORM（MySQL、PostgreSQL、SQL Server、SQLite）、Redis 和 MongoDB add-in，以及按 tag 注入数据库客户端的辅助函数。
+- **协议栈**：GAP 描述应用消息和动态参数；GTP 负责长连接握手、时序、心跳、压缩和可选加密。
+
+## 架构
+
+```mermaid
+flowchart TB
+    subgraph Execution[执行模型]
+        App[App<br/>配置、命令与副本编排] --> Service[Service<br/>并发服务上下文]
+        Service --> Runtime[Runtime<br/>Actor goroutine]
+        Runtime --> Entity[Entity]
+        Entity --> Component[Component]
+        Service -.-> ServiceAddins[服务级 add-ins]
+        Runtime -.-> RuntimeAddins[运行时级 add-ins]
+    end
+
+    subgraph Communication[通信模型]
+        Client[Client] <-->|TCP / WebSocket| GTP[GTP 传输层]
+        GTP <--> Gate[Gate / Router]
+        Gate <--> GAP[GAP 应用层]
+        GAP <--> RPC[RPC]
+        RPC <-->|Broker / NATS| Peer[其他服务节点]
+        ServiceAddins <-->|注册、查询、租约与锁| ETCD[ETCD]
+    end
+```
+
+### 核心对象
+
+| 对象 | 职责 |
+| --- | --- |
+| `App` | 注册服务装配器，加载配置，按副本数启动服务，并在收到退出信号后等待全部服务停止。 |
+| `IService` | 扩展 `core/service.Context`，提供服务级 add-in、配置、日志、私有内存和 Runtime/Entity 构建入口。 |
+| `IRuntime` | 扩展 `core/runtime.Context`，承载任务队列、实体管理器、可选帧循环及运行时级 add-in。 |
+| Entity Prototype | 在服务的实体原型库中声明实体类型、默认作用域、组件集合和元数据。 |
+| Entity | 运行时中的有状态业务对象；全局作用域实体可由分布式实体 add-in 自动发布。 |
+| Component | 组合到实体中的业务能力，可通过 `ComponentBehavior` 获取所属 Runtime、Service、日志和异步/RPC 辅助。 |
+| Add-in | 安装到 Service 或 Runtime 上的可替换扩展；框架只在同名能力尚未安装时补装默认实现。 |
+| Future / Await | 表达异步结果，并将结果处理安全地调度回发起方所属 Runtime。 |
+
+### 运行与关闭
+
+- 每个通过 `SetAssembler` 注册的服务默认启动 1 个副本，可由 `startup.services` 覆盖；副本序号通过 `IService.ReplicaNo()` 获取，从 0 开始。
+- 每个服务副本在独立 goroutine 中运行；同一服务可创建多个 Runtime。
+- Runtime 中的普通任务和实体状态默认由所属 Runtime goroutine 串行处理。除明确标注并发安全的 API 外，不应从其他 goroutine 直接访问运行时状态。
+- `App` 监听 `SIGHUP`、`SIGINT`、`SIGTERM` 和 `SIGQUIT`。收到信号后会取消共享上下文，并等待所有服务副本完成终止流程。
+
+## Actor + EC 框架详解
+
+### Actor 与 EC 如何协作
+
+Golaxy 将两个相互正交的模型组合在一起：Actor 负责**状态由谁拥有、代码在哪里执行**，EC 负责**业务对象如何拆分、组合和演化**。
+
+| 模型 | 解决的问题 | Golaxy 中的对应对象 |
+| --- | --- | --- |
+| Actor | 隔离可变状态，通过串行消息处理避免并发写冲突。 | `Runtime` 及其任务队列、所属 goroutine、Future/Await。 |
+| EC | 以身份稳定的实体承载状态，以可插拔组件组合能力。 | Entity、Component、Prototype、生命周期和 EntityTree。 |
+
+> 这里的 Actor 边界是 **Runtime，而不是单个 Entity**。一个 Runtime 可以管理一个实体，也可以管理一组需要保持严格执行顺序的实体。文档中的 EC 指 Entity-Component；它不以传统数据导向 ECS 的全局 System 查询和批处理作为主要编程方式，业务行为通常直接实现在 Entity 或 Component 的生命周期方法中。
+
+### Runtime 是状态与执行边界
+
+每个 Runtime 拥有任务队列、实体管理器、实体树和可选帧循环。业务代码应把所属 Runtime goroutine 视为其中 Entity/Component 状态的唯一常规写入者：
+
+```mermaid
+sequenceDiagram
+    participant Source as 外部 goroutine / RPC / 定时器
+    participant Queue as Runtime 任务队列
+    participant Actor as Runtime goroutine
+    participant EC as Entity / Components
+    Source->>Queue: CallAsync / RPC 投递
+    Queue->>Actor: 依次取出任务
+    Actor->>EC: 执行业务并修改状态
+    EC-->>Actor: async.Result
+    Actor-->>Source: 完成 Future
+    Source->>Queue: Await 回调重新入队
+    Note over Queue,Actor: Update 与 LateUpdate 也在同一边界内串行执行
+```
+
+- Runtime 内的普通任务、实体生命周期和帧回调不会彼此并行执行，因此同一 Runtime 内通常不需要为业务状态加锁。
+- Entity 不会自动获得独立 goroutine。把多个 Entity 放入同一 Runtime，意味着它们共享一个串行执行域。
+- Runtime 外部只能直接使用明确标注为并发安全的上下文或只读接口；状态读取和修改应通过 `CallAsync`、RPC 或其他调度入口进入目标 Runtime。
+- `GoAsync` 适合阻塞 I/O 和独立计算，但其函数运行在新 goroutine 中，不能直接触碰 Runtime 状态；使用 `Await` 将结果处理重新调度回 Runtime。
+- 帧循环启用后，`Update()` 和 `LateUpdate()` 与普通任务共享执行边界。耗时或阻塞回调会同时拖慢消息处理和帧率，应移出 Actor goroutine。
+- Framework 创建的 Runtime 默认使用无界任务队列。无界队列避免生产者因容量立即失败，但也意味着业务需要通过限流、超时和指标监控控制积压。
+
+Service 是 Runtime 外层的并发作用域，保存服务级 add-in、实体/组件原型库和全局实体索引。跨 Runtime 或跨节点定位到实体后，调用仍要投递到该实体所属 Runtime，不能绕过 Actor 边界直接并发修改实体。
+
+### Entity、Component 与 Prototype
+
+| 概念 | 语义 |
+| --- | --- |
+| Entity | 具有 ID（未显式提供持久化 ID 时自动生成）、作用域和元数据的业务对象，同时也是组件容器与生命周期根节点。 |
+| Component | 附着于 Entity 的行为或状态单元；可以动态添加、启用和禁用，可删除组件还可以动态移除，并拥有独立生命周期。 |
+| Entity Prototype | 服务级可复用构造定义，声明实体实例类型、默认作用域、元数据、组件选项和内建组件集合。 |
+| Component Prototype | 按完整 Go 类型名登记的组件构造定义，可供原型声明和依赖注入使用。 |
+| EntityManager | Runtime 内的本地实体集合，负责实体进入、离开以及生命周期推进。 |
+| EntityTree | Runtime 内的父子关系树，支持挂接、分离、移动和遍历；树关系变化本身不会销毁实体。 |
+
+同一 Entity 允许存在多个同名 Component；`GetComponent` 返回第一个匹配项，`GetComponents` 返回全部匹配项。组件默认复用 Entity ID，启用 `SetComponentUniqueID(true)` 后才会分配独立 ID，并可使用 `GetComponentById` 查询。
+
+Entity、Component、Runtime 还暴露 signal/slot 风格的进程内事件。事件会在发送方当前 goroutine 中同步派发，不经过 Runtime 任务队列，也不承担跨进程通信；因此从外部 goroutine 触发业务事件前仍应先进入 Runtime。通过对象的 `Managed()` 保存订阅句柄，可在所属对象销毁或终止时自动解绑。
+
+实体作用域决定“在哪里可以找到它”，不改变“在哪里执行它”：
+
+| 作用域 | 查询范围 | 分布式行为 |
+| --- | --- | --- |
+| `ec.Scope_Local` | 仅所属 Runtime 的实体管理器。 | 不进入 Service 全局实体索引，也不会由默认分布式实体 add-in 发布。 |
+| `ec.Scope_Global` | Runtime 本地索引和 Service 全局实体索引。 | 默认分布式实体注册 add-in 会把定位信息发布到 ETCD，供其他节点查询。 |
+
+`Scope_Global` 只提供可寻址性，并不使 Entity 变成并发安全对象。远程调用或服务级查找最终仍需回到所属 Runtime 执行。
+
+### 生命周期与帧更新
+
+Runtime 负责推进 Entity 与 Component 状态；除 Component 的启用/禁用分支外，生命周期总体从构造走向销毁。业务代码不应自行跳转状态：
+
+```text
+Entity 激活:    Born -> Entered -> Awakened -> Starting -> Alive
+Entity 停用:    Leaving -> Shutting -> Dead -> Destroyed
+
+Component 激活: Born -> Attached -> Awakened -> Enabling -> Starting -> Alive
+禁用与重启:     Enabling / Starting / Alive -> Idle；Idle -> Starting -> Alive
+Component 移除: Detaching -> Shutting -> Disabling -> Dead -> Destroyed
+```
+
+| 对象 | 回调顺序与语义 |
+| --- | --- |
+| Entity | `Awake()` 最多一次 → `Start()` 最多一次 → 每帧 `Update()` / `LateUpdate()` → `Shut()` → `Dispose()`。只有完成对应前置阶段后，成对的关闭回调才会执行。 |
+| Component | `Awake()` 最多一次 → `OnEnable()` → `Start()` 最多一次 → 每帧 `Update()` / `LateUpdate()` → `Shut()` → `OnDisable()` → `Dispose()`。`OnEnable()` / `OnDisable()` 可随启用状态反复调用。 |
+
+初次激活的实际顺序是：
+
+1. Framework 在开启自动注入时解析组件依赖；
+2. Entity `Awake()`；
+3. 各 Component `Awake()`；
+4. 已启用的 Component `OnEnable()`；
+5. 已启用的 Component `Start()`；
+6. Entity `Start()`，随后进入 `Alive`。
+
+实体停用时先调用 Entity `Shut()`，再按组件逆序执行 `Shut()`；之后按逆序完成组件的 `OnDisable()`、`Dispose()`，最后调用 Entity `Dispose()`。实现生命周期接口是可选的，没有对应方法的对象仍会正常推进状态。
+
+对活动实体调用 `AddComponent` 时，Runtime 会让新增组件经过 `Awake`、`OnEnable` 和 `Start`；移除组件会触发配对的关闭流程。运行期直接添加的组件默认可删除，Entity Prototype 中声明的内建组件默认不可删除；如需移除内建组件，应使用 `ComponentDescriptor.SetRemovable(true)` 明确开启。组件的动态变更、`SetEnabled`、Entity `Destroy` 和 EntityTree 修改都应在所属 Runtime 中执行。
+
+### 原型组合与组件依赖注入
+
+原型把“一个业务对象由什么组成”从实例创建逻辑中抽离出来。`BuildEntityPT(name)` 在 Service 的 `EntityLib` 中声明模板，`BuildEntity(name)` 再根据当前模板创建实例；同名原型再次声明时会替换旧定义，已经创建的实体不会被追溯修改。
+
+Runtime 默认开启自动注入。实体或新增组件激活前，Framework 会扫描该实体上的所有 Component，将同一 Entity 中匹配的组件注入目标组件的指针或接口字段，因此依赖在 Component `Awake()` 中已经可用：
+
+```go
+type Movement struct {
+	framework.ComponentBehavior
+	Position *Position `ec:"position"`
+}
+
+func (m *Movement) Awake() {
+	if m.Position == nil {
+		panic("movement requires position")
+	}
+}
+```
+
+- 标签格式为 `ec:"组件名,完整组件原型名"`，两部分可按需要指定；`ec:"position"` 表示按组件名注入。
+- 未写标签的结构体指针字段会尝试按字段类型推导组件名和完整原型名。
+- 指定了已登记的组件原型但实体中尚无匹配组件时，注入过程可以动态构造并添加它。
+- 找不到匹配项时字段保持原值，通常为 `nil`；必需依赖应在 `Awake()` 中显式校验。
+- 活动实体增加组件时，Framework 会重新扫描其全部 Component，使既有组件也能获得新依赖。
+
+自动注入的目标是 Component 字段；Entity 如需组件，应在 Runtime 内通过组件管理 API 获取。可通过 `SetAutoInjection(false)` 关闭反射注入，在性能敏感或希望显式装配的场景中自行建立依赖。
+
+### 如何选择 Runtime 粒度
+
+| 组织方式 | 适合场景 | 主要权衡 |
+| --- | --- | --- |
+| 一个主 Entity 对应一个 Runtime | 玩家、设备、订单流程等彼此独立的状态对象。直接使用 `IService.BuildEntity()` 即为这种默认方式。 | 隔离性和并行度高；Runtime 数量也更多。主 Entity 停用时 Runtime 自动终止。 |
+| 一组 Entity 共享一个 Runtime | 房间、战斗、场景或需要按严格顺序更新的一组对象。使用 `SetRuntime(rt)` 加入既有 Runtime。 | 组内一致性直观；任何慢任务都会阻塞整组对象。 |
+| 独立的长期 Runtime | 服务内调度器、匹配器或常驻状态机。先通过 `BuildRuntime()` 创建，再按需加入实体。 | 生命周期不依赖单个业务实体，但需要明确管理终止条件。 |
+
+通常应把必须在同一个串行事务中修改的状态放入同一 Runtime，把需要真正并行执行的状态拆到不同 Runtime。跨 Runtime 协作应视为异步消息交互，不要依赖共享可变对象或跨 Runtime 的隐式事务。
+
+## 环境要求
+
+| 组件 | 要求 | 用途 |
+| --- | --- | --- |
+| Go | `1.25.0+` | 与当前 `go.mod` 保持一致。 |
+| NATS | 默认需要 | 默认 broker，以及服务间 GAP/RPC 消息传输。默认地址为 `localhost:4222`。 |
+| ETCD | 默认需要 | 默认服务发现、分布式同步、分布式实体查询与注册。默认地址为 `localhost:2379`。 |
+| Redis | 可选 | Redis 版分布式同步和 Redis 数据库 add-in。 |
+| SQL 数据库 | 可选 | MySQL、PostgreSQL、SQL Server 或 SQLite，由 GORM add-in 接入。 |
+| MongoDB | 可选 | MongoDB 数据库 add-in。 |
+
+> 默认服务装配会在启动期间主动初始化 NATS 和 ETCD 相关 add-in，因此最小示例运行前也需要这两个服务可用。通过安装钩子替换默认 add-in 后，外部依赖可以随实现调整。
+
+## 快速开始
+
+### 1. 创建模块并安装依赖
+
+```bash
+mkdir golaxy-demo
+cd golaxy-demo
+go mod init example.com/golaxy-demo
+go get git.golaxy.org/framework@latest
+```
+
+### 2. 准备默认基础设施
+
+启动可访问的 NATS 和 ETCD，并分别监听：
+
+- NATS：`localhost:4222`
+- ETCD：`localhost:2379`
+
+也可以在启动参数或配置文件中使用其他地址。
+
+### 3. 创建最小服务
+
 ```go
 package main
 
@@ -58,12 +266,17 @@ type LobbyService struct {
 	framework.ServiceBehavior
 }
 
-func (svc *LobbyService) OnStarted(s framework.IService) {
-	s.BuildRuntime().
+func (*LobbyService) OnStarted(svc framework.IService) {
+	rt, err := svc.BuildRuntime().
 		SetName("main").
 		SetEnableFrame(true).
 		SetFPS(20).
 		New()
+	if err != nil {
+		svc.S().Panicw("create runtime failed", "error", err)
+	}
+
+	svc.S().Infow("lobby service started", "runtime_id", rt.Id())
 }
 
 func main() {
@@ -73,93 +286,407 @@ func main() {
 }
 ```
 
-传给 `SetAssembler` 的服务名会同时用于：
-
-- `svc.ServiceConf()` 返回的服务配置子树名
-- `startup.services` 中的默认服务键名
-- 分布式服务相关 add-in 对外发布的逻辑服务名
-
-## 配置与启动
-`App` 在启动前会统一注册以下配置项：
-
-| 配置项 | 作用 |
-| --- | --- |
-| `log.*` | 日志级别、编码器、输出格式和异步缓冲参数 |
-| `conf.*` | 环境变量前缀、本地配置路径、远程配置源参数 |
-| `nats.*` | 默认 broker 连接参数 |
-| `etcd.*` | 默认 ETCD 连接参数 |
-| `service.*` | 服务版本、元数据、保活 TTL、Future 超时、实体 TTL、panic 自动恢复 |
-| `startup.services` | 每个服务名对应的启动副本数 |
-| `pprof.*` | 可选的 pprof 监听参数 |
-
-典型启动命令：
+### 4. 运行
 
 ```bash
-your-app \
-  --startup.services lobby=2 \
+go run .
+```
+
+使用 `Ctrl+C` 触发优雅退出。传给 `SetAssembler` 的 `lobby` 同时是：
+
+- `startup.services` 中的服务键名；
+- `IService.Name()` 返回的逻辑服务名；
+- `IService.ServiceConf()` 对应的配置子树名；
+- 分布式服务 add-in 发布到服务发现系统的服务名。
+
+`SetAssembler` 接收实现 `IService` 的实例或反射类型时，会按其具体类型为每个副本创建新实例，不会复用传入的指针。
+
+## 配置
+
+### 配置来源与优先级
+
+`App` 将 Cobra flags 绑定到 Viper，并按以下优先级读取同一个键：
+
+1. 通过 `app.Conf().Set(...)` 设置的值；
+2. 命令行中显式传入的 flag；
+3. 环境变量；
+4. 本地配置文件；
+5. 远程配置源；
+6. 内置 flag 默认值。
+
+本地配置通过 `conf.local_path` 读取，格式由文件扩展名决定。远程配置通过 Viper remote provider 在启动时读取一次；当前依赖支持 `etcd`、`etcd3`、`consul`、`firestore` 和 `nats`，框架不会自动监听远程配置变化。
+
+环境变量使用 Viper 默认规则：键名转为大写，但保留点号。例如设置前缀 `GAME` 后，`log.level` 对应 `GAME_LOG.LEVEL`。如需常见的 `GAME_LOG_LEVEL` 形式，可在 `Run` 前对 `app.Conf()` 设置 `EnvKeyReplacer`。`conf.env_prefix` 在本地和远程配置读取前确定，应通过命令行或 `app.Conf().Set` 设置。
+
+### 内置配置项
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `log.level` | `info` | `debug`、`info`、`warn`、`error`、`dpanic`、`panic` 或 `fatal`。 |
+| `log.encoder` | `development` | Zap 编码器：`development` 或 `production`。 |
+| `log.format` | `console` | 输出格式：`console` 或 `json`。 |
+| `log.async` | `true` | 是否使用缓冲日志写入器。 |
+| `log.buffer_size` | `524288` | 异步日志缓冲区大小，单位为字节。 |
+| `log.flush_interval` | `1s` | 异步日志刷新周期。 |
+| `conf.env_prefix` | 空 | 环境变量前缀。 |
+| `conf.local_path` | 空 | 本地配置文件路径；为空时不读取。 |
+| `conf.remote_provider` | 空 | Viper 远程配置 provider；为空时不读取。 |
+| `conf.remote_endpoint` | 空 | 远程配置端点。 |
+| `conf.remote_path` | 空 | 远程配置键或文件路径。 |
+| `nats.address` | `localhost:4222` | 默认 NATS 端点，格式为 `host:port`。 |
+| `nats.username` | 空 | NATS 用户名。 |
+| `nats.password` | 空 | NATS 密码。 |
+| `etcd.address` | `localhost:2379` | 默认 ETCD 端点，格式为 `host:port`。 |
+| `etcd.username` | 空 | ETCD 用户名。 |
+| `etcd.password` | 空 | ETCD 密码。 |
+| `service.version` | `v0.0.0` | 发布到服务发现系统的节点版本。 |
+| `service.meta` | 空 map | 发布到服务发现系统的节点元数据。 |
+| `service.ttl` | `10s` | 服务节点注册租约；必须不少于 3 秒。 |
+| `service.future_timeout` | `3s` | 服务交互 Future 默认超时；必须不少于 300 毫秒。 |
+| `service.dent_ttl` | `10s` | 分布式实体注册租约；必须不少于 3 秒。 |
+| `service.auto_recover` | `false` | 是否恢复 Service/Runtime 执行中的 panic 并上报日志。 |
+| `startup.services` | 每个已注册服务为 `1` | 服务名到副本数的映射；数量小于等于 0 或无效时不启动该服务。 |
+| `pprof.enable` | `false` | 是否启动 Go pprof HTTP 服务。 |
+| `pprof.address` | `0.0.0.0:6060` | pprof 监听地址。 |
+
+应用级 `nats.address` 和 `etcd.address` 是单端点快捷配置。若需要多端点、TLS 或复用既有客户端，应通过对应的 add-in 安装钩子传入完整选项。
+
+### 配置文件示例
+
+```yaml
+log:
+  level: info
+  encoder: production
+  format: json
+  async: true
+
+nats:
+  address: localhost:4222
+
+etcd:
+  address: localhost:2379
+
+service:
+  version: v1.0.0
+  meta:
+    region: cn-east-1
+    environment: production
+  ttl: 10s
+  future_timeout: 3s
+  dent_ttl: 10s
+  auto_recover: true
+
+startup:
+  services:
+    lobby: "2"
+    gate: "1"
+
+pprof:
+  enable: false
+  address: 127.0.0.1:6060
+
+lobby:
+  tick_interval: 50ms
+  matchmaking_region: cn-east-1
+```
+
+在 `lobby` 服务中：
+
+```go
+appConf := svc.AppConf()         // 完整的合并配置
+serviceConf := svc.ServiceConf() // lobby 子树；子树不存在时可能为 nil
+```
+
+命令行覆盖示例：
+
+```bash
+./your-app \
+  --startup.services lobby=2,gate=1 \
   --nats.address localhost:4222 \
   --etcd.address localhost:2379 \
   --conf.local_path ./config.yaml
 ```
 
-服务专属配置建议放在服务名子树下：
+如果配置文件显式提供了 `startup.services`，请列出所有希望启动的服务；未列出的已注册服务会按 0 个副本处理。
 
-```yaml
-lobby:
-  tick_interval: 50ms
-  gate:
-    tcp_address: 0.0.0.0:7001
+## 编程模型
+
+### App 与服务副本
+
+- `NewApp()` 创建独立的 Cobra 根命令和 Viper 实例。
+- `SetAssembler(name, assembler)` 可注册多个逻辑服务；同名注册会替换之前的装配器。
+- `InitCB` 用于补充 flags 或 Cobra 子命令；`StartingCB` 在配置和 pprof 初始化后执行；`TerminateCB` 在全部服务停止后执行。
+- `App.Cmd()` 和 `App.Conf()` 可在 `Run()` 前扩展命令和配置。配置及装配方法应由同一 goroutine 调用。
+- `IService.Memory()` 提供副本私有的并发键值存储，`ReplicaNo()` 返回当前副本序号。
+
+### Service 生命周期
+
+| 阶段 | 可执行的工作 |
+| --- | --- |
+| `OnBirth` | Service Context、配置和基础日志器已创建；可提前安装或替换服务级 add-in。 |
+| 默认装配 | 框架依次补齐日志、配置、broker、服务发现、分布式同步、分布式服务、实体查询和 RPC。 |
+| `OnBuilt` | 默认 add-in 已齐备；这是服务 add-in 管理器冻结前的最后一个业务钩子。 |
+| `OnStarting` | 服务 add-in 已冻结并激活，不再允许安装或卸载。 |
+| `OnStarted` | 分布式服务已经 `BringUp`，节点完成订阅和注册，可以开始对外通信。 |
+| `OnHeartbeat` | 服务运行期间约每秒调用一次。 |
+| `OnTerminating` | 开始停止，可通知业务任务退出。 |
+| `OnTerminated` | 等待组和 add-in 已停止；框架随后刷新日志并关闭共享资源。 |
+
+还可实现实体原型、组件原型、全局实体注册和注销相关的 Service 生命周期接口。完整接口定义见 [`service_lifecycle.go`](./service_lifecycle.go)。
+
+### Runtime、Entity 与 Component
+
+本节介绍构建 API；执行边界、状态机和组合规则见前文 [Actor + EC 框架详解](#actor--ec-框架详解)。
+
+`BuildRuntime()` 创建的 Runtime 默认配置如下：
+
+| 选项 | 默认值 |
+| --- | --- |
+| 自动启动 | 开启 |
+| 任务队列 | 无界队列 |
+| 帧循环 | 关闭 |
+| 目标帧率 | `30`（仅启用帧循环后生效） |
+| 自动组件依赖注入 | 开启 |
+| panic 恢复 | 继承 Service 配置 |
+| 实体激活 panic 后继续 | 关闭，激活失败的实体会被移除 |
+
+可通过 `SetName`、`SetPersistId`、`SetMainEntity`、`SetEnableFrame`、`SetFPS`、`SetAutoInjection` 和 `SetPanicHandling` 调整。主实体停用后，所属 Runtime 会自动终止。
+
+下面的示例声明一个全局 `player` 原型，并创建实体：
+
+```go
+package main
+
+import (
+	"git.golaxy.org/core/ec"
+	"git.golaxy.org/framework"
+)
+
+const playerPrototype = "player"
+
+type GameService struct {
+	framework.ServiceBehavior
+}
+
+type Player struct {
+	framework.EntityBehavior
+}
+
+type Position struct {
+	framework.ComponentBehavior
+	X float64
+	Y float64
+}
+
+type Movement struct {
+	framework.ComponentBehavior
+	Position  *Position `ec:"position"`
+	VelocityX float64
+	VelocityY float64
+}
+
+func (m *Movement) Awake() {
+	if m.Position == nil {
+		panic("movement requires position")
+	}
+	m.VelocityX = 0.25
+}
+
+func (m *Movement) Update() {
+	m.Position.X += m.VelocityX
+	m.Position.Y += m.VelocityY
+}
+
+func (*GameService) OnBuilt(svc framework.IService) {
+	svc.BuildEntityPT(playerPrototype).
+		SetInstance(&Player{}).
+		SetScope(ec.Scope_Global).
+		AddComponent(&Position{}, "position").
+		AddComponent(&Movement{}, "movement").
+		Declare()
+}
+
+func (*GameService) OnStarted(svc framework.IService) {
+	_, err := svc.BuildEntity(playerPrototype).
+		SetRuntimeCreator(
+			svc.BuildRuntime().
+				SetEnableFrame(true).
+				SetFPS(20),
+		).
+		SetMeta(map[string]any{"region": "cn-east-1"}).
+		New()
+	if err != nil {
+		svc.S().Panicw("create player failed", "error", err)
+	}
+}
 ```
 
-在代码中，`svc.ServiceConf()` 会定位到 `lobby` 子树，而 `svc.AppConf()` 仍然返回完整的合并后配置。
+- `BuildEntityPT(...).Declare()` 将原型注册到当前 Service 的实体库。
+- 从 `IService.BuildEntity()` 创建实体且未指定 Runtime 时，框架会创建一个新 Runtime，并把该实体设为主实体。
+- `Movement.Position` 在组件 `Awake()` 前自动注入；帧循环以 20 FPS 为目标调用 `Update()`，并与 Runtime 中的其他任务串行执行。
+- 使用 `EntityCreator.SetRuntime(rt)` 可将实体加入已有 Runtime；在 Runtime goroutine 内也可使用 `IRuntime.BuildEntity()`。
+- 只有 `ec.Scope_Global` 实体会由默认分布式实体注册 add-in 发布到 ETCD。
+- 自定义 Entity 和 Component 分别匿名嵌入 `EntityBehavior` 与 `ComponentBehavior` 后，可直接访问所属 Runtime、Service、日志、异步和 RPC 辅助 API。
 
-## 目录说明
+### 并发与异步约束
+
+| API | 执行位置 | 使用建议 |
+| --- | --- | --- |
+| `CallAsync` / `CallVoidAsync` | 所属 Runtime goroutine | 用于读取或修改 Runtime、Entity、Component 状态。 |
+| `GoAsync` / `GoVoidAsync` | 新 goroutine | 用于阻塞 I/O 或独立计算；不要直接并发访问 Runtime 状态。 |
+| `TimeAfterAsync` / `TimeAtAsync` / `TimeTickAsync` | 异步计时，结果返回 Future | 用于实体或组件生命周期内的定时任务。 |
+| `ReadChanAsync` | 将通道值转换为连续 Future 结果 | 实体或组件失活、通道关闭时结束。 |
+| `Await(...).Any/OK/All` | 结果回调重新调度到 Runtime | 分别等待首个结果、首个成功结果或全部结果。 |
+| `Await(...).Transform/Foreach` | 每个连续结果回到 Runtime 处理 | 适用于流式 Future。 |
+
+Entity 或 Component 在异步任务返回前失活时，相关回调会停止，或返回 `ErrAsyncCallerNotAlive`。
+
+## Add-in 扩展体系
+
+### 默认装配
+
+| 作用域 | 能力 | 默认实现 | 主要访问入口 |
+| --- | --- | --- | --- |
+| Service | 日志 | Zap logger | `svc.L()` / `svc.S()` |
+| Service | 配置 | Viper config add-in | `svc.AppConf()` / `svc.ServiceConf()` |
+| Service | Broker | NATS | `svc.Broker()` |
+| Service | 服务发现 | ETCD | `svc.Registry()` |
+| Service | 分布式同步 | ETCD mutex | `svc.DistSync()` |
+| Service | 分布式服务 | GAP + Broker + Discovery + DSync | `svc.DistService()` |
+| Service | 分布式实体查询 | ETCD + 本地 Ristretto 缓存 | `svc.DistEntityQuerier()` |
+| Service | RPC | 内置 RPC 门面和处理链 | `svc.RPC()` |
+| Runtime | 日志 | 复用 Service logger | `rt.L()` / `rt.S()` |
+| Runtime | RPC 调用栈 | 内置 `rpcstack` | `rt.RPCStack()` |
+| Runtime | 分布式实体注册 | ETCD lease | `rt.DistEntityRegistry()` |
+
+### 替换默认实现
+
+有两种替换方式：
+
+1. 在 `OnBirth` 中直接安装同名 add-in；
+2. 实现对应的 `InstallService...` 或 `InstallRuntime...` 接口。
+
+框架会依次检查“是否已经安装 → 实例安装钩子 → 装配器安装钩子 → 默认实现”，并要求最终存在对应能力。以下示例把默认 ETCD 分布式锁替换为 Redis：
+
+```go
+import (
+	"git.golaxy.org/framework"
+	"git.golaxy.org/framework/addins"
+)
+
+func (*LobbyService) InstallDistSync(svc framework.IService) {
+	addins.DsyncRedis.Install(svc,
+		addins.DsyncRedisWith.RedisURL(
+			svc.AppConf().GetString("redis.url"),
+		),
+	)
+}
+```
+
+服务级 add-in 在 `Starting` 前冻结。Runtime 级 add-in 支持运行期安装和卸载，但应在所属 Runtime goroutine 中操作。
+
+### 可选 add-in 与工具
+
+| 包 | 能力 |
+| --- | --- |
+| [`addins/gate`](./addins/gate) | TCP/WebSocket 监听、GTP 握手、会话认证、重连迁移、数据与事件 I/O。 |
+| [`addins/gate/cli`](./addins/gate/cli) | 面向 Gate 的底层客户端，支持连接、重连、时钟探测和 Future 管理。 |
+| [`addins/router`](./addins/router) | Entity/Session 映射、ETCD 持久化逻辑分组、单播和组播。 |
+| [`addins/rpc/rpcpcsr`](./addins/rpc/rpcpcsr) | Service、Gate 和 Forward RPC 处理器及投递器。 |
+| [`addins/rpc/rpcli`](./addins/rpc/rpcli) | 构建在 Gate Client 和 GAP 上的客户端 RPC。 |
+| [`addins/db/sqldb`](./addins/db/sqldb) | 基于 GORM 的 MySQL、PostgreSQL、SQL Server 和 SQLite 连接。 |
+| [`addins/db/redisdb`](./addins/db/redisdb) | 具名 Redis 客户端。 |
+| [`addins/db/mongodb`](./addins/db/mongodb) | 具名 MongoDB 客户端。 |
+| [`addins/db`](./addins/db) | `InjectDB` 按 `db` struct tag 注入数据库客户端，`MigrateDB` 串行执行迁移钩子。 |
+
+`addins` 根包集中重新导出了内置 add-in 描述符和 `With` 选项入口，适合在装配代码中统一导入。
+
+## 分布式通信与协议栈
+
+### 服务寻址与 RPC
+
+`dsvc` 为每个服务节点建立五类 broker 地址：
+
+- 全局广播；
+- 全局负载均衡；
+- 同名服务广播；
+- 同名服务负载均衡；
+- 节点单播。
+
+节点上线时会先订阅地址，再通过分布式锁查重并注册到服务发现系统，从而避免已发布节点在订阅就绪前丢失消息。当前 `dsvc` 处理链要求 broker 报告 `AtMostOnce` 投递语义；替换 broker 时必须满足这一约束。
+
+RPC 在此寻址模型上提供：
+
+- Service、Runtime、Entity 和 Client 目标；
+- 指定服务调用、随机负载均衡、全局负载均衡；
+- 指定服务广播和全局广播的单向调用；
+- 调用链透传，以及最多 16 个返回值的类型化解析/断言辅助。
+
+### GAP 与 GTP
+
+| 层 | 职责 |
+| --- | --- |
+| GAP（Golaxy Application Protocol） | 定义 Forward、RPC Request/Reply、Oneway RPC 等应用消息；可运行在 GTP 或 Broker 之上。 |
+| GAP Variant | 在协议中表达 Null、整数、浮点数、布尔、字节串、字符串、Array、Map、Error、CallChain 及自定义值。 |
+| GTP（Golaxy Transfer Protocol） | 面向 TCP/WebSocket 长连接，处理握手、鉴权、消息时序、心跳、时钟同步、断线重连、压缩和可选加密。 |
+| GTP Codec / Transport | 分别负责线格式编解码，以及连接收发、重试、事件分发和协议状态机。 |
+
+> **安全说明：** GTP 支持 ECDHE、签名和验证，但自身不提供证书校验。高安全要求场景应在 TCP/WebSocket 下层启用 TLS，并考虑关闭 GTP 自带的数据加密，避免把协议签名误当作完整的 PKI 信任链。pprof 也不应直接暴露到不可信网络。
+
+## 项目结构
+
 | 路径 | 职责 |
 | --- | --- |
-| [`./`](./) | App 启动、服务/运行时/实体构建器、生命周期接口、异步辅助 |
-| [`./addins`](./addins) | 内置 add-in 安装入口与常用 option 辅助的聚合导出 |
-| [`./addins/broker`](./addins/broker) | Broker 抽象与 NATS 实现 |
-| [`./addins/conf`](./addins/conf) | 基于 Viper 的配置 add-in |
-| [`./addins/db`](./addins/db) | SQL、Redis、MongoDB 集成与数据库注入辅助 |
-| [`./addins/dent`](./addins/dent) | 分布式实体查询与注册 add-in |
-| [`./addins/discovery`](./addins/discovery) | 服务发现抽象与 ETCD 实现 |
-| [`./addins/dsvc`](./addins/dsvc) | 分布式服务寻址与基于 Future 的服务调用 |
-| [`./addins/dsync`](./addins/dsync) | 分布式同步能力及 ETCD/Redis 实现 |
-| [`./addins/gate`](./addins/gate) | 构建在 GTP 之上的网关与会话管理 |
-| [`./addins/gate/cli`](./addins/gate/cli) | 面向 GTP/GAP 端点的底层客户端 |
-| [`./addins/log`](./addins/log) | 基于 Zap 的日志 add-in |
-| [`./addins/router`](./addins/router) | 会话路由、映射、分组和组播辅助 |
-| [`./addins/rpc`](./addins/rpc) | RPC 门面、调用路径、处理器和 RPC 客户端工具 |
-| [`./addins/rpcstack`](./addins/rpcstack) | RPC 调用链上下文栈 |
-| [`./net/gap`](./net/gap) | GAP 消息、编解码和动态变体类型 |
-| [`./net/gtp`](./net/gtp) | GTP 消息、编解码、加密/压缩算法和传输实现 |
-| [`./net/netpath`](./net/netpath) | 分布式服务/节点路径格式辅助 |
-| [`./utils`](./utils) | 框架内部使用的二进制与并发辅助工具 |
+| [`./`](./) | App、Service、Runtime、Entity/Component 行为、构建器、生命周期和异步辅助。 |
+| [`addins`](./addins) | 内置 add-in 描述符和选项入口的聚合导出。 |
+| [`addins/broker`](./addins/broker) | Broker 抽象、投递语义和 NATS 实现。 |
+| [`addins/conf`](./addins/conf) | 基于 Viper 的应用配置和服务配置子树。 |
+| [`addins/discovery`](./addins/discovery) | 服务注册、查询、监听抽象及 ETCD 实现。 |
+| [`addins/dsync`](./addins/dsync) | 分布式互斥锁抽象及 ETCD、Redis 实现。 |
+| [`addins/dsvc`](./addins/dsvc) | 服务节点上线、地址生成、GAP 消息收发和 Future 控制。 |
+| [`addins/dent`](./addins/dent) | 分布式实体注册、查询、事件和本地缓存。 |
+| [`addins/rpc`](./addins/rpc) | RPC 门面、代理、调用路径、处理器、客户端和结果解析。 |
+| [`addins/rpcstack`](./addins/rpcstack) | Runtime 作用域的 RPC 调用链和变量栈。 |
+| [`addins/gate`](./addins/gate) | GTP 网关、监听器、握手和会话管理。 |
+| [`addins/router`](./addins/router) | 会话路由、实体映射、逻辑分组和组播。 |
+| [`addins/db`](./addins/db) | SQL、Redis、MongoDB add-in，以及注入和迁移辅助。 |
+| [`net/gap`](./net/gap) | GAP 消息、序列化、codec 和动态 Variant。 |
+| [`net/gtp`](./net/gtp) | GTP 消息、codec、密码学/压缩方法和 transport。 |
+| [`net/netpath`](./net/netpath) | 服务地址、topic 等逻辑网络路径处理。 |
+| [`utils/binaryutil`](./utils/binaryutil) | 字节流、缓冲池、二进制读写和限长拷贝。 |
+| [`utils/concurrent`](./utils/concurrent) | FutureController、监听器集合和轻量并发辅助。 |
 
-## 协议栈分层
-- `net/gtp` 是传输层，定义握手消息、密码套件协商、链路鉴权、压缩，以及基于 TCP/WebSocket 的可靠消息传输。
-- `net/gap` 位于 GTP 或 MQ 之上，用于承载转发消息、RPC 请求/响应、单向 RPC 和可扩展应用层负载。
-- `addins/gate`、`addins/router`、`addins/rpc` 在这两层协议之上构建面向业务的通信能力。
+## 可观测性与运行建议
 
-## 环境要求
-- Go `1.25+`
-- 默认 broker 依赖 NATS
-- 默认服务发现、分布式同步、分布式实体注册/查询依赖 ETCD
-- 如果选择 Redis 版分布式同步或 Redis 数据库 add-in，则需要 Redis
-- 根据启用的数据库 add-in，可选 MongoDB 或各类 SQL 数据库
+- 日志基于 Zap。生产环境通常使用 `log.encoder=production`、`log.format=json`，并在退出前由框架刷新缓冲区。
+- `service.auto_recover=false` 是默认值。启用后，Service 和默认 Runtime 会恢复执行中的 panic 并通过错误通道记录；业务仍需根据一致性要求决定是否继续处理。
+- pprof 默认关闭；启用时建议把 `pprof.address` 绑定到回环或管理网络，并在外层增加访问控制。
+- 服务和实体 TTL 必须不少于 3 秒。生产环境应结合 ETCD 延迟、网络抖动和故障发现目标设置，不宜只追求更短的下线时间。
+- Gate 的监听地址、TLS、最大包大小、压缩阈值、认证器、I/O 超时和会话收件箱容量均可通过 `gate.With` 独立配置。
+- 需要多 NATS/ETCD 端点、TLS 或自定义客户端所有权时，应替换相应默认 add-in；由调用方传入的客户端不会在 add-in 停止时被关闭。
 
-## 安装
+## 开发与验证
+
 ```bash
-go get -u git.golaxy.org/framework
+# 格式化
+go fmt ./...
+
+# 运行全部测试
+go test ./...
+
+# 在支持的平台上检查数据竞争
+go test -race ./...
+
+# 静态检查
+go vet ./...
 ```
 
-## 示例
-完整示例可参考 [pangdogs/examples](https://github.com/pangdogs/examples)。
+协议与底层工具的测试主要位于 `net/gap/variant`、`net/gtp`、`net/gtp/codec`、`net/gtp/method`、`net/gtp/transport`、`utils/binaryutil` 和 `utils/concurrent`。
 
-## 相关仓库
-- [Golaxy 分布式服务开发框架核心](https://github.com/pangdogs/core)
-- [Golaxy 游戏服务器脚手架](https://github.com/pangdogs/scaffold)
+## 生态与许可证
 
-## 许可证
+- [Golaxy Core](https://github.com/pangdogs/core)：EC 系统、Runtime 和 Service 执行内核。
+- [Golaxy Scaffold](https://github.com/pangdogs/scaffold)：游戏服务器项目脚手架。
+- [Golaxy Examples](https://github.com/pangdogs/examples)：服务、网关和 RPC 端到端示例。
 
 本项目采用 [GNU Lesser General Public License v2.1](./LICENSE)。
