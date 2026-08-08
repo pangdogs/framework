@@ -33,7 +33,15 @@ Golaxy Framework is the server-side extension layer of the Golaxy ecosystem. It 
 - Integrate logging, configuration, messaging, discovery, distributed locks, distributed entities, and RPC behind consistent APIs.
 - Provide GAP and GTP protocols plus gateway features for service messaging and long-lived client connections.
 
-This repository is a framework library; it does not bundle application services or infrastructure processes. The default assembly connects to NATS and ETCD. Use [Golaxy Scaffold](https://github.com/pangdogs/scaffold) to start a complete application, and see [Golaxy Examples](https://github.com/pangdogs/examples) for end-to-end usage.
+This repository is a framework library; it does not bundle application services or infrastructure processes. The default assembly connects to NATS and ETCD. [Golaxy Scaffold](https://github.com/pangdogs/scaffold) is the companion game-project scaffold and build-time toolset. Its primary capabilities are Protobuf code generation for Go/Godot and Excel-table schema, code, and data processing; it does not implement friend, mail, or other product services. See [Golaxy Examples](https://github.com/pangdogs/examples) for end-to-end usage.
+
+### Business and tooling boundaries
+
+| Scope | Typical responsibility | Recommended integration |
+| --- | --- | --- |
+| Long-lived connection core services | Real-time player state, rooms, battles, and scenes | Client RPC travels through GAP → GTP → Gate, then GAP over NATS to the target service. |
+| Independent HTTP business services | Common request/response features such as friends, mail, and operations administration | Expose HTTP APIs; call internal RPC or the appropriate data service when real-time state is required. |
+| Golaxy Scaffold | Game-project layout and build tooling, not product-domain services | Generate Go/Godot protocol code with the Protobuf toolchain, and use `excelc` to turn `.xlsx` into `.proto`, access code, and JSON/binary table data. |
 
 ## Key capabilities
 
@@ -708,7 +716,7 @@ Protocol and low-level utility tests are concentrated in `net/gap/variant`, `net
 ## Ecosystem and license
 
 - [Golaxy Core](https://github.com/pangdogs/core): EC system and Runtime/Service execution kernel.
-- [Golaxy Scaffold](https://github.com/pangdogs/scaffold): game-server project scaffold.
+- [Golaxy Scaffold](https://github.com/pangdogs/scaffold): game-project scaffold centered on Protobuf generation and Excel-table processing.
 - [Golaxy Examples](https://github.com/pangdogs/examples): end-to-end service, gateway, and RPC examples.
 
 This project is licensed under the [GNU Lesser General Public License v2.1](./LICENSE).

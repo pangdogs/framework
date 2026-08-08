@@ -33,7 +33,15 @@ Golaxy Framework 是 Golaxy 体系的服务端扩展层，主要解决以下问�
 - 统一接入日志、配置、消息代理、服务发现、分布式锁、分布式实体和 RPC。
 - 为服务间消息与客户端长连接提供配套的 GAP、GTP 协议和网关能力。
 
-本仓库是框架库，不包含具体业务服务或基础设施进程。默认装配会连接 NATS 和 ETCD；完整业务项目可基于 [Golaxy Scaffold](https://github.com/pangdogs/scaffold) 创建，端到端用法可参考 [Golaxy Examples](https://github.com/pangdogs/examples)。
+本仓库是框架库，不包含具体业务服务或基础设施进程。默认装配会连接 NATS 和 ETCD。[Golaxy Scaffold](https://github.com/pangdogs/scaffold) 是配套的游戏工程脚手架和构建期工具集，重点提供 Protobuf 的 Go/Godot 代码生成与 Excel 配表的 schema、代码和数据处理；它不包含好友、邮件等具体业务系统。端到端用法可参考 [Golaxy Examples](https://github.com/pangdogs/examples)。
+
+### 业务与工具边界
+
+| 范围 | 典型职责 | 推荐接入方式 |
+| --- | --- | --- |
+| 长连接核心业务 | 玩家在线状态、房间、战斗和场景等实时状态 | 客户端 RPC 经 GAP → GTP → Gate，再以 GAP over NATS 转发到目标服务。 |
+| 独立 HTTP 业务服务 | 好友、邮件以及运营管理等常见请求/响应型功能 | 对外提供 HTTP API；需要访问实时状态时，再调用内部 RPC 或相应数据服务。 |
+| Golaxy Scaffold | 游戏项目目录与构建工具，不承载产品业务 | 使用 Protobuf 工具链生成 Go/Godot 协议代码；使用 `excelc` 将 `.xlsx` 转换为 `.proto`、访问代码以及 JSON/二进制表数据。 |
 
 ## 核心能力
 
@@ -708,7 +716,7 @@ go vet ./...
 ## 生态与许可证
 
 - [Golaxy Core](https://github.com/pangdogs/core)：EC 系统、Runtime 和 Service 执行内核。
-- [Golaxy Scaffold](https://github.com/pangdogs/scaffold)：游戏服务器项目脚手架。
+- [Golaxy Scaffold](https://github.com/pangdogs/scaffold)：游戏工程脚手架，重点提供 Protobuf 协议生成和 Excel 配表处理工具链。
 - [Golaxy Examples](https://github.com/pangdogs/examples)：服务、网关和 RPC 端到端示例。
 
 本项目采用 [GNU Lesser General Public License v2.1](./LICENSE)。
