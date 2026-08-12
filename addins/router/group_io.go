@@ -45,14 +45,14 @@ type IEventIO interface {
 type _GroupIO struct {
 	group      *_Group
 	barrier    generic.Barrier
-	terminated async.FutureVoid
+	terminated async.Completer
 	dataChan   *generic.UnboundedChannel[binaryutil.Bytes]
 	eventChan  *generic.UnboundedChannel[transport.IEvent]
 }
 
 func (io *_GroupIO) init(group *_Group) {
 	io.group = group
-	io.terminated = async.NewFutureVoid()
+	io.terminated, _ = async.NewSignal()
 	io.dataChan = generic.NewUnboundedChannel[binaryutil.Bytes]()
 	io.eventChan = generic.NewUnboundedChannel[transport.IEvent]()
 }
@@ -61,7 +61,7 @@ func (io *_GroupIO) sendLoop() {
 loop:
 	for {
 		select {
-		case <-io.group.expired:
+		case <-io.group.expired.Signal().Done():
 			break loop
 
 		case buff := <-io.dataChan.Out():
@@ -108,7 +108,7 @@ loop:
 		}
 	}
 
-	async.ReturnVoid(io.terminated)
+	io.terminated.Complete()
 }
 
 type _GroupDataIO _GroupIO

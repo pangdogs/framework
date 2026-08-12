@@ -52,8 +52,8 @@ type _ForwardProcessor struct {
 	dentq                dent.IDistEntityQuerier
 	encoder              *codec.Encoder
 	decoder              *codec.Decoder
-	stopping             async.FutureVoid
-	stopped              async.Future
+	stopping             context.CancelFunc
+	stopped              async.Signal
 	transitService       string
 	transitBroadcastAddr string
 	permValidator        PermissionValidator
@@ -65,11 +65,12 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
 	p.dentq = dent.QuerierAddIn.Require(svcCtx)
-	p.stopping = async.NewFutureVoid()
+	stoppingCtx, stopping := context.WithCancel(context.Background())
+	p.stopping = stopping
 	p.transitBroadcastAddr = p.dsvc.NodeDetails().MakeBroadcastAddr(p.transitService)
 
 	var err error
-	p.stopped, err = p.dsvc.Listen(p.stopping.Out().Context(context.Background()), generic.CastDelegateVoid2(p.handleServiceMsg))
+	p.stopped, err = p.dsvc.Listen(stoppingCtx, generic.CastDelegateVoid2(p.handleServiceMsg))
 	if err != nil {
 		log.L(svcCtx).Panic("listen rpc message failed", zap.Error(err), zap.String("processor", types.FullName(*p)))
 	}
@@ -79,7 +80,7 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 
 // Shut 停止监听并等待消息处理循环退出。
 func (p *_ForwardProcessor) Shut(svcCtx service.Context) {
-	async.ReturnVoid(p.stopping)
+	p.stopping()
 
 	<-p.stopped.Done()
 

@@ -65,9 +65,9 @@ type IBroker interface {
 	// SubscribeEvent 订阅 pattern，并在 ctx 取消时关闭返回的事件流。
 	// 非空 queue 会创建队列组订阅；autoAck 的支持情况由具体实现决定。
 	SubscribeEvent(ctx context.Context, pattern, queue string, autoAck ...bool) (<-chan Event, error)
-	// SubscribeHandler 订阅 pattern 并调用 handler；返回的 Future 在订阅结束后完成。
+	// SubscribeHandler 订阅 pattern 并调用 handler；返回的 Signal 在订阅结束后完成。
 	// 非空 queue 会创建队列组订阅；autoAck 的支持情况由具体实现决定。
-	SubscribeHandler(ctx context.Context, pattern, queue string, handler EventHandler, autoAck ...bool) (async.Future, error)
+	SubscribeHandler(ctx context.Context, pattern, queue string, handler EventHandler, autoAck ...bool) (async.Signal, error)
 	// Flush 等待当前已缓冲的发布操作发送完成。
 	Flush(ctx context.Context) error
 	// DeliveryReliability 返回当前实现的投递保证。

@@ -56,7 +56,7 @@ func (p *_ForwardProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
 	handle, err := p.dsvc.FutureController().New()
 	if err != nil {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+		return async.Rejected(err)
 	}
 
 	entityId, _ := gate.ClientDetails.DomainUnicast.Relative(dst)

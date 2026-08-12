@@ -58,8 +58,9 @@ func (acc *_Acceptor) genSessionId() uid.Id {
 
 // newSession 创建尚未绑定连接的会话，并装配传输、控制和 I/O 处理器。
 func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []byte) *_Session {
+	closed, _ := async.NewSignal()
 	session := &_Session{
-		closed:        async.NewFutureVoid(),
+		closed:        closed,
 		gate:          acc._Gate,
 		id:            id,
 		userId:        userId,

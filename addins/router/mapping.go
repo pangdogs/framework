@@ -39,8 +39,8 @@ type IMapping interface {
 	Session() gate.ISession
 	// Unmap 请求取消映射；重复调用无副作用。
 	Unmap()
-	// Unmapped 返回映射完全取消后完成的 Future。
-	Unmapped() async.Future
+	// Unmapped 返回映射完全取消后完成的 Signal。
+	Unmapped() async.Signal
 }
 
 type _Mapping struct {
@@ -49,8 +49,8 @@ type _Mapping struct {
 	entity     ec.ConcurrentEntity
 	session    gate.ISession
 	unmapOnce  sync.Once
-	removed    async.FutureVoid
-	unmapped   async.FutureVoid
+	removed    async.Completer
+	unmapped   async.Completer
 }
 
 // ClientAddr 返回该会话的客户端单播地址。
@@ -72,14 +72,14 @@ func (m *_Mapping) Session() gate.ISession {
 func (m *_Mapping) Unmap() {
 	m.unmapOnce.Do(func() {
 		if m.router.removeMappingLocked(m) {
-			async.ReturnVoid(m.removed)
+			m.removed.Complete()
 		}
 	})
 }
 
-// Unmapped 返回映射完全取消后完成的 Future。
-func (m *_Mapping) Unmapped() async.Future {
-	return m.unmapped.Out()
+// Unmapped 返回映射完全取消后完成的 Signal。
+func (m *_Mapping) Unmapped() async.Signal {
+	return m.unmapped.Signal()
 }
 
 func (m *_Mapping) waitForUnmap() {
@@ -97,7 +97,7 @@ func (m *_Mapping) waitForUnmap() {
 	case <-m.session.Closed().Done():
 		m.Unmap()
 		reason = "session_closed"
-	case <-m.removed:
+	case <-m.removed.Signal().Done():
 		reason = "mapping_removed"
 	}
 
@@ -106,5 +106,5 @@ func (m *_Mapping) waitForUnmap() {
 		zap.String("session_id", m.session.Id().String()),
 		zap.String("reason", reason))
 
-	async.ReturnVoid(m.unmapped)
+	m.unmapped.Complete()
 }

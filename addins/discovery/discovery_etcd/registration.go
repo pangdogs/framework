@@ -41,19 +41,19 @@ type _EtcdRegistration struct {
 }
 
 // KeepAliveContinuous 持续刷新节点租约，直到 ctx、registry 或 ETCD 保活流结束。
-func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
+func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-r.registry.ctx.Done():
-		return async.Future{}, errors.New("registry: registry is terminating")
+		return async.Signal{}, errors.New("registry: registry is terminating")
 	default:
 	}
 
 	if !r.registry.barrier.Join(1) {
-		return async.Future{}, errors.New("registry: registry is terminating")
+		return async.Signal{}, errors.New("registry: registry is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -76,10 +76,10 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 			zap.String("key", r.nodeKey),
 			zap.Int64("lease_id", int64(r.leaseId)),
 			zap.Error(err))
-		return async.Future{}, fmt.Errorf("registry: %w", err)
+		return async.Signal{}, fmt.Errorf("registry: %w", err)
 	}
 
-	stopped := async.NewFutureVoid()
+	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer func() {
@@ -101,7 +101,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 			zap.String("key", r.nodeKey),
 			zap.Int64("lease_id", int64(r.leaseId)))
 
-		async.ReturnVoid(stopped)
+		stopped.Complete()
 	}()
 
 	log.L(r.registry.svcCtx).Debug("keep alive etcd lease ok",
@@ -109,7 +109,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Futu
 		zap.String("node", r.serviceNode.Nodes[0].Id.String()),
 		zap.String("key", r.nodeKey),
 		zap.Int64("lease_id", int64(r.leaseId)))
-	return stopped.Out(), nil
+	return stoppedSignal, nil
 }
 
 // KeepAliveOnce 立即向 ETCD 刷新一次节点租约。

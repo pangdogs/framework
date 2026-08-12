@@ -34,19 +34,19 @@ import (
 )
 
 // addSubscriber 创建事件流或回调订阅，并用 barrier 保证 Shut 等待取消订阅完成。
-func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, handler broker.EventHandler) (<-chan broker.Event, async.Future, error) {
+func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, handler broker.EventHandler) (<-chan broker.Event, async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-b.ctx.Done():
-		return nil, async.Future{}, errors.New("broker: broker is terminating")
+		return nil, async.Signal{}, errors.New("broker: broker is terminating")
 	default:
 	}
 
 	if !b.barrier.Join(1) {
-		return nil, async.Future{}, errors.New("broker: broker is terminating")
+		return nil, async.Signal{}, errors.New("broker: broker is terminating")
 	}
 
 	natsPattern := pattern
@@ -110,10 +110,10 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 		b.barrier.Done()
 
 		log.L(b.svcCtx).Error("subscribe topic pattern failed", zap.String("pattern", natsPattern), zap.String("queue", natsQueue), zap.Error(err))
-		return nil, async.Future{}, fmt.Errorf("broker: %w", err)
+		return nil, async.Signal{}, fmt.Errorf("broker: %w", err)
 	}
 
-	unsubscribed := async.NewFutureVoid()
+	unsubscribed, unsubscribedSignal := async.NewSignal()
 
 	go func() {
 		defer b.barrier.Done()
@@ -133,15 +133,15 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 			eventChan.Close()
 		}
 
-		async.ReturnVoid(unsubscribed)
+		unsubscribed.Complete()
 	}()
 
 	log.L(b.svcCtx).Debug("subscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 
 	if eventChan != nil {
-		return eventChan.Out(), unsubscribed.Out(), nil
+		return eventChan.Out(), unsubscribedSignal, nil
 	}
-	return nil, unsubscribed.Out(), nil
+	return nil, unsubscribedSignal, nil
 }
 
 func unsupportedAck(ctx context.Context) error {

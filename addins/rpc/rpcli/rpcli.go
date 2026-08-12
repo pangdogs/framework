@@ -64,7 +64,7 @@ func (c *RPCli) RemoteClock() cli.TimeSample {
 func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 	handle, err := c.FutureController().New()
 	if err != nil {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+		return async.Rejected(err)
 	}
 
 	vargs, err := variant.NewArray(args)

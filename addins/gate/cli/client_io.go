@@ -58,7 +58,7 @@ type IEventIO interface {
 type _ClientIO struct {
 	client         *Client
 	barrier        generic.Barrier
-	terminated     async.FutureVoid
+	terminated     async.Completer
 	dataChan       *generic.UnboundedChannel[binaryutil.Bytes]
 	eventChan      *generic.UnboundedChannel[transport.IEvent]
 	dataListeners  concurrent.Listeners[DataHandler, []byte]
@@ -67,7 +67,7 @@ type _ClientIO struct {
 
 func (io *_ClientIO) init(client *Client) {
 	io.client = client
-	io.terminated = async.NewFutureVoid()
+	io.terminated, _ = async.NewSignal()
 	io.dataChan = generic.NewUnboundedChannel[binaryutil.Bytes]()
 	io.eventChan = generic.NewUnboundedChannel[transport.IEvent]()
 }
@@ -131,7 +131,7 @@ loop:
 		}
 	}
 
-	async.ReturnVoid(io.terminated)
+	io.terminated.Complete()
 }
 
 func (io *_ClientIO) handlePayload(event transport.Event[*gtp.MsgPayload]) {

@@ -66,7 +66,7 @@ func (ts TimeSample) RemoteLocation() *time.Location {
 func (c *Client) ProbeTime() async.Future {
 	handle, err := c.FutureController().New()
 	if err != nil {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+		return async.Rejected(err)
 	}
 	if err := c.ctrl.ProbeTime(handle.Id()); err != nil {
 		handle.Cancel(err)

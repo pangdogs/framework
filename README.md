@@ -47,7 +47,7 @@ This repository is a framework library; it does not bundle application services 
 
 - **Application and service orchestration**: Cobra/Viper-based commands and configuration, multiple services and replicas, signal-driven graceful shutdown, and optional pprof.
 - **Actor + EC execution model**: serialized runtime state, composable entities and components, optional real-time frame loops, and automatic dependency injection.
-- **Asynchronous coordination**: runtime scheduling, background goroutines, timers, channels converted to futures, and `Any`, `OK`, `All`, `Transform`, and `Foreach` await strategies.
+- **Asynchronous coordination**: runtime scheduling, lifecycle scopes, background goroutines, timers, distinct Future/Signal/Stream semantics, Future combinators, and Runtime continuations.
 - **Distributed infrastructure**: a NATS broker, ETCD service discovery, ETCD/Redis distributed mutexes, service-node registration, and distributed-entity lookup.
 - **RPC**: Service, Runtime, Entity, and Client targets with unicast, load balancing, broadcast, one-way calls, and future-based results.
 - **Gateway and routing**: TCP/WebSocket sessions, authentication, reconnection, clock synchronization, entity-to-session mappings, logical groups, and multicast.
@@ -108,7 +108,7 @@ For a client call, `RPCli` serializes `MsgRPCRequest`, `MsgOnewayRPC`, or `MsgRP
 | Entity | A stateful business object in a runtime. Global entities can be advertised automatically by the distributed-entity add-in. |
 | Component | A unit of behavior composed into an entity. `ComponentBehavior` exposes the owning Runtime, Service, logger, async helpers, and RPC helpers. |
 | Add-in | A replaceable Service or Runtime extension. Defaults are installed only when a capability with the same name is still absent. |
-| Future / Await | Represents asynchronous results and schedules result handling back onto the caller's owning Runtime. |
+| Future / Signal / Stream | Represent one-shot results, result-free completion, and continuous results; `ContinueOn` schedules a Future continuation onto the owning Runtime. |
 
 ### Execution and shutdown
 
@@ -125,7 +125,7 @@ Golaxy combines two orthogonal models: Actor defines **who owns mutable state an
 
 | Model | Problem it solves | Golaxy concepts |
 | --- | --- | --- |
-| Actor | Isolates mutable state and prevents conflicting writes through serialized message processing. | `Runtime`, its task queue and owning goroutine, Future, and Await. |
+| Actor | Isolates mutable state and prevents conflicting writes through serialized message processing. | `Runtime`, its task queue and owning goroutine, Futures, and continuations. |
 | EC | Gives identity to stateful objects and composes capabilities from replaceable components. | Entity, Component, Prototype, lifecycle callbacks, and EntityTree. |
 
 > The Actor boundary is the **Runtime, not an individual Entity**. A Runtime may manage one Entity or a group of entities that require strict execution ordering. EC here means Entity-Component; unlike a conventional data-oriented ECS, its primary programming model is not global System queries and batch processing. Behavior normally lives directly in Entity or Component lifecycle methods.
@@ -140,19 +140,19 @@ sequenceDiagram
     participant Queue as Runtime task queue
     participant RuntimeLoop as Runtime goroutine
     participant EC as Entity / Components
-    Source->>Queue: CallAsync / RPC dispatch
+    Source->>Queue: Submit / Post / RPC dispatch
     Queue->>RuntimeLoop: Dequeue in order
     RuntimeLoop->>EC: Execute logic and mutate state
     EC-->>RuntimeLoop: async.Result
     RuntimeLoop-->>Source: Complete Future
-    Source->>Queue: Re-enqueue Await continuation
+    Source->>Queue: Re-enqueue ContinueOn continuation
     Note over Queue,RuntimeLoop: Update and LateUpdate are serialized in the same boundary
 ```
 
 - Ordinary tasks, entity lifecycle transitions, and frame callbacks never run concurrently inside one Runtime, so business state within that Runtime normally needs no locks.
 - An Entity does not automatically receive its own goroutine. Putting several entities in one Runtime makes them share one serialized execution domain.
-- Code outside the Runtime may directly use only explicitly concurrent-safe contexts or read-only surfaces. Schedule state reads and writes through `CallAsync`, RPC, or another dispatch entry point.
-- `GoAsync` is intended for blocking I/O and independent computation, but its function runs in a new goroutine and must not touch Runtime state directly. Use `Await` to schedule result handling back onto the Runtime.
+- Code outside the Runtime may directly use only explicitly concurrent-safe contexts or read-only surfaces. Schedule state reads and writes through `Submit`, `Post`, RPC, or another dispatch entry point.
+- `Spawn` is intended for blocking I/O and independent computation, but its function runs in a new goroutine and must not touch Runtime state directly. Use `ContinueOn` to schedule subsequent Future handling back onto the Runtime.
 - With the frame loop enabled, `Update()` and `LateUpdate()` share the execution boundary with ordinary tasks. A slow or blocking callback therefore delays both message handling and frame progress and should be moved off the Actor goroutine.
 - Framework-created runtimes use an unbounded task queue by default. This avoids immediate capacity failures for producers, but the application must control backlog through rate limits, timeouts, and metrics.
 
@@ -560,14 +560,15 @@ func (*GameService) OnStarted(svc framework.IService) {
 
 | API | Execution location | Guidance |
 | --- | --- | --- |
-| `CallAsync` / `CallVoidAsync` | Owning Runtime goroutine | Read or modify Runtime, Entity, and Component state here. |
-| `GoAsync` / `GoVoidAsync` | New goroutine | Use for blocking I/O or independent computation; do not access Runtime state directly. |
-| `TimeAfterAsync` / `TimeAtAsync` / `TimeTickAsync` | Async timer producing Future results | Use for timers scoped to an entity or component lifetime. |
-| `ReadChanAsync` | Converts channel values into a stream of Future results | Ends when the entity/component dies or the channel closes. |
-| `Await(...).Any/OK/All` | Reschedules the result callback onto the Runtime | Waits for the first result, first successful result, or all results. |
-| `Await(...).Transform/Foreach` | Handles each streaming result on the Runtime | Use with futures that produce multiple values. |
+| `Submit` / `SubmitVoid` | Owning Runtime goroutine | Submit result-bearing work that reads or modifies Runtime, Entity, or Component state. |
+| `Post` | Owning Runtime goroutine | Dispatch work whose result is not needed; no Future is allocated. |
+| `Spawn` / `SpawnVoid` | New goroutine managed by a Scope | Use for blocking I/O or independent computation; do not access Runtime state directly. |
+| `After` / `At` | Async timer completing one Future | Use for one-shot timers scoped to an Entity or Component lifetime. |
+| `Every` / `FromChan` | Produces a single-consumer Stream | Use for periodic timers or channel bridging; ends when the Scope or source closes. |
+| `ContinueOn` / `ContinueOnVoid` | Reschedules a continuation onto the owning Runtime | Continue accessing Runtime-local state after a Future completes. |
+| `async.Race` / `FirstSuccess` / `All` / `AllSettled` | Combines one-shot Futures | Select the first completion or success, or collect all results. |
 
-If the calling Entity or Component dies before an asynchronous operation returns, the related callback stops or returns `ErrAsyncCallerNotAlive`.
+A `Future` retains one replayable result, a `Signal` reports result-free lifecycle completion, and a `Stream` carries continuous results to one consumer. Entity and Component helpers bind work to their respective `AsyncScope()` values. When the owner dies, background tasks and streams receive cancellation, while work or continuations not yet executed stop or return `ErrAsyncCallerNotAlive`.
 
 ## Add-in system
 
@@ -611,7 +612,7 @@ func (*LobbyService) InstallDistSync(svc framework.IService) {
 }
 ```
 
-Service add-ins are frozen before `Starting`. Runtime add-ins may be installed or removed while running, but those operations should execute on the owning Runtime goroutine.
+Service add-ins may be installed in `OnBirth`, an installation hook, or `OnBuilt`, and are frozen before the `Starting` callback. Because `OnBuilt` runs after default assembly, use it to append custom add-ins; replace a default in `OnBirth` or the corresponding installation hook. Runtime add-ins may be installed or removed while running, but those operations should execute on the owning Runtime goroutine.
 
 ### Optional add-ins and tools
 

@@ -31,10 +31,10 @@ import (
 	"git.golaxy.org/core/utils/reinterpret"
 )
 
-// CallAsync 将 fun 提交到实体所属运行时执行，并返回承载调用结果的 Future。
+// Submit 将 fun 提交到实体所属 Runtime，并返回执行结果 Future。
 // 执行时实体若已失活，Future 返回 ErrAsyncCallerNotAlive。
-func (e *EntityBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
-	return core.CallAsync(e, func(ctx runtime.Context, args ...any) async.Result {
+func (e *EntityBehavior) Submit(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
+	return core.Submit(e, func(ctx runtime.Context, args ...any) async.Result {
 		if !e.isAlive() {
 			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
@@ -42,10 +42,10 @@ func (e *EntityBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Res
 	}, args...)
 }
 
-// CallVoidAsync 将无返回值的 fun 提交到实体所属运行时执行，并返回完成信号。
+// SubmitVoid 将无业务返回值的 fun 提交到实体所属 Runtime。
 // 执行时实体若已失活，Future 返回 ErrAsyncCallerNotAlive。
-func (e *EntityBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
-	return core.CallAsync(e, func(ctx runtime.Context, args ...any) async.Result {
+func (e *EntityBehavior) SubmitVoid(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
+	return core.Submit(e, func(ctx runtime.Context, args ...any) async.Result {
 		if !e.isAlive() {
 			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
@@ -54,48 +54,71 @@ func (e *EntityBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], ar
 	}, args...)
 }
 
-// GoAsync 在新的 goroutine 中执行 fun，并返回承载调用结果的 Future。
-// 传入的上下文跟随实体生命周期；fun 不得直接并发访问运行时状态。
-func (e *EntityBehavior) GoAsync(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
-	return core.GoAsync(e, func(ctx context.Context, args ...any) async.Result {
+// Post 将 fun 投递到实体所属 Runtime，不创建 Future。
+// fun 执行前实体已经失活时会被忽略。
+func (e *EntityBehavior) Post(fun generic.ActionVar1[IRuntime, any], args ...any) error {
+	return core.Post(e, func(ctx runtime.Context, args ...any) {
+		if !e.isAlive() {
+			return
+		}
+		fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), args...)
+	}, args...)
+}
+
+// Spawn 在实体生命周期 Scope 中启动后台任务。
+// fun 不得直接并发访问 Runtime 局部状态。
+func (e *EntityBehavior) Spawn(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
+	return core.Spawn(e, func(ctx context.Context, args ...any) async.Result {
 		return fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// GoVoidAsync 在新的 goroutine 中执行无返回值的 fun，并返回完成信号。
-// 传入的上下文跟随实体生命周期；fun 不得直接并发访问运行时状态。
-func (e *EntityBehavior) GoVoidAsync(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
-	return core.GoVoidAsync(e, func(ctx context.Context, args ...any) {
+// SpawnVoid 在实体生命周期 Scope 中启动无业务返回值的后台任务。
+func (e *EntityBehavior) SpawnVoid(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
+	return core.SpawnVoid(e, func(ctx context.Context, args ...any) {
 		fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// TimeAfterAsync 在 dur 后产出一次当前时间；实体失活时直接结束。
-func (e *EntityBehavior) TimeAfterAsync(dur time.Duration) async.Future {
-	return core.TimeAfterAsync(e, dur)
+// After 在实体生命周期内等待 dur 后以当前时间完成 Future。
+func (e *EntityBehavior) After(dur time.Duration) async.Future {
+	return core.After(e.AsyncScope().Context(), dur)
 }
 
-// TimeAtAsync 在 at 到达时产出一次当前时间；实体失活时直接结束。
-func (e *EntityBehavior) TimeAtAsync(at time.Time) async.Future {
-	return core.TimeAtAsync(e, at)
+// At 在实体生命周期内等待到 at 后以当前时间完成 Future。
+func (e *EntityBehavior) At(at time.Time) async.Future {
+	return core.At(e.AsyncScope().Context(), at)
 }
 
-// TimeTickAsync 按 dur 周期持续产出当前时间，直到实体失活。
-func (e *EntityBehavior) TimeTickAsync(dur time.Duration) async.Future {
-	return core.TimeTickAsync(e, dur)
+// Every 在实体生命周期内按 dur 周期产出当前时间。
+func (e *EntityBehavior) Every(dur time.Duration) async.Stream {
+	return core.Every(e.AsyncScope().Context(), dur)
 }
 
-// ReadChanAsync 将 ch 中的值转换为连续产出，直到通道关闭或实体失活。
-func (e *EntityBehavior) ReadChanAsync(ch <-chan any) async.Future {
-	return core.ReadChanAsync(e, ch)
+// FromChan 将 ch 转换为绑定实体生命周期的 Stream。
+func (e *EntityBehavior) FromChan(ch <-chan any) async.Stream {
+	return core.FromChan(e.AsyncScope().Context(), ch)
 }
 
-// Await 创建与实体关联的等待分发器；nil Future 会被忽略。
-func (e *EntityBehavior) Await(futures ...async.Future) AwaitDirector {
-	return AwaitDirector{
-		caller:   e,
-		director: core.Await(e, futures...),
-	}
+// ContinueOn 在 future 完成后回到实体所属 Runtime 执行 fun。
+func (e *EntityBehavior) ContinueOn(future async.Future, fun generic.FuncVar2[IRuntime, async.Result, any, async.Result], args ...any) async.Future {
+	return core.ContinueOn(e, future, func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
+		if !e.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
+		}
+		return fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), ret, args...)
+	}, args...)
+}
+
+// ContinueOnVoid 在 future 完成后回到实体所属 Runtime 执行无业务返回值的 fun。
+func (e *EntityBehavior) ContinueOnVoid(future async.Future, fun generic.ActionVar2[IRuntime, async.Result, any], args ...any) async.Future {
+	return core.ContinueOn(e, future, func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
+		if !e.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
+		}
+		fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), ret, args...)
+		return async.NewResult(nil, nil)
+	}, args...)
 }
 
 func (e *EntityBehavior) isAlive() bool {

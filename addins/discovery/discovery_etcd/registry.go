@@ -258,13 +258,13 @@ func (r *_EtcdRegistry) WatchEvent(ctx context.Context, pattern string, revision
 }
 
 // WatchHandler 从可选 revision 开始监听服务变化，并在 watcher goroutine 中调用 handler。
-func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) (async.Future, error) {
+func (r *_EtcdRegistry) WatchHandler(ctx context.Context, pattern string, handler discovery.EventHandler, revision ...int64) (async.Signal, error) {
 	if handler == nil {
-		return async.Future{}, fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)
+		return async.Signal{}, fmt.Errorf("registry: %w: handler is nil", core.ErrArgs)
 	}
 	_, stopped, err := r.addWatcher(ctx, pattern, handler, pie.First(revision))
 	if err != nil {
-		return async.Future{}, err
+		return async.Signal{}, err
 	}
 	return stopped, err
 }

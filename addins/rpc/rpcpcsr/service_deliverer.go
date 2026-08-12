@@ -52,7 +52,7 @@ func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
 	handle, err := p.dsvc.FutureController().New()
 	if err != nil {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, err))
+		return async.Rejected(err)
 	}
 
 	vargs, err := variant.NewArray(args)

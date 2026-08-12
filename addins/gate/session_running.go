@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"time"
 
-	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
@@ -168,7 +167,7 @@ loop:
 
 	// 主循环退出后取消会话，并等待异步发送队列排空。
 	s.close(nil)
-	<-s.io.terminated
+	<-s.io.terminated.Signal().Done()
 	s.setState(SessionState_Death)
 
 	// 尽力向对端发送关闭原因，再撤销注册并释放连接资源。
@@ -178,8 +177,8 @@ loop:
 		s.transceiver.Conn.Close()
 	}
 	s.transceiver.Dispose()
-	// 资源清理完成后兑现 Closed Future。
-	async.ReturnVoid(s.closed)
+	// 资源清理完成后兑现 Closed 信号。
+	s.closed.Complete()
 
 	log.L(s.gate.svcCtx).Debug("session closed", zap.String("session_id", s.Id().String()))
 }

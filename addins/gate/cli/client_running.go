@@ -23,7 +23,6 @@ import (
 	"errors"
 	"time"
 
-	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"go.uber.org/zap"
 )
@@ -209,15 +208,15 @@ loop:
 
 	// 主循环退出后取消客户端，并等待异步发送队列排空。
 	c.close(nil)
-	<-c.io.terminated
+	<-c.io.terminated.Signal().Done()
 
 	// 发送队列停止后再释放连接和编解码资源。
 	if c.transceiver.Conn != nil {
 		c.transceiver.Conn.Close()
 	}
 	c.transceiver.Dispose()
-	// 资源清理完成后兑现 Closed Future。
-	async.ReturnVoid(c.closed)
+	// 资源清理完成后兑现 Closed 信号。
+	c.closed.Complete()
 
 	c.logger.Debug("client closed", zap.String("session_id", c.SessionId().String()))
 }

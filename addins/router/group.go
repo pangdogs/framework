@@ -45,12 +45,12 @@ type IGroup interface {
 	// ClientAddr 返回客户端使用的组播地址。
 	ClientAddr() string
 	// KeepAliveContinuous 持续刷新组租约，直到 ctx 取消或组过期。
-	// 返回的 Future 在保活停止后完成。
-	KeepAliveContinuous(ctx context.Context) (async.Future, error)
+	// 返回的 Signal 在保活停止后完成。
+	KeepAliveContinuous(ctx context.Context) (async.Signal, error)
 	// KeepAliveOnce 立即刷新一次组租约。
 	KeepAliveOnce(ctx context.Context) error
-	// Deleted 返回仅在组记录被显式删除时完成的 Future。
-	Deleted() async.Future
+	// Deleted 返回仅在组记录被显式删除时完成的 Signal。
+	Deleted() async.Signal
 	// Add 将实体 ID 加入组；重复成员不会产生额外条目。
 	Add(ctx context.Context, ids []uid.Id) error
 	// Remove 从组中移除实体 ID；不存在的成员会被忽略。
@@ -71,8 +71,8 @@ type _Group struct {
 	latestRevision  int64
 	entities        atomic.Pointer[generic.SliceMap[uid.Id, int64]]
 	io              _GroupIO
-	expired         async.FutureVoid
-	deleted         async.FutureVoid
+	expired         async.Completer
+	deleted         async.Completer
 	expireOnce      sync.Once
 	deleteOnce      sync.Once
 }
@@ -89,26 +89,26 @@ func (g *_Group) ClientAddr() string {
 }
 
 // KeepAliveContinuous 持续刷新组租约，直到 ctx 取消、路由器停止或组过期。
-func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) {
+func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-g.router.ctx.Done():
-		return async.Future{}, errors.New("router: router is terminating")
+		return async.Signal{}, errors.New("router: router is terminating")
 	default:
 	}
 
 	if !g.router.barrier.Join(1) {
-		return async.Future{}, errors.New("router: router is terminating")
+		return async.Signal{}, errors.New("router: router is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		select {
 		case <-ctx.Done():
-		case <-g.expired:
+		case <-g.expired.Signal().Done():
 		}
 		cancel()
 	}()
@@ -123,10 +123,10 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) 
 			zap.String("group_addr", g.ClientAddr()),
 			zap.Int64("lease_id", int64(g.leaseId)),
 			zap.Error(err))
-		return async.Future{}, fmt.Errorf("router: %w", err)
+		return async.Signal{}, fmt.Errorf("router: %w", err)
 	}
 
-	stopped := async.NewFutureVoid()
+	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer func() {
@@ -146,14 +146,14 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Future, error) 
 			zap.String("group_addr", g.ClientAddr()),
 			zap.Int64("lease_id", int64(g.leaseId)))
 
-		async.ReturnVoid(stopped)
+		stopped.Complete()
 	}()
 
 	log.L(g.router.svcCtx).Debug("keep alive group lease ok",
 		zap.String("group_name", g.Name()),
 		zap.String("group_addr", g.ClientAddr()),
 		zap.Int64("lease_id", int64(g.leaseId)))
-	return stopped.Out(), nil
+	return stoppedSignal, nil
 }
 
 // KeepAliveOnce 立即刷新一次组租约。
@@ -179,9 +179,9 @@ func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 	return nil
 }
 
-// Deleted 返回仅在组记录被显式删除时完成的 Future。
-func (g *_Group) Deleted() async.Future {
-	return g.deleted.Out()
+// Deleted 返回仅在组记录被显式删除时完成的 Signal。
+func (g *_Group) Deleted() async.Signal {
+	return g.deleted.Signal()
 }
 
 // Add 在同一 ETCD 事务中将实体 ID 加入组及其反向索引。
@@ -280,8 +280,8 @@ func (g *_Group) init(r *_Router, addr string, leaseId etcdv3.LeaseID, revision 
 	g.leaseId = leaseId
 	g.createdRevision = revision
 	g.latestRevision = revision
-	g.expired = async.NewFutureVoid()
-	g.deleted = async.NewFutureVoid()
+	g.expired, _ = async.NewSignal()
+	g.deleted, _ = async.NewSignal()
 
 	if len(ids) > 0 {
 		entities := generic.NewSliceMap[uid.Id, int64]()
@@ -338,13 +338,13 @@ func (g *_Group) sendEvent(event transport.IEvent) error {
 
 func (g *_Group) markExpired() {
 	g.expireOnce.Do(func() {
-		async.ReturnVoid(g.expired)
+		g.expired.Complete()
 	})
 }
 
 func (g *_Group) markDeleted() {
 	g.deleteOnce.Do(func() {
-		async.ReturnVoid(g.deleted)
+		g.deleted.Complete()
 	})
 }
 
@@ -468,7 +468,7 @@ func (g *_Group) watchingForChanges() {
 	if deleted {
 		g.markDeleted()
 	}
-	<-g.io.terminated
+	<-g.io.terminated.Signal().Done()
 
 	log.L(g.router.svcCtx).Debug("watching for group changes stopped",
 		zap.String("group_name", g.Name()),

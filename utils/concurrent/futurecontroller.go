@@ -45,9 +45,10 @@ func NewFutureController(ctx context.Context, timeout time.Duration) *FutureCont
 		ctx = context.Background()
 	}
 
+	terminated, _ := async.NewSignal()
 	fc := &FutureController{
 		ctx:            ctx,
-		terminated:     async.NewFutureVoid(),
+		terminated:     terminated,
 		timeout:        timeout,
 		pendingResolve: make(map[int64]*FutureHandle),
 		pendingTimeout: generic.NewUnboundedChannel[*FutureHandle](),
@@ -64,7 +65,7 @@ func NewFutureController(ctx context.Context, timeout time.Duration) *FutureCont
 type FutureController struct {
 	_                noCopy
 	ctx              context.Context
-	terminated       async.FutureVoid
+	terminated       async.Completer
 	barrier          generic.Barrier
 	idGen            atomic.Int64
 	timeout          time.Duration
@@ -86,9 +87,11 @@ func (fc *FutureController) New() (*FutureHandle, error) {
 	}
 	defer fc.barrier.Done()
 
+	promise, future := async.NewPromise()
 	handle := &FutureHandle{
 		id:         fc.genId(),
-		future:     async.NewFutureChan(),
+		promise:    promise,
+		future:     future,
 		deadline:   time.Now().Add(fc.timeout),
 		controller: fc,
 	}
@@ -122,13 +125,13 @@ func (fc *FutureController) Resolve(id int64, ret async.Result) error {
 		return ErrFutureExceeded
 	}
 
-	async.Return(handle.future, ret)
+	handle.promise.Resolve(ret)
 	return nil
 }
 
-// Terminated 返回控制器结束 Future；父 context 取消且所有待处理项完成收尾后该 Future 才会完成。
-func (fc *FutureController) Terminated() async.Future {
-	return fc.terminated.Out()
+// Terminated 返回控制器结束信号；父 context 取消且所有待处理项完成收尾后该信号才会完成。
+func (fc *FutureController) Terminated() async.Signal {
+	return fc.terminated.Signal()
 }
 
 func (fc *FutureController) watchingForTimeout() {
@@ -150,7 +153,7 @@ loop:
 			delete(fc.pendingResolve, handle.id)
 			fc.pendingResolveMu.Unlock()
 
-			async.Return(handle.future, async.NewResult(nil, ErrFutureExceeded))
+			handle.promise.Resolve(async.NewResult(nil, ErrFutureExceeded))
 		}
 	}
 
@@ -168,10 +171,10 @@ loop:
 			continue
 		}
 
-		async.Return(handle.future, async.NewResult(nil, ErrFutureControllerClosed))
+		handle.promise.Resolve(async.NewResult(nil, ErrFutureControllerClosed))
 	}
 
-	async.ReturnVoid(fc.terminated)
+	fc.terminated.Complete()
 }
 
 func (fc *FutureController) genId() int64 {

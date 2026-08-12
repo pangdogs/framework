@@ -79,16 +79,16 @@ type ISession interface {
 	DataIO() IDataIO
 	// EventIO 返回 GTP 事件 I/O 门面。
 	EventIO() IEventIO
-	// Close 请求以 err 为原因关闭会话，并返回关闭完成的 Future。
-	Close(err error) async.Future
-	// Closed 返回会话关闭完成时完成的 Future。
-	Closed() async.Future
+	// Close 请求以 err 为原因关闭会话，并返回关闭完成信号。
+	Close(err error) async.Signal
+	// Closed 返回会话关闭完成信号。
+	Closed() async.Signal
 }
 
 type _Session struct {
 	context.Context
 	close           context.CancelCauseFunc
-	closed          async.FutureVoid
+	closed          async.Completer
 	gate            *_Gate
 	id              uid.Id
 	userId          string
@@ -161,15 +161,15 @@ func (s *_Session) EventIO() IEventIO {
 	return (*_SessionEventIO)(&s.io)
 }
 
-// Close 请求以 err 为原因关闭会话，并返回关闭完成的 Future。
-func (s *_Session) Close(err error) async.Future {
+// Close 请求以 err 为原因关闭会话，并返回关闭完成信号。
+func (s *_Session) Close(err error) async.Signal {
 	s.close(err)
-	return s.closed.Out()
+	return s.closed.Signal()
 }
 
-// Closed 返回会话关闭完成时完成的 Future。
-func (s *_Session) Closed() async.Future {
-	return s.closed.Out()
+// Closed 返回会话关闭完成信号。
+func (s *_Session) Closed() async.Signal {
+	return s.closed.Signal()
 }
 
 // setState 原子更新会话状态。

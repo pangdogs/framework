@@ -52,7 +52,7 @@ type NetAddr struct {
 type Client struct {
 	context.Context
 	close            context.CancelCauseFunc
-	closed           async.FutureVoid
+	closed           async.Completer
 	options          ClientOptions
 	sessionId        uid.Id
 	endpoint         string
@@ -140,15 +140,15 @@ func (c *Client) S() *zap.SugaredLogger {
 	return c.sugarLogger
 }
 
-// Close 请求以 err 为原因关闭客户端，并返回关闭完成的 Future。
-func (c *Client) Close(err error) async.Future {
+// Close 请求以 err 为原因关闭客户端，并返回关闭完成信号。
+func (c *Client) Close(err error) async.Signal {
 	c.close(err)
-	return c.closed.Out()
+	return c.closed.Signal()
 }
 
-// Closed 返回客户端关闭完成时完成的 Future。
-func (c *Client) Closed() async.Future {
-	return c.closed.Out()
+// Closed 返回客户端关闭完成信号。
+func (c *Client) Closed() async.Signal {
+	return c.closed.Signal()
 }
 
 // handleHeartbeat 记录收到的 Ping 或 Pong 心跳事件。

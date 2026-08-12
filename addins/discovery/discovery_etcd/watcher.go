@@ -33,19 +33,19 @@ import (
 )
 
 // addWatcher 创建 ETCD 前缀 watcher，并将变化投递到事件流或回调。
-func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, async.Future, error) {
+func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler discovery.EventHandler, revision int64) (<-chan discovery.Event, async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-r.ctx.Done():
-		return nil, async.Future{}, errors.New("registry: registry is terminating")
+		return nil, async.Signal{}, errors.New("registry: registry is terminating")
 	default:
 	}
 
 	if !r.barrier.Join(1) {
-		return nil, async.Future{}, errors.New("registry: registry is terminating")
+		return nil, async.Signal{}, errors.New("registry: registry is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -84,7 +84,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 		}
 	}
 
-	stopped := async.NewFutureVoid()
+	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer func() {
@@ -151,13 +151,13 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 		if eventChan != nil {
 			eventChan.Close()
 		}
-		async.ReturnVoid(stopped)
+		stopped.Complete()
 
 		log.L(r.svcCtx).Debug("watching for service changes stopped", zap.String("key", key), zap.Int64("revision", revision))
 	}()
 
 	if eventChan != nil {
-		return eventChan.Out(), stopped.Out(), nil
+		return eventChan.Out(), stoppedSignal, nil
 	}
-	return nil, stopped.Out(), nil
+	return nil, stoppedSignal, nil
 }

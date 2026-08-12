@@ -59,7 +59,7 @@ type IEventIO interface {
 type _SessionIO struct {
 	session        *_Session
 	barrier        generic.Barrier
-	terminated     async.FutureVoid
+	terminated     async.Completer
 	dataChan       *generic.UnboundedChannel[binaryutil.Bytes]
 	eventChan      *generic.UnboundedChannel[transport.IEvent]
 	dataListeners  concurrent.Listeners[SessionDataHandler, []byte]
@@ -68,7 +68,7 @@ type _SessionIO struct {
 
 func (io *_SessionIO) init(session *_Session) {
 	io.session = session
-	io.terminated = async.NewFutureVoid()
+	io.terminated, _ = async.NewSignal()
 	io.dataChan = generic.NewUnboundedChannel[binaryutil.Bytes]()
 	io.eventChan = generic.NewUnboundedChannel[transport.IEvent]()
 }
@@ -140,7 +140,7 @@ loop:
 		}
 	}
 
-	async.ReturnVoid(io.terminated)
+	io.terminated.Complete()
 }
 
 func (io *_SessionIO) handlePayload(event transport.Event[*gtp.MsgPayload]) {

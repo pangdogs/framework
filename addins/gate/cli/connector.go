@@ -194,8 +194,9 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 // newClient 创建尚未绑定连接的客户端，并装配传输、控制、Future 和 I/O 处理器。
 func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client {
+	closed, _ := async.NewSignal()
 	client := &Client{
-		closed:        async.NewFutureVoid(),
+		closed:        closed,
 		options:       ctor.options,
 		endpoint:      endpoint,
 		migrationChan: make(chan struct{}),

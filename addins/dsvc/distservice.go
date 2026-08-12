@@ -54,8 +54,8 @@ type IDistService interface {
 	// Send 编码 msg 并发布到 dst。
 	Send(dst string, msg gap.Msg) error
 	// Listen 注册消息处理器，直到 ctx 取消或 add-in 停止。
-	// 返回的 Future 在监听器移除后完成。
-	Listen(ctx context.Context, handler MsgHandler) (async.Future, error)
+	// 返回的 Signal 在监听器移除后完成。
+	Listen(ctx context.Context, handler MsgHandler) (async.Signal, error)
 }
 
 func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService {
@@ -134,7 +134,7 @@ func (d *_DistService) BringUp() {
 			log.JSON("details", d.details))
 
 		// 在注册节点前订阅全部五类接收地址，避免上线后遗漏消息。
-		subs := []async.Future{
+		subs := []async.Signal{
 			// 全局广播与全局负载均衡地址。
 			d.subscribe(d.details.GlobalBroadcastAddr, ""),
 			d.subscribe(d.details.GlobalBalanceAddr, "balance"),
@@ -248,9 +248,9 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 }
 
 // Listen 注册消息处理器，直到 ctx 取消或 add-in 停止；handler 为 nil 时返回错误。
-func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) (async.Future, error) {
+func (d *_DistService) Listen(ctx context.Context, handler MsgHandler) (async.Signal, error) {
 	if handler == nil {
-		return async.Future{}, errors.New("dsvc: handler is nil")
+		return async.Signal{}, errors.New("dsvc: handler is nil")
 	}
 	return d.addListener(ctx, handler)
 }
@@ -285,7 +285,7 @@ func (d *_DistService) initNodeDetails() {
 	d.details = details
 }
 
-func (d *_DistService) subscribe(topic, queue string) async.Future {
+func (d *_DistService) subscribe(topic, queue string) async.Signal {
 	unsubscribed, err := d.broker.SubscribeHandler(d.ctx, topic, queue, generic.CastDelegateVoid1(d.handleEvent))
 	if err != nil {
 		log.L(d.svcCtx).Panic("subscribe service broker event failed", zap.String("topic", topic), zap.String("queue", queue), zap.Error(err))

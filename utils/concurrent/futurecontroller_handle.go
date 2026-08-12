@@ -31,7 +31,8 @@ import (
 type FutureHandle struct {
 	_          noCopy
 	id         int64
-	future     async.FutureChan
+	promise    async.Promise
+	future     async.Future
 	deadline   time.Time
 	resolved   atomic.Bool
 	controller *FutureController
@@ -44,7 +45,7 @@ func (h *FutureHandle) Id() int64 {
 
 // Future 返回用于等待结果的只读 Future。
 func (h *FutureHandle) Future() async.Future {
-	return h.future.Out()
+	return h.future
 }
 
 // Deadline 返回该 Future 的截止时间。

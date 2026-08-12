@@ -34,19 +34,19 @@ type (
 	SessionEstablishedHandler = generic.DelegateVoid1[ISession]
 )
 
-func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
+func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishedHandler) (async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-g.ctx.Done():
-		return async.Future{}, errors.New("gate: gate is terminating")
+		return async.Signal{}, errors.New("gate: gate is terminating")
 	default:
 	}
 
 	if !g.barrier.Join(1) {
-		return async.Future{}, errors.New("gate: gate is terminating")
+		return async.Signal{}, errors.New("gate: gate is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -59,7 +59,7 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 	}()
 
 	watcher := g.sessionWatcher.Add(handler, g.options.SessionWatcherInboxSize)
-	stopped := async.NewFutureVoid()
+	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer g.barrier.Done()
@@ -68,7 +68,7 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 			select {
 			case <-ctx.Done():
 				g.sessionWatcher.Delete(watcher)
-				async.ReturnVoid(stopped)
+				stopped.Complete()
 				log.L(g.svcCtx).Debug("delete a session established watcher")
 				return
 			case session := <-watcher.Inbox:
@@ -91,5 +91,5 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 	}()
 
 	log.L(g.svcCtx).Debug("add a session established watcher")
-	return stopped.Out(), nil
+	return stoppedSignal, nil
 }

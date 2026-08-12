@@ -17,21 +17,11 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package discovery
+package framework
 
-import (
-	"context"
+import "errors"
 
-	"git.golaxy.org/core/utils/async"
+var (
+	// ErrAsyncCallerNotAlive 表示异步结果返回时，发起续体的实体或组件已经失活。
+	ErrAsyncCallerNotAlive = errors.New("async caller is not alive")
 )
-
-// IRegistration 控制一次带租约的服务节点注册。
-type IRegistration interface {
-	// KeepAliveContinuous 持续刷新租约，直到 ctx 取消或保活流结束。
-	// 返回的 Signal 在保活停止后完成。
-	KeepAliveContinuous(ctx context.Context) (async.Signal, error)
-	// KeepAliveOnce 立即刷新一次租约。
-	KeepAliveOnce(ctx context.Context) error
-	// Deregister 撤销租约并注销服务节点。
-	Deregister(ctx context.Context) error
-}

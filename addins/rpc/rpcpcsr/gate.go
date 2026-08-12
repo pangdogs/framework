@@ -53,9 +53,9 @@ type _GateProcessor struct {
 	router      router.IRouter
 	encoder     *codec.Encoder
 	decoder     *codec.Decoder
-	stopping    async.FutureVoid
+	stopping    context.CancelFunc
 	stoppingCtx context.Context
-	stopped     [2]async.Future
+	stopped     [2]async.Signal
 }
 
 // Init 监听网关会话与分布式服务消息。
@@ -65,8 +65,7 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 	p.dentq = dent.QuerierAddIn.Require(svcCtx)
 	p.gate = gate.AddIn.Require(svcCtx)
 	p.router = router.AddIn.Require(svcCtx)
-	p.stopping = async.NewFutureVoid()
-	p.stoppingCtx = p.stopping.Out().Context(context.Background())
+	p.stoppingCtx, p.stopping = context.WithCancel(context.Background())
 
 	var err error
 	p.stopped[0], err = p.gate.Watch(p.stoppingCtx, generic.CastDelegateVoid1(p.handleSessionEstablished))
@@ -88,7 +87,7 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 
 // Shut 停止监听并等待两个处理循环退出。
 func (p *_GateProcessor) Shut(svcCtx service.Context) {
-	async.ReturnVoid(p.stopping)
+	p.stopping()
 
 	for _, f := range p.stopped {
 		<-f.Done()

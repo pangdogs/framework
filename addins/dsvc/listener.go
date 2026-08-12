@@ -42,19 +42,19 @@ type _BrokerMsg struct {
 	msgPacket gap.MsgPacket
 }
 
-func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (async.Future, error) {
+func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
 	case <-d.ctx.Done():
-		return async.Future{}, errors.New("dsvc: dsvc is terminating")
+		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
 	default:
 	}
 
 	if !d.barrier.Join(1) {
-		return async.Future{}, errors.New("dsvc: dsvc is terminating")
+		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -67,7 +67,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 	}()
 
 	listener := d.listeners.Add(handler, d.options.ListenerInboxSize)
-	stopped := async.NewFutureVoid()
+	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer d.barrier.Done()
@@ -76,7 +76,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 			select {
 			case <-ctx.Done():
 				d.listeners.Delete(listener)
-				async.ReturnVoid(stopped)
+				stopped.Complete()
 				log.L(d.svcCtx).Debug("delete a broker message listener")
 				return
 			case msg := <-listener.Inbox:
@@ -94,7 +94,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 	}()
 
 	log.L(d.svcCtx).Debug("add a broker message listener")
-	return stopped.Out(), nil
+	return stoppedSignal, nil
 }
 
 func (d *_DistService) handleEvent(e broker.Event) {

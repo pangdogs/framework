@@ -47,7 +47,7 @@ Golaxy Framework 是 Golaxy 体系的服务端扩展层，主要解决以下问�
 
 - **应用与服务编排**：基于 Cobra/Viper 的命令行和配置入口，支持多服务、多副本、信号驱动的优雅退出以及可选 pprof。
 - **Actor + EC 执行模型**：Runtime 串行化状态访问，Entity/Component 负责业务组合，可按需启用实时帧循环和依赖自动注入。
-- **异步协作**：提供 Runtime 调度、后台 goroutine、定时器、通道转 Future，以及 `Any`、`OK`、`All`、`Transform`、`Foreach` 等 Await 组合方式。
+- **异步协作**：提供 Runtime 调度、生命周期 Scope、后台 goroutine、定时器，以及语义分离的 Future、Signal、Stream、Future 组合器和 Runtime 续体。
 - **分布式基础设施**：内置 NATS broker、ETCD 服务发现、ETCD/Redis 分布式互斥锁、服务节点注册和分布式实体定位。
 - **RPC**：支持 Service、Runtime、Entity 和 Client 四类目标，覆盖单播、负载均衡、广播、单向调用和 Future 返回值。
 - **网关与路由**：支持 TCP/WebSocket 会话、认证、重连、时钟同步、实体与会话映射、逻辑分组和组播。
@@ -108,7 +108,7 @@ flowchart TB
 | Entity | 运行时中的有状态业务对象；全局作用域实体可由分布式实体 add-in 自动发布。 |
 | Component | 组合到实体中的业务能力，可通过 `ComponentBehavior` 获取所属 Runtime、Service、日志和异步/RPC 辅助。 |
 | Add-in | 安装到 Service 或 Runtime 上的可替换扩展；框架只在同名能力尚未安装时补装默认实现。 |
-| Future / Await | 表达异步结果，并将结果处理安全地调度回发起方所属 Runtime。 |
+| Future / Signal / Stream | 分别表达一次性结果、无结果完成通知和连续结果；`ContinueOn` 将 Future 续体调度回所属 Runtime。 |
 
 ### 运行与关闭
 
@@ -125,7 +125,7 @@ Golaxy 将两个相互正交的模型组合在一起：Actor 负责**状态由�
 
 | 模型 | 解决的问题 | Golaxy 中的对应对象 |
 | --- | --- | --- |
-| Actor | 隔离可变状态，通过串行消息处理避免并发写冲突。 | `Runtime` 及其任务队列、所属 goroutine、Future/Await。 |
+| Actor | 隔离可变状态，通过串行消息处理避免并发写冲突。 | `Runtime` 及其任务队列、所属 goroutine、Future 和续体。 |
 | EC | 以身份稳定的实体承载状态，以可插拔组件组合能力。 | Entity、Component、Prototype、生命周期和 EntityTree。 |
 
 > 这里的 Actor 边界是 **Runtime，而不是单个 Entity**。一个 Runtime 可以管理一个实体，也可以管理一组需要保持严格执行顺序的实体。文档中的 EC 指 Entity-Component；它不以传统数据导向 ECS 的全局 System 查询和批处理作为主要编程方式，业务行为通常直接实现在 Entity 或 Component 的生命周期方法中。
@@ -140,19 +140,19 @@ sequenceDiagram
     participant Queue as Runtime 任务队列
     participant RuntimeLoop as Runtime goroutine
     participant EC as Entity / Components
-    Source->>Queue: CallAsync / RPC 投递
+    Source->>Queue: Submit / Post / RPC 投递
     Queue->>RuntimeLoop: 依次取出任务
     RuntimeLoop->>EC: 执行业务并修改状态
     EC-->>RuntimeLoop: async.Result
     RuntimeLoop-->>Source: 完成 Future
-    Source->>Queue: Await 回调重新入队
+    Source->>Queue: ContinueOn 续体重新入队
     Note over Queue,RuntimeLoop: Update 与 LateUpdate 也在同一边界内串行执行
 ```
 
 - Runtime 内的普通任务、实体生命周期和帧回调不会彼此并行执行，因此同一 Runtime 内通常不需要为业务状态加锁。
 - Entity 不会自动获得独立 goroutine。把多个 Entity 放入同一 Runtime，意味着它们共享一个串行执行域。
-- Runtime 外部只能直接使用明确标注为并发安全的上下文或只读接口；状态读取和修改应通过 `CallAsync`、RPC 或其他调度入口进入目标 Runtime。
-- `GoAsync` 适合阻塞 I/O 和独立计算，但其函数运行在新 goroutine 中，不能直接触碰 Runtime 状态；使用 `Await` 将结果处理重新调度回 Runtime。
+- Runtime 外部只能直接使用明确标注为并发安全的上下文或只读接口；状态读取和修改应通过 `Submit`、`Post`、RPC 或其他调度入口进入目标 Runtime。
+- `Spawn` 适合阻塞 I/O 和独立计算，但其函数运行在新 goroutine 中，不能直接触碰 Runtime 状态；使用 `ContinueOn` 将 Future 的后续处理重新调度回 Runtime。
 - 帧循环启用后，`Update()` 和 `LateUpdate()` 与普通任务共享执行边界。耗时或阻塞回调会同时拖慢消息处理和帧率，应移出 Actor goroutine。
 - Framework 创建的 Runtime 默认使用无界任务队列。无界队列避免生产者因容量立即失败，但也意味着业务需要通过限流、超时和指标监控控制积压。
 
@@ -560,14 +560,15 @@ func (*GameService) OnStarted(svc framework.IService) {
 
 | API | 执行位置 | 使用建议 |
 | --- | --- | --- |
-| `CallAsync` / `CallVoidAsync` | 所属 Runtime goroutine | 用于读取或修改 Runtime、Entity、Component 状态。 |
-| `GoAsync` / `GoVoidAsync` | 新 goroutine | 用于阻塞 I/O 或独立计算；不要直接并发访问 Runtime 状态。 |
-| `TimeAfterAsync` / `TimeAtAsync` / `TimeTickAsync` | 异步计时，结果返回 Future | 用于实体或组件生命周期内的定时任务。 |
-| `ReadChanAsync` | 将通道值转换为连续 Future 结果 | 实体或组件失活、通道关闭时结束。 |
-| `Await(...).Any/OK/All` | 结果回调重新调度到 Runtime | 分别等待首个结果、首个成功结果或全部结果。 |
-| `Await(...).Transform/Foreach` | 每个连续结果回到 Runtime 处理 | 适用于流式 Future。 |
+| `Submit` / `SubmitVoid` | 所属 Runtime goroutine | 提交需要结果的任务，用于读取或修改 Runtime、Entity、Component 状态。 |
+| `Post` | 所属 Runtime goroutine | 投递无需结果的任务；不创建 Future。 |
+| `Spawn` / `SpawnVoid` | Scope 管理的新 goroutine | 用于阻塞 I/O 或独立计算；不要直接并发访问 Runtime 状态。 |
+| `After` / `At` | 异步计时并完成一次 Future | 用于实体或组件生命周期内的一次性定时任务。 |
+| `Every` / `FromChan` | 产出单消费 Stream | 用于周期计时或通道桥接；Scope 取消或来源关闭时结束。 |
+| `ContinueOn` / `ContinueOnVoid` | 续体重新调度到所属 Runtime | 在 Future 完成后安全地继续访问 Runtime 局部状态。 |
+| `async.Race` / `FirstSuccess` / `All` / `AllSettled` | 组合一次性 Future | 分别选择首个完成、首个成功，或收集全部结果。 |
 
-Entity 或 Component 在异步任务返回前失活时，相关回调会停止，或返回 `ErrAsyncCallerNotAlive`。
+`Future` 保存一个可重放结果，`Signal` 只表示生命周期操作已经完成，`Stream` 表示连续结果且由单个消费者读取。Entity 和 Component 的异步辅助绑定各自的 `AsyncScope()`；对象失活后，相关后台任务和流会收到取消，尚未执行的任务或续体会停止或返回 `ErrAsyncCallerNotAlive`。
 
 ## Add-in 扩展体系
 
@@ -611,7 +612,7 @@ func (*LobbyService) InstallDistSync(svc framework.IService) {
 }
 ```
 
-服务级 add-in 在 `Starting` 前冻结。Runtime 级 add-in 支持运行期安装和卸载，但应在所属 Runtime goroutine 中操作。
+服务级 add-in 可在 `OnBirth`、安装钩子或 `OnBuilt` 中安装，并在 `Starting` 回调前冻结。`OnBuilt` 发生在默认装配之后，适合追加自定义 add-in；替换默认实现应使用 `OnBirth` 或对应安装钩子。Runtime 级 add-in 支持运行期安装和卸载，但应在所属 Runtime goroutine 中操作。
 
 ### 可选 add-in 与工具
 

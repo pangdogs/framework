@@ -73,7 +73,7 @@ func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Fu
 	// 查询分布式实体信息
 	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 查询分布式实体目标服务节点
@@ -81,7 +81,7 @@ func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Fu
 		return node.Service == service
 	})
 	if nodeIdx < 0 {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+		return async.Rejected(rpcpcsr.ErrDistEntityNodeNotFound)
 	}
 
 	// 调用链
@@ -110,7 +110,7 @@ func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	// 查询分布式实体信息
 	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 统计节点数量
@@ -121,7 +121,7 @@ func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) a
 		}
 	}
 	if count <= 0 {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+		return async.Rejected(rpcpcsr.ErrDistEntityNodeNotFound)
 	}
 
 	// 随机目标节点
@@ -164,7 +164,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 	// 查询分布式实体信息
 	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
 	if !ok {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNotFound))
+		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
 
 	// 随机目标节点
@@ -172,7 +172,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 
 	if excludeSelf {
 		if len(distEntity.Nodes) <= 1 {
-			return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+			return async.Rejected(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 
 		localAddr := dsvc.AddIn.Require(p.svcCtx).NodeDetails().LocalAddr
@@ -186,7 +186,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 
 	} else {
 		if len(distEntity.Nodes) <= 0 {
-			return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrDistEntityNodeNotFound))
+			return async.Rejected(rpcpcsr.ErrDistEntityNodeNotFound)
 		}
 		dst = distEntity.Nodes[rand.Intn(len(distEntity.Nodes))].RemoteAddr
 	}

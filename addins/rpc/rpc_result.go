@@ -20,6 +20,8 @@
 package rpc
 
 import (
+	"context"
+
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
 )
@@ -49,7 +51,7 @@ func (rvs ResultValues) ensure(skip int) []any {
 
 // Results 等待 Future 的首个结果，并将其解析为未指定类型的返回值列表。
 func Results(future async.Future) (rvs ResultValues) {
-	return ParseResults(<-future.Chan())
+	return ParseResults(future.Wait(context.Background()))
 }
 
 // ResultTupleVoid 保存无返回值 RPC 的错误。
@@ -75,7 +77,7 @@ func (rtp ResultTupleVoid) ensure(skip int) {
 
 // ResultVoid 等待 Future 的首个结果，并将其解析为无返回值结果。
 func ResultVoid(future async.Future) (rtp ResultTupleVoid) {
-	return ParseVoid(<-future.Chan())
+	return ParseVoid(future.Wait(context.Background()))
 }
 
 // ResultTuple1 保存一个指定类型的 RPC 返回值及错误。
@@ -103,7 +105,7 @@ func (rtp ResultTuple1[T1]) ensure(skip int) T1 {
 
 // Result1 等待 Future 的首个结果，并解析一个指定类型的返回值。
 func Result1[T1 any](future async.Future) (rtp ResultTuple1[T1]) {
-	return Parse1[T1](<-future.Chan())
+	return Parse1[T1](future.Wait(context.Background()))
 }
 
 // ResultTuple2 保存两个指定类型的 RPC 返回值及错误。
@@ -132,7 +134,7 @@ func (rtp ResultTuple2[T1, T2]) ensure(skip int) (T1, T2) {
 
 // Result2 等待 Future 的首个结果，并解析两个指定类型的返回值。
 func Result2[T1, T2 any](future async.Future) (rtp ResultTuple2[T1, T2]) {
-	return Parse2[T1, T2](<-future.Chan())
+	return Parse2[T1, T2](future.Wait(context.Background()))
 }
 
 // ResultTuple3 保存三个指定类型的 RPC 返回值及错误。
@@ -162,7 +164,7 @@ func (rtp ResultTuple3[T1, T2, T3]) ensure(skip int) (T1, T2, T3) {
 
 // Result3 等待 Future 的首个结果，并解析三个指定类型的返回值。
 func Result3[T1, T2, T3 any](future async.Future) (rtp ResultTuple3[T1, T2, T3]) {
-	return Parse3[T1, T2, T3](<-future.Chan())
+	return Parse3[T1, T2, T3](future.Wait(context.Background()))
 }
 
 // ResultTuple4 保存四个指定类型的 RPC 返回值及错误。
@@ -193,7 +195,7 @@ func (rtp ResultTuple4[T1, T2, T3, T4]) ensure(skip int) (T1, T2, T3, T4) {
 
 // Result4 等待 Future 的首个结果，并解析四个指定类型的返回值。
 func Result4[T1, T2, T3, T4 any](future async.Future) (rtp ResultTuple4[T1, T2, T3, T4]) {
-	return Parse4[T1, T2, T3, T4](<-future.Chan())
+	return Parse4[T1, T2, T3, T4](future.Wait(context.Background()))
 }
 
 // ResultTuple5 保存五个指定类型的 RPC 返回值及错误。
@@ -225,7 +227,7 @@ func (rtp ResultTuple5[T1, T2, T3, T4, T5]) ensure(skip int) (T1, T2, T3, T4, T5
 
 // Result5 等待 Future 的首个结果，并解析五个指定类型的返回值。
 func Result5[T1, T2, T3, T4, T5 any](future async.Future) (rtp ResultTuple5[T1, T2, T3, T4, T5]) {
-	return Parse5[T1, T2, T3, T4, T5](<-future.Chan())
+	return Parse5[T1, T2, T3, T4, T5](future.Wait(context.Background()))
 }
 
 // ResultTuple6 保存六个指定类型的 RPC 返回值及错误。
@@ -258,7 +260,7 @@ func (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) ensure(skip int) (T1, T2, T3, T4
 
 // Result6 等待 Future 的首个结果，并解析六个指定类型的返回值。
 func Result6[T1, T2, T3, T4, T5, T6 any](future async.Future) (rtp ResultTuple6[T1, T2, T3, T4, T5, T6]) {
-	return Parse6[T1, T2, T3, T4, T5, T6](<-future.Chan())
+	return Parse6[T1, T2, T3, T4, T5, T6](future.Wait(context.Background()))
 }
 
 // ResultTuple7 保存七个指定类型的 RPC 返回值及错误。
@@ -292,7 +294,7 @@ func (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) ensure(skip int) (T1, T2, T3
 
 // Result7 等待 Future 的首个结果，并解析七个指定类型的返回值。
 func Result7[T1, T2, T3, T4, T5, T6, T7 any](future async.Future) (rtp ResultTuple7[T1, T2, T3, T4, T5, T6, T7]) {
-	return Parse7[T1, T2, T3, T4, T5, T6, T7](<-future.Chan())
+	return Parse7[T1, T2, T3, T4, T5, T6, T7](future.Wait(context.Background()))
 }
 
 // ResultTuple8 保存八个指定类型的 RPC 返回值及错误。
@@ -327,7 +329,7 @@ func (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) ensure(skip int) (T1, T2
 
 // Result8 等待 Future 的首个结果，并解析八个指定类型的返回值。
 func Result8[T1, T2, T3, T4, T5, T6, T7, T8 any](future async.Future) (rtp ResultTuple8[T1, T2, T3, T4, T5, T6, T7, T8]) {
-	return Parse8[T1, T2, T3, T4, T5, T6, T7, T8](<-future.Chan())
+	return Parse8[T1, T2, T3, T4, T5, T6, T7, T8](future.Wait(context.Background()))
 }
 
 // ResultTuple9 保存九个指定类型的 RPC 返回值及错误。
@@ -363,7 +365,7 @@ func (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) ensure(skip int) (T1
 
 // Result9 等待 Future 的首个结果，并解析九个指定类型的返回值。
 func Result9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](future async.Future) (rtp ResultTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) {
-	return Parse9[T1, T2, T3, T4, T5, T6, T7, T8, T9](<-future.Chan())
+	return Parse9[T1, T2, T3, T4, T5, T6, T7, T8, T9](future.Wait(context.Background()))
 }
 
 // ResultTuple10 保存十个指定类型的 RPC 返回值及错误。
@@ -400,7 +402,7 @@ func (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) ensure(skip in
 
 // Result10 等待 Future 的首个结果，并解析十个指定类型的返回值。
 func Result10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](future async.Future) (rtp ResultTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) {
-	return Parse10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](<-future.Chan())
+	return Parse10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](future.Wait(context.Background()))
 }
 
 // ResultTuple11 保存十一个指定类型的 RPC 返回值及错误。
@@ -438,7 +440,7 @@ func (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) ensure(sk
 
 // Result11 等待 Future 的首个结果，并解析十一个指定类型的返回值。
 func Result11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](future async.Future) (rtp ResultTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) {
-	return Parse11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11](<-future.Chan())
+	return Parse11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11](future.Wait(context.Background()))
 }
 
 // ResultTuple12 保存十二个指定类型的 RPC 返回值及错误。
@@ -477,7 +479,7 @@ func (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) ensu
 
 // Result12 等待 Future 的首个结果，并解析十二个指定类型的返回值。
 func Result12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](future async.Future) (rtp ResultTuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) {
-	return Parse12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12](<-future.Chan())
+	return Parse12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12](future.Wait(context.Background()))
 }
 
 // ResultTuple13 保存十三个指定类型的 RPC 返回值及错误。
@@ -517,7 +519,7 @@ func (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13])
 
 // Result13 等待 Future 的首个结果，并解析十三个指定类型的返回值。
 func Result13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](future async.Future) (rtp ResultTuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) {
-	return Parse13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13](<-future.Chan())
+	return Parse13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13](future.Wait(context.Background()))
 }
 
 // ResultTuple14 保存十四个指定类型的 RPC 返回值及错误。
@@ -558,7 +560,7 @@ func (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 
 // Result14 等待 Future 的首个结果，并解析十四个指定类型的返回值。
 func Result14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](future async.Future) (rtp ResultTuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) {
-	return Parse14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14](<-future.Chan())
+	return Parse14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14](future.Wait(context.Background()))
 }
 
 // ResultTuple15 保存十五个指定类型的 RPC 返回值及错误。
@@ -600,7 +602,7 @@ func (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 
 // Result15 等待 Future 的首个结果，并解析十五个指定类型的返回值。
 func Result15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](future async.Future) (rtp ResultTuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) {
-	return Parse15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15](<-future.Chan())
+	return Parse15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15](future.Wait(context.Background()))
 }
 
 // ResultTuple16 保存十六个指定类型的 RPC 返回值及错误。
@@ -643,5 +645,5 @@ func (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, 
 
 // Result16 等待 Future 的首个结果，并解析十六个指定类型的返回值。
 func Result16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](future async.Future) (rtp ResultTuple16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) {
-	return Parse16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16](<-future.Chan())
+	return Parse16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16](future.Wait(context.Background()))
 }

@@ -118,14 +118,14 @@ func (b *_NatsBroker) SubscribeEvent(ctx context.Context, pattern, queue string,
 	return eventChan, nil
 }
 
-// SubscribeHandler 订阅消息并同步调用 handler；返回的 Future 在取消订阅后完成。
-func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue string, handler broker.EventHandler, _ ...bool) (async.Future, error) {
+// SubscribeHandler 订阅消息并同步调用 handler；返回的 Signal 在取消订阅后完成。
+func (b *_NatsBroker) SubscribeHandler(ctx context.Context, pattern, queue string, handler broker.EventHandler, _ ...bool) (async.Signal, error) {
 	if handler == nil {
-		return async.Future{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
+		return async.Signal{}, fmt.Errorf("broker: %w: handler is nil", core.ErrArgs)
 	}
 	_, unsubscribed, err := b.addSubscriber(ctx, pattern, queue, handler)
 	if err != nil {
-		return async.Future{}, err
+		return async.Signal{}, err
 	}
 	return unsubscribed, nil
 }

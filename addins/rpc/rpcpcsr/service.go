@@ -43,8 +43,8 @@ func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool)
 type _ServiceProcessor struct {
 	svcCtx         service.Context
 	dsvc           dsvc.IDistService
-	stopping       async.FutureVoid
-	stopped        async.Future
+	stopping       context.CancelFunc
+	stopped        async.Signal
 	permValidator  PermissionValidator
 	reduceCallPath bool
 }
@@ -53,10 +53,11 @@ type _ServiceProcessor struct {
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
-	p.stopping = async.NewFutureVoid()
+	stoppingCtx, stopping := context.WithCancel(context.Background())
+	p.stopping = stopping
 
 	var err error
-	p.stopped, err = p.dsvc.Listen(p.stopping.Out().Context(context.Background()), generic.CastDelegateVoid2(p.handleServiceMsg))
+	p.stopped, err = p.dsvc.Listen(stoppingCtx, generic.CastDelegateVoid2(p.handleServiceMsg))
 	if err != nil {
 		log.L(svcCtx).Panic("listen rpc message failed", zap.Error(err), zap.String("processor", types.FullName(*p)))
 	}
@@ -66,7 +67,7 @@ func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 
 // Shut 停止订阅并等待消息处理循环退出。
 func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
-	async.ReturnVoid(p.stopping)
+	p.stopping()
 
 	<-p.stopped.Done()
 

@@ -88,7 +88,7 @@ func (r *_RPC) Shut(svcCtx service.Context) {
 // RPC 依次选择首个匹配的投递器发起请求。
 func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args ...any) async.Future {
 	if !r.barrier.Join(1) {
-		return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrTerminated))
+		return async.Rejected(rpcpcsr.ErrTerminated)
 	}
 	defer r.barrier.Done()
 
@@ -106,7 +106,7 @@ func (r *_RPC) RPC(dst string, cc rpcstack.CallChain, cp callpath.CallPath, args
 		return deliverer.Request(r.svcCtx, dst, cc, cp, args)
 	}
 
-	return async.Return(async.NewFutureChan(), async.NewResult(nil, rpcpcsr.ErrUndeliverable))
+	return async.Rejected(rpcpcsr.ErrUndeliverable)
 }
 
 // OnewayRPC 依次选择首个匹配的投递器发送通知。

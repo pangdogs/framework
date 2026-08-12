@@ -53,13 +53,15 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 		return nil, ErrSessionNotFound
 	}
 
+	removed, _ := async.NewSignal()
+	unmapped, _ := async.NewSignal()
 	mapping := &_Mapping{
 		router:     r,
 		clientAddr: gate.ClientDetails.DomainUnicast.Join(entity.Id().String()),
 		entity:     entity,
 		session:    session,
-		removed:    async.NewFutureVoid(),
-		unmapped:   async.NewFutureVoid(),
+		removed:    removed,
+		unmapped:   unmapped,
 	}
 
 	r.mappingMu.Lock()
@@ -75,13 +77,13 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 
 	if currByEntity != nil {
 		if r.removeMapping(currByEntity) {
-			async.ReturnVoid(currByEntity.removed)
+			currByEntity.removed.Complete()
 		}
 	}
 
 	if currBySession != nil {
 		if r.removeMapping(currBySession) {
-			async.ReturnVoid(currBySession.removed)
+			currBySession.removed.Complete()
 		}
 	}
 

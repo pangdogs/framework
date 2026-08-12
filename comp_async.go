@@ -31,10 +31,10 @@ import (
 	"git.golaxy.org/core/utils/reinterpret"
 )
 
-// CallAsync 将 fun 提交到组件所属运行时执行，并返回承载调用结果的 Future。
+// Submit 将 fun 提交到组件所属 Runtime，并返回执行结果 Future。
 // 执行时组件若已失活，Future 返回 ErrAsyncCallerNotAlive。
-func (c *ComponentBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
-	return core.CallAsync(c, func(ctx runtime.Context, args ...any) async.Result {
+func (c *ComponentBehavior) Submit(fun generic.FuncVar1[IRuntime, any, async.Result], args ...any) async.Future {
+	return core.Submit(c, func(ctx runtime.Context, args ...any) async.Result {
 		if !c.isAlive() {
 			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
@@ -42,10 +42,10 @@ func (c *ComponentBehavior) CallAsync(fun generic.FuncVar1[IRuntime, any, async.
 	}, args...)
 }
 
-// CallVoidAsync 将无返回值的 fun 提交到组件所属运行时执行，并返回完成信号。
+// SubmitVoid 将无业务返回值的 fun 提交到组件所属 Runtime。
 // 执行时组件若已失活，Future 返回 ErrAsyncCallerNotAlive。
-func (c *ComponentBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
-	return core.CallAsync(c, func(ctx runtime.Context, args ...any) async.Result {
+func (c *ComponentBehavior) SubmitVoid(fun generic.ActionVar1[IRuntime, any], args ...any) async.Future {
+	return core.Submit(c, func(ctx runtime.Context, args ...any) async.Result {
 		if !c.isAlive() {
 			return async.NewResult(nil, ErrAsyncCallerNotAlive)
 		}
@@ -54,48 +54,71 @@ func (c *ComponentBehavior) CallVoidAsync(fun generic.ActionVar1[IRuntime, any],
 	}, args...)
 }
 
-// GoAsync 在新的 goroutine 中执行 fun，并返回承载调用结果的 Future。
-// 传入的上下文跟随组件所属实体的生命周期；fun 不得直接并发访问运行时状态。
-func (c *ComponentBehavior) GoAsync(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
-	return core.GoAsync(c.Entity(), func(ctx context.Context, args ...any) async.Result {
+// Post 将 fun 投递到组件所属 Runtime，不创建 Future。
+// fun 执行前组件已经失活时会被忽略。
+func (c *ComponentBehavior) Post(fun generic.ActionVar1[IRuntime, any], args ...any) error {
+	return core.Post(c, func(ctx runtime.Context, args ...any) {
+		if !c.isAlive() {
+			return
+		}
+		fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), args...)
+	}, args...)
+}
+
+// Spawn 在组件生命周期 Scope 中启动后台任务。
+// fun 不得直接并发访问 Runtime 局部状态。
+func (c *ComponentBehavior) Spawn(fun generic.FuncVar1[context.Context, any, async.Result], args ...any) async.Future {
+	return core.Spawn(c, func(ctx context.Context, args ...any) async.Result {
 		return fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// GoVoidAsync 在新的 goroutine 中执行无返回值的 fun，并返回完成信号。
-// 传入的上下文跟随组件所属实体的生命周期；fun 不得直接并发访问运行时状态。
-func (c *ComponentBehavior) GoVoidAsync(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
-	return core.GoVoidAsync(c.Entity(), func(ctx context.Context, args ...any) {
+// SpawnVoid 在组件生命周期 Scope 中启动无业务返回值的后台任务。
+func (c *ComponentBehavior) SpawnVoid(fun generic.ActionVar1[context.Context, any], args ...any) async.Future {
+	return core.SpawnVoid(c, func(ctx context.Context, args ...any) {
 		fun.UnsafeCall(ctx, args...)
 	}, args...)
 }
 
-// TimeAfterAsync 在 dur 后产出一次当前时间；实体失活时直接结束。
-func (c *ComponentBehavior) TimeAfterAsync(dur time.Duration) async.Future {
-	return core.TimeAfterAsync(c.Entity(), dur)
+// After 在组件生命周期内等待 dur 后以当前时间完成 Future。
+func (c *ComponentBehavior) After(dur time.Duration) async.Future {
+	return core.After(c.AsyncScope().Context(), dur)
 }
 
-// TimeAtAsync 在 at 到达时产出一次当前时间；实体失活时直接结束。
-func (c *ComponentBehavior) TimeAtAsync(at time.Time) async.Future {
-	return core.TimeAtAsync(c.Entity(), at)
+// At 在组件生命周期内等待到 at 后以当前时间完成 Future。
+func (c *ComponentBehavior) At(at time.Time) async.Future {
+	return core.At(c.AsyncScope().Context(), at)
 }
 
-// TimeTickAsync 按 dur 周期持续产出当前时间，直到实体失活。
-func (c *ComponentBehavior) TimeTickAsync(dur time.Duration) async.Future {
-	return core.TimeTickAsync(c.Entity(), dur)
+// Every 在组件生命周期内按 dur 周期产出当前时间。
+func (c *ComponentBehavior) Every(dur time.Duration) async.Stream {
+	return core.Every(c.AsyncScope().Context(), dur)
 }
 
-// ReadChanAsync 将 ch 中的值转换为连续产出，直到通道关闭或实体失活。
-func (c *ComponentBehavior) ReadChanAsync(ch <-chan any) async.Future {
-	return core.ReadChanAsync(c.Entity(), ch)
+// FromChan 将 ch 转换为绑定组件生命周期的 Stream。
+func (c *ComponentBehavior) FromChan(ch <-chan any) async.Stream {
+	return core.FromChan(c.AsyncScope().Context(), ch)
 }
 
-// Await 创建与组件关联的等待分发器；nil Future 会被忽略。
-func (c *ComponentBehavior) Await(futures ...async.Future) AwaitDirector {
-	return AwaitDirector{
-		caller:   c,
-		director: core.Await(c, futures...),
-	}
+// ContinueOn 在 future 完成后回到组件所属 Runtime 执行 fun。
+func (c *ComponentBehavior) ContinueOn(future async.Future, fun generic.FuncVar2[IRuntime, async.Result, any, async.Result], args ...any) async.Future {
+	return core.ContinueOn(c, future, func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
+		if !c.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
+		}
+		return fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), ret, args...)
+	}, args...)
+}
+
+// ContinueOnVoid 在 future 完成后回到组件所属 Runtime 执行无业务返回值的 fun。
+func (c *ComponentBehavior) ContinueOnVoid(future async.Future, fun generic.ActionVar2[IRuntime, async.Result, any], args ...any) async.Future {
+	return core.ContinueOn(c, future, func(ctx runtime.Context, ret async.Result, args ...any) async.Result {
+		if !c.isAlive() {
+			return async.NewResult(nil, ErrAsyncCallerNotAlive)
+		}
+		fun.UnsafeCall(reinterpret.Cast[IRuntime](ctx), ret, args...)
+		return async.NewResult(nil, nil)
+	}, args...)
 }
 
 func (c *ComponentBehavior) isAlive() bool {

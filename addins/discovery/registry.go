@@ -92,6 +92,6 @@ type IRegistry interface {
 	// pattern 为空时监听全部服务；ctx 取消时返回通道会关闭。
 	WatchEvent(ctx context.Context, pattern string, revision ...int64) (<-chan Event, error)
 	// WatchHandler 从可选 revision 开始监听变化并调用 handler。
-	// 返回的 Future 在 ctx 取消或监听结束后完成。
-	WatchHandler(ctx context.Context, pattern string, handler EventHandler, revision ...int64) (async.Future, error)
+	// 返回的 Signal 在 ctx 取消或监听结束后完成。
+	WatchHandler(ctx context.Context, pattern string, handler EventHandler, revision ...int64) (async.Signal, error)
 }

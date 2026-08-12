@@ -49,8 +49,8 @@ type IGate interface {
 	// Count 返回当前会话数量。
 	Count() int64
 	// Watch 监听首次建立完成的会话；连接迁移成功不会重复通知。
-	// 返回的 Future 在 ctx 取消或 gate 停止后完成。
-	Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error)
+	// 返回的 Signal 在 ctx 取消或 gate 停止后完成。
+	Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Signal, error)
 }
 
 func newGate(settings ...option.Setting[GateOptions]) IGate {
@@ -199,14 +199,14 @@ func (g *_Gate) Count() int64 {
 }
 
 // Watch 监听首次建立完成的会话；连接迁移成功不会重复通知。
-// 返回的 Future 在 ctx 取消或 gate 停止后完成。
-func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Future, error) {
+// 返回的 Signal 在 ctx 取消或 gate 停止后完成。
+func (g *_Gate) Watch(ctx context.Context, handler SessionEstablishedHandler) (async.Signal, error) {
 	if handler == nil {
-		return async.Future{}, errors.New("gate: handler is nil")
+		return async.Signal{}, errors.New("gate: handler is nil")
 	}
 	stopped, err := g.addSessionWatcher(ctx, handler)
 	if err != nil {
-		return async.Future{}, err
+		return async.Signal{}, err
 	}
 	return stopped, nil
 }

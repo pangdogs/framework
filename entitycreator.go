@@ -170,7 +170,7 @@ func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
 	if c.rtInst != nil {
-		err := core.CallAsync(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+		err := core.Submit(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
 			return async.NewResult(nil, rtCtx.EntityManager().AddEntity(entity))
 		}).Wait(c.svcInst).Error
 		if err != nil {
@@ -203,7 +203,7 @@ func (c *EntityCreator) NewAsync() async.Future {
 	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
 
 	if c.rtInst != nil {
-		return core.CallAsync(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
+		return core.Submit(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
 			if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
 				return async.NewResult(nil, err)
 			}
@@ -218,14 +218,12 @@ func (c *EntityCreator) NewAsync() async.Future {
 		rtCreator = types.Pointer(*rtCreator)
 	}
 
-	resultFuture := async.NewFutureChan()
-
 	_, err := rtCreator.SetPersistId(entity.Id()).SetMainEntity(entity).New()
 	if err != nil {
-		return async.Return(resultFuture, async.NewResult(nil, err))
+		return async.Rejected(err)
 	}
 
-	return async.Return(resultFuture, async.NewResult(entity, nil))
+	return async.Resolved(async.NewResult(entity, nil))
 }
 
 func (c *EntityCreator) withMeta() option.Setting[ec.EntityOptions] {
