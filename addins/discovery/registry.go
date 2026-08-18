@@ -46,7 +46,7 @@ type Service struct {
 
 // Node 描述一个可被发现的服务节点。
 type Node struct {
-	Id      uid.Id            `json:"id"`                // Id 是节点 ID。
+	ID      uid.ID            `json:"id"`                // ID 是节点 ID。
 	Address string            `json:"address"`           // Address 是节点对外地址。
 	Version string            `json:"version,omitempty"` // Version 是节点服务版本。
 	Meta    map[string]string `json:"meta,omitempty"`    // Meta 保存节点附加元数据。
@@ -85,7 +85,7 @@ type IRegistry interface {
 	// Get 返回 serviceName 当前全部节点的快照。
 	Get(ctx context.Context, serviceName string) (*Service, error)
 	// GetNode 返回 serviceName 下指定节点的快照。
-	GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*Service, error)
+	GetNode(ctx context.Context, serviceName string, nodeID uid.ID) (*Service, error)
 	// List 返回当前全部服务及节点的快照。
 	List(ctx context.Context) ([]*Service, error)
 	// WatchEvent 从可选 revision 开始监听 pattern 对应服务的变化。

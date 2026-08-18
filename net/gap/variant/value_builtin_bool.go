@@ -53,9 +53,9 @@ func (Bool) Size() int {
 	return binaryutil.SizeofBool
 }
 
-// TypeId 返回 bool 的内置类型 ID。
-func (Bool) TypeId() TypeId {
-	return TypeId_Bool
+// TypeID 返回 bool 的内置类型 ID。
+func (Bool) TypeID() TypeID {
+	return TypeID_Bool
 }
 
 // Indirect 返回 bool。

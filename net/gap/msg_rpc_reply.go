@@ -24,19 +24,20 @@ import (
 
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"git.golaxy.org/framework/utils/correlation"
 )
 
 // MsgRPCReply 表示 RPC 请求的响应。
 type MsgRPCReply struct {
-	CorrId int64         // 对应请求的关联 ID。
-	Rets   variant.Array // 调用返回值。
-	Error  variant.Error // 调用错误；OK 为 true 时表示成功。
+	CorrID correlation.ID // 对应请求的关联 ID。
+	Rets   variant.Array  // 调用返回值。
+	Error  variant.Error  // 调用错误；OK 为 true 时表示成功。
 }
 
 // Read 将 RPC 响应编码到 p。
 func (m MsgRPCReply) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteVarint(m.CorrId); err != nil {
+	if err := bs.WriteUvarint(uint64(m.CorrID)); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if _, err := binaryutil.CopyToByteStream(&bs, m.Rets); err != nil {
@@ -53,10 +54,11 @@ func (m *MsgRPCReply) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
-	m.CorrId, err = bs.ReadVarint()
+	corrID, err := bs.ReadUvarint()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	m.CorrID = correlation.ID(corrID)
 
 	if _, err = bs.WriteTo(&m.Rets); err != nil {
 		return bs.BytesRead(), err
@@ -71,10 +73,10 @@ func (m *MsgRPCReply) Write(p []byte) (int, error) {
 
 // Size 返回 RPC 响应编码后的字节数。
 func (m MsgRPCReply) Size() int {
-	return binaryutil.SizeofVarint(m.CorrId) + m.Rets.Size() + m.Error.Size()
+	return binaryutil.SizeofUvarint(uint64(m.CorrID)) + m.Rets.Size() + m.Error.Size()
 }
 
-// MsgId 返回 RPC 响应的内置类型 ID。
-func (MsgRPCReply) MsgId() MsgId {
-	return MsgId_RPC_Reply
+// MsgID 返回 RPC 响应的内置类型 ID。
+func (MsgRPCReply) MsgID() MsgID {
+	return MsgID_RPC_Reply
 }

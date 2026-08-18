@@ -61,10 +61,10 @@ type NetAddr struct {
 type ISession interface {
 	context.Context
 	fmt.Stringer
-	// Id 返回服务端分配的会话 ID。
-	Id() uid.Id
-	// UserId 返回客户端提交的鉴权用户 ID。
-	UserId() string
+	// ID 返回服务端分配的会话 ID。
+	ID() uid.ID
+	// UserID 返回客户端提交的鉴权用户 ID。
+	UserID() string
 	// Token 返回客户端提交的鉴权令牌。
 	Token() string
 	// Extensions 返回客户端提交的鉴权扩展数据；调用方不得修改。
@@ -90,8 +90,8 @@ type _Session struct {
 	close           context.CancelCauseFunc
 	closed          async.Completer
 	gate            *_Gate
-	id              uid.Id
-	userId          string
+	id              uid.ID
+	userID          string
 	token           string
 	extensions      []byte
 	state           atomic.Int32
@@ -111,19 +111,19 @@ type _Session struct {
 // String 返回包含会话 ID 和鉴权用户 ID 的缓存 JSON 文本。
 func (s *_Session) String() string {
 	s.stringerOnce.Do(func() {
-		s.stringerCache = fmt.Sprintf(`{"id":%q,"user_id":%q}`, s.Id(), s.UserId())
+		s.stringerCache = fmt.Sprintf(`{"id":%q,"user_id":%q}`, s.ID(), s.UserID())
 	})
 	return s.stringerCache
 }
 
-// Id 返回服务端分配的会话 ID。
-func (s *_Session) Id() uid.Id {
+// ID 返回服务端分配的会话 ID。
+func (s *_Session) ID() uid.ID {
 	return s.id
 }
 
-// UserId 返回客户端提交的鉴权用户 ID。
-func (s *_Session) UserId() string {
-	return s.userId
+// UserID 返回客户端提交的鉴权用户 ID。
+func (s *_Session) UserID() string {
+	return s.userID
 }
 
 // Token 返回客户端提交的鉴权令牌。
@@ -180,8 +180,8 @@ func (s *_Session) setState(state SessionState) {
 // handleHeartbeat 记录收到的 Ping 或 Pong 心跳事件。
 func (s *_Session) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 	if event.Flags.Is(gtp.Flag_Ping) {
-		log.L(s.gate.svcCtx).Debug("session receive ping", zap.String("session_id", s.Id().String()))
+		log.L(s.gate.svcCtx).Debug("session receive ping", zap.String("session_id", s.ID().String()))
 	} else {
-		log.L(s.gate.svcCtx).Debug("session receive pong", zap.String("session_id", s.Id().String()))
+		log.L(s.gate.svcCtx).Debug("session receive pong", zap.String("session_id", s.ID().String()))
 	}
 }

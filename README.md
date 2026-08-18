@@ -169,7 +169,7 @@ Service is the concurrent outer scope around runtimes. It holds service add-ins,
 | EntityManager | The Runtime-local entity collection responsible for entry, removal, and lifecycle progression. |
 | EntityTree | Parent-child relationships inside a Runtime, with attach, detach, move, and traversal operations. Changing a tree edge does not itself destroy an Entity. |
 
-An Entity may contain several Components with the same name. `GetComponent` returns the first match, while `GetComponents` returns all matches. Components reuse the Entity ID by default; enable `SetComponentUniqueID(true)` to assign independent IDs and make `GetComponentById` available.
+An Entity may contain several Components with the same name. `GetComponent` returns the first match, while `GetComponents` returns all matches. Components reuse the Entity ID by default; enable `SetComponentUniqueID(true)` to assign independent IDs and make `GetComponentByID` available.
 
 Entity, Component, and Runtime also expose in-process signal/slot-style events. An event is emitted synchronously on the sender's current goroutine; it neither enters the Runtime task queue nor provides cross-process delivery. Code on an external goroutine must therefore enter the Runtime before emitting a business event. Subscription handles stored in the object's `Managed()` collection are unbound automatically when their owner is destroyed or terminated.
 
@@ -304,7 +304,7 @@ func (*LobbyService) OnStarted(svc framework.IService) {
 		svc.S().Panicw("create runtime failed", "error", err)
 	}
 
-	svc.S().Infow("lobby service started", "runtime_id", rt.Id())
+	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
 }
 
 func main() {
@@ -478,7 +478,7 @@ This section covers the builder APIs; see [Actor + EC framework in depth](#actor
 | Panic recovery | inherited from the Service |
 | Continue after entity-activation panic | disabled; the failed entity is removed |
 
-Customize these values with `SetName`, `SetPersistId`, `SetMainEntity`, `SetEnableFrame`, `SetFPS`, `SetAutoInjection`, and `SetPanicHandling`. A runtime terminates automatically after its main entity is deactivated.
+Customize these values with `SetName`, `SetPersistID`, `SetMainEntity`, `SetEnableFrame`, `SetFPS`, `SetAutoInjection`, and `SetPanicHandling`. A runtime terminates automatically after its main entity is deactivated.
 
 The following example declares a global `player` prototype and creates an entity:
 
@@ -619,7 +619,7 @@ Service add-ins may be installed in `OnBirth`, an installation hook, or `OnBuilt
 | Package | Capability |
 | --- | --- |
 | [`addins/gate`](./addins/gate) | TCP/WebSocket listeners, GTP handshakes, session authentication, reconnect migration, and data/event I/O. |
-| [`addins/gate/cli`](./addins/gate/cli) | Low-level Gate client with connect, reconnect, clock probing, and Future management. |
+| [`addins/gate/cli`](./addins/gate/cli) | Low-level Gate client with connect, reconnect, clock probing, and request-response correlation. |
 | [`addins/router`](./addins/router) | Entity/Session mappings, ETCD-backed logical groups, unicast, and multicast. |
 | [`addins/rpc/rpcpcsr`](./addins/rpc/rpcpcsr) | Service, Gate, and Forward RPC processors and deliverers. |
 | [`addins/rpc/rpcli`](./addins/rpc/rpcli) | Client RPC built on the Gate client and GAP. |
@@ -662,6 +662,8 @@ RPC builds on this addressing model and provides:
 
 > **Protocol boundary:** GTP is used only for the TCP/WebSocket connection between Client and Gate. Client RPC is a GAP message carried in a GTP Payload. After Gate enters the service domain, and for every service-to-service RPC, NATS transports GAP only; GTP is never nested into the NATS path.
 
+> **Wire compatibility:** Correlation IDs are unsigned 64-bit values. GAP encodes them as unsigned varints, while GTP time-sync messages use fixed-width uint64 fields. GAP peers using the former signed-varint encoding are not wire-compatible and must be upgraded together; the GTP field retains the same eight-byte layout for nonnegative IDs.
+
 > **Security note:** GTP supports ECDHE, signing, and verification, but does not provide certificate validation itself. For high-security deployments, enable TLS below GTP on TCP/WebSocket and consider disabling GTP's built-in payload encryption; protocol signatures are not a replacement for a complete PKI trust chain. Do not expose pprof directly to untrusted networks either.
 
 ## Project layout
@@ -674,7 +676,7 @@ RPC builds on this addressing model and provides:
 | [`addins/conf`](./addins/conf) | Viper-backed application configuration and per-service subtrees. |
 | [`addins/discovery`](./addins/discovery) | Service registration, lookup, watch APIs, and ETCD implementation. |
 | [`addins/dsync`](./addins/dsync) | Distributed mutex abstraction with ETCD and Redis implementations. |
-| [`addins/dsvc`](./addins/dsvc) | Service-node bring-up, address generation, GAP messaging, and Future control. |
+| [`addins/dsvc`](./addins/dsvc) | Service-node bring-up, address generation, GAP messaging, and request-response correlation. |
 | [`addins/dent`](./addins/dent) | Distributed-entity registration, query, events, and local caching. |
 | [`addins/rpc`](./addins/rpc) | RPC facade, proxies, call paths, processors, clients, and result parsing. |
 | [`addins/rpcstack`](./addins/rpcstack) | Runtime-scoped RPC call chain and variable stack. |
@@ -685,7 +687,8 @@ RPC builds on this addressing model and provides:
 | [`net/gtp`](./net/gtp) | GTP messages, codec, cryptographic/compression methods, and transport. |
 | [`net/netpath`](./net/netpath) | Logical network paths for service addresses, topics, and related names. |
 | [`utils/binaryutil`](./utils/binaryutil) | Byte streams, buffer pools, binary I/O, and bounded copying. |
-| [`utils/concurrent`](./utils/concurrent) | FutureController, listener sets, and lightweight concurrency helpers. |
+| [`utils/correlation`](./utils/correlation) | Timeout-aware request-response correlation and response Future creation. |
+| [`utils/fanout`](./utils/fanout) | Concurrent non-blocking fan-out with independent bounded subscriber inboxes. |
 
 ## Observability and operational guidance
 
@@ -712,7 +715,7 @@ go test -race ./...
 go vet ./...
 ```
 
-Protocol and low-level utility tests are concentrated in `net/gap/variant`, `net/gtp`, `net/gtp/codec`, `net/gtp/method`, `net/gtp/transport`, `utils/binaryutil`, and `utils/concurrent`.
+Protocol and low-level utility tests are concentrated in `net/gap/variant`, `net/gtp`, `net/gtp/codec`, `net/gtp/method`, `net/gtp/transport`, `utils/binaryutil`, `utils/correlation`, and `utils/fanout`.
 
 ## Ecosystem and license
 

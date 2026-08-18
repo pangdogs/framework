@@ -19,9 +19,9 @@
 
 // Package variant 提供 GAP 消息和 RPC 负载使用的动态值模型。
 //
-// Variant 是统一的协议值包装，持有 TypeId 和对应的可读值。内置值包括整数、
+// Variant 是统一的协议值包装，持有 TypeID 和对应的可读值。内置值包括整数、
 // 浮点数、布尔值、字节串、字符串、Null、Array、Map、Error 和 CallChain。
-// 自定义值需要实现 Value 接口，并通过 VariantCreator 注册后，才能根据 TypeId
+// 自定义值需要实现 Value 接口，并通过 VariantCreator 注册后，才能根据 TypeID
 // 反序列化。
 //
 // 常用入口：

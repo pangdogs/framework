@@ -153,9 +153,9 @@ retry:
 			goto retry
 		}
 		return NewVariant((*String)(v))
-	case uid.Id:
+	case uid.ID:
 		return NewVariant(String(v))
-	case *uid.Id:
+	case *uid.ID:
 		if v == nil {
 			a = nil
 			goto retry

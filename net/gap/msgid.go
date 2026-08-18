@@ -27,27 +27,27 @@ import (
 	"git.golaxy.org/core/utils/types"
 )
 
-// MsgId 标识 GAP 消息类型。
-type MsgId = uint32
+// MsgID 标识 GAP 消息类型。
+type MsgID = uint32
 
-// GenMsgId 根据具名消息类型的完整名称生成自定义消息 ID。
-func GenMsgId(msg Msg) MsgId {
+// GenMsgID 根据具名消息类型的完整名称生成自定义消息 ID。
+func GenMsgID(msg Msg) MsgID {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(msg).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		exception.Panicf("%w: unsupported type", ErrGAP)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
-	return MsgId(MsgId_Customize + hash.Sum32())
+	return MsgID(MsgID_Customize + hash.Sum32())
 }
 
-// GenMsgIdT 根据具名类型 T 的完整名称生成自定义消息 ID；*T 必须实现 Msg。
-func GenMsgIdT[T any]() MsgId {
+// GenMsgIDT 根据具名类型 T 的完整名称生成自定义消息 ID；*T 必须实现 Msg。
+func GenMsgIDT[T any]() MsgID {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Msg]()) {
 		exception.Panicf("%w: unsupported type", ErrGAP)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
-	return MsgId(MsgId_Customize + hash.Sum32())
+	return MsgID(MsgID_Customize + hash.Sum32())
 }

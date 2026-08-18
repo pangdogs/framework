@@ -18,7 +18,7 @@ func TestCtrlProtocolSendMethods(t *testing.T) {
 		t.Fatalf("ProbeTime failed: %v", err)
 	}
 	syncTime := AssertEvent[*gtp.MsgSyncTime](e)
-	if !syncTime.Flags.Is(gtp.Flag_ReqTime) || syncTime.Msg.CorrId != 7 {
+	if !syncTime.Flags.Is(gtp.Flag_ReqTime) || syncTime.Msg.CorrID != 7 {
 		t.Fatalf("unexpected sync time event: %+v", syncTime)
 	}
 
@@ -55,7 +55,7 @@ func TestCtrlProtocolHandleEvent(t *testing.T) {
 	}()
 	ctrl.HandleEvent(Event[*gtp.MsgSyncTime]{
 		Flags: gtp.Flags(gtp.Flag_ReqTime),
-		Msg:   &gtp.MsgSyncTime{CorrId: 9, OriginTime: 1},
+		Msg:   &gtp.MsgSyncTime{CorrID: 9, OriginTime: 1},
 	}.Interface())
 	if !syncCalled {
 		t.Fatal("expected sync time handler")

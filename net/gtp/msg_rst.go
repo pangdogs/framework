@@ -93,9 +93,9 @@ func (m MsgRst) Size() int {
 	return binaryutil.SizeofInt32 + binaryutil.SizeofString(m.Message)
 }
 
-// MsgId 返回链路重置消息的内置类型 ID。
-func (MsgRst) MsgId() MsgId {
-	return MsgId_Rst
+// MsgID 返回链路重置消息的内置类型 ID。
+func (MsgRst) MsgID() MsgID {
+	return MsgID_Rst
 }
 
 // Clone 深复制可读错误消息。

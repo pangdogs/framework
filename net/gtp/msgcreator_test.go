@@ -8,13 +8,13 @@ import (
 func TestNewMsgCreatorDeclareAndNew(t *testing.T) {
 	creator := NewMsgCreator()
 
-	if _, err := creator.New(MsgId_Hello); !errors.Is(err, ErrNotDeclared) {
+	if _, err := creator.New(MsgID_Hello); !errors.Is(err, ErrNotDeclared) {
 		t.Fatalf("expected ErrNotDeclared, got %v", err)
 	}
 
 	creator.Declare(&MsgPayload{})
 
-	msg, err := creator.New(MsgId_Payload)
+	msg, err := creator.New(MsgID_Payload)
 	if err != nil {
 		t.Fatalf("New failed: %v", err)
 	}
@@ -40,17 +40,17 @@ func TestMsgCreatorDeclarePanics(t *testing.T) {
 }
 
 func TestDefaultMsgCreatorBuiltins(t *testing.T) {
-	builtin := []MsgId{
-		MsgId_Hello,
-		MsgId_ECDHESecretKeyExchange,
-		MsgId_ChangeCipherSpec,
-		MsgId_Auth,
-		MsgId_Continue,
-		MsgId_Finished,
-		MsgId_Rst,
-		MsgId_Heartbeat,
-		MsgId_SyncTime,
-		MsgId_Payload,
+	builtin := []MsgID{
+		MsgID_Hello,
+		MsgID_ECDHESecretKeyExchange,
+		MsgID_ChangeCipherSpec,
+		MsgID_Auth,
+		MsgID_Continue,
+		MsgID_Finished,
+		MsgID_Rst,
+		MsgID_Heartbeat,
+		MsgID_SyncTime,
+		MsgID_Payload,
 	}
 
 	for _, msgID := range builtin {
@@ -58,7 +58,7 @@ func TestDefaultMsgCreatorBuiltins(t *testing.T) {
 		if err != nil {
 			t.Fatalf("DefaultMsgCreator.New(%d) failed: %v", msgID, err)
 		}
-		if msg == nil || msg.MsgId() != msgID {
+		if msg == nil || msg.MsgID() != msgID {
 			t.Fatalf("unexpected builtin message for %d: %#v", msgID, msg)
 		}
 	}

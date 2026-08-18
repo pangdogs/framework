@@ -17,11 +17,10 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-// Package concurrent 提供轻量级并发控制辅助组件。
-//
-// 当前主要包含两类工具：
-//   - FutureController：用于管理带超时的异步请求和响应匹配
-//   - Listener/Listeners：用于维护监听者集合并做广播分发
-//
-// 这些组件主要服务于协议层、事件分发和异步协作场景。
-package concurrent
+package fanout
+
+type noCopy struct{}
+
+func (*noCopy) Lock() {}
+
+func (*noCopy) Unlock() {}

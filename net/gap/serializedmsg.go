@@ -25,7 +25,7 @@ import (
 
 // SerializedMsg 将已有字节切片作为 GAP 消息体发送，不复制 Data。
 type SerializedMsg struct {
-	Id   MsgId  // 消息类型 ID。
+	ID   MsgID  // 消息类型 ID。
 	Data []byte // 已编码消息体；由调用方维护其生命周期。
 }
 
@@ -42,7 +42,7 @@ func (m SerializedMsg) Size() int {
 	return len(m.Data)
 }
 
-// MsgId 返回消息类型 ID。
-func (m SerializedMsg) MsgId() MsgId {
-	return m.Id
+// MsgID 返回消息类型 ID。
+func (m SerializedMsg) MsgID() MsgID {
+	return m.ID
 }

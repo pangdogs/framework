@@ -74,7 +74,7 @@ func (m MsgOnewayRPC) Size() int {
 	return m.CallChain.Size() + binaryutil.SizeofBytes(m.Path) + m.Args.Size()
 }
 
-// MsgId 返回单向 RPC 消息的内置类型 ID。
-func (MsgOnewayRPC) MsgId() MsgId {
-	return MsgId_OnewayRPC
+// MsgID 返回单向 RPC 消息的内置类型 ID。
+func (MsgOnewayRPC) MsgID() MsgID {
+	return MsgID_OnewayRPC
 }

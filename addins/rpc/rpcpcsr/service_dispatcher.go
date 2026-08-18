@@ -29,6 +29,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/utils/correlation"
 	"go.uber.org/zap"
 )
 
@@ -39,14 +40,14 @@ func (p *_ServiceProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 		return
 	}
 
-	switch mp.Head.MsgId {
-	case gap.MsgId_OnewayRPC:
+	switch mp.Head.MsgID {
+	case gap.MsgID_OnewayRPC:
 		p.acceptNotify(mp.Head.Src, mp.Body.(*gap.MsgOnewayRPC))
 
-	case gap.MsgId_RPC_Request:
+	case gap.MsgID_RPC_Request:
 		p.acceptRequest(mp.Head.Src, mp.Body.(*gap.MsgRPCRequest))
 
-	case gap.MsgId_RPC_Reply:
+	case gap.MsgID_RPC_Reply:
 		p.resolveReply(mp.Head.Src, mp.Body.(*gap.MsgRPCReply))
 	}
 }
@@ -117,12 +118,12 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 		}()
 
 	case callpath.Runtime:
-		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept rpc notify to runtime failed",
 				zap.String("src", src.Addr),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
@@ -135,7 +136,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 				log.L(p.svcCtx).Error("accept rpc notify to runtime failed",
 					zap.String("src", src.Addr),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -143,7 +144,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 				log.L(p.svcCtx).Debug("accept rpc notify to runtime finished",
 					zap.String("src", src.Addr),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
@@ -151,12 +152,12 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 		}()
 
 	case callpath.Entity:
-		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept rpc notify to entity failed",
 				zap.String("src", src.Addr),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
@@ -169,7 +170,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 				log.L(p.svcCtx).Error("accept rpc notify to entity failed",
 					zap.String("src", src.Addr),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -177,7 +178,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 				log.L(p.svcCtx).Debug("accept rpc notify to entity finished",
 					zap.String("src", src.Addr),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
@@ -193,9 +194,9 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 		err = fmt.Errorf("parse call path failed: %w", err)
 		log.L(p.svcCtx).Error("accept rpc request failed",
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", req.CorrId),
+			zap.Uint64("corr_id", uint64(req.CorrID)),
 			zap.Error(err))
-		p.reply(src, req.CorrId, variant.Array{}, err)
+		p.reply(src, req.CorrID, variant.Array{}, err)
 		return
 	}
 
@@ -221,10 +222,10 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			err = fmt.Errorf("permission verification failed: %w", err)
 			log.L(p.svcCtx).Error("accept rpc request failed",
 				zap.String("src", src.Addr),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
 				zap.Error(err))
-			p.reply(src, req.CorrId, variant.Array{}, err)
+			p.reply(src, req.CorrID, variant.Array{}, err)
 			return
 		}
 	}
@@ -236,7 +237,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to service failed",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
@@ -244,26 +245,26 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			} else {
 				log.L(p.svcCtx).Debug("accept rpc request to service finished",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(src, req.CorrId, rets, err)
+			p.reply(src, req.CorrID, rets, err)
 		}()
 
 	case callpath.Runtime:
-		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept rpc request to runtime failed",
 				zap.String("src", src.Addr),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(src, req.CorrId, variant.Array{}, err)
+			p.reply(src, req.CorrID, variant.Array{}, err)
 			return
 		}
 
@@ -272,36 +273,36 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to runtime failed",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
 			} else {
 				log.L(p.svcCtx).Debug("accept rpc request to runtime finished",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(src, req.CorrId, rets, err)
+			p.reply(src, req.CorrID, rets, err)
 		}()
 
 	case callpath.Entity:
-		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept rpc request to entity failed",
 				zap.String("src", src.Addr),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(src, req.CorrId, variant.Array{}, err)
+			p.reply(src, req.CorrID, variant.Array{}, err)
 			return
 		}
 
@@ -310,22 +311,22 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to entity failed",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
 			} else {
 				log.L(p.svcCtx).Debug("accept rpc request to entity finished",
 					zap.String("src", src.Addr),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(src, req.CorrId, rets, err)
+			p.reply(src, req.CorrID, rets, err)
 		}()
 	}
 }
@@ -342,29 +343,28 @@ func (p *_ServiceProcessor) resolveReply(src gap.Origin, reply *gap.MsgRPCReply)
 		ret.Error = &reply.Error
 	}
 
-	if err := p.dsvc.FutureController().Resolve(reply.CorrId, ret); err != nil {
+	if !p.dsvc.Correlation().Resolve(reply.CorrID, ret) {
 		log.L(p.svcCtx).Error("resolve rpc reply failed",
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", reply.CorrId),
-			zap.Error(err))
+			zap.Uint64("corr_id", uint64(reply.CorrID)))
 		return
 	}
 
 	log.L(p.svcCtx).Debug("rpc reply resolved",
 		zap.String("src", src.Addr),
-		zap.Int64("corr_id", reply.CorrId))
+		zap.Uint64("corr_id", uint64(reply.CorrID)))
 }
 
 // reply 向请求来源发送结果并释放临时返回值快照；零关联 ID 不回复。
-func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
+func (p *_ServiceProcessor) reply(src gap.Origin, corrID correlation.ID, rets variant.Array, retErr error) {
 	defer rets.ReleaseIfSnapshot()
 
-	if corrId == 0 {
+	if corrID == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
-		CorrId: corrId,
+		CorrID: corrID,
 		Rets:   rets,
 	}
 
@@ -375,12 +375,12 @@ func (p *_ServiceProcessor) reply(src gap.Origin, corrId int64, rets variant.Arr
 	if err := p.dsvc.Send(src.Addr, msg); err != nil {
 		log.L(p.svcCtx).Error("rpc reply failed",
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
 
 	log.L(p.svcCtx).Debug("rpc reply sent",
 		zap.String("src", src.Addr),
-		zap.Int64("corr_id", corrId))
+		zap.Uint64("corr_id", uint64(corrID)))
 }

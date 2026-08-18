@@ -53,9 +53,9 @@ func (Double) Size() int {
 	return binaryutil.SizeofDouble
 }
 
-// TypeId 返回 float64 的内置类型 ID。
-func (Double) TypeId() TypeId {
-	return TypeId_Double
+// TypeID 返回 float64 的内置类型 ID。
+func (Double) TypeID() TypeID {
+	return TypeID_Double
 }
 
 // Indirect 返回 float64。

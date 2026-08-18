@@ -58,7 +58,7 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 		cancel()
 	}()
 
-	watcher := g.sessionWatcher.Add(handler, g.options.SessionWatcherInboxSize)
+	watcher := g.sessionWatcher.Subscribe(handler, g.options.SessionWatcherInboxSize)
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
@@ -67,7 +67,7 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 		for {
 			select {
 			case <-ctx.Done():
-				g.sessionWatcher.Delete(watcher)
+				g.sessionWatcher.Unsubscribe(watcher)
 				stopped.Complete()
 				log.L(g.svcCtx).Debug("delete a session established watcher")
 				return
@@ -76,8 +76,8 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 					if panicError != nil {
 						addr := session.NetAddr()
 						log.L(g.svcCtx).Error("handle session established panicked",
-							zap.String("session_id", session.Id().String()),
-							zap.String("user_id", session.UserId()),
+							zap.String("session_id", session.ID().String()),
+							zap.String("user_id", session.UserID()),
 							zap.String("token", session.Token()),
 							zap.Int64("migrations", session.Migrations()),
 							zap.String("local", addr.Local.String()),

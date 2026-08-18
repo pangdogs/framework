@@ -220,9 +220,9 @@ func (ctor *RPCliCreator) SetFutureTimeout(d time.Duration) *RPCliCreator {
 	return ctor
 }
 
-// SetAuthUserId 设置握手提交的用户 ID。
-func (ctor *RPCliCreator) SetAuthUserId(userId string) *RPCliCreator {
-	ctor.settings = append(ctor.settings, cli.With.AuthUserId(userId))
+// SetAuthUserID 设置握手提交的用户 ID。
+func (ctor *RPCliCreator) SetAuthUserID(userID string) *RPCliCreator {
+	ctor.settings = append(ctor.settings, cli.With.AuthUserID(userID))
 	return ctor
 }
 

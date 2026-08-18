@@ -49,12 +49,12 @@ var (
 
 // IRouter 维护本服务内的实体与会话映射，并通过 ETCD 管理跨节点路由组。
 type IRouter interface {
-	// Map 建立 entityId 与 sessionId 的一对一路由映射。
-	Map(entityId, sessionId uid.Id) (IMapping, error)
+	// Map 建立 entityID 与 sessionID 的一对一路由映射。
+	Map(entityID, sessionID uid.ID) (IMapping, error)
 	// Lookup 按实体 ID 或会话 ID 查询映射。
-	Lookup(id uid.Id) (IMapping, bool)
+	Lookup(id uid.ID) (IMapping, bool)
 	// AddGroup 创建带 ttl 租约的路由组，并加入初始实体成员。
-	AddGroup(ctx context.Context, name string, ids []uid.Id, ttl time.Duration) (IGroup, error)
+	AddGroup(ctx context.Context, name string, ids []uid.ID, ttl time.Duration) (IGroup, error)
 	// DeleteGroup 删除 name 对应的路由组；不存在或删除失败时仅记录日志。
 	DeleteGroup(ctx context.Context, name string)
 	// GetGroupByName 按逻辑名称查询并缓存路由组快照。
@@ -62,13 +62,13 @@ type IRouter interface {
 	// GetGroupByAddr 按客户端组播地址查询并缓存路由组快照。
 	GetGroupByAddr(ctx context.Context, addr string) (IGroup, bool)
 	// GetGroupsByEntity 返回实体当前所属的路由组快照。
-	GetGroupsByEntity(ctx context.Context, entityId uid.Id) []IGroup
+	GetGroupsByEntity(ctx context.Context, entityID uid.ID) []IGroup
 }
 
 func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
 	return &_Router{
 		options:  option.New(With.Default(), settings...),
-		mappings: map[uid.Id]*_Mapping{},
+		mappings: map[uid.ID]*_Mapping{},
 	}
 }
 
@@ -78,13 +78,13 @@ type _Router struct {
 	terminate              context.CancelFunc
 	barrier                generic.Barrier
 	options                RouterOptions
-	groupIdKeyPrefix       string
+	groupIDKeyPrefix       string
 	groupEntitiesKeyPrefix string
 	entityGroupsKeyPrefix  string
 	gate                   gate.IGate
 	client                 *etcdv3.Client
 	mappingMu              sync.RWMutex
-	mappings               map[uid.Id]*_Mapping
+	mappings               map[uid.ID]*_Mapping
 	groups                 sync.Map
 	groupCount             atomic.Int64
 }
@@ -96,7 +96,7 @@ func (r *_Router) Init(svcCtx service.Context) {
 	r.svcCtx = svcCtx
 	r.ctx, r.terminate = context.WithCancel(context.Background())
 
-	r.groupIdKeyPrefix = path.Join(r.options.GroupKeyPrefix, "id") + "/"
+	r.groupIDKeyPrefix = path.Join(r.options.GroupKeyPrefix, "id") + "/"
 	r.groupEntitiesKeyPrefix = path.Join(r.options.GroupKeyPrefix, "entities") + "/"
 	r.entityGroupsKeyPrefix = path.Join(r.options.EntityKeyPrefix, "groups") + "/"
 

@@ -41,7 +41,7 @@ type IMsgCreator interface {
 	// Declare 注册消息指针的具体类型；重复 ID 会 panic。
 	Declare(msg Msg)
 	// New 创建指定消息 ID 对应的新消息指针。
-	New(msgId MsgId) (Msg, error)
+	New(msgID MsgID) (Msg, error)
 }
 
 var msgCreator = NewMsgCreator()
@@ -71,7 +71,7 @@ func NewMsgCreator() IMsgCreator {
 
 // _MsgCreator 使用写时复制快照保存消息类型映射。
 type _MsgCreator struct {
-	msgTypes atomic.Pointer[map[MsgId]reflect.Type]
+	msgTypes atomic.Pointer[map[MsgID]reflect.Type]
 }
 
 // Declare 以消息 ID 注册消息的元素类型。
@@ -81,7 +81,7 @@ func (c *_MsgCreator) Declare(msg Msg) {
 	}
 
 	for {
-		var m map[MsgId]reflect.Type
+		var m map[MsgID]reflect.Type
 
 		old := c.msgTypes.Load()
 		if old != nil {
@@ -89,14 +89,14 @@ func (c *_MsgCreator) Declare(msg Msg) {
 		}
 
 		if m == nil {
-			m = make(map[MsgId]reflect.Type)
+			m = make(map[MsgID]reflect.Type)
 		}
 
-		if rtype, ok := (m)[msg.MsgId()]; ok {
-			exception.Panicf("%w: msg(%d) has already been declared by %q", ErrGTP, msg.MsgId(), types.FullNameRT(rtype))
+		if rtype, ok := (m)[msg.MsgID()]; ok {
+			exception.Panicf("%w: msg(%d) has already been declared by %q", ErrGTP, msg.MsgID(), types.FullNameRT(rtype))
 		}
 
-		m[msg.MsgId()] = reflect.TypeOf(msg).Elem()
+		m[msg.MsgID()] = reflect.TypeOf(msg).Elem()
 
 		if c.msgTypes.CompareAndSwap(old, &m) {
 			break
@@ -107,13 +107,13 @@ func (c *_MsgCreator) Declare(msg Msg) {
 }
 
 // New 根据当前类型快照创建新的消息指针。
-func (c *_MsgCreator) New(msgId MsgId) (Msg, error) {
+func (c *_MsgCreator) New(msgID MsgID) (Msg, error) {
 	m := c.msgTypes.Load()
 	if m == nil || *m == nil {
 		return nil, ErrNotDeclared
 	}
 
-	rtype, ok := (*m)[msgId]
+	rtype, ok := (*m)[msgID]
 	if !ok {
 		return nil, ErrNotDeclared
 	}

@@ -62,15 +62,16 @@ func (c *RPCli) RemoteClock() cli.TimeSample {
 
 // RPC 向服务的实体目标发起请求，并返回用于接收响应的 Future。
 func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
-	handle, err := c.FutureController().New()
+	controller := c.Correlation()
+	corrID, future, err := controller.Begin()
 	if err != nil {
 		return async.Rejected(err)
 	}
 
 	vargs, err := variant.NewArray(args)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	cp := callpath.CallPath{
@@ -81,50 +82,50 @@ func (c *RPCli) RPC(service, comp, method string, args ...any) async.Future {
 
 	cpBuf, err := cp.Encode(c.reduceCallPath)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId: handle.Id(),
+		CorrID: corrID,
 		Path:   cpBuf,
 		Args:   vargs,
 	}
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       service,
-		CorrId:    msg.CorrId,
-		TransId:   msg.MsgId(),
+		CorrID:    msg.CorrID,
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteClock.RemoteNow().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 	defer mpBuf.Release()
 
 	if err := c.DataIO().Send(mpBuf.Payload()); err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	c.L().Debug("rpc sent",
-		zap.String("session_id", c.SessionId().String()),
+		zap.String("session_id", c.SessionID().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
 		zap.String("dst", service),
-		zap.Int64("corr_id", handle.Id()),
+		zap.Uint64("corr_id", uint64(corrID)),
 		zap.String("call_path", cp.String()))
-	return handle.Future()
+	return future
 }
 
 // OnewayRPC 向服务的实体目标发送无需响应的通知。
@@ -158,7 +159,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       service,
-		TransId:   msg.MsgId(),
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
@@ -173,7 +174,7 @@ func (c *RPCli) OnewayRPC(service, comp, method string, args ...any) error {
 	}
 
 	c.L().Debug("oneway rpc sent",
-		zap.String("session_id", c.SessionId().String()),
+		zap.String("session_id", c.SessionID().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
 		zap.String("dst", service),

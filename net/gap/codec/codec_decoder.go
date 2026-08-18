@@ -73,9 +73,9 @@ func (d *Decoder) Decode(data []byte) (gap.MsgPacket, error) {
 	}
 
 	// 按消息类型构造具体消息；未知类型由 MsgCreator 返回错误。
-	msg, err := d.MsgCreator.New(mp.Head.MsgId)
+	msg, err := d.MsgCreator.New(mp.Head.MsgID)
 	if err != nil {
-		return gap.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgId)
+		return gap.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgID)
 	}
 
 	// 消息的 Write 直接接收输入子切片，引用型字段可能与 data 共享底层存储。

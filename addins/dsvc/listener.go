@@ -66,7 +66,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 		cancel()
 	}()
 
-	listener := d.listeners.Add(handler, d.options.ListenerInboxSize)
+	listener := d.listeners.Subscribe(handler, d.options.ListenerInboxSize)
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
@@ -75,7 +75,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 		for {
 			select {
 			case <-ctx.Done():
-				d.listeners.Delete(listener)
+				d.listeners.Unsubscribe(listener)
 				stopped.Complete()
 				log.L(d.svcCtx).Debug("delete a broker message listener")
 				return
@@ -113,11 +113,11 @@ func (d *_DistService) handleEvent(e broker.Event) {
 		msgPacket: mp,
 	}
 
-	rejected := d.listeners.Broadcast(msg)
-	if rejected > 0 {
-		log.L(d.svcCtx).Error("some listeners rejected the broker message due to backpressure",
+	dropped := d.listeners.Broadcast(msg)
+	if dropped > 0 {
+		log.L(d.svcCtx).Error("broker message deliveries dropped due to listener backpressure",
 			zap.String("topic", e.Topic),
 			zap.String("queue", e.Queue),
-			zap.Int("rejected", rejected))
+			zap.Int("dropped", dropped))
 	}
 }

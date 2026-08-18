@@ -53,9 +53,9 @@ func (v String) Size() int {
 	return binaryutil.SizeofString(string(v))
 }
 
-// TypeId 返回字符串的内置类型 ID。
-func (String) TypeId() TypeId {
-	return TypeId_String
+// TypeID 返回字符串的内置类型 ID。
+func (String) TypeID() TypeID {
+	return TypeID_String
 }
 
 // Indirect 返回 string。

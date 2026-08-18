@@ -39,7 +39,7 @@ import (
 
 // ProxyEntity 使用 provider 所在的服务上下文创建实体 id 的 RPC 代理。
 // provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
-func ProxyEntity(provider any, id uid.Id) EntityProxied {
+func ProxyEntity(provider any, id uid.ID) EntityProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
@@ -62,7 +62,7 @@ func ProxyEntity(provider any, id uid.Id) EntityProxied {
 type EntityProxied struct {
 	svcCtx service.Context
 	rtCtx  runtime.Context
-	id     uid.Id
+	id     uid.ID
 }
 
 // RPC 向承载实体的首个指定服务节点发起 RPC；查询失败时返回已携带错误的 Future。
@@ -94,7 +94,7 @@ func (p EntityProxied) RPC(service, comp, method string, args ...any) async.Futu
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -148,7 +148,7 @@ func (p EntityProxied) BalanceRPC(service, comp, method string, args ...any) asy
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -201,7 +201,7 @@ func (p EntityProxied) GlobalBalanceRPC(excludeSelf bool, comp, method string, a
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -238,7 +238,7 @@ func (p EntityProxied) OnewayRPC(service, comp, method string, args ...any) erro
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -292,7 +292,7 @@ func (p EntityProxied) BalanceOnewayRPC(service, comp, method string, args ...an
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -345,7 +345,7 @@ func (p EntityProxied) GlobalBalanceOnewayRPC(excludeSelf bool, comp, method str
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -383,7 +383,7 @@ func (p EntityProxied) BroadcastOnewayRPC(excludeSelf bool, service, comp, metho
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}
@@ -410,7 +410,7 @@ func (p EntityProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, comp, method s
 	cp := callpath.CallPath{
 		TargetKind: callpath.Entity,
 		ExcludeSrc: excludeSelf,
-		Id:         p.id,
+		ID:         p.id,
 		Script:     comp,
 		Method:     method,
 	}

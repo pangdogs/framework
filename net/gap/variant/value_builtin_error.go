@@ -98,9 +98,9 @@ func (v Error) Size() int {
 	return binaryutil.SizeofInt32 + binaryutil.SizeofString(v.Message)
 }
 
-// TypeId 返回错误的内置类型 ID。
-func (Error) TypeId() TypeId {
-	return TypeId_Error
+// TypeID 返回错误的内置类型 ID。
+func (Error) TypeID() TypeID {
+	return TypeID_Error
 }
 
 // Indirect 返回错误指针。

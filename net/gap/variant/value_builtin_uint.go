@@ -53,9 +53,9 @@ func (v Uint) Size() int {
 	return binaryutil.SizeofUvarint(uint64(v))
 }
 
-// TypeId 返回 uint 的内置类型 ID。
-func (Uint) TypeId() TypeId {
-	return TypeId_Uint
+// TypeID 返回 uint 的内置类型 ID。
+func (Uint) TypeID() TypeID {
+	return TypeID_Uint
 }
 
 // Indirect 返回 uint。

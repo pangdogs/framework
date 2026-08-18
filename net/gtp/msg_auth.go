@@ -30,7 +30,7 @@ import (
 // MsgAuth 携带客户端鉴权信息。直接通过 Write 或 Unmarshal 解码时，字段会引用输入切片；
 // 输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgAuth struct {
-	UserId     string // 用户 ID。
+	UserID     string // 用户 ID。
 	Token      string // 鉴权令牌。
 	Extensions []byte // 业务扩展数据。
 }
@@ -38,7 +38,7 @@ type MsgAuth struct {
 // Read 将鉴权消息编码到 p。
 func (m MsgAuth) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteString(m.UserId); err != nil {
+	if err := bs.WriteString(m.UserID); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteString(m.Token); err != nil {
@@ -55,7 +55,7 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
-	m.UserId, err = bs.ReadStringRef()
+	m.UserID, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -75,18 +75,18 @@ func (m *MsgAuth) Write(p []byte) (int, error) {
 
 // Size 返回鉴权消息编码后的字节数。
 func (m MsgAuth) Size() int {
-	return binaryutil.SizeofString(m.UserId) + binaryutil.SizeofString(m.Token) + binaryutil.SizeofBytes(m.Extensions)
+	return binaryutil.SizeofString(m.UserID) + binaryutil.SizeofString(m.Token) + binaryutil.SizeofBytes(m.Extensions)
 }
 
-// MsgId 返回鉴权消息的内置类型 ID。
-func (MsgAuth) MsgId() MsgId {
-	return MsgId_Auth
+// MsgID 返回鉴权消息的内置类型 ID。
+func (MsgAuth) MsgID() MsgID {
+	return MsgID_Auth
 }
 
 // Clone 深复制所有引用型字段。
 func (m MsgAuth) Clone() Msg {
 	return &MsgAuth{
-		UserId:     strings.Clone(m.UserId),
+		UserID:     strings.Clone(m.UserID),
 		Token:      strings.Clone(m.Token),
 		Extensions: bytes.Clone(m.Extensions),
 	}

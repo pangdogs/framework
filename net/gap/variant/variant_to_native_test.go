@@ -238,16 +238,16 @@ func TestVariantConvertValueInterfaceTargets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToNative Value failed: %v", err)
 	}
-	if gotValue.Interface().(Value).TypeId() != TypeId_Int32 {
-		t.Fatalf("converted Value TypeId = %v, want %v", gotValue.Interface().(Value).TypeId(), TypeId_Int32)
+	if gotValue.Interface().(Value).TypeID() != TypeID_Int32 {
+		t.Fatalf("converted Value TypeID = %v, want %v", gotValue.Interface().(Value).TypeID(), TypeID_Int32)
 	}
 
 	gotReadableValue, err := v.ToNative(reflect.TypeFor[ReadableValue]())
 	if err != nil {
 		t.Fatalf("ToNative ReadableValue failed: %v", err)
 	}
-	if gotReadableValue.Interface().(ReadableValue).TypeId() != TypeId_Int32 {
-		t.Fatalf("converted ReadableValue TypeId = %v, want %v", gotReadableValue.Interface().(ReadableValue).TypeId(), TypeId_Int32)
+	if gotReadableValue.Interface().(ReadableValue).TypeID() != TypeID_Int32 {
+		t.Fatalf("converted ReadableValue TypeID = %v, want %v", gotReadableValue.Interface().(ReadableValue).TypeID(), TypeID_Int32)
 	}
 
 	arr, err := ToVariant([2]int32{1, 2})
@@ -259,7 +259,7 @@ func TestVariantConvertValueInterfaceTargets(t *testing.T) {
 		t.Fatalf("ToNative []Value failed: %v", err)
 	}
 	values := gotSlice.Interface().([]Value)
-	if len(values) != 2 || values[0].TypeId() != TypeId_Int32 || values[1].TypeId() != TypeId_Int32 {
+	if len(values) != 2 || values[0].TypeID() != TypeID_Int32 || values[1].TypeID() != TypeID_Int32 {
 		t.Fatalf("converted []Value = %#v", values)
 	}
 
@@ -271,8 +271,8 @@ func TestVariantConvertValueInterfaceTargets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToNative null Value failed: %v", err)
 	}
-	if gotNull.Interface().(Value).TypeId() != TypeId_Null {
-		t.Fatalf("converted null Value TypeId = %v, want %v", gotNull.Interface().(Value).TypeId(), TypeId_Null)
+	if gotNull.Interface().(Value).TypeID() != TypeID_Null {
+		t.Fatalf("converted null Value TypeID = %v, want %v", gotNull.Interface().(Value).TypeID(), TypeID_Null)
 	}
 }
 
@@ -297,8 +297,8 @@ func TestVariantConvertVariantPointer(t *testing.T) {
 	if got.Type() != reflect.TypeFor[*Variant]() {
 		t.Fatalf("converted type = %v, want %v", got.Type(), reflect.TypeFor[*Variant]())
 	}
-	if got.Interface().(*Variant).TypeId != TypeId_Int32 {
-		t.Fatalf("converted Variant TypeId = %v, want %v", got.Interface().(*Variant).TypeId, TypeId_Int32)
+	if got.Interface().(*Variant).TypeID != TypeID_Int32 {
+		t.Fatalf("converted Variant TypeID = %v, want %v", got.Interface().(*Variant).TypeID, TypeID_Int32)
 	}
 }
 
@@ -437,8 +437,8 @@ func (convertTestValue) Size() int {
 	return binaryutil.SizeofInt32
 }
 
-func (convertTestValue) TypeId() TypeId {
-	return TypeId_Customize + 10001
+func (convertTestValue) TypeID() TypeID {
+	return TypeID_Customize + 10001
 }
 
 func (v *convertTestValue) Indirect() any {
@@ -568,15 +568,15 @@ func TestVariantConvertCustomValueTargets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToNative ReadableValue failed: %v", err)
 	}
-	if gotReadable.Interface().(ReadableValue).TypeId() != src.TypeId() {
-		t.Fatalf("converted ReadableValue TypeId = %v, want %v", gotReadable.Interface().(ReadableValue).TypeId(), src.TypeId())
+	if gotReadable.Interface().(ReadableValue).TypeID() != src.TypeID() {
+		t.Fatalf("converted ReadableValue TypeID = %v, want %v", gotReadable.Interface().(ReadableValue).TypeID(), src.TypeID())
 	}
 
 	gotValueInterface, err := v.ToNative(reflect.TypeFor[Value]())
 	if err != nil {
 		t.Fatalf("ToNative Value failed: %v", err)
 	}
-	if gotValueInterface.Interface().(Value).TypeId() != src.TypeId() {
-		t.Fatalf("converted Value TypeId = %v, want %v", gotValueInterface.Interface().(Value).TypeId(), src.TypeId())
+	if gotValueInterface.Interface().(Value).TypeID() != src.TypeID() {
+		t.Fatalf("converted Value TypeID = %v, want %v", gotValueInterface.Interface().(Value).TypeID(), src.TypeID())
 	}
 }

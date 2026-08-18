@@ -53,9 +53,9 @@ func (Uint8) Size() int {
 	return binaryutil.SizeofUint8
 }
 
-// TypeId 返回 uint8 的内置类型 ID。
-func (Uint8) TypeId() TypeId {
-	return TypeId_Uint8
+// TypeID 返回 uint8 的内置类型 ID。
+func (Uint8) TypeID() TypeID {
+	return TypeID_Uint8
 }
 
 // Indirect 返回 uint8。

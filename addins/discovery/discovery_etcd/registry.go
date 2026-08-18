@@ -109,7 +109,7 @@ func (r *_EtcdRegistry) RegisterNode(ctx context.Context, serviceName string, no
 	if node == nil {
 		return nil, fmt.Errorf("registry: %w node is nil", core.ErrArgs)
 	}
-	if node.Id == "" {
+	if node.ID == "" {
 		return nil, fmt.Errorf("registry: %w node.id is empty", core.ErrArgs)
 	}
 	return r.registerNode(ctx, serviceName, node, ttl)
@@ -164,16 +164,16 @@ func (r *_EtcdRegistry) Get(ctx context.Context, serviceName string) (*discovery
 }
 
 // GetNode 返回指定服务和节点 ID 的单节点快照。
-func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeId uid.Id) (*discovery.Service, error) {
+func (r *_EtcdRegistry) GetNode(ctx context.Context, serviceName string, nodeID uid.ID) (*discovery.Service, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if serviceName == "" || nodeId == "" {
+	if serviceName == "" || nodeID == "" {
 		return nil, discovery.ErrRegistrationNotFound
 	}
 
-	nodeKey := r.newNodeKey(serviceName, nodeId)
+	nodeKey := r.newNodeKey(serviceName, nodeID)
 
 	rsp, err := r.client.Get(ctx, nodeKey)
 	if err != nil {
@@ -294,8 +294,8 @@ func (r *_EtcdRegistry) configure() etcdv3.Config {
 	return config
 }
 
-func (r *_EtcdRegistry) newNodeKey(service string, nodeId uid.Id) string {
-	return path.Join(r.options.KeyPrefix, service, nodeId.String())
+func (r *_EtcdRegistry) newNodeKey(service string, nodeID uid.ID) string {
+	return path.Join(r.options.KeyPrefix, service, nodeID.String())
 }
 
 func (r *_EtcdRegistry) newServiceKey(service string) string {

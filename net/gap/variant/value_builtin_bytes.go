@@ -53,9 +53,9 @@ func (v Bytes) Size() int {
 	return binaryutil.SizeofBytes(v)
 }
 
-// TypeId 返回字节切片的内置类型 ID。
-func (Bytes) TypeId() TypeId {
-	return TypeId_Bytes
+// TypeID 返回字节切片的内置类型 ID。
+func (Bytes) TypeID() TypeID {
+	return TypeID_Bytes
 }
 
 // Indirect 返回底层字节切片，不执行复制。

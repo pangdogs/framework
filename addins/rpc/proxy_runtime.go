@@ -36,14 +36,14 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 )
 
-// ProxyRuntime 使用 provider 所在的服务上下文创建实体 entityId 的运行时 RPC 代理。
+// ProxyRuntime 使用 provider 所在的服务上下文创建实体 entityID 的运行时 RPC 代理。
 // provider 必须是 service.Context 或实现 runtime.CurrentContextProvider，否则 panic。
-func ProxyRuntime(provider any, entityId uid.Id) RuntimeProxied {
+func ProxyRuntime(provider any, entityID uid.ID) RuntimeProxied {
 	if provider == nil {
 		exception.Panicf("rpc: %w: provider is nil", core.ErrArgs)
 	}
 	p := RuntimeProxied{
-		entityId: entityId,
+		entityID: entityID,
 	}
 	switch x := provider.(type) {
 	case runtime.CurrentContextProvider:
@@ -61,7 +61,7 @@ func ProxyRuntime(provider any, entityId uid.Id) RuntimeProxied {
 type RuntimeProxied struct {
 	svcCtx   service.Context
 	rtCtx    runtime.Context
-	entityId uid.Id
+	entityID uid.ID
 }
 
 // RPC 向承载实体的首个指定服务节点发起运行时插件 RPC；查询失败时返回已携带错误的 Future。
@@ -71,7 +71,7 @@ func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Fu
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -93,7 +93,7 @@ func (p RuntimeProxied) RPC(service, addIn, method string, args ...any) async.Fu
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -108,7 +108,7 @@ func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -147,7 +147,7 @@ func (p RuntimeProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -162,7 +162,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return async.Rejected(rpcpcsr.ErrDistEntityNotFound)
 	}
@@ -200,7 +200,7 @@ func (p RuntimeProxied) GlobalBalanceRPC(excludeSelf bool, addIn, method string,
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -215,7 +215,7 @@ func (p RuntimeProxied) OnewayRPC(service, addIn, method string, args ...any) er
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -237,7 +237,7 @@ func (p RuntimeProxied) OnewayRPC(service, addIn, method string, args ...any) er
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -252,7 +252,7 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, addIn, method string, args ...
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -291,7 +291,7 @@ func (p RuntimeProxied) BalanceOnewayRPC(service, addIn, method string, args ...
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -306,7 +306,7 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, addIn, method s
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -344,7 +344,7 @@ func (p RuntimeProxied) GlobalBalanceOnewayRPC(excludeSelf bool, addIn, method s
 	// 调用路径
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -359,7 +359,7 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, addIn, met
 	}
 
 	// 查询分布式实体信息
-	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityId)
+	distEntity, ok := dent.QuerierAddIn.Require(p.svcCtx).GetDistEntity(p.entityID)
 	if !ok {
 		return rpcpcsr.ErrDistEntityNotFound
 	}
@@ -382,7 +382,7 @@ func (p RuntimeProxied) BroadcastOnewayRPC(excludeSelf bool, service, addIn, met
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
 		ExcludeSrc: excludeSelf,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}
@@ -409,7 +409,7 @@ func (p RuntimeProxied) GlobalBroadcastOnewayRPC(excludeSelf bool, addIn, method
 	cp := callpath.CallPath{
 		TargetKind: callpath.Runtime,
 		ExcludeSrc: excludeSelf,
-		Id:         p.entityId,
+		ID:         p.entityID,
 		Script:     addIn,
 		Method:     method,
 	}

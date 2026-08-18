@@ -51,7 +51,7 @@ func (*Encoder) Encode(src gap.Origin, seq int64, msg gap.ReadableMsg) (ret bina
 
 	mp := gap.MsgPacket{
 		Head: gap.MsgHead{
-			MsgId: msg.MsgId(),
+			MsgID: msg.MsgID(),
 			Src:   src,
 			Seq:   seq,
 		},

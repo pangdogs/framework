@@ -102,8 +102,8 @@ func (m *_Mapping) waitForUnmap() {
 	}
 
 	log.L(m.router.svcCtx).Info("mapping unmapped",
-		zap.String("entity_id", m.entity.Id().String()),
-		zap.String("session_id", m.session.Id().String()),
+		zap.String("entity_id", m.entity.ID().String()),
+		zap.String("session_id", m.session.ID().String()),
 		zap.String("reason", reason))
 
 	m.unmapped.Complete()

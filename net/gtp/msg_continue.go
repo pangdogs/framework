@@ -66,9 +66,9 @@ func (MsgContinue) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
-// MsgId 返回会话续接消息的内置类型 ID。
-func (MsgContinue) MsgId() MsgId {
-	return MsgId_Continue
+// MsgID 返回会话续接消息的内置类型 ID。
+func (MsgContinue) MsgID() MsgID {
+	return MsgID_Continue
 }
 
 // Clone 返回消息副本。

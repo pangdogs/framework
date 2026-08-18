@@ -59,9 +59,9 @@ func (m MsgPayload) Size() int {
 	return binaryutil.SizeofBytes(m.Data)
 }
 
-// MsgId 返回业务负载消息的内置类型 ID。
-func (MsgPayload) MsgId() MsgId {
-	return MsgId_Payload
+// MsgID 返回业务负载消息的内置类型 ID。
+func (MsgPayload) MsgID() MsgID {
+	return MsgID_Payload
 }
 
 // Clone 深复制业务负载。

@@ -23,13 +23,13 @@ func TestAuthenticationSignAndAuthRoundTrip(t *testing.T) {
 	auth := &Authentication{HMAC: newTestHMAC(t)}
 	msg := []byte("hello-auth")
 
-	signed, err := auth.Sign(gtp.MsgId_Payload, gtp.Flags_None().Setd(gtp.Flag_Encrypted, true), msg)
+	signed, err := auth.Sign(gtp.MsgID_Payload, gtp.Flags_None().Setd(gtp.Flag_Encrypted, true), msg)
 	if err != nil {
 		t.Fatalf("Sign failed: %v", err)
 	}
 	defer signed.Release()
 
-	got, err := auth.Auth(gtp.MsgId_Payload, gtp.Flags_None().Setd(gtp.Flag_Encrypted, true), signed.Payload())
+	got, err := auth.Auth(gtp.MsgID_Payload, gtp.Flags_None().Setd(gtp.Flag_Encrypted, true), signed.Payload())
 	if err != nil {
 		t.Fatalf("Auth failed: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestAuthenticationSignAndAuthRoundTrip(t *testing.T) {
 func TestAuthenticationAuthInvalidMAC(t *testing.T) {
 	auth := &Authentication{HMAC: newTestHMAC(t)}
 
-	signed, err := auth.Sign(gtp.MsgId_Payload, gtp.Flags_None(), []byte("hello"))
+	signed, err := auth.Sign(gtp.MsgID_Payload, gtp.Flags_None(), []byte("hello"))
 	if err != nil {
 		t.Fatalf("Sign failed: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestAuthenticationAuthInvalidMAC(t *testing.T) {
 	payload := bytes.Clone(signed.Payload())
 	payload[len(payload)-1] ^= 0xFF
 
-	_, err = auth.Auth(gtp.MsgId_Payload, gtp.Flags_None(), payload)
+	_, err = auth.Auth(gtp.MsgID_Payload, gtp.Flags_None(), payload)
 	if !errors.Is(err, ErrInvalidMAC) {
 		t.Fatalf("expected ErrInvalidMAC, got %v", err)
 	}
@@ -59,10 +59,10 @@ func TestAuthenticationAuthInvalidMAC(t *testing.T) {
 func TestAuthenticationNilHMACErrors(t *testing.T) {
 	auth := &Authentication{}
 
-	if _, err := auth.Sign(gtp.MsgId_Payload, gtp.Flags_None(), []byte("x")); err == nil {
+	if _, err := auth.Sign(gtp.MsgID_Payload, gtp.Flags_None(), []byte("x")); err == nil {
 		t.Fatal("expected Sign error")
 	}
-	if _, err := auth.Auth(gtp.MsgId_Payload, gtp.Flags_None(), []byte("x")); err == nil {
+	if _, err := auth.Auth(gtp.MsgID_Payload, gtp.Flags_None(), []byte("x")); err == nil {
 		t.Fatal("expected Auth error")
 	}
 	if _, err := auth.SizeOfAddition(1); err == nil {

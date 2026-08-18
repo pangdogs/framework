@@ -24,11 +24,12 @@ import (
 
 	"git.golaxy.org/framework/net/gap/variant"
 	"git.golaxy.org/framework/utils/binaryutil"
+	"git.golaxy.org/framework/utils/correlation"
 )
 
 // MsgRPCRequest 表示需要响应的 RPC 请求。
 type MsgRPCRequest struct {
-	CorrId    int64             // 用于匹配响应与 Future 的关联 ID。
+	CorrID    correlation.ID    // 用于匹配响应与 Future 的关联 ID。
 	CallChain variant.CallChain // 调用来源链。
 	Path      []byte            // 已编码调用路径；解码时引用输入缓冲区。
 	Args      variant.Array     // 调用参数。
@@ -37,7 +38,7 @@ type MsgRPCRequest struct {
 // Read 将 RPC 请求编码到 p。
 func (m MsgRPCRequest) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteVarint(m.CorrId); err != nil {
+	if err := bs.WriteUvarint(uint64(m.CorrID)); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if _, err := binaryutil.CopyToByteStream(&bs, m.CallChain); err != nil {
@@ -57,10 +58,11 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
-	m.CorrId, err = bs.ReadVarint()
+	corrID, err := bs.ReadUvarint()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	m.CorrID = correlation.ID(corrID)
 
 	if _, err = bs.WriteTo(&m.CallChain); err != nil {
 		return bs.BytesRead(), err
@@ -80,10 +82,10 @@ func (m *MsgRPCRequest) Write(p []byte) (int, error) {
 
 // Size 返回 RPC 请求编码后的字节数。
 func (m MsgRPCRequest) Size() int {
-	return binaryutil.SizeofVarint(m.CorrId) + m.CallChain.Size() + binaryutil.SizeofBytes(m.Path) + m.Args.Size()
+	return binaryutil.SizeofUvarint(uint64(m.CorrID)) + m.CallChain.Size() + binaryutil.SizeofBytes(m.Path) + m.Args.Size()
 }
 
-// MsgId 返回 RPC 请求的内置类型 ID。
-func (MsgRPCRequest) MsgId() MsgId {
-	return MsgId_RPC_Request
+// MsgID 返回 RPC 请求的内置类型 ID。
+func (MsgRPCRequest) MsgID() MsgID {
+	return MsgID_RPC_Request
 }

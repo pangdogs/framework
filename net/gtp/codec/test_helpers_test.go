@@ -83,13 +83,13 @@ func (v stubValidation) Validate(gtp.MsgHead, []byte) error {
 }
 
 type stubMsgCreator struct {
-	newFn func(gtp.MsgId) (gtp.Msg, error)
+	newFn func(gtp.MsgID) (gtp.Msg, error)
 }
 
 func (stubMsgCreator) Declare(gtp.Msg) {}
 
-func (c stubMsgCreator) New(msgId gtp.MsgId) (gtp.Msg, error) {
-	return c.newFn(msgId)
+func (c stubMsgCreator) New(msgID gtp.MsgID) (gtp.Msg, error) {
+	return c.newFn(msgID)
 }
 
 type failingMsg struct {
@@ -108,8 +108,8 @@ func (*failingMsg) Size() int {
 	return 0
 }
 
-func (*failingMsg) MsgId() gtp.MsgId {
-	return gtp.MsgId_Payload
+func (*failingMsg) MsgID() gtp.MsgID {
+	return gtp.MsgID_Payload
 }
 
 func (f *failingMsg) Clone() gtp.Msg {
@@ -136,21 +136,21 @@ func (s stubCompression) Uncompress(src []byte, max int) (binaryutil.Bytes, erro
 }
 
 type stubAuthentication struct {
-	signFn           func(gtp.MsgId, gtp.Flags, []byte) (binaryutil.Bytes, error)
-	authFn           func(gtp.MsgId, gtp.Flags, []byte) ([]byte, error)
+	signFn           func(gtp.MsgID, gtp.Flags, []byte) (binaryutil.Bytes, error)
+	authFn           func(gtp.MsgID, gtp.Flags, []byte) ([]byte, error)
 	sizeOfAdditionFn func(int) (int, error)
 }
 
-func (s stubAuthentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
+func (s stubAuthentication) Sign(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
 	if s.signFn != nil {
-		return s.signFn(msgId, flags, msgBuf)
+		return s.signFn(msgID, flags, msgBuf)
 	}
 	return binaryutil.RefBytes(msgBuf), nil
 }
 
-func (s stubAuthentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
+func (s stubAuthentication) Auth(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
 	if s.authFn != nil {
-		return s.authFn(msgId, flags, msgBuf)
+		return s.authFn(msgID, flags, msgBuf)
 	}
 	return msgBuf, nil
 }

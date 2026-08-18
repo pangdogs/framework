@@ -93,8 +93,8 @@ func CallService(svcCtx service.Context, cc rpcstack.CallChain, addIn, method st
 }
 
 // CallRuntime 将方法调用调度到实体所在的运行时；addIn 为空时调用运行时本身。
-func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, addIn, method string, args variant.Array) (_ async.Future, err error) {
-	return svcCtx.Submit(entityId, func(entity ec.Entity, _ ...any) async.Result {
+func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityID uid.ID, addIn, method string, args variant.Array) (_ async.Future, err error) {
+	return svcCtx.Submit(entityID, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
 
 		if addIn == "" {
@@ -151,8 +151,8 @@ func CallRuntime(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id,
 }
 
 // CallEntity 将方法调用调度到实体；component 为空时调用实体本身。
-func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityId uid.Id, component, method string, args variant.Array) (_ async.Future, err error) {
-	return svcCtx.Submit(entityId, func(entity ec.Entity, _ ...any) async.Result {
+func CallEntity(svcCtx service.Context, cc rpcstack.CallChain, entityID uid.ID, component, method string, args variant.Array) (_ async.Future, err error) {
+	return svcCtx.Submit(entityID, func(entity ec.Entity, _ ...any) async.Result {
 		var scriptRV reflect.Value
 
 		if component == "" {

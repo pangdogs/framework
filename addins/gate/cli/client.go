@@ -31,7 +31,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/correlation"
 	"go.uber.org/zap"
 )
 
@@ -51,43 +51,43 @@ type NetAddr struct {
 // 其上下文在父上下文取消或 Close 被调用时取消。
 type Client struct {
 	context.Context
-	close            context.CancelCauseFunc
-	closed           async.Completer
-	options          ClientOptions
-	sessionId        uid.Id
-	endpoint         string
-	netAddr          atomic.Pointer[NetAddr]
-	transceiver      transport.Transceiver
-	eventDispatcher  transport.EventDispatcher
-	trans            transport.TransProtocol
-	ctrl             transport.CtrlProtocol
-	migrationMu      sync.Mutex
-	migrationChan    chan struct{}
-	migrations       atomic.Int64
-	futureController *concurrent.FutureController
-	io               _ClientIO
-	logger           *zap.Logger
-	sugarLogger      *zap.SugaredLogger
-	stringerOnce     sync.Once
-	stringerCache    string
+	close           context.CancelCauseFunc
+	closed          async.Completer
+	options         ClientOptions
+	sessionID       uid.ID
+	endpoint        string
+	netAddr         atomic.Pointer[NetAddr]
+	transceiver     transport.Transceiver
+	eventDispatcher transport.EventDispatcher
+	trans           transport.TransProtocol
+	ctrl            transport.CtrlProtocol
+	migrationMu     sync.Mutex
+	migrationChan   chan struct{}
+	migrations      atomic.Int64
+	correlation     *correlation.Controller
+	io              _ClientIO
+	logger          *zap.Logger
+	sugarLogger     *zap.SugaredLogger
+	stringerOnce    sync.Once
+	stringerCache   string
 }
 
 // String 返回包含会话 ID 和用户 ID 的 JSON 形式标识。
 func (c *Client) String() string {
 	c.stringerOnce.Do(func() {
-		c.stringerCache = fmt.Sprintf(`{"session_id":%q,"user_id":%q}`, c.SessionId(), c.UserId())
+		c.stringerCache = fmt.Sprintf(`{"session_id":%q,"user_id":%q}`, c.SessionID(), c.UserID())
 	})
 	return c.stringerCache
 }
 
-// SessionId 返回服务端分配的会话 ID。
-func (c *Client) SessionId() uid.Id {
-	return c.sessionId
+// SessionID 返回服务端分配的会话 ID。
+func (c *Client) SessionID() uid.ID {
+	return c.sessionID
 }
 
-// UserId 返回握手使用的用户 ID。
-func (c *Client) UserId() string {
-	return c.options.AuthUserId
+// UserID 返回握手使用的用户 ID。
+func (c *Client) UserID() string {
+	return c.options.AuthUserID
 }
 
 // Token 返回握手使用的鉴权令牌。
@@ -125,9 +125,9 @@ func (c *Client) EventIO() IEventIO {
 	return (*_ClientEventIO)(&c.io)
 }
 
-// FutureController 返回用于关联请求与响应的 Future 控制器。
-func (c *Client) FutureController() *concurrent.FutureController {
-	return c.futureController
+// Correlation 返回请求与响应关联控制器。
+func (c *Client) Correlation() *correlation.Controller {
+	return c.correlation
 }
 
 // L 返回客户端结构化日志器。
@@ -154,9 +154,9 @@ func (c *Client) Closed() async.Signal {
 // handleHeartbeat 记录收到的 Ping 或 Pong 心跳事件。
 func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 	if event.Flags.Is(gtp.Flag_Ping) {
-		c.logger.Debug("client receive ping", zap.String("session_id", c.SessionId().String()))
+		c.logger.Debug("client receive ping", zap.String("session_id", c.SessionID().String()))
 	} else {
-		c.logger.Debug("client receive pong", zap.String("session_id", c.SessionId().String()))
+		c.logger.Debug("client receive pong", zap.String("session_id", c.SessionID().String()))
 	}
 }
 
@@ -164,7 +164,7 @@ func (c *Client) handleHeartbeat(event transport.Event[*gtp.MsgHeartbeat]) {
 func (c *Client) handleRst(event transport.Event[*gtp.MsgRst]) {
 	err := transport.ToRstError(event)
 	c.logger.Debug("client receive rst",
-		zap.String("session_id", c.SessionId().String()),
+		zap.String("session_id", c.SessionID().String()),
 		zap.NamedError("rst_error", err))
 	c.Close(err)
 }

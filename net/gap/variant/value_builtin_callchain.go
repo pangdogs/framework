@@ -115,9 +115,9 @@ func (v CallChain) Size() int {
 	return n
 }
 
-// TypeId 返回调用链的内置类型 ID。
-func (CallChain) TypeId() TypeId {
-	return TypeId_CallChain
+// TypeID 返回调用链的内置类型 ID。
+func (CallChain) TypeID() TypeID {
+	return TypeID_CallChain
 }
 
 // Indirect 返回调用链值本身。

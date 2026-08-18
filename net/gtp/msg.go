@@ -34,8 +34,8 @@ type ReadableMsg interface {
 	io.Reader
 	// Size 返回消息编码后的字节数。
 	Size() int
-	// MsgId 返回消息类型 ID。
-	MsgId() MsgId
+	// MsgID 返回消息类型 ID。
+	MsgID() MsgID
 	// Clone 返回可独立修改的消息副本。
 	Clone() Msg
 }

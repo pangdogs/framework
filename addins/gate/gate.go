@@ -37,7 +37,7 @@ import (
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/fanout"
 	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )
@@ -45,7 +45,7 @@ import (
 // IGate 提供已鉴权客户端会话的并发查询与建立监听能力。
 type IGate interface {
 	// Get 按会话 ID 查询当前尚未过期的会话。
-	Get(id uid.Id) (ISession, bool)
+	Get(id uid.ID) (ISession, bool)
 	// Count 返回当前会话数量。
 	Count() int64
 	// Watch 监听首次建立完成的会话；连接迁移成功不会重复通知。
@@ -69,7 +69,7 @@ type _Gate struct {
 	wsListener     *http.Server
 	sessions       sync.Map
 	sessionCount   atomic.Int64
-	sessionWatcher concurrent.Listeners[SessionEstablishedHandler, ISession]
+	sessionWatcher fanout.Broadcaster[SessionEstablishedHandler, ISession]
 }
 
 // Init 按配置启动 TCP 和 WebSocket 监听器，并异步受理连接以建立会话。
@@ -189,8 +189,8 @@ func (g *_Gate) Shut(svcCtx service.Context) {
 }
 
 // Get 按会话 ID 查询当前尚未过期的会话。
-func (g *_Gate) Get(sessionId uid.Id) (ISession, bool) {
-	return g.getSession(sessionId)
+func (g *_Gate) Get(sessionID uid.ID) (ISession, bool) {
+	return g.getSession(sessionID)
 }
 
 // Count 返回当前会话数量。

@@ -61,7 +61,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	}
 	defer handshake.Transceiver.Dispose()
 
-	var sessionId uid.Id
+	var sessionID uid.ID
 	cs := ctor.options.EncCipherSuite
 	cm := ctor.options.Compression
 	var cliRandom, servRandom []byte
@@ -88,7 +88,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	cliHello := transport.Event[*gtp.MsgHello]{
 		Msg: &gtp.MsgHello{
 			Version:     gtp.Version_V1_0,
-			SessionId:   client.SessionId().String(),
+			SessionID:   client.SessionID().String(),
 			Random:      cliRandom,
 			CipherSuite: cs,
 			Compression: cm,
@@ -109,7 +109,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 			}
 
 			// 后续阶段严格采用服务端确认的参数和会话 ID。
-			sessionId = uid.From(strings.Clone(servHello.Msg.SessionId))
+			sessionID = uid.From(strings.Clone(servHello.Msg.SessionID))
 			cs = servHello.Msg.CipherSuite
 			cm = servHello.Msg.Compression
 			continueFlow = servHello.Flags.Is(gtp.Flag_Continue)
@@ -154,7 +154,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 	// 密钥交换完成后，握手 Transceiver 已安装协商出的加密和认证模块。
 	if encryptionFlow {
-		err = ctor.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
+		err = ctor.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionID)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 	if authFlow {
 		err = handshake.ClientAuth(ctx, transport.Event[*gtp.MsgAuth]{
 			Msg: &gtp.MsgAuth{
-				UserId:     ctor.options.AuthUserId,
+				UserID:     ctor.options.AuthUserID,
 				Token:      ctor.options.AuthToken,
 				Extensions: ctor.options.AuthExtensions,
 			},
@@ -225,7 +225,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 		}
 	} else {
 		// 首次连接接管握手使用的连接、编解码器和服务端分配的会话 ID。
-		client.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder, remoteSendSeq, remoteRecvSeq, sessionId)
+		client.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder, remoteSendSeq, remoteRecvSeq, sessionID)
 	}
 
 	return nil
@@ -233,7 +233,7 @@ func (ctor *_Connector) handshake(ctx context.Context, conn net.Conn, client *Cl
 
 // secretKeyExchange 与服务端完成协商密码套件的密钥交换流程。
 func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
-	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionId uid.Id) error {
+	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionID uid.ID) error {
 	// 选择密钥交换算法，并与服务端交换密钥
 	switch cs.SecretKeyExchange {
 	case gtp.SecretKeyExchange_ECDHE:
@@ -253,11 +253,11 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 		// 与服务端交换密钥
 		err := handshake.ClientSecretKeyExchange(ctx, func(e transport.IEvent) (transport.IEvent, error) {
 			// 解包 ECDHESecretKeyExchange 事件
-			switch e.Msg.MsgId() {
-			case gtp.MsgId_ECDHESecretKeyExchange:
+			switch e.Msg.MsgID() {
+			case gtp.MsgID_ECDHESecretKeyExchange:
 				break
 			default:
-				return transport.IEvent{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgId())
+				return transport.IEvent{}, fmt.Errorf("%w (%d)", transport.ErrUnexpectedMsg, e.Msg.MsgID())
 			}
 			servECDHE := transport.AssertEvent[*gtp.MsgECDHESecretKeyExchange](e)
 
@@ -267,7 +267,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 					return transport.IEvent{}, errors.New("no server signature")
 				}
 
-				if err := ctor.verify(servECDHE.Msg.SignatureAlgorithm, servECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionId, servECDHE.Msg.PublicKey); err != nil {
+				if err := ctor.verify(servECDHE.Msg.SignatureAlgorithm, servECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionID, servECDHE.Msg.PublicKey); err != nil {
 					return transport.IEvent{}, err
 				}
 			}
@@ -301,7 +301,7 @@ func (ctor *_Connector) secretKeyExchange(ctx context.Context, handshake *transp
 			}
 
 			// 签名数据
-			signature, err := ctor.sign(cs, cm, cliRandom, servRandom, sessionId, cliPubBytes)
+			signature, err := ctor.sign(cs, cm, cliRandom, servRandom, sessionID, cliPubBytes)
 			if err != nil {
 				return transport.IEvent{}, err
 			}
@@ -506,7 +506,7 @@ func (ctor *_Connector) newCompression(compression gtp.Compression) (codec.IComp
 }
 
 // sign 使用客户端私钥签署握手参数；未配置签名算法时返回空签名。
-func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) ([]byte, error) {
+func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionID uid.ID, cliPubBytes []byte) ([]byte, error) {
 	if ctor.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
 	}
@@ -531,7 +531,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId.String())
+	signBuf.WriteString(sessionID.String())
 	signBuf.Write(cliPubBytes)
 
 	// 生成签名
@@ -544,7 +544,7 @@ func (ctor *_Connector) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, 
 }
 
 // verify 使用服务端公钥验证握手参数签名。
-func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) error {
+func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionID uid.ID, servPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if ctor.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
@@ -565,7 +565,7 @@ func (ctor *_Connector) verify(signatureAlgorithm gtp.SignatureAlgorithm, signat
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId.String())
+	signBuf.WriteString(sessionID.String())
 	signBuf.Write(servPubBytes)
 
 	return signer.Verify(ctor.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)

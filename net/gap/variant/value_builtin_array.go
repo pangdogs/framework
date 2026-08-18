@@ -118,9 +118,9 @@ func (v Array) Size() int {
 	return n
 }
 
-// TypeId 返回数组的内置类型 ID。
-func (Array) TypeId() TypeId {
-	return TypeId_Array
+// TypeID 返回数组的内置类型 ID。
+func (Array) TypeID() TypeID {
+	return TypeID_Array
 }
 
 // Indirect 返回数组值本身。

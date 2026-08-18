@@ -75,9 +75,9 @@ func (MsgFinished) Size() int {
 	return binaryutil.SizeofUint32 + binaryutil.SizeofUint32
 }
 
-// MsgId 返回握手完成消息的内置类型 ID。
-func (MsgFinished) MsgId() MsgId {
-	return MsgId_Finished
+// MsgID 返回握手完成消息的内置类型 ID。
+func (MsgFinished) MsgID() MsgID {
+	return MsgID_Finished
 }
 
 // Clone 返回消息副本。

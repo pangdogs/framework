@@ -29,7 +29,7 @@ import (
 )
 
 // initConn 绑定首次握手建立的连接，并按协商序号初始化同步器和会话 ID。
-func (c *Client) initConn(conn net.Conn, encoder *codec.Encoder, decoder *codec.Decoder, remoteSendSeq, remoteRecvSeq uint32, sessionId uid.Id) {
+func (c *Client) initConn(conn net.Conn, encoder *codec.Encoder, decoder *codec.Decoder, remoteSendSeq, remoteRecvSeq uint32, sessionID uid.ID) {
 	// 采用服务端返回的对端序号初始化本地收发序号及补发缓存。
 	c.transceiver.Conn = conn
 	c.transceiver.Encoder = encoder
@@ -44,7 +44,7 @@ func (c *Client) initConn(conn net.Conn, encoder *codec.Encoder, decoder *codec.
 	})
 
 	// 首次握手完成后会话 ID 在客户端生命周期内保持不变。
-	c.sessionId = sessionId
+	c.sessionID = sessionID
 }
 
 // migrateConn 串行提交新连接，更新地址与迁移计数，然后通知客户端主循环。

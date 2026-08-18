@@ -65,8 +65,8 @@ func (t *TransProtocol) retrySend(err error) error {
 
 // HandleEvent 将业务负载事件同步分发给 PayloadHandler，其他消息会被忽略。
 func (t *TransProtocol) HandleEvent(e IEvent) {
-	switch e.Msg.MsgId() {
-	case gtp.MsgId_Payload:
+	switch e.Msg.MsgID() {
+	case gtp.MsgID_Payload:
 		t.PayloadHandler.Call(t.AutoRecover, t.ReportError, nil, AssertEvent[*gtp.MsgPayload](e))
 	}
 }

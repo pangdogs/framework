@@ -209,9 +209,9 @@ func (m MsgECDHESecretKeyExchange) Size() int {
 		binaryutil.SizeofBytes(m.Signature)
 }
 
-// MsgId 返回 ECDHE 密钥交换消息的内置类型 ID。
-func (MsgECDHESecretKeyExchange) MsgId() MsgId {
-	return MsgId_ECDHESecretKeyExchange
+// MsgID 返回 ECDHE 密钥交换消息的内置类型 ID。
+func (MsgECDHESecretKeyExchange) MsgID() MsgID {
+	return MsgID_ECDHESecretKeyExchange
 }
 
 // Clone 深复制所有引用型字段。

@@ -95,7 +95,7 @@ func TestDecoderDecodeErrors(t *testing.T) {
 		defer buf.Release()
 
 		decoder := NewDecoder(stubMsgCreator{
-			newFn: func(gtp.MsgId) (gtp.Msg, error) { return nil, errTest },
+			newFn: func(gtp.MsgID) (gtp.Msg, error) { return nil, errTest },
 		})
 		if _, _, err := decoder.Decode(buf.Payload(), nil); !errors.Is(err, errTest) {
 			t.Fatalf("expected new msg error, got %v", err)
@@ -107,7 +107,7 @@ func TestDecoderDecodeErrors(t *testing.T) {
 		defer buf.Release()
 
 		decoder := NewDecoder(stubMsgCreator{
-			newFn: func(gtp.MsgId) (gtp.Msg, error) { return &failingMsg{writeErr: errTest}, nil },
+			newFn: func(gtp.MsgID) (gtp.Msg, error) { return &failingMsg{writeErr: errTest}, nil },
 		})
 		if _, _, err := decoder.Decode(buf.Payload(), nil); !errors.Is(err, errTest) {
 			t.Fatalf("expected msg write error, got %v", err)

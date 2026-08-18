@@ -17,10 +17,5 @@
  * Copyright (c) 2024 pangdogs.
  */
 
-package concurrent
-
-type noCopy struct{}
-
-func (*noCopy) Lock() {}
-
-func (*noCopy) Unlock() {}
+// Package fanout 提供面向多个独立 Inbox 的并发非阻塞广播。
+package fanout

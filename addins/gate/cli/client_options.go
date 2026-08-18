@@ -71,7 +71,7 @@ type ClientOptions struct {
 	AutoReconnectRetryTimes     int                    // AutoReconnectRetryTimes 小于等于 0 时无限重试。
 	InactiveTimeout             time.Duration          // InactiveTimeout 是未启用自动重连时的失活等待时间。
 	FutureTimeout               time.Duration          // FutureTimeout 是时间探测等关联请求的默认超时。
-	AuthUserId                  string                 // AuthUserId 是握手提交的用户 ID。
+	AuthUserID                  string                 // AuthUserID 是握手提交的用户 ID。
 	AuthToken                   string                 // AuthToken 是握手提交的鉴权令牌。
 	AuthExtensions              []byte                 // AuthExtensions 是握手提交的扩展数据。
 	AutoRecover                 bool                   // AutoRecover 控制监听器 panic 是否自动恢复。
@@ -125,7 +125,7 @@ func (_ClientOption) Default() option.Setting[ClientOptions] {
 		With.AutoReconnectRetryTimes(100)(options)
 		With.InactiveTimeout(time.Minute)(options)
 		With.FutureTimeout(5 * time.Second)(options)
-		With.AuthUserId("")(options)
+		With.AuthUserID("")(options)
 		With.AuthToken("")(options)
 		With.AuthExtensions(nil)(options)
 		With.PanicHandling(false, nil)(options)
@@ -352,10 +352,10 @@ func (_ClientOption) FutureTimeout(d time.Duration) option.Setting[ClientOptions
 	}
 }
 
-// AuthUserId 设置握手提交的用户 ID。
-func (_ClientOption) AuthUserId(userId string) option.Setting[ClientOptions] {
+// AuthUserID 设置握手提交的用户 ID。
+func (_ClientOption) AuthUserID(userID string) option.Setting[ClientOptions] {
 	return func(options *ClientOptions) {
-		options.AuthUserId = userId
+		options.AuthUserID = userID
 	}
 }
 

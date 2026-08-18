@@ -64,14 +64,15 @@ func (ts TimeSample) RemoteLocation() *time.Location {
 
 // ProbeTime 发起一次时钟探测，并返回承载 *TimeSample 的 Future。
 func (c *Client) ProbeTime() async.Future {
-	handle, err := c.FutureController().New()
+	controller := c.Correlation()
+	corrID, future, err := controller.Begin()
 	if err != nil {
 		return async.Rejected(err)
 	}
-	if err := c.ctrl.ProbeTime(handle.Id()); err != nil {
-		handle.Cancel(err)
+	if err := c.ctrl.ProbeTime(corrID); err != nil {
+		controller.Cancel(corrID, err)
 	}
-	return handle.Future()
+	return future
 }
 
 // handleSyncTime 接收SyncTime消息事件
@@ -85,9 +86,8 @@ func (c *Client) handleSyncTime(event transport.Event[*gtp.MsgSyncTime]) {
 			DestinationTime:  time.Now().In(remoteLocation),
 			RemoteZoneOffset: int(event.Msg.ZoneOffset),
 		}
-		err := c.futureController.Resolve(event.Msg.CorrId, async.NewResult(timeSample, nil))
-		if err != nil {
-			c.logger.Error("failed to resolve future", zap.Int64("corr_id", event.Msg.CorrId), zap.Error(err))
+		if !c.correlation.Resolve(event.Msg.CorrID, async.NewResult(timeSample, nil)) {
+			c.logger.Error("resolve time probe response failed", zap.Uint64("corr_id", uint64(event.Msg.CorrID)))
 		}
 	}
 }

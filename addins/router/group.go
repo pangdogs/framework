@@ -52,11 +52,11 @@ type IGroup interface {
 	// Deleted 返回仅在组记录被显式删除时完成的 Signal。
 	Deleted() async.Signal
 	// Add 将实体 ID 加入组；重复成员不会产生额外条目。
-	Add(ctx context.Context, ids []uid.Id) error
+	Add(ctx context.Context, ids []uid.ID) error
 	// Remove 从组中移除实体 ID；不存在的成员会被忽略。
-	Remove(ctx context.Context, ids []uid.Id) error
+	Remove(ctx context.Context, ids []uid.ID) error
 	// List 返回当前成员实体 ID 的快照。
-	List() []uid.Id
+	List() []uid.ID
 	// DataIO 返回向当前可达成员会话发送原始数据的 I/O 门面。
 	DataIO() IDataIO
 	// EventIO 返回向当前可达成员会话发送传输事件的 I/O 门面。
@@ -66,10 +66,10 @@ type IGroup interface {
 type _Group struct {
 	router          *_Router
 	clientAddr      string
-	leaseId         etcdv3.LeaseID
+	leaseID         etcdv3.LeaseID
 	createdRevision int64
 	latestRevision  int64
-	entities        atomic.Pointer[generic.SliceMap[uid.Id, int64]]
+	entities        atomic.Pointer[generic.SliceMap[uid.ID, int64]]
 	io              _GroupIO
 	expired         async.Completer
 	deleted         async.Completer
@@ -113,7 +113,7 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 		cancel()
 	}()
 
-	keepAliveChan, err := g.router.client.KeepAlive(ctx, g.leaseId)
+	keepAliveChan, err := g.router.client.KeepAlive(ctx, g.leaseID)
 	if err != nil {
 		cancel()
 		g.router.barrier.Done()
@@ -121,7 +121,7 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 		log.L(g.router.svcCtx).Error("keep alive group lease failed",
 			zap.String("group_name", g.Name()),
 			zap.String("group_addr", g.ClientAddr()),
-			zap.Int64("lease_id", int64(g.leaseId)),
+			zap.Int64("lease_id", int64(g.leaseID)),
 			zap.Error(err))
 		return async.Signal{}, fmt.Errorf("router: %w", err)
 	}
@@ -138,13 +138,13 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 			log.L(g.router.svcCtx).Debug("keep alive group lease heartbeat ok",
 				zap.String("group_name", g.Name()),
 				zap.String("group_addr", g.ClientAddr()),
-				zap.Int64("lease_id", int64(g.leaseId)))
+				zap.Int64("lease_id", int64(g.leaseID)))
 		}
 
 		log.L(g.router.svcCtx).Debug("keep alive group lease heartbeat closed",
 			zap.String("group_name", g.Name()),
 			zap.String("group_addr", g.ClientAddr()),
-			zap.Int64("lease_id", int64(g.leaseId)))
+			zap.Int64("lease_id", int64(g.leaseID)))
 
 		stopped.Complete()
 	}()
@@ -152,7 +152,7 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 	log.L(g.router.svcCtx).Debug("keep alive group lease ok",
 		zap.String("group_name", g.Name()),
 		zap.String("group_addr", g.ClientAddr()),
-		zap.Int64("lease_id", int64(g.leaseId)))
+		zap.Int64("lease_id", int64(g.leaseID)))
 	return stoppedSignal, nil
 }
 
@@ -162,12 +162,12 @@ func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	_, err := g.router.client.KeepAliveOnce(ctx, g.leaseId)
+	_, err := g.router.client.KeepAliveOnce(ctx, g.leaseID)
 	if err != nil {
 		log.L(g.router.svcCtx).Error("keep alive group lease once failed",
 			zap.String("group_name", g.Name()),
 			zap.String("group_addr", g.ClientAddr()),
-			zap.Int64("lease_id", int64(g.leaseId)),
+			zap.Int64("lease_id", int64(g.leaseID)),
 			zap.Error(err))
 		return fmt.Errorf("router: %w", err)
 	}
@@ -175,7 +175,7 @@ func (g *_Group) KeepAliveOnce(ctx context.Context) error {
 	log.L(g.router.svcCtx).Debug("keep alive group lease once ok",
 		zap.String("group_name", g.Name()),
 		zap.String("group_addr", g.ClientAddr()),
-		zap.Int64("lease_id", int64(g.leaseId)))
+		zap.Int64("lease_id", int64(g.leaseID)))
 	return nil
 }
 
@@ -185,7 +185,7 @@ func (g *_Group) Deleted() async.Signal {
 }
 
 // Add 在同一 ETCD 事务中将实体 ID 加入组及其反向索引。
-func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
+func (g *_Group) Add(ctx context.Context, ids []uid.ID) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -198,8 +198,8 @@ func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
 
 	for _, id := range ids {
 		ops = append(ops,
-			etcdv3.OpPut(path.Join(g.router.groupEntitiesKeyPrefix, g.clientAddr, id.String()), "", etcdv3.WithLease(g.leaseId)),
-			etcdv3.OpPut(path.Join(g.router.entityGroupsKeyPrefix, id.String(), g.clientAddr), "", etcdv3.WithLease(g.leaseId)),
+			etcdv3.OpPut(path.Join(g.router.groupEntitiesKeyPrefix, g.clientAddr, id.String()), "", etcdv3.WithLease(g.leaseID)),
+			etcdv3.OpPut(path.Join(g.router.entityGroupsKeyPrefix, id.String(), g.clientAddr), "", etcdv3.WithLease(g.leaseID)),
 		)
 	}
 
@@ -221,7 +221,7 @@ func (g *_Group) Add(ctx context.Context, ids []uid.Id) error {
 }
 
 // Remove 在同一 ETCD 事务中移除实体 ID 及其反向索引。
-func (g *_Group) Remove(ctx context.Context, ids []uid.Id) error {
+func (g *_Group) Remove(ctx context.Context, ids []uid.ID) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -256,7 +256,7 @@ func (g *_Group) Remove(ctx context.Context, ids []uid.Id) error {
 }
 
 // List 返回当前成员实体 ID 的快照。
-func (g *_Group) List() []uid.Id {
+func (g *_Group) List() []uid.ID {
 	entities := g.getEntities()
 	if len(entities) == 0 {
 		return nil
@@ -274,17 +274,17 @@ func (g *_Group) EventIO() IEventIO {
 	return (*_GroupEventIO)(&g.io)
 }
 
-func (g *_Group) init(r *_Router, addr string, leaseId etcdv3.LeaseID, revision int64, ids []uid.Id) {
+func (g *_Group) init(r *_Router, addr string, leaseID etcdv3.LeaseID, revision int64, ids []uid.ID) {
 	g.router = r
 	g.clientAddr = addr
-	g.leaseId = leaseId
+	g.leaseID = leaseID
 	g.createdRevision = revision
 	g.latestRevision = revision
 	g.expired, _ = async.NewSignal()
 	g.deleted, _ = async.NewSignal()
 
 	if len(ids) > 0 {
-		entities := generic.NewSliceMap[uid.Id, int64]()
+		entities := generic.NewSliceMap[uid.ID, int64]()
 		for _, id := range ids {
 			entities.Add(id, revision)
 		}
@@ -299,7 +299,7 @@ func (g *_Group) init(r *_Router, addr string, leaseId etcdv3.LeaseID, revision 
 func (g *_Group) sendData(data []byte) error {
 	var retErr []error
 
-	g.getEntities().Each(func(id uid.Id, _ int64) {
+	g.getEntities().Each(func(id uid.ID, _ int64) {
 		mapping, ok := g.router.Lookup(id)
 		if !ok {
 			return
@@ -319,7 +319,7 @@ func (g *_Group) sendData(data []byte) error {
 func (g *_Group) sendEvent(event transport.IEvent) error {
 	var retErr []error
 
-	g.getEntities().Each(func(id uid.Id, _ int64) {
+	g.getEntities().Each(func(id uid.ID, _ int64) {
 		mapping, ok := g.router.Lookup(id)
 		if !ok {
 			return
@@ -358,9 +358,9 @@ func (g *_Group) watchingForChanges() {
 
 	var deleted bool
 	revision := g.createdRevision + 1
-	groupIdKey := g.router.groupIdKey(g.clientAddr)
+	groupIDKey := g.router.groupIDKey(g.clientAddr)
 	groupEntitiesPrefix := g.router.groupEntitiesPrefix(g.clientAddr)
-	groupIdWatchChan := g.router.client.Watch(ctx, groupIdKey, etcdv3.WithRev(revision))
+	groupIDWatchChan := g.router.client.Watch(ctx, groupIDKey, etcdv3.WithRev(revision))
 	groupEntitiesWatchChan := g.router.client.Watch(ctx, groupEntitiesPrefix, etcdv3.WithPrefix(), etcdv3.WithRev(revision))
 
 	log.L(g.router.svcCtx).Debug("watching for group changes started",
@@ -368,11 +368,11 @@ func (g *_Group) watchingForChanges() {
 		zap.String("group_addr", g.ClientAddr()),
 		zap.Int64("revision", revision))
 
-	for groupIdWatchChan != nil || groupEntitiesWatchChan != nil {
+	for groupIDWatchChan != nil || groupEntitiesWatchChan != nil {
 		select {
-		case watchRsp, ok := <-groupIdWatchChan:
+		case watchRsp, ok := <-groupIDWatchChan:
 			if !ok {
-				groupIdWatchChan = nil
+				groupIDWatchChan = nil
 				continue
 			}
 			if watchRsp.Canceled {
@@ -380,7 +380,7 @@ func (g *_Group) watchingForChanges() {
 					zap.String("group_name", g.Name()),
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
-				groupIdWatchChan = nil
+				groupIDWatchChan = nil
 				continue
 			}
 			if watchRsp.Err() != nil {
@@ -389,7 +389,7 @@ func (g *_Group) watchingForChanges() {
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
 				cancel()
-				groupIdWatchChan = nil
+				groupIDWatchChan = nil
 				groupEntitiesWatchChan = nil
 				continue
 			}
@@ -403,7 +403,7 @@ func (g *_Group) watchingForChanges() {
 				g.latestRevision = max(g.latestRevision, watchRsp.Header.Revision)
 
 				cancel()
-				groupIdWatchChan = nil
+				groupIDWatchChan = nil
 				groupEntitiesWatchChan = nil
 				break
 			}
@@ -427,7 +427,7 @@ func (g *_Group) watchingForChanges() {
 					zap.String("group_addr", g.ClientAddr()),
 					zap.Error(watchRsp.Err()))
 				cancel()
-				groupIdWatchChan = nil
+				groupIDWatchChan = nil
 				groupEntitiesWatchChan = nil
 				continue
 			}
@@ -438,17 +438,17 @@ func (g *_Group) watchingForChanges() {
 			}
 
 			for _, event := range watchRsp.Events {
-				groupAddr, entityId, ok := g.router.parseGroupEntitiesKey(string(event.Kv.Key))
+				groupAddr, entityID, ok := g.router.parseGroupEntitiesKey(string(event.Kv.Key))
 				if !ok || groupAddr != g.clientAddr {
 					continue
 				}
 
 				switch event.Type {
 				case etcdv3.EventTypePut:
-					entities.Add(entityId, watchRsp.Header.Revision)
+					entities.Add(entityID, watchRsp.Header.Revision)
 
 				case etcdv3.EventTypeDelete:
-					entities.Delete(entityId)
+					entities.Delete(entityID)
 
 				default:
 					log.L(g.router.svcCtx).Warn("unknown group changes event type",
@@ -477,7 +477,7 @@ func (g *_Group) watchingForChanges() {
 		zap.Int64("revision", g.latestRevision))
 }
 
-func (g *_Group) getEntities() generic.SliceMap[uid.Id, int64] {
+func (g *_Group) getEntities() generic.SliceMap[uid.ID, int64] {
 	entities := g.entities.Load()
 	if entities == nil {
 		return nil
@@ -485,7 +485,7 @@ func (g *_Group) getEntities() generic.SliceMap[uid.Id, int64] {
 	return *entities
 }
 
-func (g *_Group) storeEntities(entities generic.SliceMap[uid.Id, int64]) {
+func (g *_Group) storeEntities(entities generic.SliceMap[uid.ID, int64]) {
 	if len(entities) == 0 {
 		g.entities.Store(nil)
 		return

@@ -121,7 +121,7 @@ func TestEncoderModuleErrors(t *testing.T) {
 		encoder := NewEncoder().
 			SetEncryption(stubEncryption{}).
 			SetAuthentication(stubAuthentication{
-				signFn: func(gtp.MsgId, gtp.Flags, []byte) (binaryutil.Bytes, error) { return binaryutil.EmptyBytes, errTest },
+				signFn: func(gtp.MsgID, gtp.Flags, []byte) (binaryutil.Bytes, error) { return binaryutil.EmptyBytes, errTest },
 			})
 		if _, err := encoder.Encode(gtp.Flags_None(), msg); !errors.Is(err, errTest) {
 			t.Fatalf("expected sign error, got %v", err)

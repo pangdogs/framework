@@ -23,15 +23,16 @@ import (
 	"io"
 
 	"git.golaxy.org/framework/utils/binaryutil"
+	"git.golaxy.org/framework/utils/correlation"
 )
 
 // MsgForward 将一个已编码 GAP 消息路由到目标地址。
 type MsgForward struct {
-	Src       Origin // 原始消息来源。
-	Dst       string // 目标通信地址。
-	CorrId    int64  // 请求关联 ID；无需关联时为零。
-	TransId   MsgId  // 被转发消息的类型 ID。
-	TransData []byte // 被转发消息的已编码内容；解码时引用输入缓冲区。
+	Src       Origin         // 原始消息来源。
+	Dst       string         // 目标通信地址。
+	CorrID    correlation.ID // 请求关联 ID；无需关联时为零。
+	TransID   MsgID          // 被转发消息的类型 ID。
+	TransData []byte         // 被转发消息的已编码内容；解码时引用输入缓冲区。
 }
 
 // Read 将转发消息编码到 p。
@@ -43,10 +44,10 @@ func (m MsgForward) Read(p []byte) (int, error) {
 	if err := bs.WriteString(m.Dst); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteVarint(m.CorrId); err != nil {
+	if err := bs.WriteUvarint(uint64(m.CorrID)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteUint32(m.TransId); err != nil {
+	if err := bs.WriteUint32(m.TransID); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.TransData); err != nil {
@@ -70,12 +71,13 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.CorrId, err = bs.ReadVarint()
+	corrID, err := bs.ReadUvarint()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	m.CorrID = correlation.ID(corrID)
 
-	m.TransId, err = bs.ReadUint32()
+	m.TransID, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -90,10 +92,10 @@ func (m *MsgForward) Write(p []byte) (int, error) {
 
 // Size 返回转发消息编码后的字节数。
 func (m MsgForward) Size() int {
-	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofVarint(m.CorrId) + binaryutil.SizeofUint32 + binaryutil.SizeofBytes(m.TransData)
+	return m.Src.Size() + binaryutil.SizeofString(m.Dst) + binaryutil.SizeofUvarint(uint64(m.CorrID)) + binaryutil.SizeofUint32 + binaryutil.SizeofBytes(m.TransData)
 }
 
-// MsgId 返回转发消息的内置类型 ID。
-func (MsgForward) MsgId() MsgId {
-	return MsgId_Forward
+// MsgID 返回转发消息的内置类型 ID。
+func (MsgForward) MsgID() MsgID {
+	return MsgID_Forward
 }

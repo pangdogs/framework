@@ -52,7 +52,7 @@ type _DistEntityRegistry struct {
 	rtCtx          runtime.Context
 	options        DistEntityRegistryOptions
 	client         *etcdv3.Client
-	leaseId        etcdv3.LeaseID
+	leaseID        etcdv3.LeaseID
 	managedHandles [2]event.Handle
 }
 
@@ -93,19 +93,19 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 	if err != nil {
 		log.L(rtCtx).Panic("keep alive etcd lease failed", zap.Error(err))
 	}
-	d.leaseId = grantRsp.ID
+	d.leaseID = grantRsp.ID
 
-	log.L(rtCtx).Debug("grant etcd lease ok", zap.Int64("lease_id", int64(d.leaseId)))
+	log.L(rtCtx).Debug("grant etcd lease ok", zap.Int64("lease_id", int64(d.leaseID)))
 
 	go func() {
 		for range keepAliveChan {
 			log.L(service.Current(rtCtx)).Debug("keep alive etcd lease heartbeat ok",
-				zap.String("runtime_id", rtCtx.Id().String()),
-				zap.Int64("lease_id", int64(d.leaseId)))
+				zap.String("runtime_id", rtCtx.ID().String()),
+				zap.Int64("lease_id", int64(d.leaseID)))
 		}
 		log.L(service.Current(rtCtx)).Debug("keep alive etcd lease heartbeat closed",
-			zap.String("runtime_id", rtCtx.Id().String()),
-			zap.Int64("lease_id", int64(d.leaseId)))
+			zap.String("runtime_id", rtCtx.ID().String()),
+			zap.Int64("lease_id", int64(d.leaseID)))
 	}()
 
 	// 在绑定增删事件前发布运行时中已有的全局实体。
@@ -126,9 +126,9 @@ func (d *_DistEntityRegistry) Shut(rtCtx runtime.Context) {
 	event.UnbindHandles(d.managedHandles[:])
 
 	// 撤销共享租约会一次性删除本运行时发布的全部实体键。
-	_, err := d.client.Revoke(context.Background(), d.leaseId)
+	_, err := d.client.Revoke(context.Background(), d.leaseID)
 	if err != nil {
-		log.L(rtCtx).Error("revoke etcd lease failed", zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
+		log.L(rtCtx).Error("revoke etcd lease failed", zap.Int64("lease_id", int64(d.leaseID)), zap.Error(err))
 	}
 
 	if d.options.EtcdClient == nil {
@@ -157,12 +157,12 @@ func (d *_DistEntityRegistry) register(entity ec.Entity) {
 
 	key := d.newEntityKey(entity)
 
-	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithLease(d.leaseId))
+	_, err := d.client.Put(d.rtCtx, key, "", etcdv3.WithLease(d.leaseID))
 	if err != nil {
-		log.L(d.rtCtx).Error("put distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
+		log.L(d.rtCtx).Error("put distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseID)), zap.Error(err))
 		return
 	}
-	log.L(d.rtCtx).Debug("put distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
+	log.L(d.rtCtx).Debug("put distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseID)))
 
 	// ETCD 写入成功后同步通知本地监听器实体已上线。
 	_EmitEventDistEntityOnline(d, entity)
@@ -182,9 +182,9 @@ func (d *_DistEntityRegistry) deregister(entity ec.Entity) {
 
 		_, err := d.client.Delete(d.rtCtx, key)
 		if err != nil {
-			log.L(d.rtCtx).Error("delete distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)), zap.Error(err))
+			log.L(d.rtCtx).Error("delete distributed entity etcd key failed", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseID)), zap.Error(err))
 		} else {
-			log.L(d.rtCtx).Debug("delete distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseId)))
+			log.L(d.rtCtx).Debug("delete distributed entity etcd key ok", zap.String("key", key), zap.Int64("lease_id", int64(d.leaseID)))
 		}
 	}
 
@@ -219,5 +219,5 @@ func (d *_DistEntityRegistry) configure() etcdv3.Config {
 
 func (d *_DistEntityRegistry) newEntityKey(entity ec.Entity) string {
 	svcCtx := service.Current(d.rtCtx)
-	return path.Join(d.options.KeyPrefix, entity.Id().String(), svcCtx.Name(), svcCtx.Id().String())
+	return path.Join(d.options.KeyPrefix, entity.ID().String(), svcCtx.Name(), svcCtx.ID().String())
 }

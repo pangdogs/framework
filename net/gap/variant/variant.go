@@ -40,14 +40,14 @@ func NewVariant(v ReadableValue) (Variant, error) {
 		return Variant{}, fmt.Errorf("%w: %w: v is nil", ErrVariant, core.ErrArgs)
 	}
 	return Variant{
-		TypeId: v.TypeId(),
+		TypeID: v.TypeID(),
 		Value:  v,
 	}, nil
 }
 
 // Variant 将类型 ID 与可编码值关联，并可保留解码时创建的反射值。
 type Variant struct {
-	TypeId    TypeId        // 动态值类型 ID。
+	TypeID    TypeID        // 动态值类型 ID。
 	Value     ReadableValue // 实际值。
 	Reflected reflect.Value // 解码自定义类型时创建的反射值；自行构造时可为空。
 }
@@ -60,11 +60,11 @@ func (v Variant) Read(p []byte) (int, error) {
 
 	bs := binaryutil.NewBigEndianStream(p)
 
-	if _, err := binaryutil.CopyToByteStream(&bs, v.TypeId); err != nil {
+	if _, err := binaryutil.CopyToByteStream(&bs, v.TypeID); err != nil {
 		return bs.BytesWritten(), err
 	}
 
-	if v.TypeId >= TypeId_Customize {
+	if v.TypeID >= TypeID_Customize {
 		if err := bs.WriteUvarint(uint64(v.Value.Size())); err != nil {
 			return bs.BytesWritten(), err
 		}
@@ -81,11 +81,11 @@ func (v Variant) Read(p []byte) (int, error) {
 func (v *Variant) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
-	if _, err := bs.WriteTo(&v.TypeId); err != nil {
+	if _, err := bs.WriteTo(&v.TypeID); err != nil {
 		return bs.BytesRead(), err
 	}
 
-	if v.TypeId >= TypeId_Customize {
+	if v.TypeID >= TypeID_Customize {
 		valueSize, err := bs.ReadUvarint()
 		if err != nil {
 			return bs.BytesRead(), err
@@ -95,7 +95,7 @@ func (v *Variant) Write(p []byte) (int, error) {
 		}
 	}
 
-	reflected, err := v.TypeId.NewReflected()
+	reflected, err := v.TypeID.NewReflected()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -117,11 +117,11 @@ func (v Variant) Size() int {
 		return 0
 	}
 
-	n := v.TypeId.Size()
+	n := v.TypeID.Size()
 
 	if v.Value != nil {
 		s := v.Value.Size()
-		if v.TypeId >= TypeId_Customize {
+		if v.TypeID >= TypeID_Customize {
 			n += binaryutil.SizeofUvarint(uint64(s))
 		}
 		n += s
@@ -133,7 +133,7 @@ func (v Variant) Size() int {
 // IsValid 报告类型 ID 是否与实际值声明的类型一致。
 func (v Variant) IsValid() bool {
 	if v.Value != nil {
-		return v.TypeId == v.Value.TypeId()
+		return v.TypeID == v.Value.TypeID()
 	}
 	return false
 }

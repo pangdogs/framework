@@ -38,7 +38,7 @@ func BuildRuntime(svcInst IService) *RuntimeCreator {
 		assembler: svcInst.(iService).getRuntimeAssembler(),
 		settings: _RuntimeSettings{
 			name:                            "",
-			persistId:                       uid.Nil,
+			persistID:                       uid.Nil,
 			mainEntity:                      nil,
 			autoRecover:                     svcInst.AutoRecover(),
 			reportError:                     svcInst.ReportError(),
@@ -87,9 +87,9 @@ func (c *RuntimeCreator) SetName(name string) *RuntimeCreator {
 	return c
 }
 
-// SetPersistId 设置运行时持久化 ID。
-func (c *RuntimeCreator) SetPersistId(id uid.Id) *RuntimeCreator {
-	c.settings.persistId = id
+// SetPersistID 设置运行时持久化 ID。
+func (c *RuntimeCreator) SetPersistID(id uid.ID) *RuntimeCreator {
+	c.settings.persistID = id
 	return c
 }
 

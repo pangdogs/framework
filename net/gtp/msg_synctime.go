@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"git.golaxy.org/framework/utils/binaryutil"
+	"git.golaxy.org/framework/utils/correlation"
 )
 
 const (
@@ -34,17 +35,17 @@ const (
 
 // MsgSyncTime 携带一次 NTP 风格时钟采样的时间点和时区信息。
 type MsgSyncTime struct {
-	CorrId       int64 // 请求与响应的关联 ID。
-	OriginTime   int64 // NTP t1，请求方发送请求的 Unix 毫秒时间戳。
-	ReceiveTime  int64 // NTP t2，响应方收到请求的 Unix 毫秒时间戳。
-	TransmitTime int64 // NTP t3，响应方发送响应的 Unix 毫秒时间戳。
-	ZoneOffset   int32 // 响应方相对 UTC 的时区偏移秒数。
+	CorrID       correlation.ID // 请求与响应的关联 ID。
+	OriginTime   int64          // NTP t1，请求方发送请求的 Unix 毫秒时间戳。
+	ReceiveTime  int64          // NTP t2，响应方收到请求的 Unix 毫秒时间戳。
+	TransmitTime int64          // NTP t3，响应方发送响应的 Unix 毫秒时间戳。
+	ZoneOffset   int32          // 响应方相对 UTC 的时区偏移秒数。
 }
 
 // Read 将时钟同步消息编码到 p。
 func (m MsgSyncTime) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
-	if err := bs.WriteInt64(m.CorrId); err != nil {
+	if err := bs.WriteUint64(uint64(m.CorrID)); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteInt64(m.OriginTime); err != nil {
@@ -67,10 +68,11 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	var err error
 
-	m.CorrId, err = bs.ReadInt64()
+	corrID, err := bs.ReadUint64()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
+	m.CorrID = correlation.ID(corrID)
 
 	m.OriginTime, err = bs.ReadInt64()
 	if err != nil {
@@ -97,13 +99,13 @@ func (m *MsgSyncTime) Write(p []byte) (int, error) {
 
 // Size 返回时钟同步消息的固定编码字节数。
 func (m MsgSyncTime) Size() int {
-	return binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 +
+	return binaryutil.SizeofUint64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 + binaryutil.SizeofInt64 +
 		binaryutil.SizeofInt32
 }
 
-// MsgId 返回时钟同步消息的内置类型 ID。
-func (MsgSyncTime) MsgId() MsgId {
-	return MsgId_SyncTime
+// MsgID 返回时钟同步消息的内置类型 ID。
+func (MsgSyncTime) MsgID() MsgID {
+	return MsgID_SyncTime
 }
 
 // Clone 返回消息副本。

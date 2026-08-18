@@ -48,10 +48,10 @@ func (d *NodeDetails) MakeBalanceAddr(service string) string {
 	return unique.Make(d.DomainBalance.Join(service)).Value()
 }
 
-// MakeNodeAddr 返回指定节点 ID 的单播地址；nodeId 为空时返回错误。
-func (d *NodeDetails) MakeNodeAddr(nodeId uid.Id) (string, error) {
-	if nodeId.IsNil() {
-		return "", fmt.Errorf("dsvc: %w: nodeId is nil", core.ErrArgs)
+// MakeNodeAddr 返回指定节点 ID 的单播地址；nodeID 为空时返回错误。
+func (d *NodeDetails) MakeNodeAddr(nodeID uid.ID) (string, error) {
+	if nodeID.IsNil() {
+		return "", fmt.Errorf("dsvc: %w: nodeID is nil", core.ErrArgs)
 	}
-	return unique.Make(d.DomainUnicast.Join(nodeId.String())).Value(), nil
+	return unique.Make(d.DomainUnicast.Join(nodeID.String())).Value(), nil
 }

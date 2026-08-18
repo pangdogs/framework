@@ -53,9 +53,9 @@ func (Int16) Size() int {
 	return binaryutil.SizeofInt16
 }
 
-// TypeId 返回 int16 的内置类型 ID。
-func (Int16) TypeId() TypeId {
-	return TypeId_Int16
+// TypeID 返回 int16 的内置类型 ID。
+func (Int16) TypeID() TypeID {
+	return TypeID_Int16
 }
 
 // Indirect 返回 int16。

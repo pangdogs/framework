@@ -169,7 +169,7 @@ Service 是 Runtime 外层的并发作用域，保存服务级 add-in、实体/�
 | EntityManager | Runtime 内的本地实体集合，负责实体进入、离开以及生命周期推进。 |
 | EntityTree | Runtime 内的父子关系树，支持挂接、分离、移动和遍历；树关系变化本身不会销毁实体。 |
 
-同一 Entity 允许存在多个同名 Component；`GetComponent` 返回第一个匹配项，`GetComponents` 返回全部匹配项。组件默认复用 Entity ID，启用 `SetComponentUniqueID(true)` 后才会分配独立 ID，并可使用 `GetComponentById` 查询。
+同一 Entity 允许存在多个同名 Component；`GetComponent` 返回第一个匹配项，`GetComponents` 返回全部匹配项。组件默认复用 Entity ID，启用 `SetComponentUniqueID(true)` 后才会分配独立 ID，并可使用 `GetComponentByID` 查询。
 
 Entity、Component、Runtime 还暴露 signal/slot 风格的进程内事件。事件会在发送方当前 goroutine 中同步派发，不经过 Runtime 任务队列，也不承担跨进程通信；因此从外部 goroutine 触发业务事件前仍应先进入 Runtime。通过对象的 `Managed()` 保存订阅句柄，可在所属对象销毁或终止时自动解绑。
 
@@ -304,7 +304,7 @@ func (*LobbyService) OnStarted(svc framework.IService) {
 		svc.S().Panicw("create runtime failed", "error", err)
 	}
 
-	svc.S().Infow("lobby service started", "runtime_id", rt.Id())
+	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
 }
 
 func main() {
@@ -478,7 +478,7 @@ serviceConf := svc.ServiceConf() // lobby 子树；子树不存在时可能为 n
 | panic 恢复 | 继承 Service 配置 |
 | 实体激活 panic 后继续 | 关闭，激活失败的实体会被移除 |
 
-可通过 `SetName`、`SetPersistId`、`SetMainEntity`、`SetEnableFrame`、`SetFPS`、`SetAutoInjection` 和 `SetPanicHandling` 调整。主实体停用后，所属 Runtime 会自动终止。
+可通过 `SetName`、`SetPersistID`、`SetMainEntity`、`SetEnableFrame`、`SetFPS`、`SetAutoInjection` 和 `SetPanicHandling` 调整。主实体停用后，所属 Runtime 会自动终止。
 
 下面的示例声明一个全局 `player` 原型，并创建实体：
 
@@ -619,7 +619,7 @@ func (*LobbyService) InstallDistSync(svc framework.IService) {
 | 包 | 能力 |
 | --- | --- |
 | [`addins/gate`](./addins/gate) | TCP/WebSocket 监听、GTP 握手、会话认证、重连迁移、数据与事件 I/O。 |
-| [`addins/gate/cli`](./addins/gate/cli) | 面向 Gate 的底层客户端，支持连接、重连、时钟探测和 Future 管理。 |
+| [`addins/gate/cli`](./addins/gate/cli) | 面向 Gate 的底层客户端，支持连接、重连、时钟探测和请求响应关联。 |
 | [`addins/router`](./addins/router) | Entity/Session 映射、ETCD 持久化逻辑分组、单播和组播。 |
 | [`addins/rpc/rpcpcsr`](./addins/rpc/rpcpcsr) | Service、Gate 和 Forward RPC 处理器及投递器。 |
 | [`addins/rpc/rpcli`](./addins/rpc/rpcli) | 构建在 Gate Client 和 GAP 上的客户端 RPC。 |
@@ -662,6 +662,8 @@ RPC 在此寻址模型上提供：
 
 > **协议边界：** GTP 只用于 Client 与 Gate 之间的 TCP/WebSocket 长连接。客户端 RPC 是由 GTP Payload 承载的 GAP 消息；Gate 进入服务域后以及所有服务间 RPC 都只通过 NATS 传输 GAP，不会在 NATS 上继续封装 GTP。
 
+> **线协议兼容性：** 关联 ID 统一为无符号 64 位整数；GAP 使用 unsigned varint 编码，GTP 时钟同步消息使用定长 uint64 字段。仍使用旧 signed-varint 编码的 GAP 节点在线格式上不兼容，必须同步升级；对于非负 ID，GTP 字段仍保持相同的 8 字节布局。
+
 > **安全说明：** GTP 支持 ECDHE、签名和验证，但自身不提供证书校验。高安全要求场景应在 TCP/WebSocket 下层启用 TLS，并考虑关闭 GTP 自带的数据加密，避免把协议签名误当作完整的 PKI 信任链。pprof 也不应直接暴露到不可信网络。
 
 ## 项目结构
@@ -674,7 +676,7 @@ RPC 在此寻址模型上提供：
 | [`addins/conf`](./addins/conf) | 基于 Viper 的应用配置和服务配置子树。 |
 | [`addins/discovery`](./addins/discovery) | 服务注册、查询、监听抽象及 ETCD 实现。 |
 | [`addins/dsync`](./addins/dsync) | 分布式互斥锁抽象及 ETCD、Redis 实现。 |
-| [`addins/dsvc`](./addins/dsvc) | 服务节点上线、地址生成、GAP 消息收发和 Future 控制。 |
+| [`addins/dsvc`](./addins/dsvc) | 服务节点上线、地址生成、GAP 消息收发和请求响应关联。 |
 | [`addins/dent`](./addins/dent) | 分布式实体注册、查询、事件和本地缓存。 |
 | [`addins/rpc`](./addins/rpc) | RPC 门面、代理、调用路径、处理器、客户端和结果解析。 |
 | [`addins/rpcstack`](./addins/rpcstack) | Runtime 作用域的 RPC 调用链和变量栈。 |
@@ -685,7 +687,8 @@ RPC 在此寻址模型上提供：
 | [`net/gtp`](./net/gtp) | GTP 消息、codec、密码学/压缩方法和 transport。 |
 | [`net/netpath`](./net/netpath) | 服务地址、topic 等逻辑网络路径处理。 |
 | [`utils/binaryutil`](./utils/binaryutil) | 字节流、缓冲池、二进制读写和限长拷贝。 |
-| [`utils/concurrent`](./utils/concurrent) | FutureController、监听器集合和轻量并发辅助。 |
+| [`utils/correlation`](./utils/correlation) | 带超时的请求响应关联和响应 Future 创建。 |
+| [`utils/fanout`](./utils/fanout) | 面向独立有界订阅 Inbox 的并发非阻塞扇出。 |
 
 ## 可观测性与运行建议
 
@@ -712,7 +715,7 @@ go test -race ./...
 go vet ./...
 ```
 
-协议与底层工具的测试主要位于 `net/gap/variant`、`net/gtp`、`net/gtp/codec`、`net/gtp/method`、`net/gtp/transport`、`utils/binaryutil` 和 `utils/concurrent`。
+协议与底层工具的测试主要位于 `net/gap/variant`、`net/gtp`、`net/gtp/codec`、`net/gtp/method`、`net/gtp/transport`、`utils/binaryutil`、`utils/correlation` 和 `utils/fanout`。
 
 ## 生态与许可证
 

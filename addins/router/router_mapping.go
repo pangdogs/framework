@@ -30,7 +30,7 @@ import (
 )
 
 // Map 建立实体与会话的一对一映射；任一端已有其他映射时，旧映射会先被移除。
-func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
+func (r *_Router) Map(entityID, sessionID uid.ID) (IMapping, error) {
 	select {
 	case <-r.ctx.Done():
 		return nil, errors.New("router: router is terminating")
@@ -41,13 +41,13 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 		return nil, errors.New("router: router is terminating")
 	}
 
-	entity, ok := r.svcCtx.EntityManager().GetEntity(entityId)
+	entity, ok := r.svcCtx.EntityManager().GetEntity(entityID)
 	if !ok {
 		r.barrier.Done()
 		return nil, ErrEntityNotFound
 	}
 
-	session, ok := r.gate.Get(sessionId)
+	session, ok := r.gate.Get(sessionID)
 	if !ok {
 		r.barrier.Done()
 		return nil, ErrSessionNotFound
@@ -57,7 +57,7 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 	unmapped, _ := async.NewSignal()
 	mapping := &_Mapping{
 		router:     r,
-		clientAddr: gate.ClientDetails.DomainUnicast.Join(entity.Id().String()),
+		clientAddr: gate.ClientDetails.DomainUnicast.Join(entity.ID().String()),
 		entity:     entity,
 		session:    session,
 		removed:    removed,
@@ -66,8 +66,8 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 
 	r.mappingMu.Lock()
 
-	currByEntity := r.mappings[entityId]
-	currBySession := r.mappings[sessionId]
+	currByEntity := r.mappings[entityID]
+	currBySession := r.mappings[sessionID]
 
 	if currByEntity != nil && currByEntity == currBySession {
 		r.mappingMu.Unlock()
@@ -87,22 +87,22 @@ func (r *_Router) Map(entityId, sessionId uid.Id) (IMapping, error) {
 		}
 	}
 
-	r.mappings[entity.Id()] = mapping
-	r.mappings[session.Id()] = mapping
+	r.mappings[entity.ID()] = mapping
+	r.mappings[session.ID()] = mapping
 
 	r.mappingMu.Unlock()
 
 	go mapping.waitForUnmap()
 
 	log.L(r.svcCtx).Info("add mapping",
-		zap.String("entity_id", entity.Id().String()),
-		zap.String("session_id", session.Id().String()))
+		zap.String("entity_id", entity.ID().String()),
+		zap.String("session_id", session.ID().String()))
 
 	return mapping, nil
 }
 
 // Lookup 按实体 ID 或会话 ID 查询当前映射。
-func (r *_Router) Lookup(id uid.Id) (IMapping, bool) {
+func (r *_Router) Lookup(id uid.ID) (IMapping, bool) {
 	mapping, ok := r.getMappingLocked(id)
 	if !ok {
 		return nil, false
@@ -110,7 +110,7 @@ func (r *_Router) Lookup(id uid.Id) (IMapping, bool) {
 	return mapping, true
 }
 
-func (r *_Router) getMappingLocked(id uid.Id) (*_Mapping, bool) {
+func (r *_Router) getMappingLocked(id uid.ID) (*_Mapping, bool) {
 	r.mappingMu.RLock()
 	mapping, ok := r.mappings[id]
 	r.mappingMu.RUnlock()
@@ -126,12 +126,12 @@ func (r *_Router) removeMappingLocked(m *_Mapping) bool {
 
 func (r *_Router) removeMapping(m *_Mapping) bool {
 	removed := false
-	if curr := r.mappings[m.entity.Id()]; curr == m {
-		delete(r.mappings, m.entity.Id())
+	if curr := r.mappings[m.entity.ID()]; curr == m {
+		delete(r.mappings, m.entity.ID())
 		removed = true
 	}
-	if curr := r.mappings[m.session.Id()]; curr == m {
-		delete(r.mappings, m.session.Id())
+	if curr := r.mappings[m.session.ID()]; curr == m {
+		delete(r.mappings, m.session.ID())
 		removed = true
 	}
 	return removed

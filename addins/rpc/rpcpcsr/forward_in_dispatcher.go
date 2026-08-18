@@ -31,13 +31,14 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/utils/correlation"
 	"go.uber.org/zap"
 )
 
 // handleServiceMsg 接受中转服务发来的客户端域转入消息，并交给本地目标处理。
 func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
-	switch mp.Head.MsgId {
-	case gap.MsgId_Forward:
+	switch mp.Head.MsgID {
+	case gap.MsgID_Forward:
 		req := mp.Body.(*gap.MsgForward)
 
 		// 只支持来源于客户端域的转入消息
@@ -51,8 +52,8 @@ func (p *_ForwardProcessor) handleServiceMsg(topic string, mp gap.MsgPacket) {
 
 // acceptForward 解包被中转的 RPC 请求、通知或响应。
 func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForward) {
-	switch req.TransId {
-	case gap.MsgId_OnewayRPC:
+	switch req.TransID {
+	case gap.MsgID_OnewayRPC:
 		msg := &gap.MsgOnewayRPC{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
 			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
@@ -64,7 +65,7 @@ func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForwar
 		}
 		p.acceptNotify(transit, req.Src, req.Dst, msg)
 
-	case gap.MsgId_RPC_Request:
+	case gap.MsgID_RPC_Request:
 		msg := &gap.MsgRPCRequest{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
 			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
@@ -72,12 +73,12 @@ func (p *_ForwardProcessor) acceptForward(transit gap.Origin, req *gap.MsgForwar
 				zap.String("src", req.Src.Addr),
 				zap.String("dst", req.Dst),
 				zap.Error(err))
-			p.reply(transit, req.Src, req.CorrId, variant.Array{}, err)
+			p.reply(transit, req.Src, req.CorrID, variant.Array{}, err)
 			return
 		}
 		p.acceptRequest(transit, req.Src, req.Dst, msg)
 
-	case gap.MsgId_RPC_Reply:
+	case gap.MsgID_RPC_Reply:
 		msg := &gap.MsgRPCReply{}
 		if err := gap.Unmarshal(msg, req.TransData); err != nil {
 			log.L(p.svcCtx).Error("unmarshal forwarded rpc message failed",
@@ -102,7 +103,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 			zap.Error(fmt.Errorf("parse call path failed: %w", err)))
 		return
 	}
-	cp.Id = uid.From(dst)
+	cp.ID = uid.From(dst)
 
 	cc := rpcstack.CallChain{
 		{
@@ -165,14 +166,14 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 		}()
 
 	case callpath.Runtime:
-		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept forwarded rpc notify to runtime failed",
 				zap.String("transit", transit.Addr),
 				zap.String("src", src.Addr),
 				zap.String("dst", dst),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
@@ -187,7 +188,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -197,7 +198,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
@@ -205,14 +206,14 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 		}()
 
 	case callpath.Entity:
-		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept forwarded rpc notify to entity failed",
 				zap.String("transit", transit.Addr),
 				zap.String("src", src.Addr),
 				zap.String("dst", dst),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
@@ -227,7 +228,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -237,7 +238,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
@@ -255,12 +256,12 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 			zap.String("transit", transit.Addr),
 			zap.String("src", src.Addr),
 			zap.String("dst", dst),
-			zap.Int64("corr_id", req.CorrId),
+			zap.Uint64("corr_id", uint64(req.CorrID)),
 			zap.Error(err))
-		p.reply(transit, src, req.CorrId, variant.Array{}, err)
+		p.reply(transit, src, req.CorrID, variant.Array{}, err)
 		return
 	}
-	cp.Id = uid.From(dst)
+	cp.ID = uid.From(dst)
 
 	cc := rpcstack.CallChain{
 		{
@@ -292,10 +293,10 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 				zap.String("transit", transit.Addr),
 				zap.String("src", src.Addr),
 				zap.String("dst", dst),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.Array{}, err)
+			p.reply(transit, src, req.CorrID, variant.Array{}, err)
 			return
 		}
 	}
@@ -309,7 +310,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
@@ -319,28 +320,28 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(transit, src, req.CorrId, rets, err)
+			p.reply(transit, src, req.CorrID, rets, err)
 		}()
 
 	case callpath.Runtime:
-		future, err := CallRuntime(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept forwarded rpc request to runtime failed",
 				zap.String("transit", transit.Addr),
 				zap.String("src", src.Addr),
 				zap.String("dst", dst),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.Array{}, err)
+			p.reply(transit, src, req.CorrID, variant.Array{}, err)
 			return
 		}
 
@@ -351,9 +352,9 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -362,29 +363,29 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(transit, src, req.CorrId, rets, err)
+			p.reply(transit, src, req.CorrID, rets, err)
 		}()
 
 	case callpath.Entity:
-		future, err := CallEntity(p.svcCtx, cc, cp.Id, cp.Script, cp.Method, req.Args)
+		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			log.L(p.svcCtx).Error("accept forwarded rpc request to entity failed",
 				zap.String("transit", transit.Addr),
 				zap.String("src", src.Addr),
 				zap.String("dst", dst),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
-				zap.String("id", cp.Id.String()),
+				zap.String("id", cp.ID.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
-			p.reply(transit, src, req.CorrId, variant.Array{}, err)
+			p.reply(transit, src, req.CorrID, variant.Array{}, err)
 			return
 		}
 
@@ -395,9 +396,9 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method),
 					zap.Error(err))
@@ -406,13 +407,13 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("transit", transit.Addr),
 					zap.String("src", src.Addr),
 					zap.String("dst", dst),
-					zap.Int64("corr_id", req.CorrId),
+					zap.Uint64("corr_id", uint64(req.CorrID)),
 					zap.String("call_path", cp.String()),
-					zap.String("id", cp.Id.String()),
+					zap.String("id", cp.ID.String()),
 					zap.String("script", cp.Script),
 					zap.String("method", cp.Method))
 			}
-			p.reply(transit, src, req.CorrId, rets, err)
+			p.reply(transit, src, req.CorrID, rets, err)
 		}()
 	}
 }
@@ -429,31 +430,30 @@ func (p *_ForwardProcessor) resolveReply(transit, src gap.Origin, reply *gap.Msg
 		ret.Error = &reply.Error
 	}
 
-	if err := p.dsvc.FutureController().Resolve(reply.CorrId, ret); err != nil {
+	if !p.dsvc.Correlation().Resolve(reply.CorrID, ret) {
 		log.L(p.svcCtx).Error("resolve forwarded rpc reply failed",
 			zap.String("transit", transit.Addr),
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", reply.CorrId),
-			zap.Error(err))
+			zap.Uint64("corr_id", uint64(reply.CorrID)))
 		return
 	}
 
 	log.L(p.svcCtx).Debug("forwarded rpc reply resolved",
 		zap.String("transit", transit.Addr),
 		zap.String("src", src.Addr),
-		zap.Int64("corr_id", reply.CorrId))
+		zap.Uint64("corr_id", uint64(reply.CorrID)))
 }
 
 // reply 将本地调用结果包装为转发消息，经 transit 发回客户端；零关联 ID 不回复。
-func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets variant.Array, retErr error) {
+func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrID correlation.ID, rets variant.Array, retErr error) {
 	defer rets.ReleaseIfSnapshot()
 
-	if corrId == 0 {
+	if corrID == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
-		CorrId: corrId,
+		CorrID: corrID,
 		Rets:   rets,
 	}
 
@@ -466,7 +466,7 @@ func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets va
 		log.L(p.svcCtx).Error("marshal rpc reply failed",
 			zap.String("transit", transit.Addr),
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
@@ -474,8 +474,8 @@ func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets va
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       src.Addr,
-		CorrId:    corrId,
-		TransId:   msg.MsgId(),
+		CorrID:    corrID,
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
@@ -483,12 +483,12 @@ func (p *_ForwardProcessor) reply(transit, src gap.Origin, corrId int64, rets va
 		log.L(p.svcCtx).Error("forward rpc reply failed",
 			zap.String("transit", transit.Addr),
 			zap.String("src", src.Addr),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
 
 	log.L(p.svcCtx).Debug("rpc reply forwarded",
 		zap.String("src", src.Addr),
-		zap.Int64("corr_id", corrId))
+		zap.Uint64("corr_id", uint64(corrID)))
 }

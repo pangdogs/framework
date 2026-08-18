@@ -29,7 +29,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/fanout"
 	"go.uber.org/zap"
 )
 
@@ -62,8 +62,8 @@ type _SessionIO struct {
 	terminated     async.Completer
 	dataChan       *generic.UnboundedChannel[binaryutil.Bytes]
 	eventChan      *generic.UnboundedChannel[transport.IEvent]
-	dataListeners  concurrent.Listeners[SessionDataHandler, []byte]
-	eventListeners concurrent.Listeners[SessionEventHandler, transport.IEvent]
+	dataListeners  fanout.Broadcaster[SessionDataHandler, []byte]
+	eventListeners fanout.Broadcaster[SessionEventHandler, transport.IEvent]
 }
 
 func (io *_SessionIO) init(session *_Session) {
@@ -83,7 +83,7 @@ loop:
 		case buff := <-io.dataChan.Out():
 			if err := io.session.trans.SendData(buff.Payload()); err != nil {
 				log.L(io.session.gate.svcCtx).Error("session send data error",
-					zap.String("session_id", io.session.Id().String()),
+					zap.String("session_id", io.session.ID().String()),
 					zap.String("local", io.session.NetAddr().Local.String()),
 					zap.String("remote", io.session.NetAddr().Remote.String()),
 					zap.Int64("migrations", io.session.Migrations()),
@@ -98,7 +98,7 @@ loop:
 			}.Send(io.session.transceiver.Send(event))
 			if err != nil {
 				log.L(io.session.gate.svcCtx).Error("session send event failed",
-					zap.String("session_id", io.session.Id().String()),
+					zap.String("session_id", io.session.ID().String()),
 					zap.String("local", io.session.NetAddr().Local.String()),
 					zap.String("remote", io.session.NetAddr().Remote.String()),
 					zap.Int64("migrations", io.session.Migrations()),
@@ -116,7 +116,7 @@ loop:
 	for buff := range io.dataChan.Out() {
 		if err := io.session.trans.SendData(buff.Payload()); err != nil {
 			log.L(io.session.gate.svcCtx).Error("session send data error",
-				zap.String("session_id", io.session.Id().String()),
+				zap.String("session_id", io.session.ID().String()),
 				zap.String("local", io.session.NetAddr().Local.String()),
 				zap.String("remote", io.session.NetAddr().Remote.String()),
 				zap.Int64("migrations", io.session.Migrations()),
@@ -132,7 +132,7 @@ loop:
 		}.Send(io.session.transceiver.Send(event))
 		if err != nil {
 			log.L(io.session.gate.svcCtx).Error("session send event failed",
-				zap.String("session_id", io.session.Id().String()),
+				zap.String("session_id", io.session.ID().String()),
 				zap.String("local", io.session.NetAddr().Local.String()),
 				zap.String("remote", io.session.NetAddr().Remote.String()),
 				zap.Int64("migrations", io.session.Migrations()),
@@ -144,25 +144,25 @@ loop:
 }
 
 func (io *_SessionIO) handlePayload(event transport.Event[*gtp.MsgPayload]) {
-	rejected := io.dataListeners.Broadcast(event.Msg.Data)
-	if rejected > 0 {
-		log.L(io.session.gate.svcCtx).Error("some listeners rejected the receive payload due to backpressure",
-			zap.String("session_id", io.session.Id().String()),
+	dropped := io.dataListeners.Broadcast(event.Msg.Data)
+	if dropped > 0 {
+		log.L(io.session.gate.svcCtx).Error("received payload deliveries dropped due to listener backpressure",
+			zap.String("session_id", io.session.ID().String()),
 			zap.Uint32("seq", event.Seq),
 			zap.Uint32("ack", event.Ack),
-			zap.Int("rejected", rejected))
+			zap.Int("dropped", dropped))
 	}
 }
 
 func (io *_SessionIO) handleEvent(event transport.IEvent) {
-	rejected := io.eventListeners.Broadcast(event)
-	if rejected > 0 {
-		log.L(io.session.gate.svcCtx).Error("some listeners rejected the receive event due to backpressure",
-			zap.String("session_id", io.session.Id().String()),
+	dropped := io.eventListeners.Broadcast(event)
+	if dropped > 0 {
+		log.L(io.session.gate.svcCtx).Error("received event deliveries dropped due to listener backpressure",
+			zap.String("session_id", io.session.ID().String()),
 			zap.Uint32("seq", event.Seq),
 			zap.Uint32("ack", event.Ack),
-			zap.Uint8("msg_id", event.Msg.MsgId()),
-			zap.Int("rejected", rejected))
+			zap.Uint8("msg_id", event.Msg.MsgID()),
+			zap.Int("dropped", dropped))
 	}
 }
 
@@ -211,21 +211,21 @@ func (io *_SessionDataIO) addListener(ctx context.Context, handler SessionDataHa
 		cancel()
 	}()
 
-	listener := io.dataListeners.Add(handler, io.session.gate.options.SessionDataListenerInboxSize)
+	listener := io.dataListeners.Subscribe(handler, io.session.gate.options.SessionDataListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
 		for {
 			select {
 			case <-ctx.Done():
-				io.dataListeners.Delete(listener)
-				log.L(io.session.gate.svcCtx).Debug("delete a session data listener", zap.String("session_id", io.session.Id().String()))
+				io.dataListeners.Unsubscribe(listener)
+				log.L(io.session.gate.svcCtx).Debug("delete a session data listener", zap.String("session_id", io.session.ID().String()))
 				return
 			case data := <-listener.Inbox:
 				listener.Handler.Call(io.session.gate.svcCtx.AutoRecover(), io.session.gate.svcCtx.ReportError(), func(panicError error) bool {
 					if panicError != nil {
 						log.L(io.session.gate.svcCtx).Error("handle session data panicked",
-							zap.String("session_id", io.session.Id().String()),
+							zap.String("session_id", io.session.ID().String()),
 							zap.Error(panicError))
 					}
 					return false
@@ -234,7 +234,7 @@ func (io *_SessionDataIO) addListener(ctx context.Context, handler SessionDataHa
 		}
 	}()
 
-	log.L(io.session.gate.svcCtx).Debug("add a session data listener", zap.String("session_id", io.session.Id().String()))
+	log.L(io.session.gate.svcCtx).Debug("add a session data listener", zap.String("session_id", io.session.ID().String()))
 	return nil
 }
 
@@ -283,21 +283,21 @@ func (io *_SessionEventIO) addListener(ctx context.Context, handler SessionEvent
 		cancel()
 	}()
 
-	listener := io.eventListeners.Add(handler, io.session.gate.options.SessionEventListenerInboxSize)
+	listener := io.eventListeners.Subscribe(handler, io.session.gate.options.SessionEventListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
 		for {
 			select {
 			case <-ctx.Done():
-				io.eventListeners.Delete(listener)
-				log.L(io.session.gate.svcCtx).Debug("delete a session event listener", zap.String("session_id", io.session.Id().String()))
+				io.eventListeners.Unsubscribe(listener)
+				log.L(io.session.gate.svcCtx).Debug("delete a session event listener", zap.String("session_id", io.session.ID().String()))
 				return
 			case event := <-listener.Inbox:
 				listener.Handler.Call(io.session.gate.svcCtx.AutoRecover(), io.session.gate.svcCtx.ReportError(), func(panicError error) bool {
 					if panicError != nil {
 						log.L(io.session.gate.svcCtx).Error("handle session event panicked",
-							zap.String("session_id", io.session.Id().String()),
+							zap.String("session_id", io.session.ID().String()),
 							zap.Error(panicError))
 					}
 					return false
@@ -306,6 +306,6 @@ func (io *_SessionEventIO) addListener(ctx context.Context, handler SessionEvent
 		}
 	}()
 
-	log.L(io.session.gate.svcCtx).Debug("add a session event listener", zap.String("session_id", io.session.Id().String()))
+	log.L(io.session.gate.svcCtx).Debug("add a session event listener", zap.String("session_id", io.session.ID().String()))
 	return nil
 }

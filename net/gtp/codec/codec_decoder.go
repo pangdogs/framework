@@ -179,7 +179,7 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 				buf.Release()
 				return gtp.MsgPacket{}, fmt.Errorf("%w: Authentication is nil, msg can't be auth msg-mac", ErrDecode)
 			}
-			msgBuf, err = d.Authentication.Auth(mp.Head.MsgId, mp.Head.Flags, msgBuf)
+			msgBuf, err = d.Authentication.Auth(mp.Head.MsgID, mp.Head.Flags, msgBuf)
 			if err != nil {
 				buf.Release()
 				return gtp.MsgPacket{}, fmt.Errorf("%w: auth msg-mac failed, %w", ErrDecode, err)
@@ -206,10 +206,10 @@ func (d *Decoder) decode(data []byte, validation IValidation) (gtp.MsgPacket, er
 	}
 
 	// 按类型创建具体消息，未知类型在这里失败。
-	msg, err := d.MsgCreator.New(mp.Head.MsgId)
+	msg, err := d.MsgCreator.New(mp.Head.MsgID)
 	if err != nil {
 		buf.Release()
-		return gtp.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgId)
+		return gtp.MsgPacket{}, fmt.Errorf("%w: new msg failed, %w (%d)", ErrDecode, err, mp.Head.MsgID)
 	}
 
 	// 再复制一次，使成功返回的消息不引用即将归还池中的缓冲区。

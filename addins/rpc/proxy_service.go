@@ -56,14 +56,14 @@ type ServiceProxied struct {
 	rtCtx  runtime.Context
 }
 
-// RPC 向 nodeId 标识的服务节点发起 RPC；地址构造失败时返回已携带错误的 Future。
-func (p ServiceProxied) RPC(nodeId uid.Id, addIn, method string, args ...any) async.Future {
+// RPC 向 nodeID 标识的服务节点发起 RPC；地址构造失败时返回已携带错误的 Future。
+func (p ServiceProxied) RPC(nodeID uid.ID, addIn, method string, args ...any) async.Future {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
-	dst, err := dsvc.AddIn.Require(p.svcCtx).NodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dsvc.AddIn.Require(p.svcCtx).NodeDetails().MakeNodeAddr(nodeID)
 	if err != nil {
 		return async.Rejected(err)
 	}
@@ -115,14 +115,14 @@ func (p ServiceProxied) BalanceRPC(service, addIn, method string, args ...any) a
 	return AddIn.Require(p.svcCtx).RPC(dst, cc, cp, args...)
 }
 
-// OnewayRPC 向 nodeId 标识的服务节点发起单向 RPC。
-func (p ServiceProxied) OnewayRPC(nodeId uid.Id, addIn, method string, args ...any) error {
+// OnewayRPC 向 nodeID 标识的服务节点发起单向 RPC。
+func (p ServiceProxied) OnewayRPC(nodeID uid.ID, addIn, method string, args ...any) error {
 	if p.svcCtx == nil {
 		exception.Panic("rpc: svcCtx is nil")
 	}
 
 	// 目标地址
-	dst, err := dsvc.AddIn.Require(p.svcCtx).NodeDetails().MakeNodeAddr(nodeId)
+	dst, err := dsvc.AddIn.Require(p.svcCtx).NodeDetails().MakeNodeAddr(nodeID)
 	if err != nil {
 		return err
 	}

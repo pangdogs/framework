@@ -87,13 +87,13 @@ func (h *HandshakeProtocol) ClientHello(ctx context.Context, hello Event[*gtp.Ms
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_Hello:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_Hello:
 		break
-	case gtp.MsgId_Rst:
+	case gtp.MsgID_Rst:
 		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	err = helloFin.UnsafeCall(AssertEvent[*gtp.MsgHello](recv))
@@ -133,11 +133,11 @@ func (h *HandshakeProtocol) ServerHello(ctx context.Context, helloAccept HelloAc
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_Hello:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_Hello:
 		break
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	reply, err := helloAccept.UnsafeCall(AssertEvent[*gtp.MsgHello](recv))
@@ -183,13 +183,13 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_ECDHESecretKeyExchange:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_ECDHESecretKeyExchange:
 		break
-	case gtp.MsgId_Rst:
+	case gtp.MsgID_Rst:
 		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	secretKeyExchangeReply, err := secretKeyExchangeAccept.UnsafeCall(recv)
@@ -207,13 +207,13 @@ func (h *HandshakeProtocol) ClientSecretKeyExchange(ctx context.Context, secretK
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_ChangeCipherSpec:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_ChangeCipherSpec:
 		break
-	case gtp.MsgId_Rst:
+	case gtp.MsgID_Rst:
 		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	changeCipherSpecReply, err := changeCipherSpecAccept.UnsafeCall(AssertEvent[*gtp.MsgChangeCipherSpec](recv))
@@ -267,11 +267,11 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_ECDHESecretKeyExchange:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_ECDHESecretKeyExchange:
 		break
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	changeCipherSpecMsg, err := secretKeyExchangeFin.UnsafeCall(AssertEvent[*gtp.MsgECDHESecretKeyExchange](recv))
@@ -289,11 +289,11 @@ func (h *HandshakeProtocol) ServerECDHESecretKeyExchange(ctx context.Context, se
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_ChangeCipherSpec:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_ChangeCipherSpec:
 		break
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	err = changeCipherSpecFin.UnsafeCall(AssertEvent[*gtp.MsgChangeCipherSpec](recv))
@@ -354,11 +354,11 @@ func (h *HandshakeProtocol) ServerAuth(ctx context.Context, authAccept AuthAccep
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_Auth:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_Auth:
 		break
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	err = authAccept.UnsafeCall(AssertEvent[*gtp.MsgAuth](recv))
@@ -415,11 +415,11 @@ func (h *HandshakeProtocol) ServerContinue(ctx context.Context, continueAccept C
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_Continue:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_Continue:
 		break
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	err = continueAccept.UnsafeCall(AssertEvent[*gtp.MsgContinue](recv))
@@ -451,13 +451,13 @@ func (h *HandshakeProtocol) ClientFinished(ctx context.Context, finishedAccept F
 		return fmt.Errorf("%w: %w", ErrProtocol, err)
 	}
 
-	switch recv.Msg.MsgId() {
-	case gtp.MsgId_Finished:
+	switch recv.Msg.MsgID() {
+	case gtp.MsgID_Finished:
 		break
-	case gtp.MsgId_Rst:
+	case gtp.MsgID_Rst:
 		return fmt.Errorf("%w: %w", ErrProtocol, ToRstError(AssertEvent[*gtp.MsgRst](recv)))
 	default:
-		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgId())
+		return fmt.Errorf("%w: %w (%d)", ErrProtocol, ErrUnexpectedMsg, recv.Msg.MsgID())
 	}
 
 	err = finishedAccept.UnsafeCall(AssertEvent[*gtp.MsgFinished](recv))

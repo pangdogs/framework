@@ -62,8 +62,8 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 
 	if migrated {
 		log.L(g.svcCtx).Info("session migrated",
-			zap.String("session_id", session.Id().String()),
-			zap.String("user_id", session.UserId()),
+			zap.String("session_id", session.ID().String()),
+			zap.String("user_id", session.UserID()),
 			zap.String("token", session.Token()),
 			zap.String("local", conn.LocalAddr().String()),
 			zap.String("remote", conn.RemoteAddr().String()))
@@ -71,28 +71,28 @@ func (g *_Gate) establishSession(conn net.Conn) (*_Session, bool) {
 	}
 
 	log.L(g.svcCtx).Info("session established",
-		zap.String("session_id", session.Id().String()),
-		zap.String("user_id", session.UserId()),
+		zap.String("session_id", session.ID().String()),
+		zap.String("user_id", session.UserID()),
 		zap.String("token", session.Token()),
 		zap.String("local", conn.LocalAddr().String()),
 		zap.String("remote", conn.RemoteAddr().String()))
 
-	rejected := g.sessionWatcher.Broadcast(session)
-	if rejected > 0 {
-		log.L(g.svcCtx).Error("some listeners rejected the session established due to backpressure",
-			zap.String("session_id", session.Id().String()),
-			zap.String("user_id", session.UserId()),
+	dropped := g.sessionWatcher.Broadcast(session)
+	if dropped > 0 {
+		log.L(g.svcCtx).Error("session established deliveries dropped due to watcher backpressure",
+			zap.String("session_id", session.ID().String()),
+			zap.String("user_id", session.UserID()),
 			zap.String("token", session.Token()),
 			zap.String("local", conn.LocalAddr().String()),
 			zap.String("remote", conn.RemoteAddr().String()),
-			zap.Int("rejected", rejected))
+			zap.Int("dropped", dropped))
 	}
 
 	return session, true
 }
 
 // getSession 按 ID 查询当前会话。
-func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
+func (g *_Gate) getSession(id uid.ID) (*_Session, bool) {
 	session, ok := g.sessions.Load(id)
 	if !ok {
 		return nil, false
@@ -102,7 +102,7 @@ func (g *_Gate) getSession(id uid.Id) (*_Session, bool) {
 
 // addSession 原子加入会话并更新计数；ID 已存在时返回 false。
 func (g *_Gate) addSession(session *_Session) bool {
-	if _, loaded := g.sessions.LoadOrStore(session.Id(), session); loaded {
+	if _, loaded := g.sessions.LoadOrStore(session.ID(), session); loaded {
 		return false
 	}
 	g.sessionCount.Add(1)
@@ -110,7 +110,7 @@ func (g *_Gate) addSession(session *_Session) bool {
 }
 
 // deleteSession 原子删除会话并更新计数；ID 不存在时无效果。
-func (g *_Gate) deleteSession(id uid.Id) {
+func (g *_Gate) deleteSession(id uid.ID) {
 	if _, loaded := g.sessions.LoadAndDelete(id); loaded {
 		g.sessionCount.Add(-1)
 	}
@@ -118,7 +118,7 @@ func (g *_Gate) deleteSession(id uid.Id) {
 
 // validateSession 报告 session 是否仍是其 ID 当前注册的同一实例。
 func (g *_Gate) validateSession(session *_Session) bool {
-	exists, ok := g.sessions.Load(session.Id())
+	exists, ok := g.sessions.Load(session.ID())
 	if !ok {
 		return false
 	}

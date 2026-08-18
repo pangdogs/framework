@@ -39,18 +39,19 @@ import (
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/codec"
 	"git.golaxy.org/framework/net/netpath"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/correlation"
+	"git.golaxy.org/framework/utils/fanout"
 	"go.uber.org/zap"
 )
 
-// IDistService 提供服务节点发布、GAP 消息收发及请求 Future 管理。
+// IDistService 提供服务节点发布、GAP 消息收发及请求响应关联。
 type IDistService interface {
 	// BringUp 订阅节点地址并将当前节点注册到服务发现；重复调用不会重复上线。
 	BringUp()
 	// NodeDetails 返回当前服务节点的地址信息；调用方不得修改。
 	NodeDetails() *NodeDetails
-	// FutureController 返回用于关联请求与响应的 Future 控制器。
-	FutureController() *concurrent.FutureController
+	// Correlation 返回请求与响应关联控制器。
+	Correlation() *correlation.Controller
 	// Send 编码 msg 并发布到 dst。
 	Send(dst string, msg gap.Msg) error
 	// Listen 注册消息处理器，直到 ctx 取消或 add-in 停止。
@@ -65,23 +66,23 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 }
 
 type _DistService struct {
-	svcCtx           service.Context
-	ctx              context.Context
-	terminate        context.CancelFunc
-	barrier          generic.Barrier
-	options          DistServiceOptions
-	registry         discovery.IRegistry
-	broker           broker.IBroker
-	dsync            dsync.IDistSync
-	details          *NodeDetails
-	encoder          *codec.Encoder
-	decoder          *codec.Decoder
-	futureController *concurrent.FutureController
-	bringUpOnce      sync.Once
-	listeners        concurrent.Listeners[MsgHandler, _BrokerMsg]
+	svcCtx      service.Context
+	ctx         context.Context
+	terminate   context.CancelFunc
+	barrier     generic.Barrier
+	options     DistServiceOptions
+	registry    discovery.IRegistry
+	broker      broker.IBroker
+	dsync       dsync.IDistSync
+	details     *NodeDetails
+	encoder     *codec.Encoder
+	decoder     *codec.Decoder
+	correlation *correlation.Controller
+	bringUpOnce sync.Once
+	listeners   fanout.Broadcaster[MsgHandler, _BrokerMsg]
 }
 
-// Init 获取服务发现、消息中间件和分布式同步依赖，并创建编解码器、Future 控制器及节点地址。
+// Init 获取服务发现、消息中间件和分布式同步依赖，并创建编解码器、请求关联控制器及节点地址。
 func (d *_DistService) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
@@ -102,8 +103,8 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	d.decoder = codec.NewDecoder(d.options.MsgCreator)
 	d.encoder = codec.NewEncoder()
 
-	// Future 控制器随 add-in 的内部上下文一起停止。
-	d.futureController = concurrent.NewFutureController(d.ctx, d.options.FutureTimeout)
+	// 请求关联控制器随 add-in 的内部上下文一起停止。
+	d.correlation = correlation.New(d.ctx, d.options.FutureTimeout)
 
 	// 根据 broker 分隔符和服务身份生成各级消息地址。
 	d.initNodeDetails()
@@ -114,8 +115,10 @@ func (d *_DistService) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
 	d.terminate()
+	d.correlation.Close()
 	d.barrier.Close()
 	d.barrier.Wait()
+	<-d.correlation.Done().Done()
 }
 
 // BringUp 仅执行一次：先订阅节点地址，再通过分布式锁检查并注册当前服务节点。
@@ -130,7 +133,7 @@ func (d *_DistService) BringUp() {
 
 		log.L(svcCtx).Info("service node is starting",
 			zap.String("service", svcCtx.Name()),
-			zap.String("node", svcCtx.Id().String()),
+			zap.String("node", svcCtx.ID().String()),
 			log.JSON("details", d.details))
 
 		// 在注册节点前订阅全部五类接收地址，避免上线后遗漏消息。
@@ -148,24 +151,24 @@ func (d *_DistService) BringUp() {
 		}
 
 		// 串行化同名、同 ID 节点的查重与注册。
-		mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.Id().String()))
+		mutex := d.dsync.NewMutex(netpath.Join(d.dsync.Separator(), "service_node_start", svcCtx.Name(), svcCtx.ID().String()))
 		if err := mutex.Lock(svcCtx); err != nil {
 			log.L(svcCtx).Panic("lock dsync mutex failed", zap.String("name", mutex.Name()), zap.Error(err))
 		}
 		defer mutex.Unlock(context.Background())
 
 		// 已存在的同名节点视为配置冲突，不接管其租约。
-		_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.Id())
+		_, err := d.registry.GetNode(svcCtx, svcCtx.Name(), svcCtx.ID())
 		if err == nil {
-			log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()))
+			log.L(svcCtx).Panic("service node already registered", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.ID().String()))
 		}
 		if !errors.Is(err, discovery.ErrRegistrationNotFound) {
-			log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.Id().String()), zap.Error(err))
+			log.L(svcCtx).Panic("checking service node failed", zap.String("service", svcCtx.Name()), zap.String("node", svcCtx.ID().String()), zap.Error(err))
 		}
 
 		// 发布节点单播地址及调用方配置的版本和元数据。
 		node := &discovery.Node{
-			Id:      svcCtx.Id(),
+			ID:      svcCtx.ID(),
 			Address: d.details.LocalAddr,
 			Version: d.options.Version,
 			Meta:    d.options.Meta,
@@ -176,19 +179,19 @@ func (d *_DistService) BringUp() {
 		if err != nil {
 			log.L(svcCtx).Panic("register service node failed",
 				zap.String("service", svcCtx.Name()),
-				zap.String("node", svcCtx.Id().String()),
+				zap.String("node", svcCtx.ID().String()),
 				zap.Error(err))
 		}
 		if _, err = reg.KeepAliveContinuous(d.ctx); err != nil {
 			log.L(svcCtx).Panic("keepalive service node failed",
 				zap.String("service", svcCtx.Name()),
-				zap.String("node", svcCtx.Id().String()),
+				zap.String("node", svcCtx.ID().String()),
 				zap.Error(err))
 		}
 
 		log.L(svcCtx).Info("service node is started",
 			zap.String("service", svcCtx.Name()),
-			zap.String("node", svcCtx.Id().String()),
+			zap.String("node", svcCtx.ID().String()),
 			log.JSON("details", d.details))
 
 		go func() {
@@ -210,9 +213,9 @@ func (d *_DistService) NodeDetails() *NodeDetails {
 	return d.details
 }
 
-// FutureController 返回用于关联请求与响应的 Future 控制器。
-func (d *_DistService) FutureController() *concurrent.FutureController {
-	return d.futureController
+// Correlation 返回请求与响应关联控制器。
+func (d *_DistService) Correlation() *correlation.Controller {
+	return d.correlation
 }
 
 // Send 将 msg 编码为 GAP 消息包并发布到 dst。
@@ -229,7 +232,7 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 	if err != nil {
 		log.L(d.svcCtx).Error("encode message failed",
 			zap.String("dst", dst),
-			zap.Uint32("msg", msg.MsgId()),
+			zap.Uint32("msg", msg.MsgID()),
 			zap.Error(err))
 		return fmt.Errorf("dsvc: %w", err)
 	}
@@ -239,7 +242,7 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 	if err != nil {
 		log.L(d.svcCtx).Error("publish message failed",
 			zap.String("dst", dst),
-			zap.Uint32("msg", msg.MsgId()),
+			zap.Uint32("msg", msg.MsgID()),
 			zap.Error(err))
 		return fmt.Errorf("dsvc: %w", err)
 	}
@@ -280,7 +283,7 @@ func (d *_DistService) initNodeDetails() {
 	details.GlobalBalanceAddr = details.DomainBalance.Path
 	details.BroadcastAddr = details.MakeBroadcastAddr(d.svcCtx.Name())
 	details.BalanceAddr = details.MakeBalanceAddr(d.svcCtx.Name())
-	details.LocalAddr, _ = details.MakeNodeAddr(d.svcCtx.Id())
+	details.LocalAddr, _ = details.MakeNodeAddr(d.svcCtx.ID())
 
 	d.details = details
 }

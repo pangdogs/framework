@@ -66,8 +66,8 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	var cliRandom, servRandom []byte
 	var cliHelloHash, servHelloHash [sha256.Size]byte
 	var continueFlow, encryptionFlow, authFlow bool
-	var sessionId uid.Id
-	var userId, token string
+	var sessionID uid.ID
+	var userID, token string
 	var extensions []byte
 
 	defer func() {
@@ -90,18 +90,18 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 
 		// 检查客户端要求的会话是否存在，已存在需要走断线重连流程
-		continueFlow = cliHello.Msg.SessionId != ""
+		continueFlow = cliHello.Msg.SessionID != ""
 		if continueFlow {
-			session, ok := acc.getSession(uid.From(cliHello.Msg.SessionId))
+			session, ok := acc.getSession(uid.From(cliHello.Msg.SessionID))
 			if !ok {
 				return transport.Event[*gtp.MsgHello]{}, &transport.RstError{
 					Code:    gtp.Code_SessionNotFound,
-					Message: fmt.Sprintf("session %q not exist", cliHello.Msg.SessionId),
+					Message: fmt.Sprintf("session %q not exist", cliHello.Msg.SessionID),
 				}
 			}
-			sessionId, userId, token = session.Id(), session.UserId(), session.Token()
+			sessionID, userID, token = session.ID(), session.UserID(), session.Token()
 		} else {
-			sessionId = acc.genSessionId()
+			sessionID = acc.genSessionID()
 		}
 
 		// 检查是否同意使用客户端建议的加密方案
@@ -149,7 +149,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			Flags: gtp.Flags(gtp.Flag_HelloDone),
 			Msg: &gtp.MsgHello{
 				Version:     gtp.Version_V1_0,
-				SessionId:   sessionId.String(),
+				SessionID:   sessionID.String(),
 				Random:      servRandom,
 				CipherSuite: cs,
 				Compression: cm,
@@ -199,7 +199,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 	// 密钥交换完成后，握手 Transceiver 已安装协商出的加密和认证模块。
 	if encryptionFlow {
-		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionId)
+		err = acc.secretKeyExchange(ctx, handshake, cs, cm, cliRandom, servRandom, cliHelloHash, servHelloHash, sessionID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -216,7 +216,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		err = handshake.ServerAuth(ctx, func(e transport.Event[*gtp.MsgAuth]) error {
 			// 续接时校验身份与令牌，拒绝伪造的会话续接请求。
 			if continueFlow {
-				if e.Msg.UserId != userId || e.Msg.Token != token {
+				if e.Msg.UserID != userID || e.Msg.Token != token {
 					return &transport.RstError{
 						Code:    gtp.Code_AuthFailed,
 						Message: "incorrect token",
@@ -226,7 +226,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 			err := acc.options.Authenticator.UnsafeCall(func(err, _ error) bool {
 				return err != nil
-			}, acc._Gate, conn, e.Msg.UserId, e.Msg.Token, e.Msg.Extensions)
+			}, acc._Gate, conn, e.Msg.UserID, e.Msg.Token, e.Msg.Extensions)
 			if err != nil {
 				return &transport.RstError{
 					Code:    gtp.Code_AuthFailed,
@@ -235,7 +235,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 			}
 
 			if !continueFlow {
-				userId = strings.Clone(e.Msg.UserId)
+				userID = strings.Clone(e.Msg.UserID)
 				token = strings.Clone(e.Msg.Token)
 				extensions = bytes.Clone(e.Msg.Extensions)
 			}
@@ -255,7 +255,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		err = handshake.ServerContinue(ctx, func(e transport.Event[*gtp.MsgContinue]) error {
 			// Hello 后会话仍可能因超时并发删除，因此再次查询。
 			var ok bool
-			session, ok = acc.getSession(sessionId)
+			session, ok = acc.getSession(sessionID)
 			if !ok {
 				return &transport.RstError{
 					Code:    gtp.Code_ContinueFailed,
@@ -279,7 +279,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		}
 	} else {
 		// 新会话从随机序号开始，并接管握手使用的连接和编解码器。
-		session = acc.newSession(sessionId, userId, token, extensions)
+		session = acc.newSession(sessionID, userID, token, extensions)
 		sendSeq, recvSeq = session.initConn(handshake.Transceiver.Conn, handshake.Transceiver.Encoder, handshake.Transceiver.Decoder)
 	}
 
@@ -334,7 +334,7 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 
 // secretKeyExchange 与客户端完成协商密码套件的密钥交换流程。
 func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transport.HandshakeProtocol, cs gtp.CipherSuite, cm gtp.Compression,
-	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionId uid.Id) (err error) {
+	cliRandom, servRandom []byte, cliHelloHash, servHelloHash [sha256.Size]byte, sessionID uid.ID) (err error) {
 	// 密钥交换失败时通过独立控制门面尽力发送一次 RST。
 	ctrl := transport.CtrlProtocol{
 		Transceiver: handshake.Transceiver,
@@ -373,7 +373,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 		servPubBytes := servPub.Bytes()
 
 		// 签名数据
-		signature, err := acc.sign(cs, cm, cliRandom, servRandom, sessionId, servPubBytes)
+		signature, err := acc.sign(cs, cm, cliRandom, servRandom, sessionID, servPubBytes)
 		if err != nil {
 			return err
 		}
@@ -456,7 +456,7 @@ func (acc *_Acceptor) secretKeyExchange(ctx context.Context, handshake *transpor
 						}
 					}
 
-					if err := acc.verify(cliECDHE.Msg.SignatureAlgorithm, cliECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionId, cliECDHE.Msg.PublicKey); err != nil {
+					if err := acc.verify(cliECDHE.Msg.SignatureAlgorithm, cliECDHE.Msg.Signature, cs, cm, cliRandom, servRandom, sessionID, cliECDHE.Msg.PublicKey); err != nil {
 						return transport.Event[*gtp.MsgChangeCipherSpec]{}, &transport.RstError{
 							Code:    gtp.Code_EncryptFailed,
 							Message: err.Error(),
@@ -706,7 +706,7 @@ func (acc *_Acceptor) newCompression(compression gtp.Compression) (codec.ICompre
 }
 
 // sign 使用服务端私钥签署握手参数；未配置签名算法时返回空签名。
-func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, servPubBytes []byte) ([]byte, error) {
+func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionID uid.ID, servPubBytes []byte) ([]byte, error) {
 	// 无需签名
 	if acc.options.EncSignatureAlgorithm.AsymmetricEncryption == gtp.AsymmetricEncryption_None {
 		return nil, nil
@@ -732,7 +732,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId.String())
+	signBuf.WriteString(sessionID.String())
 	signBuf.Write(servPubBytes)
 
 	// 生成签名
@@ -745,7 +745,7 @@ func (acc *_Acceptor) sign(cs gtp.CipherSuite, cm gtp.Compression, cliRandom, se
 }
 
 // verify 使用客户端公钥验证握手参数签名。
-func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionId uid.Id, cliPubBytes []byte) error {
+func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signature []byte, cs gtp.CipherSuite, cm gtp.Compression, cliRandom, servRandom []byte, sessionID uid.ID, cliPubBytes []byte) error {
 	// 必须设置公钥才能验证签名
 	if acc.options.EncVerifySignaturePublicKey == nil {
 		return errors.New("option EncVerifySignaturePublicKey is nil, unable to perform the verify signature operation")
@@ -766,7 +766,7 @@ func (acc *_Acceptor) verify(signatureAlgorithm gtp.SignatureAlgorithm, signatur
 	signBuf.WriteByte(uint8(cm))
 	signBuf.Write(cliRandom)
 	signBuf.Write(servRandom)
-	signBuf.WriteString(sessionId.String())
+	signBuf.WriteString(sessionID.String())
 	signBuf.Write(cliPubBytes)
 
 	return signer.Verify(acc.options.EncVerifySignaturePublicKey, signBuf.Bytes(), signature)

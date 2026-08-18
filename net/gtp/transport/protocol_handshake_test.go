@@ -17,13 +17,13 @@ func TestHandshakeHelloAndFinished(t *testing.T) {
 		serverErr <- server.ServerHello(context.Background(), func(e Event[*gtp.MsgHello]) (Event[*gtp.MsgHello], error) {
 			return Event[*gtp.MsgHello]{
 				Flags: gtp.Flags(gtp.Flag_HelloDone),
-				Msg:   &gtp.MsgHello{SessionId: "srv"},
+				Msg:   &gtp.MsgHello{SessionID: "srv"},
 			}, nil
 		})
 	}()
 
-	err := client.ClientHello(context.Background(), Event[*gtp.MsgHello]{Msg: &gtp.MsgHello{SessionId: "cli"}}, func(e Event[*gtp.MsgHello]) error {
-		if e.Msg.SessionId != "srv" {
+	err := client.ClientHello(context.Background(), Event[*gtp.MsgHello]{Msg: &gtp.MsgHello{SessionID: "cli"}}, func(e Event[*gtp.MsgHello]) error {
+		if e.Msg.SessionID != "srv" {
 			t.Fatalf("unexpected hello reply: %+v", e)
 		}
 		return nil

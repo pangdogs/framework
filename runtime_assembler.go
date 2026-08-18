@@ -38,7 +38,7 @@ import (
 
 type _RuntimeSettings struct {
 	name                            string
-	persistId                       uid.Id
+	persistID                       uid.ID
 	mainEntity                      ec.Entity
 	autoRecover                     bool
 	reportError                     chan error
@@ -121,7 +121,7 @@ func (r *RuntimeAssembler) assemble(settings _RuntimeSettings) (core.Runtime, er
 	rtCtx := runtime.NewContext(r.svcInst,
 		runtime.With.InstanceFace(rtInstFace),
 		runtime.With.Name(settings.name),
-		runtime.With.PersistId(settings.persistId),
+		runtime.With.PersistID(settings.persistID),
 		runtime.With.PanicHandling(settings.autoRecover, settings.reportError),
 		runtime.With.RunningEventCB(func(rtCtx runtime.Context, runningEvent runtime.RunningEvent, args ...any) {
 			rtInst := reinterpret.Cast[IRuntime](rtCtx)

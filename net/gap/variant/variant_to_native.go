@@ -83,7 +83,7 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 
 	switch valueRT.Kind() {
 	case reflect.Interface, reflect.Array, reflect.Map, reflect.Pointer, reflect.Slice:
-		if v.TypeId == TypeId_Null {
+		if v.TypeID == TypeID_Null {
 			return reflect.Zero(valueRT), nil
 		}
 	case reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func:
@@ -92,8 +92,8 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 
 	switch valueRT {
 	case sliceAnyRT, reflect.PointerTo(sliceAnyRT):
-		switch v.TypeId {
-		case TypeId_Array:
+		switch v.TypeID {
+		case TypeID_Array:
 			arr, ok := indirectArray(v.Value)
 			if !ok {
 				return reflect.Value{}, ErrInvalidCast
@@ -112,8 +112,8 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case sliceRVRT, reflect.PointerTo(sliceRVRT):
-		switch v.TypeId {
-		case TypeId_Array:
+		switch v.TypeID {
+		case TypeID_Array:
 			arr, ok := indirectArray(v.Value)
 			if !ok {
 				return reflect.Value{}, ErrInvalidCast
@@ -132,8 +132,8 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case mapStringAnyRT, reflect.PointerTo(mapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Map:
+		switch v.TypeID {
+		case TypeID_Map:
 			m, ok := indirectMap(v.Value)
 			if !ok {
 				return reflect.Value{}, ErrInvalidCast
@@ -141,7 +141,7 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 
 			rv := make(map[string]any, len(m))
 			for _, kv := range m {
-				if kv.K.TypeId != TypeId_String {
+				if kv.K.TypeID != TypeID_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv[kv.K.Value.Indirect().(string)] = kv.V.Value.Indirect()
@@ -155,8 +155,8 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case sliceMapStringAnyRT, reflect.PointerTo(sliceMapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Map:
+		switch v.TypeID {
+		case TypeID_Map:
 			m, ok := indirectMap(v.Value)
 			if !ok {
 				return reflect.Value{}, ErrInvalidCast
@@ -164,7 +164,7 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 
 			rv := make(generic.SliceMap[string, any], 0, len(m))
 			for _, kv := range m {
-				if kv.K.TypeId != TypeId_String {
+				if kv.K.TypeID != TypeID_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
@@ -178,8 +178,8 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 		}
 
 	case unorderedSliceMapStringAnyRT, reflect.PointerTo(unorderedSliceMapStringAnyRT):
-		switch v.TypeId {
-		case TypeId_Map:
+		switch v.TypeID {
+		case TypeID_Map:
 			m, ok := indirectMap(v.Value)
 			if !ok {
 				return reflect.Value{}, ErrInvalidCast
@@ -187,7 +187,7 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 
 			rv := make(generic.UnorderedSliceMap[string, any], 0, len(m))
 			for _, kv := range m {
-				if kv.K.TypeId != TypeId_String {
+				if kv.K.TypeID != TypeID_String {
 					return reflect.Value{}, ErrInvalidCast
 				}
 				rv.Add(kv.K.Value.Indirect().(string), kv.V.Value.Indirect())
@@ -223,14 +223,14 @@ func (v Variant) ToNative(valueRT reflect.Type) (reflect.Value, error) {
 		}
 	}
 
-	switch v.TypeId {
-	case TypeId_Array:
+	switch v.TypeID {
+	case TypeID_Array:
 		switch valueRT.Kind() {
 		case reflect.Array, reflect.Slice:
 			return convertArrayTo(v, valueRT)
 		}
 
-	case TypeId_Map:
+	case TypeID_Map:
 		if valueRT.Kind() == reflect.Map {
 			return convertMapTo(v, valueRT)
 		}

@@ -29,11 +29,11 @@ import (
 	"git.golaxy.org/framework/utils/binaryutil"
 )
 
-// TypeId 标识 GAP 动态值的具体类型。
-type TypeId uint32
+// TypeID 标识 GAP 动态值的具体类型。
+type TypeID uint32
 
 // Read 将类型 ID 编码到 p。
-func (t TypeId) Read(p []byte) (int, error) {
+func (t TypeID) Read(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 	if err := bs.WriteUint32(uint32(t)); err != nil {
 		return bs.BytesWritten(), err
@@ -42,51 +42,51 @@ func (t TypeId) Read(p []byte) (int, error) {
 }
 
 // Write 从 p 解码类型 ID。
-func (t *TypeId) Write(p []byte) (int, error) {
+func (t *TypeID) Write(p []byte) (int, error) {
 	bs := binaryutil.NewBigEndianStream(p)
 
 	v, err := bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
-	*t = TypeId(v)
+	*t = TypeID(v)
 
 	return bs.BytesRead(), nil
 }
 
 // Size 返回类型 ID 的固定编码字节数。
-func (t TypeId) Size() int {
+func (t TypeID) Size() int {
 	return binaryutil.SizeofUint32
 }
 
 // New 使用进程级类型构建器创建此类型的新值。
-func (t TypeId) New() (Value, error) {
+func (t TypeID) New() (Value, error) {
 	return variantCreator.New(t)
 }
 
 // NewReflected 使用进程级类型构建器创建此类型的新反射值。
-func (t TypeId) NewReflected() (reflect.Value, error) {
+func (t TypeID) NewReflected() (reflect.Value, error) {
 	return variantCreator.NewReflected(t)
 }
 
-// GenTypeId 根据具名 Value 类型的完整名称生成自定义类型 ID。
-func GenTypeId(v any) TypeId {
+// GenTypeID 根据具名 Value 类型的完整名称生成自定义类型 ID。
+func GenTypeID(v any) TypeID {
 	hash := fnv.New32a()
 	rt := reflect.ValueOf(v).Elem().Type()
 	if rt.PkgPath() == "" || rt.Name() == "" {
 		exception.Panicf("%w: unsupported type", ErrVariant)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
-	return TypeId(TypeId_Customize + hash.Sum32())
+	return TypeID(TypeID_Customize + hash.Sum32())
 }
 
-// GenTypeIdT 根据具名类型 T 的完整名称生成自定义类型 ID；*T 必须实现 Value。
-func GenTypeIdT[T any]() TypeId {
+// GenTypeIDT 根据具名类型 T 的完整名称生成自定义类型 ID；*T 必须实现 Value。
+func GenTypeIDT[T any]() TypeID {
 	hash := fnv.New32a()
 	rt := reflect.TypeFor[T]()
 	if rt.PkgPath() == "" || rt.Name() == "" || !reflect.PointerTo(rt).Implements(reflect.TypeFor[Value]()) {
 		exception.Panicf("%w: unsupported type", ErrVariant)
 	}
 	hash.Write([]byte(types.FullNameRT(rt)))
-	return TypeId(TypeId_Customize + hash.Sum32())
+	return TypeID(TypeID_Customize + hash.Sum32())
 }

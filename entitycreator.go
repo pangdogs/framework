@@ -99,9 +99,9 @@ func (c *EntityCreator) SetScope(scope ec.Scope) *EntityCreator {
 	return c
 }
 
-// SetPersistId 设置实体持久化 ID。
-func (c *EntityCreator) SetPersistId(id uid.Id) *EntityCreator {
-	c.settings = append(c.settings, ec.With.PersistId(id))
+// SetPersistID 设置实体持久化 ID。
+func (c *EntityCreator) SetPersistID(id uid.ID) *EntityCreator {
+	c.settings = append(c.settings, ec.With.PersistID(id))
 	return c
 }
 
@@ -186,7 +186,7 @@ func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 		rtCreator = types.Pointer(*rtCreator)
 	}
 
-	_, err := rtCreator.SetPersistId(entity.Id()).SetMainEntity(entity).New()
+	_, err := rtCreator.SetPersistID(entity.ID()).SetMainEntity(entity).New()
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (c *EntityCreator) NewAsync() async.Future {
 		rtCreator = types.Pointer(*rtCreator)
 	}
 
-	_, err := rtCreator.SetPersistId(entity.Id()).SetMainEntity(entity).New()
+	_, err := rtCreator.SetPersistID(entity.ID()).SetMainEntity(entity).New()
 	if err != nil {
 		return async.Rejected(err)
 	}

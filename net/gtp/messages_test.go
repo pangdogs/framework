@@ -13,7 +13,7 @@ func TestBuiltinMessagesMarshalUnmarshalAndClone(t *testing.T) {
 	msgs := []Msg{
 		&MsgHello{
 			Version:   Version_V1_0,
-			SessionId: "session-1",
+			SessionID: "session-1",
 			Random:    []byte{1, 2, 3, 4},
 			CipherSuite: CipherSuite{
 				SecretKeyExchange:   SecretKeyExchange_ECDHE,
@@ -38,12 +38,12 @@ func TestBuiltinMessagesMarshalUnmarshalAndClone(t *testing.T) {
 			Signature: []byte{10, 11, 12},
 		},
 		&MsgChangeCipherSpec{EncryptedHello: []byte{13, 14, 15}},
-		&MsgAuth{UserId: "user", Token: "token", Extensions: []byte{16, 17}},
+		&MsgAuth{UserID: "user", Token: "token", Extensions: []byte{16, 17}},
 		&MsgContinue{SendSeq: 18, RecvSeq: 19},
 		&MsgFinished{SendSeq: 20, RecvSeq: 21},
 		&MsgRst{Code: Code_Reject, Message: "denied"},
 		&MsgHeartbeat{},
-		&MsgSyncTime{CorrId: 22, OriginTime: 23, ReceiveTime: 24, TransmitTime: 25, ZoneOffset: 28800},
+		&MsgSyncTime{CorrID: 22, OriginTime: 23, ReceiveTime: 24, TransmitTime: 25, ZoneOffset: 28800},
 		&MsgPayload{Data: []byte("payload")},
 	}
 
@@ -98,7 +98,7 @@ func TestCipherSuiteAndSignatureAlgorithmReadWrite(t *testing.T) {
 func TestMsgHeadReadWriteAndSize(t *testing.T) {
 	head := MsgHead{
 		Len:   128,
-		MsgId: MsgId_Payload,
+		MsgID: MsgID_Payload,
 		Flags: Flags_None().Setd(Flag_Encrypted, true).Setd(Flag_Compressed, true),
 		Seq:   33,
 		Ack:   22,
@@ -135,7 +135,7 @@ func TestMsgPacketAndMsgPacketLen(t *testing.T) {
 
 	msg := &MsgPayload{Data: []byte("packet")}
 	packet := MsgPacket{
-		Head: MsgHead{Len: uint32(msg.Size()), MsgId: msg.MsgId(), Flags: Flags_None(), Seq: 2, Ack: 1},
+		Head: MsgHead{Len: uint32(msg.Size()), MsgID: msg.MsgID(), Flags: Flags_None(), Seq: 2, Ack: 1},
 		Body: msg,
 	}
 	if packet.Size() != packet.Head.Size()+msg.Size() {
@@ -213,7 +213,7 @@ type brokenReadableMsg struct{}
 func (*brokenReadableMsg) Read([]byte) (int, error)  { return 0, io.ErrUnexpectedEOF }
 func (*brokenReadableMsg) Write([]byte) (int, error) { return 0, nil }
 func (*brokenReadableMsg) Size() int                 { return binaryutil.SizeofUint8 }
-func (*brokenReadableMsg) MsgId() MsgId              { return MsgId_Customize }
+func (*brokenReadableMsg) MsgID() MsgID              { return MsgID_Customize }
 func (m *brokenReadableMsg) Clone() Msg              { return &brokenReadableMsg{} }
 
 type brokenWritableMsg struct{}
@@ -221,7 +221,7 @@ type brokenWritableMsg struct{}
 func (*brokenWritableMsg) Read([]byte) (int, error)  { return 0, io.EOF }
 func (*brokenWritableMsg) Write([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
 func (*brokenWritableMsg) Size() int                 { return 0 }
-func (*brokenWritableMsg) MsgId() MsgId              { return MsgId_Customize }
+func (*brokenWritableMsg) MsgID() MsgID              { return MsgID_Customize }
 func (m *brokenWritableMsg) Clone() Msg              { return &brokenWritableMsg{} }
 
 func testMsgRoundTrip(t *testing.T, msg Msg) {
@@ -236,7 +236,7 @@ func testMsgRoundTrip(t *testing.T, msg Msg) {
 	creator := NewMsgCreator()
 	creator.Declare(msg.Clone())
 
-	got, err := creator.New(msg.MsgId())
+	got, err := creator.New(msg.MsgID())
 	if err != nil {
 		t.Fatalf("New failed: %v", err)
 	}

@@ -163,9 +163,9 @@ func (v Map) Size() int {
 	return n
 }
 
-// TypeId 返回映射的内置类型 ID。
-func (Map) TypeId() TypeId {
-	return TypeId_Map
+// TypeID 返回映射的内置类型 ID。
+func (Map) TypeID() TypeID {
+	return TypeID_Map
 }
 
 // Indirect 返回映射值本身。

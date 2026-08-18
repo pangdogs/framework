@@ -78,7 +78,7 @@ func (o Origin) Size() int {
 // MsgHead 是每个 GAP 消息包的公共头部。
 type MsgHead struct {
 	Len   uint32 // 完整消息包的字节数。
-	MsgId MsgId  // 消息类型 ID。
+	MsgID MsgID  // 消息类型 ID。
 	Src   Origin // 消息来源。
 	Seq   int64  // 发送方分配的序号。
 }
@@ -89,7 +89,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteUint32(m.MsgId); err != nil {
+	if err := bs.WriteUint32(m.MsgID); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if _, err := binaryutil.CopyToByteStream(&bs, m.Src); err != nil {
@@ -111,7 +111,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.MsgId, err = bs.ReadUint32()
+	m.MsgID, err = bs.ReadUint32()
 	if err != nil {
 		return bs.BytesRead(), err
 	}

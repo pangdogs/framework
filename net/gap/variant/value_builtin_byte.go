@@ -53,9 +53,9 @@ func (Byte) Size() int {
 	return binaryutil.SizeofByte
 }
 
-// TypeId 返回 byte 的内置类型 ID。
-func (Byte) TypeId() TypeId {
-	return TypeId_Byte
+// TypeID 返回 byte 的内置类型 ID。
+func (Byte) TypeID() TypeID {
+	return TypeID_Byte
 }
 
 // Indirect 返回 byte。

@@ -19,52 +19,52 @@
 
 package variant
 
-// 内置动态值类型 ID。自定义类型必须从 TypeId_Customize 起分配。
+// 内置动态值类型 ID。自定义类型必须从 TypeID_Customize 起分配。
 const (
-	// TypeId_None 表示未设置动态值类型。
-	TypeId_None TypeId = iota
-	// TypeId_Int 标识 int。
-	TypeId_Int
-	// TypeId_Int8 标识 int8。
-	TypeId_Int8
-	// TypeId_Int16 标识 int16。
-	TypeId_Int16
-	// TypeId_Int32 标识 int32。
-	TypeId_Int32
-	// TypeId_Int64 标识 int64。
-	TypeId_Int64
-	// TypeId_Uint 标识 uint。
-	TypeId_Uint
-	// TypeId_Uint8 标识 uint8。
-	TypeId_Uint8
-	// TypeId_Uint16 标识 uint16。
-	TypeId_Uint16
-	// TypeId_Uint32 标识 uint32。
-	TypeId_Uint32
-	// TypeId_Uint64 标识 uint64。
-	TypeId_Uint64
-	// TypeId_Float 标识 float32。
-	TypeId_Float
-	// TypeId_Double 标识 float64。
-	TypeId_Double
-	// TypeId_Byte 标识 byte。
-	TypeId_Byte
-	// TypeId_Bool 标识 bool。
-	TypeId_Bool
-	// TypeId_Bytes 标识 []byte。
-	TypeId_Bytes
-	// TypeId_String 标识 string。
-	TypeId_String
-	// TypeId_Null 标识空值。
-	TypeId_Null
-	// TypeId_Array 标识动态值数组。
-	TypeId_Array
-	// TypeId_Map 标识动态值映射。
-	TypeId_Map
-	// TypeId_Error 标识可传输错误。
-	TypeId_Error
-	// TypeId_CallChain 标识 RPC 调用链。
-	TypeId_CallChain
-	// TypeId_Customize 是自定义类型 ID 的起始偏移。
-	TypeId_Customize = 32
+	// TypeID_None 表示未设置动态值类型。
+	TypeID_None TypeID = iota
+	// TypeID_Int 标识 int。
+	TypeID_Int
+	// TypeID_Int8 标识 int8。
+	TypeID_Int8
+	// TypeID_Int16 标识 int16。
+	TypeID_Int16
+	// TypeID_Int32 标识 int32。
+	TypeID_Int32
+	// TypeID_Int64 标识 int64。
+	TypeID_Int64
+	// TypeID_Uint 标识 uint。
+	TypeID_Uint
+	// TypeID_Uint8 标识 uint8。
+	TypeID_Uint8
+	// TypeID_Uint16 标识 uint16。
+	TypeID_Uint16
+	// TypeID_Uint32 标识 uint32。
+	TypeID_Uint32
+	// TypeID_Uint64 标识 uint64。
+	TypeID_Uint64
+	// TypeID_Float 标识 float32。
+	TypeID_Float
+	// TypeID_Double 标识 float64。
+	TypeID_Double
+	// TypeID_Byte 标识 byte。
+	TypeID_Byte
+	// TypeID_Bool 标识 bool。
+	TypeID_Bool
+	// TypeID_Bytes 标识 []byte。
+	TypeID_Bytes
+	// TypeID_String 标识 string。
+	TypeID_String
+	// TypeID_Null 标识空值。
+	TypeID_Null
+	// TypeID_Array 标识动态值数组。
+	TypeID_Array
+	// TypeID_Map 标识动态值映射。
+	TypeID_Map
+	// TypeID_Error 标识可传输错误。
+	TypeID_Error
+	// TypeID_CallChain 标识 RPC 调用链。
+	TypeID_CallChain
+	// TypeID_Customize 是自定义类型 ID 的起始偏移。
+	TypeID_Customize = 32
 )

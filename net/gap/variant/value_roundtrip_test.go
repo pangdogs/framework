@@ -13,26 +13,26 @@ func TestVariantRoundTripBuiltins(t *testing.T) {
 	tests := []struct {
 		name   string
 		input  any
-		typeID TypeId
+		typeID TypeID
 	}{
-		{name: "int", input: int(-1), typeID: TypeId_Int},
-		{name: "int8", input: int8(-2), typeID: TypeId_Int8},
-		{name: "int16", input: int16(-3), typeID: TypeId_Int16},
-		{name: "int32", input: int32(-4), typeID: TypeId_Int32},
-		{name: "int64", input: int64(-5), typeID: TypeId_Int64},
-		{name: "uint", input: uint(1), typeID: TypeId_Uint},
-		{name: "uint8", input: uint8(2), typeID: TypeId_Uint8},
-		{name: "uint16", input: uint16(3), typeID: TypeId_Uint16},
-		{name: "uint32", input: uint32(4), typeID: TypeId_Uint32},
-		{name: "uint64", input: uint64(5), typeID: TypeId_Uint64},
-		{name: "float32", input: float32(1.5), typeID: TypeId_Float},
-		{name: "float64", input: float64(2.5), typeID: TypeId_Double},
-		{name: "bool", input: true, typeID: TypeId_Bool},
-		{name: "bytes", input: []byte("payload"), typeID: TypeId_Bytes},
-		{name: "string", input: "hello", typeID: TypeId_String},
-		{name: "null", input: nil, typeID: TypeId_Null},
-		{name: "error", input: Errorln(7, "boom"), typeID: TypeId_Error},
-		{name: "callchain", input: CallChain{{Svc: "svc", Addr: "addr", Timestamp: now, Transit: true}}, typeID: TypeId_CallChain},
+		{name: "int", input: int(-1), typeID: TypeID_Int},
+		{name: "int8", input: int8(-2), typeID: TypeID_Int8},
+		{name: "int16", input: int16(-3), typeID: TypeID_Int16},
+		{name: "int32", input: int32(-4), typeID: TypeID_Int32},
+		{name: "int64", input: int64(-5), typeID: TypeID_Int64},
+		{name: "uint", input: uint(1), typeID: TypeID_Uint},
+		{name: "uint8", input: uint8(2), typeID: TypeID_Uint8},
+		{name: "uint16", input: uint16(3), typeID: TypeID_Uint16},
+		{name: "uint32", input: uint32(4), typeID: TypeID_Uint32},
+		{name: "uint64", input: uint64(5), typeID: TypeID_Uint64},
+		{name: "float32", input: float32(1.5), typeID: TypeID_Float},
+		{name: "float64", input: float64(2.5), typeID: TypeID_Double},
+		{name: "bool", input: true, typeID: TypeID_Bool},
+		{name: "bytes", input: []byte("payload"), typeID: TypeID_Bytes},
+		{name: "string", input: "hello", typeID: TypeID_String},
+		{name: "null", input: nil, typeID: TypeID_Null},
+		{name: "error", input: Errorln(7, "boom"), typeID: TypeID_Error},
+		{name: "callchain", input: CallChain{{Svc: "svc", Addr: "addr", Timestamp: now, Transit: true}}, typeID: TypeID_CallChain},
 	}
 
 	for _, tc := range tests {
@@ -41,13 +41,13 @@ func TestVariantRoundTripBuiltins(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ToVariant failed: %v", err)
 			}
-			if v.TypeId != tc.typeID {
-				t.Fatalf("type id mismatch: got %d want %d", v.TypeId, tc.typeID)
+			if v.TypeID != tc.typeID {
+				t.Fatalf("type id mismatch: got %d want %d", v.TypeID, tc.typeID)
 			}
 
 			got := assertWireRoundTrip(t, v)
-			if got.TypeId != tc.typeID {
-				t.Fatalf("decoded type id mismatch: got %d want %d", got.TypeId, tc.typeID)
+			if got.TypeID != tc.typeID {
+				t.Fatalf("decoded type id mismatch: got %d want %d", got.TypeID, tc.typeID)
 			}
 		})
 	}
@@ -76,8 +76,8 @@ func TestToVariantTypedNilPointers(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ToVariant failed: %v", err)
 			}
-			if v.TypeId != TypeId_Null {
-				t.Fatalf("type id mismatch: got %d want %d", v.TypeId, TypeId_Null)
+			if v.TypeID != TypeID_Null {
+				t.Fatalf("type id mismatch: got %d want %d", v.TypeID, TypeID_Null)
 			}
 		})
 	}
@@ -89,8 +89,8 @@ func TestToVariantNilContainersKeepContainerType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToVariant nil []byte failed: %v", err)
 	}
-	if v.TypeId != TypeId_Bytes {
-		t.Fatalf("nil []byte type id = %d, want %d", v.TypeId, TypeId_Bytes)
+	if v.TypeID != TypeID_Bytes {
+		t.Fatalf("nil []byte type id = %d, want %d", v.TypeID, TypeID_Bytes)
 	}
 
 	var m map[string]any
@@ -98,8 +98,8 @@ func TestToVariantNilContainersKeepContainerType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToVariant nil map failed: %v", err)
 	}
-	if v.TypeId != TypeId_Map {
-		t.Fatalf("nil map type id = %d, want %d", v.TypeId, TypeId_Map)
+	if v.TypeID != TypeID_Map {
+		t.Fatalf("nil map type id = %d, want %d", v.TypeID, TypeID_Map)
 	}
 }
 
@@ -279,8 +279,8 @@ func TestToVariantCustomValuesInContainers(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ToVariant failed: %v", err)
 			}
-			if v.TypeId != TypeId_Array && v.TypeId != TypeId_Map {
-				t.Fatalf("type id = %v, want Array or Map", v.TypeId)
+			if v.TypeID != TypeID_Array && v.TypeID != TypeID_Map {
+				t.Fatalf("type id = %v, want Array or Map", v.TypeID)
 			}
 
 			got, err := v.ToNative(tc.target)

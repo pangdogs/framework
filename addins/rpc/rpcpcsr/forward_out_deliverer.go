@@ -54,28 +54,29 @@ func (p *_ForwardProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 
 // Request 将客户端单播 RPC 包装后发送到承载目标实体的中转服务，并返回响应 Future。
 func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
-	handle, err := p.dsvc.FutureController().New()
+	controller := p.dsvc.Correlation()
+	corrID, future, err := controller.Begin()
 	if err != nil {
 		return async.Rejected(err)
 	}
 
-	entityId, _ := gate.ClientDetails.DomainUnicast.Relative(dst)
-	forwardAddr, err := p.getDistEntityForwardAddr(uid.From(entityId))
+	entityID, _ := gate.ClientDetails.DomainUnicast.Relative(dst)
+	forwardAddr, err := p.getDistEntityForwardAddr(uid.From(entityID))
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	vargs, err := variant.NewArray(args)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	cpBuf, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	nextCC := append(cc, rpcstack.Call{
@@ -86,7 +87,7 @@ func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 	})
 
 	msg := &gap.MsgRPCRequest{
-		CorrId:    handle.Id(),
+		CorrID:    corrID,
 		CallChain: nextCC,
 		Path:      cpBuf,
 		Args:      vargs,
@@ -94,28 +95,28 @@ func (p *_ForwardProcessor) Request(svcCtx service.Context, dst string, cc rpcst
 
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 	defer msgBuf.Release()
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       dst,
-		CorrId:    msg.CorrId,
-		TransId:   msg.MsgId(),
+		CorrID:    msg.CorrID,
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
 	if err := p.dsvc.Send(forwardAddr, forwardMsg); err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	log.L(p.svcCtx).Debug("rpc request forwarded",
 		zap.String("dst", dst),
-		zap.Int64("corr_id", handle.Id()),
+		zap.Uint64("corr_id", uint64(corrID)),
 		zap.String("call_path", cp.String()))
-	return handle.Future()
+	return future
 }
 
 // Notify 将客户端域单向 RPC 包装后发送到目标实体的中转服务或中转服务广播地址。
@@ -156,7 +157,7 @@ func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       dst,
-		TransId:   msg.MsgId(),
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
@@ -172,10 +173,10 @@ func (p *_ForwardProcessor) Notify(svcCtx service.Context, dst string, cc rpcsta
 
 // getForwardAddr 将客户端单播地址解析为实体中转节点，将组播或广播地址映射到中转广播地址。
 func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
-	nodeId, ok := gate.ClientDetails.DomainUnicast.Relative(dst)
+	nodeID, ok := gate.ClientDetails.DomainUnicast.Relative(dst)
 	if ok {
 		// 目标为单播地址，查询实体的通信中转服务地址
-		return p.getDistEntityForwardAddr(uid.From(nodeId))
+		return p.getDistEntityForwardAddr(uid.From(nodeID))
 	}
 
 	if gate.ClientDetails.DomainMulticast.Contains(dst) || gate.ClientDetails.DomainBroadcast.Contains(dst) {
@@ -187,8 +188,8 @@ func (p *_ForwardProcessor) getForwardAddr(dst string) (string, error) {
 }
 
 // getDistEntityForwardAddr 返回承载实体且服务名匹配中转服务的首个节点地址。
-func (p *_ForwardProcessor) getDistEntityForwardAddr(entId uid.Id) (string, error) {
-	distEntity, ok := p.dentq.GetDistEntity(entId)
+func (p *_ForwardProcessor) getDistEntityForwardAddr(entID uid.ID) (string, error) {
+	distEntity, ok := p.dentq.GetDistEntity(entID)
 	if !ok {
 		return "", ErrDistEntityNotFound
 	}

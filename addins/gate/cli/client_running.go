@@ -31,8 +31,8 @@ import (
 func (c *Client) mainLoop() {
 	addr := c.NetAddr()
 	c.logger.Debug("client started",
-		zap.String("session_id", c.SessionId().String()),
-		zap.String("user_id", c.UserId()),
+		zap.String("session_id", c.SessionID().String()),
+		zap.String("user_id", c.UserID()),
 		zap.String("endpoint", c.Endpoint()),
 		zap.String("local", addr.Local.String()),
 		zap.String("remote", addr.Remote.String()))
@@ -45,7 +45,7 @@ func (c *Client) mainLoop() {
 	go c.io.sendLoop()
 
 	autoReconnect := func() {
-		c.logger.Debug("client auto reconnect started", zap.String("session_id", c.SessionId().String()))
+		c.logger.Debug("client auto reconnect started", zap.String("session_id", c.SessionID().String()))
 
 		i := 0
 		for ; c.options.AutoReconnectRetryTimes <= 0 || i < c.options.AutoReconnectRetryTimes; i++ {
@@ -57,14 +57,14 @@ func (c *Client) mainLoop() {
 
 			if err := Reconnect(c); err != nil {
 				c.logger.Error("client auto reconnect failed",
-					zap.String("session_id", c.SessionId().String()),
+					zap.String("session_id", c.SessionID().String()),
 					zap.Int("retries", i+1),
 					zap.Error(err))
 
 				// 服务端返回 RST 或链路迁移失败时不再重试，直接关闭客户端
 				var rstErr *transport.RstError
 				if errors.As(err, &rstErr) || errors.Is(err, transport.ErrMigrateConn) {
-					c.logger.Error("client auto reconnect aborted, close client", zap.String("session_id", c.SessionId().String()))
+					c.logger.Error("client auto reconnect aborted, close client", zap.String("session_id", c.SessionID().String()))
 					c.close(err)
 					return
 				}
@@ -74,11 +74,11 @@ func (c *Client) mainLoop() {
 				continue
 			}
 
-			c.logger.Debug("client auto reconnect ok", zap.String("session_id", c.SessionId().String()), zap.Int("retries", i+1))
+			c.logger.Debug("client auto reconnect ok", zap.String("session_id", c.SessionID().String()), zap.Int("retries", i+1))
 			return
 		}
 
-		c.logger.Error("client auto reconnect retries exhausted, close client", zap.String("session_id", c.SessionId().String()))
+		c.logger.Error("client auto reconnect retries exhausted, close client", zap.String("session_id", c.SessionID().String()))
 		c.close(ErrAutoReconnectRetriesExhausted)
 	}
 
@@ -104,8 +104,8 @@ func (c *Client) mainLoop() {
 		}.Send(c.transceiver.Resend())
 
 		c.logger.Debug("client connection migration",
-			zap.String("session_id", c.SessionId().String()),
-			zap.String("user_id", c.UserId()),
+			zap.String("session_id", c.SessionID().String()),
+			zap.String("user_id", c.UserID()),
 			zap.String("endpoint", c.Endpoint()),
 			zap.String("local", addr.Local.String()),
 			zap.String("remote", addr.Remote.String()),
@@ -174,31 +174,31 @@ loop:
 					if errors.Is(err, transport.ErrDeadlineExceeded) {
 						if !pinged {
 							// 尝试 Ping 对端
-							c.logger.Debug("client send ping", zap.String("session_id", c.SessionId().String()))
+							c.logger.Debug("client send ping", zap.String("session_id", c.SessionID().String()))
 							c.ctrl.SendPing()
 							pinged = true
 						} else {
 							// 未收到 Pong 或其他事件且再次 I/O 超时，将连接标记为不活跃
-							c.logger.Debug("client no pong received", zap.String("session_id", c.SessionId().String()))
+							c.logger.Debug("client no pong received", zap.String("session_id", c.SessionID().String()))
 							changeActive(false)
 						}
 						continue
 					}
 
 					// 其他网络 I/O 错误将连接标记为不活跃，并按配置重连
-					c.logger.Error("client dispatching event failed, retry it", zap.String("session_id", c.SessionId().String()))
+					c.logger.Error("client dispatching event failed, retry it", zap.String("session_id", c.SessionID().String()))
 					changeActive(false)
 					continue
 				}
 
 				// 其他网络传输错误，关闭客户端
-				c.logger.Error("client dispatching event failed, close client", zap.String("session_id", c.SessionId().String()))
+				c.logger.Error("client dispatching event failed, close client", zap.String("session_id", c.SessionID().String()))
 				c.close(err)
 				continue
 			}
 
 			// 非网络传输错误，丢弃不处理
-			c.logger.Error("session dispatching event failed, discard it", zap.String("session_id", c.SessionId().String()))
+			c.logger.Error("session dispatching event failed, discard it", zap.String("session_id", c.SessionID().String()))
 		}
 
 		// 没有错误或只有非传输错误时，将客户端标记为活跃并重置 Ping 状态
@@ -208,6 +208,8 @@ loop:
 
 	// 主循环退出后取消客户端，并等待异步发送队列排空。
 	c.close(nil)
+	c.correlation.Close()
+	<-c.correlation.Done().Done()
 	<-c.io.terminated.Signal().Done()
 
 	// 发送队列停止后再释放连接和编解码资源。
@@ -218,5 +220,5 @@ loop:
 	// 资源清理完成后兑现 Closed 信号。
 	c.closed.Complete()
 
-	c.logger.Debug("client closed", zap.String("session_id", c.SessionId().String()))
+	c.logger.Debug("client closed", zap.String("session_id", c.SessionID().String()))
 }

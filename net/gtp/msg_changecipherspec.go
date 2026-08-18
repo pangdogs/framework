@@ -64,9 +64,9 @@ func (m MsgChangeCipherSpec) Size() int {
 	return binaryutil.SizeofBytes(m.EncryptedHello)
 }
 
-// MsgId 返回密码规范切换消息的内置类型 ID。
-func (MsgChangeCipherSpec) MsgId() MsgId {
-	return MsgId_ChangeCipherSpec
+// MsgID 返回密码规范切换消息的内置类型 ID。
+func (MsgChangeCipherSpec) MsgID() MsgID {
+	return MsgID_ChangeCipherSpec
 }
 
 // Clone 深复制加密 Hello 数据。

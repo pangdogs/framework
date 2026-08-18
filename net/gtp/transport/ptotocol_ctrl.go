@@ -26,6 +26,7 @@ import (
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/framework/net/gtp"
+	"git.golaxy.org/framework/utils/correlation"
 )
 
 type (
@@ -83,7 +84,7 @@ func (c *CtrlProtocol) SendPing() error {
 }
 
 // ProbeTime 发送带关联 ID 和本地发送时间的时钟同步请求。
-func (c *CtrlProtocol) ProbeTime(corrId int64) error {
+func (c *CtrlProtocol) ProbeTime(corrID correlation.ID) error {
 	if c.Transceiver == nil {
 		return fmt.Errorf("%w: Transceiver is nil", ErrProtocol)
 	}
@@ -92,7 +93,7 @@ func (c *CtrlProtocol) ProbeTime(corrId int64) error {
 		Event[*gtp.MsgSyncTime]{
 			Flags: gtp.Flags(gtp.Flag_ReqTime),
 			Msg: &gtp.MsgSyncTime{
-				CorrId:     corrId,
+				CorrID:     corrID,
 				OriginTime: time.Now().UnixMilli(),
 			},
 		}.Interface(),
@@ -113,11 +114,11 @@ func (c *CtrlProtocol) retrySend(err error) error {
 
 // HandleEvent 自动响应时间请求和心跳探测，再同步调用对应处理器。
 func (c *CtrlProtocol) HandleEvent(e IEvent) {
-	switch e.Msg.MsgId() {
-	case gtp.MsgId_Rst:
+	switch e.Msg.MsgID() {
+	case gtp.MsgID_Rst:
 		c.RstHandler.Call(c.AutoRecover, c.ReportError, nil, AssertEvent[*gtp.MsgRst](e))
 
-	case gtp.MsgId_SyncTime:
+	case gtp.MsgID_SyncTime:
 		syncTime := AssertEvent[*gtp.MsgSyncTime](e)
 
 		if syncTime.Flags.Is(gtp.Flag_ReqTime) {
@@ -130,7 +131,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) {
 				Event[*gtp.MsgSyncTime]{
 					Flags: gtp.Flags(gtp.Flag_RespTime),
 					Msg: &gtp.MsgSyncTime{
-						CorrId:       syncTime.Msg.CorrId,
+						CorrID:       syncTime.Msg.CorrID,
 						OriginTime:   syncTime.Msg.OriginTime,
 						ReceiveTime:  recvTime.UnixMilli(),
 						TransmitTime: time.Now().UnixMilli(),
@@ -145,7 +146,7 @@ func (c *CtrlProtocol) HandleEvent(e IEvent) {
 
 		c.SyncTimeHandler.Call(c.AutoRecover, c.ReportError, nil, syncTime)
 
-	case gtp.MsgId_Heartbeat:
+	case gtp.MsgID_Heartbeat:
 		heartbeat := AssertEvent[*gtp.MsgHeartbeat](e)
 
 		if heartbeat.Flags.Is(gtp.Flag_Ping) {

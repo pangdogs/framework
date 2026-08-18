@@ -38,7 +38,7 @@ func (s *_Session) mainLoop() {
 	// 调整会话状态为活跃
 	s.setState(SessionState_Active)
 
-	log.L(s.gate.svcCtx).Debug("session started", zap.String("session_id", s.Id().String()))
+	log.L(s.gate.svcCtx).Debug("session started", zap.String("session_id", s.ID().String()))
 
 	pinged := false
 	var timeout time.Time
@@ -56,7 +56,7 @@ func (s *_Session) mainLoop() {
 		}.Send(s.transceiver.Resend())
 
 		log.L(s.gate.svcCtx).Debug("session connection migration",
-			zap.String("session_id", s.Id().String()),
+			zap.String("session_id", s.ID().String()),
 			zap.String("local", addr.Local.String()),
 			zap.String("remote", addr.Remote.String()),
 			zap.Int64("migrations", migrations),
@@ -122,12 +122,12 @@ loop:
 					if errors.Is(err, transport.ErrDeadlineExceeded) {
 						if !pinged {
 							// 尝试 Ping 对端
-							log.L(s.gate.svcCtx).Debug("session send ping", zap.String("session_id", s.Id().String()))
+							log.L(s.gate.svcCtx).Debug("session send ping", zap.String("session_id", s.ID().String()))
 							s.ctrl.SendPing()
 							pinged = true
 						} else {
 							// 未收到 Pong 或其他事件且再次 I/O 超时，将会话标记为不活跃
-							log.L(s.gate.svcCtx).Debug("session no pong received", zap.String("session_id", s.Id().String()))
+							log.L(s.gate.svcCtx).Debug("session no pong received", zap.String("session_id", s.ID().String()))
 							s.setState(SessionState_Inactive)
 							timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
 						}
@@ -136,7 +136,7 @@ loop:
 
 					// 其他网络 I/O 错误将会话标记为不活跃，等待连接迁移
 					log.L(s.gate.svcCtx).Error("session dispatching event failed, retry it",
-						zap.String("session_id", s.Id().String()),
+						zap.String("session_id", s.ID().String()),
 						zap.Error(err))
 					s.setState(SessionState_Inactive)
 					timeout = time.Now().Add(s.gate.options.SessionInactiveTimeout)
@@ -145,7 +145,7 @@ loop:
 
 				// 其他网络传输错误，关闭会话
 				log.L(s.gate.svcCtx).Error("session dispatching event failed, close session",
-					zap.String("session_id", s.Id().String()),
+					zap.String("session_id", s.ID().String()),
 					zap.Error(err))
 				s.close(&transport.RstError{
 					Code:    gtp.Code_Reject,
@@ -156,7 +156,7 @@ loop:
 
 			// 非网络传输错误，丢弃不处理
 			log.L(s.gate.svcCtx).Error("session dispatching event failed, discard it",
-				zap.String("session_id", s.Id().String()),
+				zap.String("session_id", s.ID().String()),
 				zap.Error(err))
 		}
 
@@ -172,7 +172,7 @@ loop:
 
 	// 尽力向对端发送关闭原因，再撤销注册并释放连接资源。
 	s.ctrl.SendRst(context.Cause(s))
-	s.gate.deleteSession(s.Id())
+	s.gate.deleteSession(s.ID())
 	if s.transceiver.Conn != nil {
 		s.transceiver.Conn.Close()
 	}
@@ -180,5 +180,5 @@ loop:
 	// 资源清理完成后兑现 Closed 信号。
 	s.closed.Complete()
 
-	log.L(s.gate.svcCtx).Debug("session closed", zap.String("session_id", s.Id().String()))
+	log.L(s.gate.svcCtx).Debug("session closed", zap.String("session_id", s.ID().String()))
 }

@@ -29,6 +29,7 @@ import (
 	"git.golaxy.org/framework/addins/rpcstack"
 	"git.golaxy.org/framework/net/gap"
 	"git.golaxy.org/framework/net/gap/variant"
+	"git.golaxy.org/framework/utils/correlation"
 	"go.uber.org/zap"
 )
 
@@ -41,19 +42,19 @@ func (c *RPCli) handleData(data []byte) {
 	mp, err := c.decoder.Decode(data)
 	if err != nil {
 		c.L().Error("decode data failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.Error(err))
 		return
 	}
 
-	switch mp.Head.MsgId {
-	case gap.MsgId_OnewayRPC:
+	switch mp.Head.MsgID {
+	case gap.MsgID_OnewayRPC:
 		c.acceptNotify(mp.Head.Src, mp.Body.(*gap.MsgOnewayRPC))
 
-	case gap.MsgId_RPC_Request:
+	case gap.MsgID_RPC_Request:
 		c.acceptRequest(mp.Head.Src, mp.Body.(*gap.MsgRPCRequest))
 
-	case gap.MsgId_RPC_Reply:
+	case gap.MsgID_RPC_Reply:
 		c.resolveReply(mp.Body.(*gap.MsgRPCReply))
 	}
 }
@@ -63,7 +64,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 	cp, err := callpath.Parse(req.Path)
 	if err != nil {
 		c.L().Error("accept rpc notify failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
 			zap.Error(fmt.Errorf("parse call path failed: %w", err)))
@@ -84,7 +85,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 		_, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			c.L().Error("accept rpc notify failed",
-				zap.String("session_id", c.SessionId().String()),
+				zap.String("session_id", c.SessionID().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
 				zap.String("script", cp.Script),
@@ -92,7 +93,7 @@ func (c *RPCli) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) {
 				zap.Error(err))
 		} else {
 			c.L().Debug("accept rpc notify finished",
-				zap.String("session_id", c.SessionId().String()),
+				zap.String("session_id", c.SessionID().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
 				zap.String("call_path", cp.String()),
@@ -108,12 +109,12 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 	if err != nil {
 		err = fmt.Errorf("parse call path failed: %w", err)
 		c.L().Error("accept rpc request failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
-			zap.Int64("corr_id", req.CorrId),
+			zap.Uint64("corr_id", uint64(req.CorrID)),
 			zap.Error(err))
-		c.reply(src, req.CorrId, variant.Array{}, err)
+		c.reply(src, req.CorrID, variant.Array{}, err)
 		return
 	}
 
@@ -131,25 +132,25 @@ func (c *RPCli) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest) {
 		rets, err := c.callScript(cc, cp.Script, cp.Method, req.Args)
 		if err != nil {
 			c.L().Error("accept rpc request failed",
-				zap.String("session_id", c.SessionId().String()),
+				zap.String("session_id", c.SessionID().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method),
 				zap.Error(err))
 		} else {
 			c.L().Debug("accept rpc request finished",
-				zap.String("session_id", c.SessionId().String()),
+				zap.String("session_id", c.SessionID().String()),
 				zap.String("local", c.NetAddr().Local.String()),
 				zap.String("remote", c.NetAddr().Remote.String()),
-				zap.Int64("corr_id", req.CorrId),
+				zap.Uint64("corr_id", uint64(req.CorrID)),
 				zap.String("call_path", cp.String()),
 				zap.String("script", cp.Script),
 				zap.String("method", cp.Method))
 		}
-		c.reply(src, req.CorrId, rets, err)
+		c.reply(src, req.CorrID, rets, err)
 	}
 }
 
@@ -165,31 +166,30 @@ func (c *RPCli) resolveReply(reply *gap.MsgRPCReply) {
 		ret.Error = &reply.Error
 	}
 
-	if err := c.FutureController().Resolve(reply.CorrId, ret); err != nil {
+	if !c.Correlation().Resolve(reply.CorrID, ret) {
 		c.L().Error("resolve rpc reply failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
-			zap.Int64("corr_id", reply.CorrId),
-			zap.Error(err))
+			zap.Uint64("corr_id", uint64(reply.CorrID)))
 		return
 	}
 
 	c.L().Debug("rpc reply resolved",
-		zap.String("session_id", c.SessionId().String()),
+		zap.String("session_id", c.SessionID().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
-		zap.Int64("corr_id", reply.CorrId))
+		zap.Uint64("corr_id", uint64(reply.CorrID)))
 }
 
 // reply 将脚本调用结果包装为转发消息并发回来源地址；零关联 ID 不回复。
-func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr error) {
-	if corrId == 0 {
+func (c *RPCli) reply(src gap.Origin, corrID correlation.ID, rets variant.Array, retErr error) {
+	if corrID == 0 {
 		return
 	}
 
 	msg := &gap.MsgRPCReply{
-		CorrId: corrId,
+		CorrID: corrID,
 		Rets:   rets,
 	}
 
@@ -200,10 +200,10 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 	msgBuf, err := gap.Marshal(msg)
 	if err != nil {
 		c.L().Error("marshal rpc reply failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
@@ -211,18 +211,18 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 
 	forwardMsg := &gap.MsgForward{
 		Dst:       src.Addr,
-		CorrId:    msg.CorrId,
-		TransId:   msg.MsgId(),
+		CorrID:    msg.CorrID,
+		TransID:   msg.MsgID(),
 		TransData: msgBuf.Payload(),
 	}
 
 	mpBuf, err := c.encoder.Encode(gap.Origin{Timestamp: c.remoteClock.RemoteNow().UnixMilli()}, 0, forwardMsg)
 	if err != nil {
 		c.L().Error("encode rpc reply failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
@@ -230,19 +230,19 @@ func (c *RPCli) reply(src gap.Origin, corrId int64, rets variant.Array, retErr e
 
 	if err = c.DataIO().Send(mpBuf.Payload()); err != nil {
 		c.L().Error("send rpc reply failed",
-			zap.String("session_id", c.SessionId().String()),
+			zap.String("session_id", c.SessionID().String()),
 			zap.String("local", c.NetAddr().Local.String()),
 			zap.String("remote", c.NetAddr().Remote.String()),
-			zap.Int64("corr_id", corrId),
+			zap.Uint64("corr_id", uint64(corrID)),
 			zap.Error(err))
 		return
 	}
 
 	c.L().Debug("rpc reply sent",
-		zap.String("session_id", c.SessionId().String()),
+		zap.String("session_id", c.SessionID().String()),
 		zap.String("local", c.NetAddr().Local.String()),
 		zap.String("remote", c.NetAddr().Remote.String()),
-		zap.Int64("corr_id", corrId))
+		zap.Uint64("corr_id", uint64(corrID)))
 }
 
 // callScript 查找已注册脚本和导出方法，转换参数后通过反射同步调用。

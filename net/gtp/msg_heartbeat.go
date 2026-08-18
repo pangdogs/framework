@@ -46,9 +46,9 @@ func (MsgHeartbeat) Size() int {
 	return 0
 }
 
-// MsgId 返回心跳消息的内置类型 ID。
-func (MsgHeartbeat) MsgId() MsgId {
-	return MsgId_Heartbeat
+// MsgID 返回心跳消息的内置类型 ID。
+func (MsgHeartbeat) MsgID() MsgID {
+	return MsgID_Heartbeat
 }
 
 // Clone 返回消息副本。

@@ -51,19 +51,19 @@ func (acc *_Acceptor) accept(conn net.Conn) (*_Session, bool, error) {
 	return acc.handshake(ctx, conn)
 }
 
-// genSessionId 生成新的会话 ID。
-func (acc *_Acceptor) genSessionId() uid.Id {
+// genSessionID 生成新的会话 ID。
+func (acc *_Acceptor) genSessionID() uid.ID {
 	return uid.New()
 }
 
 // newSession 创建尚未绑定连接的会话，并装配传输、控制和 I/O 处理器。
-func (acc *_Acceptor) newSession(id uid.Id, userId, token string, extensions []byte) *_Session {
+func (acc *_Acceptor) newSession(id uid.ID, userID, token string, extensions []byte) *_Session {
 	closed, _ := async.NewSignal()
 	session := &_Session{
 		closed:        closed,
 		gate:          acc._Gate,
 		id:            id,
-		userId:        userId,
+		userID:        userID,
 		token:         token,
 		extensions:    extensions,
 		migrationChan: make(chan struct{}),

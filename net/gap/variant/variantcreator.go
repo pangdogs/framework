@@ -41,9 +41,9 @@ type IVariantCreator interface {
 	// Declare 注册值指针的具体类型；重复 ID 会 panic。
 	Declare(v Value)
 	// New 创建指定类型 ID 对应的新值指针。
-	New(typeId TypeId) (Value, error)
+	New(typeID TypeID) (Value, error)
 	// NewReflected 创建指定类型 ID 对应的新反射值。
-	NewReflected(typeId TypeId) (reflect.Value, error)
+	NewReflected(typeID TypeID) (reflect.Value, error)
 }
 
 var variantCreator = _NewVariantCreator()
@@ -84,7 +84,7 @@ func _NewVariantCreator() IVariantCreator {
 
 // _VariantCreator 使用写时复制快照保存动态值类型映射。
 type _VariantCreator struct {
-	variantTypes atomic.Pointer[map[TypeId]reflect.Type]
+	variantTypes atomic.Pointer[map[TypeID]reflect.Type]
 }
 
 // Declare 以类型 ID 注册值的元素类型。
@@ -94,7 +94,7 @@ func (c *_VariantCreator) Declare(v Value) {
 	}
 
 	for {
-		var m map[TypeId]reflect.Type
+		var m map[TypeID]reflect.Type
 
 		old := c.variantTypes.Load()
 		if old != nil {
@@ -102,14 +102,14 @@ func (c *_VariantCreator) Declare(v Value) {
 		}
 
 		if m == nil {
-			m = make(map[TypeId]reflect.Type)
+			m = make(map[TypeID]reflect.Type)
 		}
 
-		if rtype, ok := (m)[v.TypeId()]; ok {
-			exception.Panicf("%w: variant type(%d) has already been declared by %q; rename the variant type or return a different TypeId", ErrVariant, v.TypeId(), types.FullNameRT(rtype))
+		if rtype, ok := (m)[v.TypeID()]; ok {
+			exception.Panicf("%w: variant type(%d) has already been declared by %q; rename the variant type or return a different TypeID", ErrVariant, v.TypeID(), types.FullNameRT(rtype))
 		}
 
-		m[v.TypeId()] = reflect.TypeOf(v).Elem()
+		m[v.TypeID()] = reflect.TypeOf(v).Elem()
 
 		if c.variantTypes.CompareAndSwap(old, &m) {
 			break
@@ -120,8 +120,8 @@ func (c *_VariantCreator) Declare(v Value) {
 }
 
 // New 根据当前类型快照创建新的值指针。
-func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
-	reflected, err := c.NewReflected(typeId)
+func (c *_VariantCreator) New(typeID TypeID) (Value, error) {
+	reflected, err := c.NewReflected(typeID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +129,13 @@ func (c *_VariantCreator) New(typeId TypeId) (Value, error) {
 }
 
 // NewReflected 根据当前类型快照创建新的反射值。
-func (c *_VariantCreator) NewReflected(typeId TypeId) (reflect.Value, error) {
+func (c *_VariantCreator) NewReflected(typeID TypeID) (reflect.Value, error) {
 	m := c.variantTypes.Load()
 	if m == nil || *m == nil {
 		return reflect.Value{}, ErrNotDeclared
 	}
 
-	rtype, ok := (*m)[typeId]
+	rtype, ok := (*m)[typeID]
 	if !ok {
 		return reflect.Value{}, ErrNotDeclared
 	}

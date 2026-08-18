@@ -31,9 +31,9 @@ type IDistEntityRegistryEventTab interface {
 }
 
 var (
-	_distEntityRegistryEventTabId = event.DeclareEventTabIdT[distEntityRegistryEventTab]()
-	EventDistEntityOnlineId = event.DeclareEventIdT[distEntityRegistryEventTab](0)
-	EventDistEntityOfflineId = event.DeclareEventIdT[distEntityRegistryEventTab](1)
+	_distEntityRegistryEventTabID = event.DeclareEventTabIDT[distEntityRegistryEventTab]()
+	EventDistEntityOnlineID = event.DeclareEventIDT[distEntityRegistryEventTab](0)
+	EventDistEntityOfflineID = event.DeclareEventIDT[distEntityRegistryEventTab](1)
 )
 
 type distEntityRegistryEventTab [2]event.Event
@@ -66,8 +66,8 @@ func (eventTab *distEntityRegistryEventTab) Ctrl() event.IEventCtrl {
 }
 
 func (eventTab *distEntityRegistryEventTab) Event(id uint64) event.IEvent {
-	eventTabId, pos := event.SplitEventId(id)
-	if _distEntityRegistryEventTabId != eventTabId || pos >= len(eventTab) {
+	eventTabID, pos := event.SplitEventID(id)
+	if _distEntityRegistryEventTabID != eventTabID || pos >= len(eventTab) {
 		return nil
 	}
 	switch pos {

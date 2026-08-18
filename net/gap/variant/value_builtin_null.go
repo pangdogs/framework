@@ -39,9 +39,9 @@ func (Null) Size() int {
 	return 0
 }
 
-// TypeId 返回空值的内置类型 ID。
-func (Null) TypeId() TypeId {
-	return TypeId_Null
+// TypeID 返回空值的内置类型 ID。
+func (Null) TypeID() TypeID {
+	return TypeID_Null
 }
 
 // Indirect 返回 nil。

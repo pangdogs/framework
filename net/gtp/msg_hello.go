@@ -158,11 +158,11 @@ func (CipherSuite) Size() int {
 }
 
 // MsgHello 协商协议版本、会话、密码套件和压缩算法。
-// 直接通过 Write 或 Unmarshal 解码时，SessionId 和 Random 会引用输入切片；
+// 直接通过 Write 或 Unmarshal 解码时，SessionID 和 Random 会引用输入切片；
 // 输入将被复用或修改时应先 Clone。Decoder.Decode 返回的消息不引用调用方输入。
 type MsgHello struct {
 	Version     Version     // 协议版本。
-	SessionId   string      // 会话 ID；客户端留空时由服务端分配，非空时用于查找待续接会话。
+	SessionID   string      // 会话 ID；客户端留空时由服务端分配，非空时用于查找待续接会话。
 	Random      []byte      // 密钥派生使用的随机数。
 	CipherSuite CipherSuite // 客户端提议或服务端选定的密码套件。
 	Compression Compression // 客户端提议或服务端选定的压缩算法。
@@ -174,7 +174,7 @@ func (m MsgHello) Read(p []byte) (int, error) {
 	if err := bs.WriteUint16(uint16(m.Version)); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteString(m.SessionId); err != nil {
+	if err := bs.WriteString(m.SessionID); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteBytes(m.Random); err != nil {
@@ -199,7 +199,7 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 	}
 	m.Version = Version(version)
 
-	m.SessionId, err = bs.ReadStringRef()
+	m.SessionID, err = bs.ReadStringRef()
 	if err != nil {
 		return bs.BytesRead(), err
 	}
@@ -225,20 +225,20 @@ func (m *MsgHello) Write(p []byte) (int, error) {
 
 // Size 返回 Hello 消息编码后的字节数。
 func (m MsgHello) Size() int {
-	return binaryutil.SizeofUint16 + binaryutil.SizeofString(m.SessionId) + binaryutil.SizeofBytes(m.Random) +
+	return binaryutil.SizeofUint16 + binaryutil.SizeofString(m.SessionID) + binaryutil.SizeofBytes(m.Random) +
 		m.CipherSuite.Size() + binaryutil.SizeofUint8
 }
 
-// MsgId 返回 Hello 消息的内置类型 ID。
-func (MsgHello) MsgId() MsgId {
-	return MsgId_Hello
+// MsgID 返回 Hello 消息的内置类型 ID。
+func (MsgHello) MsgID() MsgID {
+	return MsgID_Hello
 }
 
 // Clone 深复制所有引用型字段。
 func (m MsgHello) Clone() Msg {
 	return &MsgHello{
 		Version:     m.Version,
-		SessionId:   strings.Clone(m.SessionId),
+		SessionID:   strings.Clone(m.SessionID),
 		Random:      bytes.Clone(m.Random),
 		CipherSuite: m.CipherSuite,
 		Compression: m.Compression,

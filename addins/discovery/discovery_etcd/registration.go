@@ -37,7 +37,7 @@ type _EtcdRegistration struct {
 	registry    *_EtcdRegistry
 	nodeKey     string
 	serviceNode *discovery.Service
-	leaseId     etcdv3.LeaseID
+	leaseID     etcdv3.LeaseID
 }
 
 // KeepAliveContinuous 持续刷新节点租约，直到 ctx、registry 或 ETCD 保活流结束。
@@ -65,16 +65,16 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 		cancel()
 	}()
 
-	keepAliveChan, err := r.registry.client.KeepAlive(ctx, r.leaseId)
+	keepAliveChan, err := r.registry.client.KeepAlive(ctx, r.leaseID)
 	if err != nil {
 		cancel()
 		r.registry.barrier.Done()
 
 		log.L(r.registry.svcCtx).Error("keep alive etcd lease failed",
 			zap.String("service", r.serviceNode.Name),
-			zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+			zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 			zap.String("key", r.nodeKey),
-			zap.Int64("lease_id", int64(r.leaseId)),
+			zap.Int64("lease_id", int64(r.leaseID)),
 			zap.Error(err))
 		return async.Signal{}, fmt.Errorf("registry: %w", err)
 	}
@@ -90,25 +90,25 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 		for range keepAliveChan {
 			log.L(r.registry.svcCtx).Debug("keep alive etcd lease heartbeat ok",
 				zap.String("service", r.serviceNode.Name),
-				zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+				zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 				zap.String("key", r.nodeKey),
-				zap.Int64("lease_id", int64(r.leaseId)))
+				zap.Int64("lease_id", int64(r.leaseID)))
 		}
 
 		log.L(r.registry.svcCtx).Debug("keep alive etcd lease heartbeat closed",
 			zap.String("service", r.serviceNode.Name),
-			zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+			zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 			zap.String("key", r.nodeKey),
-			zap.Int64("lease_id", int64(r.leaseId)))
+			zap.Int64("lease_id", int64(r.leaseID)))
 
 		stopped.Complete()
 	}()
 
 	log.L(r.registry.svcCtx).Debug("keep alive etcd lease ok",
 		zap.String("service", r.serviceNode.Name),
-		zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+		zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 		zap.String("key", r.nodeKey),
-		zap.Int64("lease_id", int64(r.leaseId)))
+		zap.Int64("lease_id", int64(r.leaseID)))
 	return stoppedSignal, nil
 }
 
@@ -118,22 +118,22 @@ func (r *_EtcdRegistration) KeepAliveOnce(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	_, err := r.registry.client.KeepAliveOnce(ctx, r.leaseId)
+	_, err := r.registry.client.KeepAliveOnce(ctx, r.leaseID)
 	if err != nil {
 		log.L(r.registry.svcCtx).Error("keep alive etcd lease once failed",
 			zap.String("service", r.serviceNode.Name),
-			zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+			zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 			zap.String("key", r.nodeKey),
-			zap.Int64("lease_id", int64(r.leaseId)),
+			zap.Int64("lease_id", int64(r.leaseID)),
 			zap.Error(err))
 		return fmt.Errorf("registry: %w", err)
 	}
 
 	log.L(r.registry.svcCtx).Debug("keep alive etcd lease once ok",
 		zap.String("service", r.serviceNode.Name),
-		zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+		zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 		zap.String("key", r.nodeKey),
-		zap.Int64("lease_id", int64(r.leaseId)))
+		zap.Int64("lease_id", int64(r.leaseID)))
 	return nil
 }
 
@@ -143,22 +143,22 @@ func (r *_EtcdRegistration) Deregister(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	_, err := r.registry.client.Revoke(ctx, r.leaseId)
+	_, err := r.registry.client.Revoke(ctx, r.leaseID)
 	if err != nil {
 		log.L(r.registry.svcCtx).Error("revoke etcd lease failed",
 			zap.String("service", r.serviceNode.Name),
-			zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+			zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 			zap.String("key", r.nodeKey),
-			zap.Int64("lease_id", int64(r.leaseId)),
+			zap.Int64("lease_id", int64(r.leaseID)),
 			zap.Error(err))
 		return fmt.Errorf("registry: %w", err)
 	}
 
 	log.L(r.registry.svcCtx).Debug("deregister service node ok",
 		zap.String("service", r.serviceNode.Name),
-		zap.String("node", r.serviceNode.Nodes[0].Id.String()),
+		zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 		zap.String("key", r.nodeKey),
-		zap.Int64("lease_id", int64(r.leaseId)))
+		zap.Int64("lease_id", int64(r.leaseID)))
 	return nil
 }
 
@@ -168,18 +168,18 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 		ctx = context.Background()
 	}
 
-	nodeKey := r.newNodeKey(serviceName, node.Id)
+	nodeKey := r.newNodeKey(serviceName, node.ID)
 
 	grantRsp, err := r.client.Grant(ctx, int64(math.Ceil(max(ttl.Seconds(), 3))))
 	if err != nil {
 		log.L(r.svcCtx).Error("grant etcd lease failed",
 			zap.String("service", serviceName),
-			zap.String("node", node.Id.String()),
+			zap.String("node", node.ID.String()),
 			zap.String("key", nodeKey),
 			zap.Error(err))
 		return nil, fmt.Errorf("registry: %w", err)
 	}
-	leaseId := grantRsp.ID
+	leaseID := grantRsp.ID
 
 	serviceNode := &discovery.Service{
 		Name:  serviceName,
@@ -189,28 +189,28 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 
 	rsp, err := r.client.Txn(ctx).
 		If(etcdv3.Compare(etcdv3.Version(nodeKey), "=", 0)).
-		Then(etcdv3.OpPut(nodeKey, serviceNodeData, etcdv3.WithLease(leaseId))).
+		Then(etcdv3.OpPut(nodeKey, serviceNodeData, etcdv3.WithLease(leaseID))).
 		Commit()
 	if err != nil {
-		r.client.Revoke(context.Background(), leaseId)
+		r.client.Revoke(context.Background(), leaseID)
 
 		log.L(r.svcCtx).Error("put service node etcd key failed",
 			zap.String("service", serviceName),
-			zap.String("node", node.Id.String()),
+			zap.String("node", node.ID.String()),
 			zap.String("key", nodeKey),
-			zap.Int64("lease_id", int64(leaseId)),
+			zap.Int64("lease_id", int64(leaseID)),
 			zap.Error(err))
 
 		return nil, fmt.Errorf("registry: %w", err)
 	}
 	if !rsp.Succeeded {
-		r.client.Revoke(context.Background(), leaseId)
+		r.client.Revoke(context.Background(), leaseID)
 
 		log.L(r.svcCtx).Error("put service node etcd key failed",
 			zap.String("service", serviceName),
-			zap.String("node", node.Id.String()),
+			zap.String("node", node.ID.String()),
 			zap.String("key", nodeKey),
-			zap.Int64("lease_id", int64(leaseId)),
+			zap.Int64("lease_id", int64(leaseID)),
 			zap.Error(discovery.ErrDuplicateRegistration))
 
 		return nil, discovery.ErrDuplicateRegistration
@@ -222,13 +222,13 @@ func (r *_EtcdRegistry) registerNode(ctx context.Context, serviceName string, no
 		registry:    r,
 		nodeKey:     nodeKey,
 		serviceNode: serviceNode,
-		leaseId:     leaseId,
+		leaseID:     leaseID,
 	}
 
 	log.L(r.svcCtx).Debug("register service node ok",
 		zap.String("service", serviceName),
-		zap.String("node", node.Id.String()),
+		zap.String("node", node.ID.String()),
 		zap.String("key", nodeKey),
-		zap.Int64("lease_id", int64(leaseId)))
+		zap.Int64("lease_id", int64(leaseID)))
 	return registration, nil
 }

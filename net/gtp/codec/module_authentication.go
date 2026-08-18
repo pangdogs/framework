@@ -41,9 +41,9 @@ var (
 // IAuthentication 为消息类型、标志位和消息体生成并验证认证码。
 type IAuthentication interface {
 	// Sign 包装消息体和认证码；返回的池化缓冲区由调用方释放。
-	Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (signedBuf binaryutil.Bytes, err error)
+	Sign(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) (signedBuf binaryutil.Bytes, err error)
 	// Auth 验证认证码并返回包装中的原始消息体。
-	Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (authBuf []byte, err error)
+	Auth(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) (authBuf []byte, err error)
 	// SizeOfAddition 返回认证包装相对原消息体增加的字节数。
 	SizeOfAddition(msgLen int) (size int, err error)
 }
@@ -66,7 +66,7 @@ type Authentication struct {
 }
 
 // Sign 计算消息认证码并返回池化的 MsgSigned 编码。
-func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
+func (m *Authentication) Sign(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) (binaryutil.Bytes, error) {
 	if m.HMAC == nil {
 		return binaryutil.EmptyBytes, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
 	}
@@ -76,7 +76,7 @@ func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	}
 
 	m.HMAC.Reset()
-	bs := [2]byte{msgId, byte(flags)}
+	bs := [2]byte{msgID, byte(flags)}
 	m.HMAC.Write(bs[:])
 	m.HMAC.Write(msgBuf)
 
@@ -96,7 +96,7 @@ func (m *Authentication) Sign(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 }
 
 // Auth 验证 MsgSigned 中的认证码，并返回引用 msgBuf 的原始消息体。
-func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
+func (m *Authentication) Auth(msgID gtp.MsgID, flags gtp.Flags, msgBuf []byte) ([]byte, error) {
 	if m.HMAC == nil {
 		return nil, fmt.Errorf("%w: HMAC is nil", ErrAuthenticate)
 	}
@@ -112,7 +112,7 @@ func (m *Authentication) Auth(msgId gtp.MsgId, flags gtp.Flags, msgBuf []byte) (
 	}
 
 	m.HMAC.Reset()
-	bs := [2]byte{msgId, byte(flags)}
+	bs := [2]byte{msgID, byte(flags)}
 	m.HMAC.Write(bs[:])
 	m.HMAC.Write(msgSigned.Data)
 

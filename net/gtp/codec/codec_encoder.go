@@ -72,7 +72,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes
 	}
 
 	head := gtp.MsgHead{}
-	head.MsgId = msg.MsgId()
+	head.MsgID = msg.MsgID()
 
 	head.Flags = flags.Setd(gtp.Flag_Encrypted, false).
 		Setd(gtp.Flag_Signed, false).
@@ -137,7 +137,7 @@ func (e *Encoder) Encode(flags gtp.Flags, msg gtp.ReadableMsg) (binaryutil.Bytes
 				return binaryutil.EmptyBytes, fmt.Errorf("%w: failed to write msg-packet-head for sign msg-mac, %w", ErrEncode, err)
 			}
 
-			macBuf, err := e.Authentication.Sign(head.MsgId, head.Flags, buf.Payload()[head.Size():end])
+			macBuf, err := e.Authentication.Sign(head.MsgID, head.Flags, buf.Payload()[head.Size():end])
 			if err != nil {
 				buf.Release()
 				return binaryutil.EmptyBytes, fmt.Errorf("%w: sign msg-mac failed, %w", ErrEncode, err)

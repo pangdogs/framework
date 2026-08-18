@@ -50,40 +50,41 @@ func (p *_ServiceProcessor) Match(svcCtx service.Context, dst string, cc rpcstac
 
 // Request 编码并发送服务域 RPC 请求，返回由关联 ID 匹配响应的 Future。
 func (p *_ServiceProcessor) Request(svcCtx service.Context, dst string, cc rpcstack.CallChain, cp callpath.CallPath, args []any) async.Future {
-	handle, err := p.dsvc.FutureController().New()
+	controller := p.dsvc.Correlation()
+	corrID, future, err := controller.Begin()
 	if err != nil {
 		return async.Rejected(err)
 	}
 
 	vargs, err := variant.NewArray(args)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	cpBuf, err := cp.Encode(p.reduceCallPath)
 	if err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	msg := &gap.MsgRPCRequest{
-		CorrId:    handle.Id(),
+		CorrID:    corrID,
 		CallChain: cc,
 		Path:      cpBuf,
 		Args:      vargs,
 	}
 
 	if err = p.dsvc.Send(dst, msg); err != nil {
-		handle.Cancel(err)
-		return handle.Future()
+		controller.Cancel(corrID, err)
+		return future
 	}
 
 	log.L(p.svcCtx).Debug("rpc request sent",
 		zap.String("dst", dst),
-		zap.Int64("corr_id", handle.Id()),
+		zap.Uint64("corr_id", uint64(corrID)),
 		zap.String("call_path", cp.String()))
-	return handle.Future()
+	return future
 }
 
 // Notify 编码并发送无需响应的服务域 RPC 通知。

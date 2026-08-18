@@ -49,8 +49,8 @@ type CallPath struct {
 	TargetKind TargetKind
 	// ExcludeSrc 指示路由时是否排除调用来源。
 	ExcludeSrc bool
-	// Id 是 Runtime 或 Entity 目标的实体 ID，其他目标类型忽略此字段。
-	Id uid.Id
+	// ID 是 Runtime 或 Entity 目标的实体 ID，其他目标类型忽略此字段。
+	ID uid.ID
 	// Script 是服务插件、运行时插件、实体组件或客户端脚本的名称；为空时表示目标本身。
 	Script string
 	// Method 是要调用的方法名。
@@ -68,7 +68,7 @@ func (cp CallPath) Encode(short bool) ([]byte, error) {
 	case Service, Client:
 		break
 	case Runtime, Entity:
-		sb.WriteString(cp.Id.String())
+		sb.WriteString(cp.ID.String())
 		sb.WriteByte(0)
 	default:
 		return nil, fmt.Errorf("rpc: invalid call path target kind: %c", cp.TargetKind)
@@ -94,9 +94,9 @@ func (cp CallPath) String() string {
 	case Service:
 		return fmt.Sprintf("%c-%d>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Script, cp.Method)
 	case Runtime:
-		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
+		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.ID, cp.Script, cp.Method)
 	case Entity:
-		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.Id, cp.Script, cp.Method)
+		return fmt.Sprintf("%c-%d-%s>%s.%s", cp.TargetKind, types.Bool2Int[int](cp.ExcludeSrc), cp.ID, cp.Script, cp.Method)
 	case Client:
 		return fmt.Sprintf("%c>%s.%s", cp.TargetKind, cp.Script, cp.Method)
 	}
@@ -145,7 +145,7 @@ func Parse(data []byte) (CallPath, error) {
 			if err != nil {
 				return CallPath{}, err
 			}
-			cp.Id = uid.Id(str)
+			cp.ID = uid.ID(str)
 		}
 	default:
 		return CallPath{}, fmt.Errorf("rpc: invalid call path target kind: %c", cp.TargetKind)

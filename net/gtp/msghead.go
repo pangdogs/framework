@@ -75,7 +75,7 @@ const (
 // MsgHead 是每个 GTP 消息包的固定长度头部。
 type MsgHead struct {
 	Len   uint32 // 完整消息包的字节数。
-	MsgId MsgId  // 消息类型 ID。
+	MsgID MsgID  // 消息类型 ID。
 	Flags Flags  // 加密、认证和压缩标志。
 	Seq   uint32 // 当前消息序号。
 	Ack   uint32 // 已确认接收的消息序号。
@@ -87,7 +87,7 @@ func (m MsgHead) Read(p []byte) (int, error) {
 	if err := bs.WriteUint32(m.Len); err != nil {
 		return bs.BytesWritten(), err
 	}
-	if err := bs.WriteUint8(m.MsgId); err != nil {
+	if err := bs.WriteUint8(m.MsgID); err != nil {
 		return bs.BytesWritten(), err
 	}
 	if err := bs.WriteUint8(uint8(m.Flags)); err != nil {
@@ -112,7 +112,7 @@ func (m *MsgHead) Write(p []byte) (int, error) {
 		return bs.BytesRead(), err
 	}
 
-	m.MsgId, err = bs.ReadUint8()
+	m.MsgID, err = bs.ReadUint8()
 	if err != nil {
 		return bs.BytesRead(), err
 	}

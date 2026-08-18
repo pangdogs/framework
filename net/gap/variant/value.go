@@ -28,8 +28,8 @@ type ReadableValue interface {
 	io.Reader
 	// Size 返回值编码后的字节数。
 	Size() int
-	// TypeId 返回动态值类型 ID。
-	TypeId() TypeId
+	// TypeID 返回动态值类型 ID。
+	TypeID() TypeID
 	// Indirect 返回对应的 Go 值。
 	Indirect() any
 }

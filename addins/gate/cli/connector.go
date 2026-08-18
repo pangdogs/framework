@@ -33,7 +33,7 @@ import (
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/types"
 	"git.golaxy.org/framework/net/gtp/codec"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/correlation"
 	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )
@@ -62,7 +62,7 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
-			origin, _ = url.JoinPath(endpoint, "cli", ctor.options.AuthUserId)
+			origin, _ = url.JoinPath(endpoint, "cli", ctor.options.AuthUserID)
 		}
 
 		conf, err := websocket.NewConfig(endpoint, origin)
@@ -142,7 +142,7 @@ func (ctor *_Connector) reconnect(client *Client) (err error) {
 
 		origin := ctor.options.WebSocketOrigin
 		if origin == "" {
-			origin, _ = url.JoinPath(ep, "cli", ctor.options.AuthUserId)
+			origin, _ = url.JoinPath(ep, "cli", ctor.options.AuthUserID)
 		}
 
 		conf, err := websocket.NewConfig(ep, origin)
@@ -233,8 +233,8 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 	client.ctrl.SyncTimeHandler = generic.CastDelegateVoid1(client.handleSyncTime)
 	client.ctrl.RstHandler = generic.CastDelegateVoid1(client.handleRst)
 
-	// Future 控制器随客户端上下文取消，统一终止未完成请求。
-	client.futureController = concurrent.NewFutureController(client.Context, ctor.options.FutureTimeout)
+	// 请求关联控制器随客户端上下文取消，统一终止未完成请求。
+	client.correlation = correlation.New(client.Context, ctor.options.FutureTimeout)
 
 	// I/O 门面使用独立队列异步发送数据和事件。
 	client.io.init(client)

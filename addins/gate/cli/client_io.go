@@ -28,7 +28,7 @@ import (
 	"git.golaxy.org/framework/net/gtp"
 	"git.golaxy.org/framework/net/gtp/transport"
 	"git.golaxy.org/framework/utils/binaryutil"
-	"git.golaxy.org/framework/utils/concurrent"
+	"git.golaxy.org/framework/utils/fanout"
 	"go.uber.org/zap"
 )
 
@@ -61,8 +61,8 @@ type _ClientIO struct {
 	terminated     async.Completer
 	dataChan       *generic.UnboundedChannel[binaryutil.Bytes]
 	eventChan      *generic.UnboundedChannel[transport.IEvent]
-	dataListeners  concurrent.Listeners[DataHandler, []byte]
-	eventListeners concurrent.Listeners[EventHandler, transport.IEvent]
+	dataListeners  fanout.Broadcaster[DataHandler, []byte]
+	eventListeners fanout.Broadcaster[EventHandler, transport.IEvent]
 }
 
 func (io *_ClientIO) init(client *Client) {
@@ -82,7 +82,7 @@ loop:
 		case buff := <-io.dataChan.Out():
 			if err := io.client.trans.SendData(buff.Payload()); err != nil {
 				io.client.logger.Error("client send data failed",
-					zap.String("session_id", io.client.SessionId().String()),
+					zap.String("session_id", io.client.SessionID().String()),
 					zap.Int64("migrations", io.client.Migrations()),
 					zap.Error(err))
 			}
@@ -95,7 +95,7 @@ loop:
 			}.Send(io.client.transceiver.Send(event))
 			if err != nil {
 				io.client.logger.Error("client send event failed",
-					zap.String("session_id", io.client.SessionId().String()),
+					zap.String("session_id", io.client.SessionID().String()),
 					zap.Int64("migrations", io.client.Migrations()),
 					zap.Error(err))
 			}
@@ -111,7 +111,7 @@ loop:
 	for buff := range io.dataChan.Out() {
 		if err := io.client.trans.SendData(buff.Payload()); err != nil {
 			io.client.logger.Error("client send data failed",
-				zap.String("session_id", io.client.SessionId().String()),
+				zap.String("session_id", io.client.SessionID().String()),
 				zap.Int64("migrations", io.client.Migrations()),
 				zap.Error(err))
 		}
@@ -125,7 +125,7 @@ loop:
 		}.Send(io.client.transceiver.Send(event))
 		if err != nil {
 			io.client.logger.Error("client send event failed",
-				zap.String("session_id", io.client.SessionId().String()),
+				zap.String("session_id", io.client.SessionID().String()),
 				zap.Int64("migrations", io.client.Migrations()),
 				zap.Error(err))
 		}
@@ -135,25 +135,25 @@ loop:
 }
 
 func (io *_ClientIO) handlePayload(event transport.Event[*gtp.MsgPayload]) {
-	rejected := io.dataListeners.Broadcast(event.Msg.Data)
-	if rejected > 0 {
-		io.client.logger.Error("some listeners rejected the receive payload due to backpressure",
-			zap.String("session_id", io.client.SessionId().String()),
+	dropped := io.dataListeners.Broadcast(event.Msg.Data)
+	if dropped > 0 {
+		io.client.logger.Error("received payload deliveries dropped due to listener backpressure",
+			zap.String("session_id", io.client.SessionID().String()),
 			zap.Uint32("seq", event.Seq),
 			zap.Uint32("ack", event.Ack),
-			zap.Int("rejected", rejected))
+			zap.Int("dropped", dropped))
 	}
 }
 
 func (io *_ClientIO) handleEvent(event transport.IEvent) {
-	rejected := io.eventListeners.Broadcast(event)
-	if rejected > 0 {
-		io.client.logger.Error("some listeners rejected the receive event due to backpressure",
-			zap.String("session_id", io.client.SessionId().String()),
+	dropped := io.eventListeners.Broadcast(event)
+	if dropped > 0 {
+		io.client.logger.Error("received event deliveries dropped due to listener backpressure",
+			zap.String("session_id", io.client.SessionID().String()),
 			zap.Uint32("seq", event.Seq),
 			zap.Uint32("ack", event.Ack),
-			zap.Uint8("msg_id", event.Msg.MsgId()),
-			zap.Int("rejected", rejected))
+			zap.Uint8("msg_id", event.Msg.MsgID()),
+			zap.Int("dropped", dropped))
 	}
 }
 
@@ -200,21 +200,21 @@ func (io *_ClientDataIO) addListener(ctx context.Context, handler DataHandler) e
 		cancel()
 	}()
 
-	listener := io.dataListeners.Add(handler, io.client.options.DataListenerInboxSize)
+	listener := io.dataListeners.Subscribe(handler, io.client.options.DataListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
 		for {
 			select {
 			case <-ctx.Done():
-				io.dataListeners.Delete(listener)
-				io.client.logger.Debug("delete a receive data listener", zap.String("session_id", io.client.SessionId().String()))
+				io.dataListeners.Unsubscribe(listener)
+				io.client.logger.Debug("delete a receive data listener", zap.String("session_id", io.client.SessionID().String()))
 				return
 			case data := <-listener.Inbox:
 				listener.Handler.Call(io.client.options.AutoRecover, io.client.options.ReportError, func(panicError error) bool {
 					if panicError != nil {
 						io.client.logger.Error("handle receive data panicked",
-							zap.String("session_id", io.client.SessionId().String()),
+							zap.String("session_id", io.client.SessionID().String()),
 							zap.Error(panicError))
 					}
 					return false
@@ -223,7 +223,7 @@ func (io *_ClientDataIO) addListener(ctx context.Context, handler DataHandler) e
 		}
 	}()
 
-	io.client.logger.Debug("add a receive data listener", zap.String("session_id", io.client.SessionId().String()))
+	io.client.logger.Debug("add a receive data listener", zap.String("session_id", io.client.SessionID().String()))
 	return nil
 }
 
@@ -270,21 +270,21 @@ func (io *_ClientEventIO) addListener(ctx context.Context, handler EventHandler)
 		cancel()
 	}()
 
-	listener := io.eventListeners.Add(handler, io.client.options.EventListenerInboxSize)
+	listener := io.eventListeners.Subscribe(handler, io.client.options.EventListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
 		for {
 			select {
 			case <-ctx.Done():
-				io.eventListeners.Delete(listener)
-				io.client.logger.Debug("delete a receive event listener", zap.String("session_id", io.client.SessionId().String()))
+				io.eventListeners.Unsubscribe(listener)
+				io.client.logger.Debug("delete a receive event listener", zap.String("session_id", io.client.SessionID().String()))
 				return
 			case event := <-listener.Inbox:
 				listener.Handler.Call(io.client.options.AutoRecover, io.client.options.ReportError, func(panicError error) bool {
 					if panicError != nil {
 						io.client.logger.Error("handle receive event panicked",
-							zap.String("session_id", io.client.SessionId().String()),
+							zap.String("session_id", io.client.SessionID().String()),
 							zap.Error(panicError))
 					}
 					return false
@@ -293,6 +293,6 @@ func (io *_ClientEventIO) addListener(ctx context.Context, handler EventHandler)
 		}
 	}()
 
-	io.client.logger.Debug("add a receive event listener", zap.String("session_id", io.client.SessionId().String()))
+	io.client.logger.Debug("add a receive event listener", zap.String("session_id", io.client.SessionID().String()))
 	return nil
 }

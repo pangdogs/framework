@@ -30,7 +30,7 @@ func Marshal[T ReadableMsg](msg T) (binaryutil.Bytes, error) {
 	bs := binaryutil.NewBytes(true, msg.Size())
 	if _, err := binaryutil.CopyToBuff(bs.Payload(), msg); err != nil {
 		bs.Release()
-		return binaryutil.EmptyBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
+		return binaryutil.EmptyBytes, fmt.Errorf("%w: marshal msg(%d) failed, %w", ErrGTP, msg.MsgID(), err)
 	}
 	return bs, nil
 }
@@ -38,7 +38,7 @@ func Marshal[T ReadableMsg](msg T) (binaryutil.Bytes, error) {
 // Unmarshal 从 data 解码消息；消息中的引用型字段可能直接引用 data。
 func Unmarshal(msg Msg, data []byte) error {
 	if _, err := msg.Write(data); err != nil {
-		return fmt.Errorf("%w: unmarshal msg(%d) failed, %w", ErrGTP, msg.MsgId(), err)
+		return fmt.Errorf("%w: unmarshal msg(%d) failed, %w", ErrGTP, msg.MsgID(), err)
 	}
 	return nil
 }
