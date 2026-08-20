@@ -10,10 +10,10 @@ Golaxy Framework 是面向实时、分布式后端的 Go 服务开发框架。�
 
 - [项目定位](#项目定位)
 - [核心能力](#核心能力)
-- [架构](#架构)
-- [Actor + EC 框架详解](#actor--ec-框架详解)
 - [环境要求](#环境要求)
 - [快速开始](#快速开始)
+- [架构](#架构)
+- [Actor + EC 框架详解](#actor--ec-框架详解)
 - [配置](#配置)
 - [编程模型](#编程模型)
 - [Add-in 扩展体系](#add-in-扩展体系)
@@ -29,7 +29,7 @@ Golaxy Framework 是 Golaxy 体系的服务端扩展层，主要解决以下问�
 
 - 将一个进程中的多个逻辑服务及其副本统一装配、启动和停止。
 - 以 Runtime 隔离有状态业务，每个 Runtime 在所属 goroutine 中串行处理任务和实体状态。
-- 通过 Entity、Component 和 Prototype 组织可组合、可持久化、可分布式寻址的业务对象。
+- 通过 Entity、Component 和 Prototype 组织具有稳定身份、可组合、可分布式寻址的业务对象。
 - 统一接入日志、配置、消息代理、服务发现、分布式锁、分布式实体和 RPC。
 - 为服务间消息与客户端长连接提供配套的 GAP、GTP 协议和网关能力。
 
@@ -53,6 +53,85 @@ Golaxy Framework 是 Golaxy 体系的服务端扩展层，主要解决以下问�
 - **网关与路由**：支持 TCP/WebSocket 会话、认证、重连、时钟同步、实体与会话映射、逻辑分组和组播。
 - **数据库接入**：提供 GORM（MySQL、PostgreSQL、SQL Server、SQLite）、Redis 和 MongoDB add-in，以及按 tag 注入数据库客户端的辅助函数。
 - **协议栈**：GAP 描述应用消息和动态参数；GTP 负责长连接握手、时序、心跳、压缩和可选加密。
+
+## 环境要求
+
+| 组件 | 要求 | 用途 |
+| --- | --- | --- |
+| Go | `1.25.0+` | 与当前 `go.mod` 保持一致。 |
+| NATS | 默认需要 | 默认 broker，以及服务间 GAP/RPC 消息传输。默认地址为 `localhost:4222`。 |
+| ETCD | 默认需要 | 默认服务发现、分布式同步、分布式实体查询与注册。默认地址为 `localhost:2379`。 |
+| Redis | 可选 | Redis 版分布式同步和 Redis 数据库 add-in。 |
+| SQL 数据库 | 可选 | MySQL、PostgreSQL、SQL Server 或 SQLite，由 GORM add-in 接入。 |
+| MongoDB | 可选 | MongoDB 数据库 add-in。 |
+
+> 默认服务装配会在启动期间主动初始化 NATS 和 ETCD 相关 add-in，因此最小示例运行前也需要这两个服务可用。通过安装钩子替换默认 add-in 后，外部依赖可以随实现调整。
+
+## 快速开始
+
+### 1. 创建模块并安装依赖
+
+```bash
+mkdir golaxy-demo
+cd golaxy-demo
+go mod init example.com/golaxy-demo
+go get git.golaxy.org/framework@latest
+```
+
+### 2. 准备默认基础设施
+
+启动可访问的 NATS 和 ETCD，并分别监听：
+
+- NATS：`localhost:4222`
+- ETCD：`localhost:2379`
+
+也可以在启动参数或配置文件中使用其他地址。
+
+### 3. 创建最小服务
+
+```go
+package main
+
+import "git.golaxy.org/framework"
+
+type LobbyService struct {
+	framework.ServiceBehavior
+}
+
+func (*LobbyService) OnStarted(svc framework.IService) {
+	rt, err := svc.BuildRuntime().
+		SetName("main").
+		SetEnableFrame(true).
+		SetFPS(20).
+		New()
+	if err != nil {
+		svc.S().Panicw("create runtime failed", "error", err)
+	}
+
+	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
+}
+
+func main() {
+	framework.NewApp().
+		SetAssembler("lobby", &LobbyService{}).
+		Run()
+}
+```
+
+### 4. 运行
+
+```bash
+go run .
+```
+
+使用 `Ctrl+C` 触发优雅退出。传给 `SetAssembler` 的 `lobby` 同时是：
+
+- `startup.services` 中的服务键名；
+- `IService.Name()` 返回的逻辑服务名；
+- `IService.ServiceConf()` 对应的配置子树名；
+- 分布式服务 add-in 发布到服务发现系统的服务名。
+
+`SetAssembler` 接收实现 `IService` 的实例或反射类型时，会按其具体类型为每个副本创建新实例，不会复用传入的指针。
 
 ## 架构
 
@@ -187,10 +266,10 @@ Entity、Component、Runtime 还暴露 signal/slot 风格的进程内事件。�
 Runtime 负责推进 Entity 与 Component 状态；除 Component 的启用/禁用分支外，生命周期总体从构造走向销毁。业务代码不应自行跳转状态：
 
 ```text
-Entity 激活:    Born -> Entered -> Awakened -> Starting -> Alive
+Entity 激活:    Born -> Entered -> Awaking -> Starting -> Alive
 Entity 停用:    Leaving -> Shutting -> Dead -> Destroyed
 
-Component 激活: Born -> Attached -> Awakened -> Enabling -> Starting -> Alive
+Component 激活: Born -> Attached -> Awaking -> Enabling -> Starting -> Alive
 禁用与重启:     Enabling / Starting / Alive -> Idle；Idle -> Starting -> Alive
 Component 移除: Detaching -> Shutting -> Disabling -> Dead -> Destroyed
 ```
@@ -249,85 +328,6 @@ func (m *Movement) Awake() {
 | 独立的长期 Runtime | 服务内调度器、匹配器或常驻状态机。先通过 `BuildRuntime()` 创建，再按需加入实体。 | 生命周期不依赖单个业务实体，但需要明确管理终止条件。 |
 
 通常应把必须在同一个串行事务中修改的状态放入同一 Runtime，把需要真正并行执行的状态拆到不同 Runtime。跨 Runtime 协作应视为异步消息交互，不要依赖共享可变对象或跨 Runtime 的隐式事务。
-
-## 环境要求
-
-| 组件 | 要求 | 用途 |
-| --- | --- | --- |
-| Go | `1.25.0+` | 与当前 `go.mod` 保持一致。 |
-| NATS | 默认需要 | 默认 broker，以及服务间 GAP/RPC 消息传输。默认地址为 `localhost:4222`。 |
-| ETCD | 默认需要 | 默认服务发现、分布式同步、分布式实体查询与注册。默认地址为 `localhost:2379`。 |
-| Redis | 可选 | Redis 版分布式同步和 Redis 数据库 add-in。 |
-| SQL 数据库 | 可选 | MySQL、PostgreSQL、SQL Server 或 SQLite，由 GORM add-in 接入。 |
-| MongoDB | 可选 | MongoDB 数据库 add-in。 |
-
-> 默认服务装配会在启动期间主动初始化 NATS 和 ETCD 相关 add-in，因此最小示例运行前也需要这两个服务可用。通过安装钩子替换默认 add-in 后，外部依赖可以随实现调整。
-
-## 快速开始
-
-### 1. 创建模块并安装依赖
-
-```bash
-mkdir golaxy-demo
-cd golaxy-demo
-go mod init example.com/golaxy-demo
-go get git.golaxy.org/framework@latest
-```
-
-### 2. 准备默认基础设施
-
-启动可访问的 NATS 和 ETCD，并分别监听：
-
-- NATS：`localhost:4222`
-- ETCD：`localhost:2379`
-
-也可以在启动参数或配置文件中使用其他地址。
-
-### 3. 创建最小服务
-
-```go
-package main
-
-import "git.golaxy.org/framework"
-
-type LobbyService struct {
-	framework.ServiceBehavior
-}
-
-func (*LobbyService) OnStarted(svc framework.IService) {
-	rt, err := svc.BuildRuntime().
-		SetName("main").
-		SetEnableFrame(true).
-		SetFPS(20).
-		New()
-	if err != nil {
-		svc.S().Panicw("create runtime failed", "error", err)
-	}
-
-	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
-}
-
-func main() {
-	framework.NewApp().
-		SetAssembler("lobby", &LobbyService{}).
-		Run()
-}
-```
-
-### 4. 运行
-
-```bash
-go run .
-```
-
-使用 `Ctrl+C` 触发优雅退出。传给 `SetAssembler` 的 `lobby` 同时是：
-
-- `startup.services` 中的服务键名；
-- `IService.Name()` 返回的逻辑服务名；
-- `IService.ServiceConf()` 对应的配置子树名；
-- 分布式服务 add-in 发布到服务发现系统的服务名。
-
-`SetAssembler` 接收实现 `IService` 的实例或反射类型时，会按其具体类型为每个副本创建新实例，不会复用传入的指针。
 
 ## 配置
 

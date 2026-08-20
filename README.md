@@ -10,10 +10,10 @@ The project is designed for game servers, long-lived connection gateways, statef
 
 - [Positioning](#positioning)
 - [Key capabilities](#key-capabilities)
-- [Architecture](#architecture)
-- [Actor + EC framework in depth](#actor--ec-framework-in-depth)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
+- [Architecture](#architecture)
+- [Actor + EC framework in depth](#actor--ec-framework-in-depth)
 - [Configuration](#configuration)
 - [Programming model](#programming-model)
 - [Add-in system](#add-in-system)
@@ -29,7 +29,7 @@ Golaxy Framework is the server-side extension layer of the Golaxy ecosystem. It 
 
 - Assemble, start, and stop multiple logical services and replicas in one process.
 - Isolate stateful workloads in runtimes, each of which serializes tasks and entity state on its owning goroutine.
-- Model composable, persistent, and globally addressable business objects with entities, components, and prototypes.
+- Model business objects with stable identities, composable behavior, and global addressability through entities, components, and prototypes.
 - Integrate logging, configuration, messaging, discovery, distributed locks, distributed entities, and RPC behind consistent APIs.
 - Provide GAP and GTP protocols plus gateway features for service messaging and long-lived client connections.
 
@@ -53,6 +53,85 @@ This repository is a framework library; it does not bundle application services 
 - **Gateway and routing**: TCP/WebSocket sessions, authentication, reconnection, clock synchronization, entity-to-session mappings, logical groups, and multicast.
 - **Database integrations**: GORM for MySQL, PostgreSQL, SQL Server, and SQLite, plus Redis and MongoDB add-ins and tag-based client injection.
 - **Protocol stack**: GAP for application messages and dynamic arguments; GTP for connection handshakes, ordering, heartbeats, compression, and optional encryption.
+
+## Requirements
+
+| Component | Requirement | Purpose |
+| --- | --- | --- |
+| Go | `1.25.0+` | Matches the current `go.mod`. |
+| NATS | Required by default | Default broker and service-to-service GAP/RPC transport. The default endpoint is `localhost:4222`. |
+| ETCD | Required by default | Default discovery, distributed synchronization, and distributed-entity query/registration. The default endpoint is `localhost:2379`. |
+| Redis | Optional | Redis-backed distributed synchronization and the Redis database add-in. |
+| SQL database | Optional | MySQL, PostgreSQL, SQL Server, or SQLite through the GORM add-in. |
+| MongoDB | Optional | MongoDB database add-in. |
+
+> The default service assembly actively initializes the NATS and ETCD add-ins during startup, so these services must be reachable even for the minimal example. External dependencies may differ after replacing the defaults through installation hooks.
+
+## Quick start
+
+### 1. Create a module and install the framework
+
+```bash
+mkdir golaxy-demo
+cd golaxy-demo
+go mod init example.com/golaxy-demo
+go get git.golaxy.org/framework@latest
+```
+
+### 2. Prepare the default infrastructure
+
+Start reachable NATS and ETCD instances listening at:
+
+- NATS: `localhost:4222`
+- ETCD: `localhost:2379`
+
+You can select different endpoints with startup flags or a configuration file.
+
+### 3. Create a minimal service
+
+```go
+package main
+
+import "git.golaxy.org/framework"
+
+type LobbyService struct {
+	framework.ServiceBehavior
+}
+
+func (*LobbyService) OnStarted(svc framework.IService) {
+	rt, err := svc.BuildRuntime().
+		SetName("main").
+		SetEnableFrame(true).
+		SetFPS(20).
+		New()
+	if err != nil {
+		svc.S().Panicw("create runtime failed", "error", err)
+	}
+
+	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
+}
+
+func main() {
+	framework.NewApp().
+		SetAssembler("lobby", &LobbyService{}).
+		Run()
+}
+```
+
+### 4. Run
+
+```bash
+go run .
+```
+
+Press `Ctrl+C` for graceful shutdown. The `lobby` name passed to `SetAssembler` is also:
+
+- the service key in `startup.services`;
+- the logical service name returned by `IService.Name()`;
+- the configuration subtree returned by `IService.ServiceConf()`;
+- the service name advertised by the distributed-service add-in.
+
+When `SetAssembler` receives an instance or reflection type implementing `IService`, it creates a fresh instance of that concrete type for every replica; it does not reuse the supplied pointer.
 
 ## Architecture
 
@@ -187,10 +266,10 @@ Scope determines **where an Entity can be found**, not **where it executes**:
 The Runtime owns Entity and Component state transitions. Except for the Component enable/disable branch, lifecycles progress from construction toward destruction. Application code should never force a state transition itself:
 
 ```text
-Entity activation:    Born -> Entered -> Awakened -> Starting -> Alive
+Entity activation:    Born -> Entered -> Awaking -> Starting -> Alive
 Entity deactivation:  Leaving -> Shutting -> Dead -> Destroyed
 
-Component activation: Born -> Attached -> Awakened -> Enabling -> Starting -> Alive
+Component activation: Born -> Attached -> Awaking -> Enabling -> Starting -> Alive
 Disable and re-enable: Enabling / Starting / Alive -> Idle; Idle -> Starting -> Alive
 Component removal:    Detaching -> Shutting -> Disabling -> Dead -> Destroyed
 ```
@@ -249,85 +328,6 @@ Automatic injection targets Component fields. An Entity should obtain its compon
 | An independent long-lived Runtime | An in-service scheduler, matchmaker, or resident state machine. Create it first with `BuildRuntime()`, then add entities as needed. | Its lifecycle is not coupled to one business Entity, so its termination condition must be managed explicitly. |
 
 As a rule, place state that must change in one serialized transaction in the same Runtime, and split state that needs true parallelism across runtimes. Treat cross-Runtime coordination as asynchronous message exchange; do not rely on shared mutable objects or implicit transactions spanning runtimes.
-
-## Requirements
-
-| Component | Requirement | Purpose |
-| --- | --- | --- |
-| Go | `1.25.0+` | Matches the current `go.mod`. |
-| NATS | Required by default | Default broker and service-to-service GAP/RPC transport. The default endpoint is `localhost:4222`. |
-| ETCD | Required by default | Default discovery, distributed synchronization, and distributed-entity query/registration. The default endpoint is `localhost:2379`. |
-| Redis | Optional | Redis-backed distributed synchronization and the Redis database add-in. |
-| SQL database | Optional | MySQL, PostgreSQL, SQL Server, or SQLite through the GORM add-in. |
-| MongoDB | Optional | MongoDB database add-in. |
-
-> The default service assembly actively initializes the NATS and ETCD add-ins during startup, so these services must be reachable even for the minimal example. External dependencies may differ after replacing the defaults through installation hooks.
-
-## Quick start
-
-### 1. Create a module and install the framework
-
-```bash
-mkdir golaxy-demo
-cd golaxy-demo
-go mod init example.com/golaxy-demo
-go get git.golaxy.org/framework@latest
-```
-
-### 2. Prepare the default infrastructure
-
-Start reachable NATS and ETCD instances listening at:
-
-- NATS: `localhost:4222`
-- ETCD: `localhost:2379`
-
-You can select different endpoints with startup flags or a configuration file.
-
-### 3. Create a minimal service
-
-```go
-package main
-
-import "git.golaxy.org/framework"
-
-type LobbyService struct {
-	framework.ServiceBehavior
-}
-
-func (*LobbyService) OnStarted(svc framework.IService) {
-	rt, err := svc.BuildRuntime().
-		SetName("main").
-		SetEnableFrame(true).
-		SetFPS(20).
-		New()
-	if err != nil {
-		svc.S().Panicw("create runtime failed", "error", err)
-	}
-
-	svc.S().Infow("lobby service started", "runtime_id", rt.ID())
-}
-
-func main() {
-	framework.NewApp().
-		SetAssembler("lobby", &LobbyService{}).
-		Run()
-}
-```
-
-### 4. Run
-
-```bash
-go run .
-```
-
-Press `Ctrl+C` for graceful shutdown. The `lobby` name passed to `SetAssembler` is also:
-
-- the service key in `startup.services`;
-- the logical service name returned by `IService.Name()`;
-- the configuration subtree returned by `IService.ServiceConf()`;
-- the service name advertised by the distributed-service add-in.
-
-When `SetAssembler` receives an instance or reflection type implementing `IService`, it creates a fresh instance of that concrete type for every replica; it does not reuse the supplied pointer.
 
 ## Configuration
 
