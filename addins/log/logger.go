@@ -21,7 +21,6 @@ package log
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"git.golaxy.org/core/extension"
@@ -49,51 +48,6 @@ func L(provider extension.AddInProvider) *zap.Logger {
 // S 返回 provider 上安装的 SugaredLogger；日志 add-in 未安装时会 panic。
 func S(provider extension.AddInProvider) *zap.SugaredLogger {
 	return AddIn.Require(provider).SugaredLogger()
-}
-
-type lazyJSON struct {
-	v any
-}
-
-func (l lazyJSON) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(l.v)
-	if err != nil {
-		return json.Marshal(fmt.Sprintf("json.Marshal(): %s", err.Error()))
-	}
-	return data, nil
-}
-
-// JSON 创建一个在日志编码时才执行 json.Marshal 的字段。
-// 编码失败时字段值会替换为描述错误的 JSON 字符串。
-func JSON(key string, v any) zap.Field {
-	return zap.Reflect(key, lazyJSON{v: v})
-}
-
-type lazyJSONRawStringer struct {
-	v fmt.Stringer
-}
-
-func (l lazyJSONRawStringer) MarshalJSON() ([]byte, error) {
-	if l.v == nil {
-		return []byte("nil"), nil
-	}
-	return types.String2Bytes(l.v.String()), nil
-}
-
-// JSONRawStringer 创建一个延迟调用 String 的原始 JSON 字段。
-// String 的返回值必须是有效 JSON。
-func JSONRawStringer(key string, v fmt.Stringer) zap.Field {
-	return zap.Reflect(key, lazyJSONRawStringer{v: v})
-}
-
-// JSONRawString 将 v 作为未经校验的原始 JSON 写入字段。
-func JSONRawString(key string, v string) zap.Field {
-	return zap.Any(key, json.RawMessage(types.String2Bytes(v)))
-}
-
-// JSONRawByteString 将 v 作为未经校验的原始 JSON 写入字段。
-func JSONRawByteString(key string, v []byte) zap.Field {
-	return zap.Any(key, json.RawMessage(v))
 }
 
 func newLogger(settings ...option.Setting[LoggerOptions]) ILogger {
