@@ -23,8 +23,6 @@ import (
 	"git.golaxy.org/core"
 	"git.golaxy.org/core/ec"
 	"git.golaxy.org/core/ec/pt"
-	"git.golaxy.org/core/runtime"
-	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/exception"
 	"git.golaxy.org/core/utils/iface"
 	"git.golaxy.org/core/utils/meta"
@@ -33,7 +31,7 @@ import (
 	"git.golaxy.org/core/utils/uid"
 )
 
-// BuildEntity 创建绑定 svcInst 及 prototype 名称的实体构建器。
+// BuildEntity 创建绑定 svcInst 及 prototype 名称的新运行时主实体构建器。
 func BuildEntity(svcInst IService, prototype string) *EntityCreator {
 	if svcInst == nil {
 		exception.Panicf("%w: %w: svcInst is nil", ErrFramework, core.ErrArgs)
@@ -44,31 +42,17 @@ func BuildEntity(svcInst IService, prototype string) *EntityCreator {
 	}
 }
 
-// EntityCreator 保存一次实体构建所需的运行时目标、元数据与 core 实体选项。
+// EntityCreator 保存一次新运行时主实体构建所需的元数据与 core 实体选项。
 // 构建器可按值复制，但不应由多个 goroutine 并发修改。
 type EntityCreator struct {
 	svcInst   IService
 	prototype string
-	rtInst    IRuntime
 	rtCreator *RuntimeCreator
 	meta      meta.Meta
 	settings  []option.Setting[ec.EntityOptions]
 }
 
-// SetRuntime 设置实体要加入的既有运行时。
-// rtInst 为 nil 时清除该设置；非 nil 运行时必须属于构建器绑定的服务。
-func (c *EntityCreator) SetRuntime(rtInst IRuntime) *EntityCreator {
-	if c.svcInst == nil {
-		exception.Panicf("%w: svcInst is nil", ErrFramework)
-	}
-	if rtInst != nil && rtInst.Service() != c.svcInst {
-		exception.Panicf("%w: runtime service mismatch", ErrFramework)
-	}
-	c.rtInst = rtInst
-	return c
-}
-
-// SetRuntimeCreator 设置没有指定既有运行时时使用的运行时构建器。
+// SetRuntimeCreator 设置用于承载新实体的运行时构建器。
 // nil 表示使用服务默认构建器；新实体会成为新运行时的主实体。
 func (c *EntityCreator) SetRuntimeCreator(rtCreator *RuntimeCreator) *EntityCreator {
 	if c.svcInst == nil {
@@ -160,24 +144,13 @@ func (c *EntityCreator) AssignMeta(m meta.Meta) *EntityCreator {
 	return c
 }
 
-// New 构造实体并将其加入指定运行时。
-// 未指定运行时时会创建自动运行的新运行时，并将实体设为其主实体。
+// New 构造实体，创建自动运行的新运行时，并将实体设为其主实体。
 func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 	if c.svcInst == nil {
 		exception.Panicf("%w: svcInst is nil", ErrFramework)
 	}
 
 	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
-
-	if c.rtInst != nil {
-		err := core.Submit(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
-			return async.NewResult(nil, rtCtx.EntityManager().AddEntity(entity))
-		}).Wait(c.svcInst).Error
-		if err != nil {
-			return nil, err
-		}
-		return entity, nil
-	}
 
 	rtCreator := c.rtCreator
 	if rtCreator == nil {
@@ -191,39 +164,6 @@ func (c *EntityCreator) New() (ec.ConcurrentEntity, error) {
 		return nil, err
 	}
 	return entity, nil
-}
-
-// NewAsync 构造实体并返回其加入运行时的 Future。
-// 使用既有运行时时加入操作由该运行时调度；新建运行时时装配过程仍在调用方同步完成。
-func (c *EntityCreator) NewAsync() async.Future {
-	if c.svcInst == nil {
-		exception.Panicf("%w: svcInst is nil", ErrFramework)
-	}
-
-	entity := pt.For(c.svcInst, c.prototype).Construct(c.settings...)
-
-	if c.rtInst != nil {
-		return core.Submit(c.rtInst, func(rtCtx runtime.Context, _ ...any) async.Result {
-			if err := rtCtx.EntityManager().AddEntity(entity); err != nil {
-				return async.NewResult(nil, err)
-			}
-			return async.NewResult(entity, nil)
-		})
-	}
-
-	rtCreator := c.rtCreator
-	if rtCreator == nil {
-		rtCreator = c.svcInst.BuildRuntime()
-	} else {
-		rtCreator = types.Pointer(*rtCreator)
-	}
-
-	_, err := rtCreator.SetPersistID(entity.ID()).SetMainEntity(entity).New()
-	if err != nil {
-		return async.Rejected(err)
-	}
-
-	return async.Resolved(async.NewResult(entity, nil))
 }
 
 func (c *EntityCreator) withMeta() option.Setting[ec.EntityOptions] {

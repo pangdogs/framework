@@ -323,8 +323,8 @@ Automatic injection targets Component fields. An Entity should obtain its compon
 
 | Organization | Good fit | Main trade-off |
 | --- | --- | --- |
-| One main Entity per Runtime | Independent stateful objects such as players, devices, or order workflows. Calling `IService.BuildEntity()` directly uses this pattern by default. | Strong isolation and parallelism, but more runtimes. The Runtime terminates automatically when its main Entity deactivates. |
-| A group of entities in one Runtime | A room, battle, scene, or another group that needs strictly ordered updates. Use `SetRuntime(rt)` to join an existing Runtime. | Straightforward group consistency, but one slow task stalls the entire group. |
+| One main Entity per Runtime | Independent stateful objects such as players, devices, or order workflows. `IService.BuildEntity()` always uses this pattern. | Strong isolation and parallelism, but more runtimes. The Runtime terminates automatically when its main Entity deactivates. |
+| A group of entities in one Runtime | A room, battle, scene, or another group that needs strictly ordered updates. Submit work to the target Runtime and call `IRuntime.BuildEntity()` on its goroutine. | Straightforward group consistency, but one slow task stalls the entire group. |
 | An independent long-lived Runtime | An in-service scheduler, matchmaker, or resident state machine. Create it first with `BuildRuntime()`, then add entities as needed. | Its lifecycle is not coupled to one business Entity, so its termination condition must be managed explicitly. |
 
 As a rule, place state that must change in one serialized transaction in the same Runtime, and split state that needs true parallelism across runtimes. Treat cross-Runtime coordination as asynchronous message exchange; do not rely on shared mutable objects or implicit transactions spanning runtimes.
@@ -550,9 +550,9 @@ func (*GameService) OnStarted(svc framework.IService) {
 ```
 
 - `BuildEntityPT(...).Declare()` registers the prototype in the current Service's entity library.
-- When `IService.BuildEntity()` creates an entity without a selected Runtime, the framework creates a new Runtime and makes the entity its main entity.
+- `IService.BuildEntity()` creates a new Runtime and makes the new Entity its main entity.
 - `Movement.Position` is injected before Component `Awake()`. The frame loop targets 20 FPS and calls `Update()` serially with the Runtime's other tasks.
-- Use `EntityCreator.SetRuntime(rt)` to add an entity to an existing Runtime. Code already on the Runtime goroutine may also use `IRuntime.BuildEntity()`.
+- `IService.BuildEntity()` is dedicated to creating the main Entity of a new Runtime. To add an Entity to an existing Runtime, call `IRuntime.BuildEntity()` on that Runtime's goroutine.
 - Only `ec.Scope_Global` entities are advertised to ETCD by the default distributed-entity registry.
 - Custom entities and components embed `EntityBehavior` and `ComponentBehavior` respectively to gain direct access to the owning Runtime, Service, logger, async helpers, and RPC helpers.
 

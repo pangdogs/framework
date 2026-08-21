@@ -72,7 +72,7 @@ type IService interface {
 	BuildRuntime() *RuntimeCreator
 	// BuildEntityPT 创建绑定当前服务及 prototype 名称的实体原型构建器。
 	BuildEntityPT(prototype string) *EntityPTCreator
-	// BuildEntity 创建绑定当前服务及 prototype 名称的实体构建器。
+	// BuildEntity 创建绑定当前服务及 prototype 名称的新运行时主实体构建器。
 	BuildEntity(prototype string) *EntityCreator
 	// L 返回当前服务的结构化日志器。
 	L() *zap.Logger
@@ -165,7 +165,7 @@ func (svc *ServiceBehavior) BuildEntityPT(prototype string) *EntityPTCreator {
 	return BuildEntityPT(service.UnsafeContext(svc).Instance(), prototype)
 }
 
-// BuildEntity 创建绑定当前服务及 prototype 名称的实体构建器。
+// BuildEntity 创建绑定当前服务及 prototype 名称的新运行时主实体构建器。
 func (svc *ServiceBehavior) BuildEntity(prototype string) *EntityCreator {
 	return BuildEntity(reinterpret.Cast[IService](service.UnsafeContext(svc).Instance()), prototype).SetRuntimeCreator(svc.BuildRuntime())
 }

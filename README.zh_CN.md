@@ -323,8 +323,8 @@ func (m *Movement) Awake() {
 
 | 组织方式 | 适合场景 | 主要权衡 |
 | --- | --- | --- |
-| 一个主 Entity 对应一个 Runtime | 玩家、设备、订单流程等彼此独立的状态对象。直接使用 `IService.BuildEntity()` 即为这种默认方式。 | 隔离性和并行度高；Runtime 数量也更多。主 Entity 停用时 Runtime 自动终止。 |
-| 一组 Entity 共享一个 Runtime | 房间、战斗、场景或需要按严格顺序更新的一组对象。使用 `SetRuntime(rt)` 加入既有 Runtime。 | 组内一致性直观；任何慢任务都会阻塞整组对象。 |
+| 一个主 Entity 对应一个 Runtime | 玩家、设备、订单流程等彼此独立的状态对象。`IService.BuildEntity()` 固定使用这种方式。 | 隔离性和并行度高；Runtime 数量也更多。主 Entity 停用时 Runtime 自动终止。 |
+| 一组 Entity 共享一个 Runtime | 房间、战斗、场景或需要按严格顺序更新的一组对象。向目标 Runtime 投递任务，并在其 goroutine 内使用 `IRuntime.BuildEntity()`。 | 组内一致性直观；任何慢任务都会阻塞整组对象。 |
 | 独立的长期 Runtime | 服务内调度器、匹配器或常驻状态机。先通过 `BuildRuntime()` 创建，再按需加入实体。 | 生命周期不依赖单个业务实体，但需要明确管理终止条件。 |
 
 通常应把必须在同一个串行事务中修改的状态放入同一 Runtime，把需要真正并行执行的状态拆到不同 Runtime。跨 Runtime 协作应视为异步消息交互，不要依赖共享可变对象或跨 Runtime 的隐式事务。
@@ -550,9 +550,9 @@ func (*GameService) OnStarted(svc framework.IService) {
 ```
 
 - `BuildEntityPT(...).Declare()` 将原型注册到当前 Service 的实体库。
-- 从 `IService.BuildEntity()` 创建实体且未指定 Runtime 时，框架会创建一个新 Runtime，并把该实体设为主实体。
+- `IService.BuildEntity()` 会创建一个新 Runtime，并把新 Entity 设为其主实体。
 - `Movement.Position` 在组件 `Awake()` 前自动注入；帧循环以 20 FPS 为目标调用 `Update()`，并与 Runtime 中的其他任务串行执行。
-- 使用 `EntityCreator.SetRuntime(rt)` 可将实体加入已有 Runtime；在 Runtime goroutine 内也可使用 `IRuntime.BuildEntity()`。
+- `IService.BuildEntity()` 专用于创建新 Runtime 的主 Entity；向已有 Runtime 添加 Entity 时，应在其 goroutine 内使用 `IRuntime.BuildEntity()`。
 - 只有 `ec.Scope_Global` 实体会由默认分布式实体注册 add-in 发布到 ETCD。
 - 自定义 Entity 和 Component 分别匿名嵌入 `EntityBehavior` 与 `ComponentBehavior` 后，可直接访问所属 Runtime、Service、日志、异步和 RPC 辅助 API。
 
