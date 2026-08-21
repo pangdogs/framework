@@ -51,7 +51,7 @@ type _ServiceProcessor struct {
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
-	p.scope = async.NewScope(svcCtx)
+	p.scope = async.NewScope(nil)
 
 	var err error
 	p.stopped, err = p.dsvc.Listen(p.scope.Context(), generic.CastDelegateVoid2(p.handleServiceMsg))

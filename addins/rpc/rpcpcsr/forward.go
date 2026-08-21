@@ -63,7 +63,7 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
 	p.dentq = dent.QuerierAddIn.Require(svcCtx)
-	p.scope = async.NewScope(svcCtx)
+	p.scope = async.NewScope(nil)
 	p.transitBroadcastAddr = p.dsvc.NodeDetails().MakeBroadcastAddr(p.transitService)
 
 	var err error

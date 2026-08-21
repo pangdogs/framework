@@ -32,7 +32,7 @@ import (
 // Map 建立实体与会话的一对一映射；任一端已有其他映射时，旧映射会先被移除。
 func (r *_Router) Map(entityID, sessionID uid.ID) (IMapping, error) {
 	select {
-	case <-r.ctx.Done():
+	case <-r.scope.Context().Done():
 		return nil, errors.New("router: router is terminating")
 	default:
 	}

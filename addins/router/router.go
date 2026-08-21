@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
@@ -74,8 +75,7 @@ func newRouter(settings ...option.Setting[RouterOptions]) IRouter {
 
 type _Router struct {
 	svcCtx                 service.Context
-	ctx                    context.Context
-	terminate              context.CancelFunc
+	scope                  *async.Scope
 	barrier                generic.Barrier
 	options                RouterOptions
 	groupIDKeyPrefix       string
@@ -94,7 +94,7 @@ func (r *_Router) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	r.svcCtx = svcCtx
-	r.ctx, r.terminate = context.WithCancel(context.Background())
+	r.scope = async.NewScope(nil)
 
 	r.groupIDKeyPrefix = path.Join(r.options.GroupKeyPrefix, "id") + "/"
 	r.groupEntitiesKeyPrefix = path.Join(r.options.GroupKeyPrefix, "entities") + "/"
@@ -123,18 +123,22 @@ func (r *_Router) Init(svcCtx service.Context) {
 		}(ep)
 	}
 
-	r.barrier.Join(1)
-	go r.watchingForGroups()
+	async.SpawnVoid(r.scope, r.watchingForGroups).OnComplete(func(ret async.Result) {
+		if ret.Error != nil {
+			log.L(r.svcCtx).Error("watching for groups failed", zap.Error(ret.Error))
+		}
+	})
 }
 
 // Shut 停止路由组监听并等待退出；仅关闭由本 add-in 创建的 ETCD 客户端。
 func (r *_Router) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
-	r.terminate()
+	r.scope.Close()
 
 	r.barrier.Close()
 	r.barrier.Wait()
+	<-r.scope.Completion().Done()
 
 	if r.options.EtcdClient == nil && r.client != nil {
 		r.client.Close()

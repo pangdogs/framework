@@ -88,7 +88,7 @@ func (m *_Mapping) waitForUnmap() {
 	var reason string
 
 	select {
-	case <-m.router.ctx.Done():
+	case <-m.router.scope.Context().Done():
 		m.Unmap()
 		reason = "router_terminating"
 	case <-m.entity.Terminated().Done():

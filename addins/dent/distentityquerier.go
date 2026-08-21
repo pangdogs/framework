@@ -24,11 +24,11 @@ import (
 	"crypto/tls"
 	"path"
 	"strings"
-	"sync"
 	"time"
 	"unique"
 
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/dsvc"
@@ -68,14 +68,12 @@ func newDistEntityQuerier(settings ...option.Setting[DistEntityQuerierOptions]) 
 }
 
 type _DistEntityQuerier struct {
-	svcCtx    service.Context
-	ctx       context.Context
-	terminate context.CancelFunc
-	wg        sync.WaitGroup
-	options   DistEntityQuerierOptions
-	dsvc      dsvc.IDistService
-	client    *etcdv3.Client
-	cache     *ristretto.Cache[uid.ID, *DistEntity]
+	svcCtx  service.Context
+	scope   *async.Scope
+	options DistEntityQuerierOptions
+	dsvc    dsvc.IDistService
+	client  *etcdv3.Client
+	cache   *ristretto.Cache[uid.ID, *DistEntity]
 }
 
 // Init 建立或复用 ETCD 客户端，检查端点状态，创建查询缓存并启动实体变更监听。
@@ -83,7 +81,7 @@ func (d *_DistEntityQuerier) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", QuerierAddIn.Name))
 
 	d.svcCtx = svcCtx
-	d.ctx, d.terminate = context.WithCancel(context.Background())
+	d.scope = async.NewScope(nil)
 
 	d.dsvc = dsvc.AddIn.Require(svcCtx)
 
@@ -120,16 +118,19 @@ func (d *_DistEntityQuerier) Init(svcCtx service.Context) {
 	}
 	d.cache = cache
 
-	d.wg.Add(1)
-	go d.watchingForEntitiesChanges()
+	async.SpawnVoid(d.scope, d.watchingForEntitiesChanges).OnComplete(func(ret async.Result) {
+		if ret.Error != nil {
+			log.L(d.svcCtx).Error("watching for distributed entities changes failed", zap.Error(ret.Error))
+		}
+	})
 }
 
 // Shut 停止实体变更监听并等待退出，关闭本地缓存；仅关闭由本 add-in 创建的 ETCD 客户端。
 func (d *_DistEntityQuerier) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", QuerierAddIn.Name))
 
-	d.terminate()
-	d.wg.Wait()
+	d.scope.Close()
+	<-d.scope.Completion().Done()
 	d.cache.Close()
 
 	if d.options.EtcdClient == nil {
@@ -194,12 +195,10 @@ func (d *_DistEntityQuerier) GetDistEntity(id uid.ID) (*DistEntity, bool) {
 	return entity, true
 }
 
-func (d *_DistEntityQuerier) watchingForEntitiesChanges() {
-	defer d.wg.Done()
-
+func (d *_DistEntityQuerier) watchingForEntitiesChanges(ctx context.Context) {
 	log.L(d.svcCtx).Debug("watching for distributed entities changes started", zap.String("key", d.options.KeyPrefix))
 
-	for watchRsp := range d.client.Watch(d.ctx, d.options.KeyPrefix, etcdv3.WithPrefix()) {
+	for watchRsp := range d.client.Watch(ctx, d.options.KeyPrefix, etcdv3.WithPrefix()) {
 		if watchRsp.Canceled {
 			log.L(d.svcCtx).Debug("watching etcd key canceled", zap.String("key", d.options.KeyPrefix), zap.Error(watchRsp.Err()))
 			break

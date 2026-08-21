@@ -43,12 +43,11 @@ func newNatsBroker(settings ...option.Setting[NatsBrokerOptions]) broker.IBroker
 }
 
 type _NatsBroker struct {
-	svcCtx    service.Context
-	ctx       context.Context
-	terminate context.CancelFunc
-	barrier   generic.Barrier
-	options   NatsBrokerOptions
-	client    *nats.Conn
+	svcCtx  service.Context
+	scope   *async.Scope
+	barrier generic.Barrier
+	options NatsBrokerOptions
+	client  *nats.Conn
 }
 
 // Init 建立或复用 NATS 连接，并通过 RTT 请求验证连接可用性。
@@ -56,7 +55,7 @@ func (b *_NatsBroker) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	b.svcCtx = svcCtx
-	b.ctx, b.terminate = context.WithCancel(context.Background())
+	b.scope = async.NewScope(nil)
 
 	if b.options.NatsClient == nil {
 		client, err := nats.Connect(strings.Join(b.options.CustomAddresses, ","), nats.UserInfo(b.options.CustomUsername, b.options.CustomPassword), nats.Name(svcCtx.String()))
@@ -81,9 +80,10 @@ func (b *_NatsBroker) Init(svcCtx service.Context) {
 func (b *_NatsBroker) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
-	b.terminate()
+	b.scope.Close()
 	b.barrier.Close()
 	b.barrier.Wait()
+	<-b.scope.Completion().Done()
 
 	if b.options.NatsClient == nil {
 		if b.client != nil {

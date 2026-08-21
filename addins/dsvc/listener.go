@@ -48,7 +48,7 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 	}
 
 	select {
-	case <-d.ctx.Done():
+	case <-d.scope.Context().Done():
 		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
 	default:
 	}
@@ -56,21 +56,23 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 	if !d.barrier.Join(1) {
 		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
 	}
+	defer d.barrier.Done()
 
 	listener := d.listeners.Subscribe(handler, d.options.ListenerInboxSize)
 	stopped, stoppedSignal := async.NewSignal()
+	cleanup := func() {
+		d.listeners.Unsubscribe(listener)
+		stopped.Complete()
+		log.L(d.svcCtx).Debug("delete a broker message listener")
+	}
 
-	go func() {
-		defer d.barrier.Done()
-		defer log.L(d.svcCtx).Debug("delete a broker message listener")
-		defer stopped.Complete()
-		defer d.listeners.Unsubscribe(listener)
-
+	future := async.SpawnVoid(d.scope, func(scopeCtx context.Context) {
+		defer cleanup()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-d.ctx.Done():
+			case <-scopeCtx.Done():
 				return
 			case msg := <-listener.Inbox:
 				listener.Handler.Call(d.svcCtx.AutoRecover(), d.svcCtx.ReportError(), func(panicError error) bool {
@@ -84,7 +86,17 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 				}, msg.topic, msg.msgPacket)
 			}
 		}
-	}()
+	})
+	future.OnComplete(func(ret async.Result) {
+		if ret.Error != nil && !errors.Is(ret.Error, async.ErrScopeClosed) {
+			log.L(d.svcCtx).Error("broker message listener task failed", zap.Error(ret.Error))
+		}
+	})
+
+	if ret, ok := future.TryGet(); ok && errors.Is(ret.Error, async.ErrScopeClosed) {
+		cleanup()
+		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
+	}
 
 	log.L(d.svcCtx).Debug("add a broker message listener")
 	return stoppedSignal, nil

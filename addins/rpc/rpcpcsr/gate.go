@@ -20,8 +20,6 @@
 package rpcpcsr
 
 import (
-	"context"
-
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -46,16 +44,15 @@ func NewGateProcessor(mc gap.IMsgCreator) any {
 
 // _GateProcessor 在网关会话和分布式服务消息通道之间转发 RPC。
 type _GateProcessor struct {
-	svcCtx      service.Context
-	dsvc        dsvc.IDistService
-	dentq       dent.IDistEntityQuerier
-	gate        gate.IGate
-	router      router.IRouter
-	encoder     *codec.Encoder
-	decoder     *codec.Decoder
-	stopping    context.CancelFunc
-	stoppingCtx context.Context
-	stopped     [2]async.Signal
+	svcCtx  service.Context
+	dsvc    dsvc.IDistService
+	dentq   dent.IDistEntityQuerier
+	gate    gate.IGate
+	router  router.IRouter
+	encoder *codec.Encoder
+	decoder *codec.Decoder
+	scope   *async.Scope
+	stopped [2]async.Signal
 }
 
 // Init 监听网关会话与分布式服务消息。
@@ -65,17 +62,17 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 	p.dentq = dent.QuerierAddIn.Require(svcCtx)
 	p.gate = gate.AddIn.Require(svcCtx)
 	p.router = router.AddIn.Require(svcCtx)
-	p.stoppingCtx, p.stopping = context.WithCancel(context.Background())
+	p.scope = async.NewScope(nil)
 
 	var err error
-	p.stopped[0], err = p.gate.Watch(p.stoppingCtx, generic.CastDelegateVoid1(p.handleSessionEstablished))
+	p.stopped[0], err = p.gate.Watch(p.scope.Context(), generic.CastDelegateVoid1(p.handleSessionEstablished))
 	if err != nil {
 		log.L(svcCtx).Panic("watch gate session failed",
 			zap.Error(err),
 			zap.String("processor", types.FullName(*p)))
 	}
 
-	p.stopped[1], err = p.dsvc.Listen(p.stoppingCtx, generic.CastDelegateVoid2(p.handleServiceMsg))
+	p.stopped[1], err = p.dsvc.Listen(p.scope.Context(), generic.CastDelegateVoid2(p.handleServiceMsg))
 	if err != nil {
 		log.L(svcCtx).Panic("listen rpc message failed",
 			zap.Error(err),
@@ -87,11 +84,12 @@ func (p *_GateProcessor) Init(svcCtx service.Context) {
 
 // Shut 停止监听并等待两个处理循环退出。
 func (p *_GateProcessor) Shut(svcCtx service.Context) {
-	p.stopping()
+	p.scope.Close()
 
 	for _, f := range p.stopped {
 		<-f.Done()
 	}
+	<-p.scope.Completion().Done()
 
 	log.L(p.svcCtx).Debug("rpc processor stopped", zap.String("processor", types.FullName(*p)))
 }

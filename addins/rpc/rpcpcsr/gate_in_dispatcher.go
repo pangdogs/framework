@@ -35,7 +35,7 @@ import (
 
 // handleSessionEstablished 为新会话注册原始数据监听器。
 func (p *_GateProcessor) handleSessionEstablished(session gate.ISession) {
-	err := session.DataIO().Listen(p.stoppingCtx, generic.CastDelegateVoid2(p.handleSessionData))
+	err := session.DataIO().Listen(p.scope.Context(), generic.CastDelegateVoid2(p.handleSessionData))
 	if err != nil {
 		log.L(p.svcCtx).Error("listen session data failed",
 			zap.String("session_id", session.ID().String()),

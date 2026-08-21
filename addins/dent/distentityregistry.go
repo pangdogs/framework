@@ -30,6 +30,7 @@ import (
 	"git.golaxy.org/core/event"
 	"git.golaxy.org/core/runtime"
 	"git.golaxy.org/core/service"
+	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/option"
 	"git.golaxy.org/framework/addins/log"
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -97,7 +98,7 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 
 	log.L(rtCtx).Debug("grant etcd lease ok", zap.Int64("lease_id", int64(d.leaseID)))
 
-	go func() {
+	async.SpawnVoid(rtCtx.AsyncScope(), func(context.Context) {
 		for range keepAliveChan {
 			log.L(service.Current(rtCtx)).Debug("keep alive etcd lease heartbeat ok",
 				zap.String("runtime_id", rtCtx.ID().String()),
@@ -106,7 +107,11 @@ func (d *_DistEntityRegistry) Init(rtCtx runtime.Context) {
 		log.L(service.Current(rtCtx)).Debug("keep alive etcd lease heartbeat closed",
 			zap.String("runtime_id", rtCtx.ID().String()),
 			zap.Int64("lease_id", int64(d.leaseID)))
-	}()
+	}).OnComplete(func(ret async.Result) {
+		if ret.Error != nil {
+			log.L(service.Current(rtCtx)).Error("keep alive etcd lease task failed", zap.Error(ret.Error))
+		}
+	})
 
 	// 在绑定增删事件前发布运行时中已有的全局实体。
 	rtCtx.EntityManager().EachEntities(d.register)

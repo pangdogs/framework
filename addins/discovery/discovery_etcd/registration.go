@@ -47,7 +47,7 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 	}
 
 	select {
-	case <-r.registry.ctx.Done():
+	case <-r.registry.scope.Context().Done():
 		return async.Signal{}, errors.New("registry: registry is terminating")
 	default:
 	}
@@ -55,15 +55,18 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 	if !r.registry.barrier.Join(1) {
 		return async.Signal{}, errors.New("registry: registry is terminating")
 	}
+	defer r.registry.barrier.Done()
 
 	ctx, cancel := context.WithCancel(ctx)
-	stopOwner := context.AfterFunc(r.registry.ctx, cancel)
+	stopOwner := context.AfterFunc(r.registry.scope.Context(), cancel)
+	stop := func() {
+		stopOwner()
+		cancel()
+	}
 
 	keepAliveChan, err := r.registry.client.KeepAlive(ctx, r.leaseID)
 	if err != nil {
-		stopOwner()
-		cancel()
-		r.registry.barrier.Done()
+		stop()
 
 		log.L(r.registry.svcCtx).Error("keep alive etcd lease failed",
 			zap.String("service", r.serviceNode.Name),
@@ -76,11 +79,9 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 
 	stopped, stoppedSignal := async.NewSignal()
 
-	go func() {
-		defer r.registry.barrier.Done()
-		defer cancel()
-		defer stopOwner()
-
+	future := async.SpawnVoid(r.registry.scope, func(context.Context) {
+		defer stopped.Complete()
+		defer stop()
 		for range keepAliveChan {
 			log.L(r.registry.svcCtx).Debug("keep alive etcd lease heartbeat ok",
 				zap.String("service", r.serviceNode.Name),
@@ -94,9 +95,20 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 			zap.String("node", r.serviceNode.Nodes[0].ID.String()),
 			zap.String("key", r.nodeKey),
 			zap.Int64("lease_id", int64(r.leaseID)))
+	})
+	future.OnComplete(func(ret async.Result) {
+		if ret.Error != nil && !errors.Is(ret.Error, async.ErrScopeClosed) {
+			log.L(r.registry.svcCtx).Error("registry keepalive task failed", zap.Error(ret.Error))
+		}
+	})
 
+	if ret, ok := future.TryGet(); ok && errors.Is(ret.Error, async.ErrScopeClosed) {
+		stop()
+		for range keepAliveChan {
+		}
 		stopped.Complete()
-	}()
+		return async.Signal{}, errors.New("registry: registry is terminating")
+	}
 
 	log.L(r.registry.svcCtx).Debug("keep alive etcd lease ok",
 		zap.String("service", r.serviceNode.Name),

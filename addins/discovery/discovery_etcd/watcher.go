@@ -39,7 +39,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	}
 
 	select {
-	case <-r.ctx.Done():
+	case <-r.scope.Context().Done():
 		return nil, async.Signal{}, errors.New("registry: registry is terminating")
 	default:
 	}
@@ -47,9 +47,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	if !r.barrier.Join(1) {
 		return nil, async.Signal{}, errors.New("registry: registry is terminating")
 	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	stopOwner := context.AfterFunc(r.ctx, cancel)
+	defer r.barrier.Done()
 
 	key := r.options.KeyPrefix
 	if pattern != "" {
@@ -79,9 +77,17 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	}
 
 	stopped, stoppedSignal := async.NewSignal()
+	finish := func() {
+		if eventChan != nil {
+			eventChan.Close()
+		}
+		stopped.Complete()
+	}
 
-	go func() {
-		defer r.barrier.Done()
+	future := async.SpawnVoid(r.scope, func(scopeCtx context.Context) {
+		ctx, cancel := context.WithCancel(ctx)
+		stopOwner := context.AfterFunc(scopeCtx, cancel)
+		defer finish()
 		defer cancel()
 		defer stopOwner()
 
@@ -141,13 +147,18 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 			}
 		}
 
-		if eventChan != nil {
-			eventChan.Close()
-		}
-		stopped.Complete()
-
 		log.L(r.svcCtx).Debug("watching for service changes stopped", zap.String("key", key), zap.Int64("revision", revision))
-	}()
+	})
+	future.OnComplete(func(ret async.Result) {
+		if ret.Error != nil && !errors.Is(ret.Error, async.ErrScopeClosed) {
+			log.L(r.svcCtx).Error("registry watcher task failed", zap.Error(ret.Error))
+		}
+	})
+
+	if ret, ok := future.TryGet(); ok && errors.Is(ret.Error, async.ErrScopeClosed) {
+		finish()
+		return nil, async.Signal{}, errors.New("registry: registry is terminating")
+	}
 
 	if eventChan != nil {
 		return eventChan.Out(), stoppedSignal, nil

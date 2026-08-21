@@ -44,7 +44,7 @@ func (r *_Router) AddGroup(ctx context.Context, name string, ids []uid.ID, ttl t
 	}
 
 	select {
-	case <-r.ctx.Done():
+	case <-r.scope.Context().Done():
 		return nil, errors.New("router: router is terminating")
 	default:
 	}
@@ -256,7 +256,7 @@ func (r *_Router) getGroupByName(ctx context.Context, groupName string) (IGroup,
 	}
 
 	select {
-	case <-r.ctx.Done():
+	case <-r.scope.Context().Done():
 		return nil, false
 	default:
 	}
@@ -316,10 +316,8 @@ func (r *_Router) getGroupByName(ctx context.Context, groupName string) (IGroup,
 	return group, true
 }
 
-func (r *_Router) watchingForGroups() {
-	defer r.barrier.Done()
-
-	rsp, err := r.client.Get(r.ctx, r.groupIDKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
+func (r *_Router) watchingForGroups(ctx context.Context) {
+	rsp, err := r.client.Get(ctx, r.groupIDKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
 	if err != nil {
 		log.L(r.svcCtx).Panic("get groups keys failed", zap.Error(err))
 		return
@@ -331,7 +329,7 @@ func (r *_Router) watchingForGroups() {
 			log.L(r.svcCtx).Warn("invalid group id key", zap.ByteString("key", kv.Key))
 			continue
 		}
-		if _, ok := r.GetGroupByAddr(r.ctx, groupAddr); !ok {
+		if _, ok := r.GetGroupByAddr(ctx, groupAddr); !ok {
 			log.L(r.svcCtx).Warn("group not cached", zap.String("group_addr", groupAddr))
 			continue
 		}
@@ -341,7 +339,7 @@ func (r *_Router) watchingForGroups() {
 
 	log.L(r.svcCtx).Debug("watching for groups started", zap.String("key", r.groupIDKeyPrefix), zap.Int64("revision", revision))
 
-	for watchRsp := range r.client.Watch(r.ctx, r.groupIDKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithRev(revision)) {
+	for watchRsp := range r.client.Watch(ctx, r.groupIDKeyPrefix, etcdv3.WithPrefix(), etcdv3.WithRev(revision)) {
 		if watchRsp.Canceled {
 			log.L(r.svcCtx).Debug("watching for groups canceled",
 				zap.String("key", r.groupIDKeyPrefix),
@@ -369,7 +367,7 @@ func (r *_Router) watchingForGroups() {
 				continue
 			}
 
-			if _, ok := r.GetGroupByAddr(r.ctx, groupAddr); !ok {
+			if _, ok := r.GetGroupByAddr(ctx, groupAddr); !ok {
 				log.L(r.svcCtx).Warn("group not cached", zap.String("group_addr", groupAddr))
 			}
 		}

@@ -49,12 +49,11 @@ func newEtcdRegistry(settings ...option.Setting[EtcdRegistryOptions]) discovery.
 }
 
 type _EtcdRegistry struct {
-	svcCtx    service.Context
-	ctx       context.Context
-	terminate context.CancelFunc
-	barrier   generic.Barrier
-	options   EtcdRegistryOptions
-	client    *etcdv3.Client
+	svcCtx  service.Context
+	scope   *async.Scope
+	barrier generic.Barrier
+	options EtcdRegistryOptions
+	client  *etcdv3.Client
 }
 
 // Init 建立或复用 ETCD 客户端，并逐个检查配置端点的状态。
@@ -62,7 +61,7 @@ func (r *_EtcdRegistry) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	r.svcCtx = svcCtx
-	r.ctx, r.terminate = context.WithCancel(context.Background())
+	r.scope = async.NewScope(nil)
 
 	if r.options.EtcdClient == nil {
 		cli, err := etcdv3.New(r.configure())
@@ -90,9 +89,10 @@ func (r *_EtcdRegistry) Init(svcCtx service.Context) {
 func (r *_EtcdRegistry) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
-	r.terminate()
+	r.scope.Close()
 	r.barrier.Close()
 	r.barrier.Wait()
+	<-r.scope.Completion().Done()
 
 	if r.options.EtcdClient == nil {
 		if r.client != nil {

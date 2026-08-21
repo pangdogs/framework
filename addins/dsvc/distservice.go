@@ -67,8 +67,7 @@ func newDistService(setting ...option.Setting[DistServiceOptions]) IDistService 
 
 type _DistService struct {
 	svcCtx      service.Context
-	ctx         context.Context
-	terminate   context.CancelFunc
+	scope       *async.Scope
 	barrier     generic.Barrier
 	options     DistServiceOptions
 	registry    discovery.IRegistry
@@ -87,7 +86,7 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
 
 	d.svcCtx = svcCtx
-	d.ctx, d.terminate = context.WithCancel(context.Background())
+	d.scope = async.NewScope(nil)
 
 	// 获取上线及消息收发所需的 add-in。
 	d.registry = discovery.AddIn.Require(svcCtx)
@@ -103,22 +102,23 @@ func (d *_DistService) Init(svcCtx service.Context) {
 	d.decoder = codec.NewDecoder(d.options.MsgCreator)
 	d.encoder = codec.NewEncoder()
 
-	// 请求关联控制器随 add-in 的内部上下文一起停止。
-	d.correlation = correlation.New(d.ctx, d.options.FutureTimeout)
+	// 请求关联控制器随 add-in 的内部作用域一起停止。
+	d.correlation = correlation.New(d.scope.Context(), d.options.FutureTimeout)
 
 	// 根据 broker 分隔符和服务身份生成各级消息地址。
 	d.initNodeDetails()
 }
 
-// Shut 取消内部上下文，拒绝新任务，并等待节点注销、消息退订及监听器退出。
+// Shut 关闭内部作用域，拒绝新任务，并等待节点注销、消息退订及监听器退出。
 func (d *_DistService) Shut(svcCtx service.Context) {
 	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
 
-	d.terminate()
+	d.scope.Close()
 	d.correlation.Close()
 	d.barrier.Close()
 	d.barrier.Wait()
 	<-d.correlation.Done().Done()
+	<-d.scope.Completion().Done()
 }
 
 // BringUp 仅执行一次：先订阅节点地址，再通过分布式锁检查并注册当前服务节点。
@@ -130,6 +130,7 @@ func (d *_DistService) BringUp() {
 		if !d.barrier.Join(1) {
 			log.L(svcCtx).Panic("service node is terminating")
 		}
+		defer d.barrier.Done()
 
 		log.L(svcCtx).Info("service node is starting",
 			zap.String("service", svcCtx.Name()),
@@ -174,15 +175,15 @@ func (d *_DistService) BringUp() {
 			Meta:    d.options.Meta,
 		}
 
-		// 注册后持续续租，直到 add-in 的内部上下文取消。
-		reg, err := d.registry.RegisterNode(d.ctx, svcCtx.Name(), node, d.options.RegistrationTTL)
+		// 注册后持续续租，直到 add-in 的内部作用域关闭。
+		reg, err := d.registry.RegisterNode(d.scope.Context(), svcCtx.Name(), node, d.options.RegistrationTTL)
 		if err != nil {
 			log.L(svcCtx).Panic("register service node failed",
 				zap.String("service", svcCtx.Name()),
 				zap.String("node", svcCtx.ID().String()),
 				zap.Error(err))
 		}
-		if _, err = reg.KeepAliveContinuous(d.ctx); err != nil {
+		if _, err = reg.KeepAliveContinuous(d.scope.Context()); err != nil {
 			log.L(svcCtx).Panic("keepalive service node failed",
 				zap.String("service", svcCtx.Name()),
 				zap.String("node", svcCtx.ID().String()),
@@ -194,17 +195,29 @@ func (d *_DistService) BringUp() {
 			zap.String("node", svcCtx.ID().String()),
 			log.JSON("details", d.details))
 
-		go func() {
-			defer d.barrier.Done()
-			<-d.ctx.Done()
+		cleanup := func() {
 			// 停止时先注销节点，使发现端不再把流量路由到本节点。
 			reg.Deregister(context.Background())
-			// 各订阅随 d.ctx 取消；等待全部退订完成后再刷新 broker。
+			// 各订阅随内部作用域关闭；等待全部退订完成后再刷新 broker。
 			for _, sub := range subs {
 				<-sub.Done()
 			}
 			d.broker.Flush(context.Background())
-		}()
+		}
+
+		future := async.SpawnVoid(d.scope, func(ctx context.Context) {
+			<-ctx.Done()
+			cleanup()
+		})
+		future.OnComplete(func(ret async.Result) {
+			if ret.Error != nil && !errors.Is(ret.Error, async.ErrScopeClosed) {
+				log.L(d.svcCtx).Error("service node cleanup task failed", zap.Error(ret.Error))
+			}
+		})
+
+		if ret, ok := future.TryGet(); ok && errors.Is(ret.Error, async.ErrScopeClosed) {
+			cleanup()
+		}
 	})
 }
 
@@ -238,7 +251,7 @@ func (d *_DistService) Send(dst string, msg gap.Msg) error {
 	}
 	defer mpBuf.Release()
 
-	err = d.broker.Publish(d.ctx, dst, mpBuf.Payload())
+	err = d.broker.Publish(d.scope.Context(), dst, mpBuf.Payload())
 	if err != nil {
 		log.L(d.svcCtx).Error("publish message failed",
 			zap.String("dst", dst),
@@ -289,7 +302,7 @@ func (d *_DistService) initNodeDetails() {
 }
 
 func (d *_DistService) subscribe(topic, queue string) async.Signal {
-	unsubscribed, err := d.broker.SubscribeHandler(d.ctx, topic, queue, generic.CastDelegateVoid1(d.handleEvent))
+	unsubscribed, err := d.broker.SubscribeHandler(d.scope.Context(), topic, queue, generic.CastDelegateVoid1(d.handleEvent))
 	if err != nil {
 		log.L(d.svcCtx).Panic("subscribe service broker event failed", zap.String("topic", topic), zap.String("queue", queue), zap.Error(err))
 	}

@@ -95,7 +95,7 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 	}
 
 	select {
-	case <-g.router.ctx.Done():
+	case <-g.router.scope.Context().Done():
 		return async.Signal{}, errors.New("router: router is terminating")
 	default:
 	}
@@ -351,7 +351,7 @@ func (g *_Group) watchingForChanges() {
 
 	go g.io.sendLoop()
 
-	ctx, cancel := context.WithCancel(g.router.ctx)
+	ctx, cancel := context.WithCancel(g.router.scope.Context())
 	defer cancel()
 
 	var deleted bool

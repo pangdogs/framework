@@ -33,14 +33,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// addSubscriber 创建事件流或回调订阅，并用 barrier 保证 Shut 等待取消订阅完成。
+// addSubscriber 创建事件流或回调订阅，并用 barrier 防止关闭期间出现半注册资源。
 func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, handler broker.EventHandler) (<-chan broker.Event, async.Signal, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	select {
-	case <-b.ctx.Done():
+	case <-b.scope.Context().Done():
 		return nil, async.Signal{}, errors.New("broker: broker is terminating")
 	default:
 	}
@@ -48,6 +48,7 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 	if !b.barrier.Join(1) {
 		return nil, async.Signal{}, errors.New("broker: broker is terminating")
 	}
+	defer b.barrier.Done()
 
 	natsPattern := pattern
 	if b.options.TopicPrefix != "" {
@@ -107,34 +108,41 @@ func (b *_NatsBroker) addSubscriber(ctx context.Context, pattern, queue string, 
 		if eventChan != nil {
 			eventChan.Close()
 		}
-		b.barrier.Done()
 
 		log.L(b.svcCtx).Error("subscribe topic pattern failed", zap.String("pattern", natsPattern), zap.String("queue", natsQueue), zap.Error(err))
 		return nil, async.Signal{}, fmt.Errorf("broker: %w", err)
 	}
 
 	unsubscribed, unsubscribedSignal := async.NewSignal()
-
-	go func() {
-		defer b.barrier.Done()
-
-		select {
-		case <-ctx.Done():
-		case <-b.ctx.Done():
+	cleanup := func() {
+		defer unsubscribed.Complete()
+		if eventChan != nil {
+			defer eventChan.Close()
 		}
-
-		if err := natsSub.Unsubscribe(); err != nil {
-			log.L(b.svcCtx).Error("unsubscribe topic pattern failed", zap.String("pattern", natsPattern), zap.String("queue", natsQueue), zap.Error(err))
+		if unsubscribeErr := natsSub.Unsubscribe(); unsubscribeErr != nil {
+			log.L(b.svcCtx).Error("unsubscribe topic pattern failed", zap.String("pattern", natsPattern), zap.String("queue", natsQueue), zap.Error(unsubscribeErr))
 		} else {
 			log.L(b.svcCtx).Debug("unsubscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 		}
+	}
 
-		if eventChan != nil {
-			eventChan.Close()
+	future := async.SpawnVoid(b.scope, func(scopeCtx context.Context) {
+		select {
+		case <-ctx.Done():
+		case <-scopeCtx.Done():
 		}
+		cleanup()
+	})
+	future.OnComplete(func(ret async.Result) {
+		if ret.Error != nil && !errors.Is(ret.Error, async.ErrScopeClosed) {
+			log.L(b.svcCtx).Error("broker subscription task failed", zap.Error(ret.Error))
+		}
+	})
 
-		unsubscribed.Complete()
-	}()
+	if ret, ok := future.TryGet(); ok && errors.Is(ret.Error, async.ErrScopeClosed) {
+		cleanup()
+		return nil, async.Signal{}, errors.New("broker: broker is terminating")
+	}
 
 	log.L(b.svcCtx).Debug("subscribe topic pattern ok", zap.String("pattern", natsPattern), zap.String("queue", natsQueue))
 
