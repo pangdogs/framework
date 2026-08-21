@@ -458,7 +458,7 @@ If a configuration file explicitly defines `startup.services`, include every ser
 | `OnStarted` | The distributed service has completed `BringUp`; subscriptions and node registration are ready for communication. |
 | `OnHeartbeat` | Called approximately once per second while the service is running. |
 | `OnTerminating` | Shutdown has started; notify application tasks to stop. |
-| `OnTerminated` | Wait groups and add-ins have stopped. The framework then flushes logging and closes shared resources. |
+| `OnTerminated` | Wait groups are empty and regular add-ins have stopped and been removed. Retained logging and configuration remain available; afterward the framework flushes logging and closes shared resources. |
 
 Additional Service lifecycle interfaces cover entity prototypes, component prototypes, and global-entity registration and deregistration. See [`service_lifecycle.go`](./service_lifecycle.go) for the complete contracts.
 
@@ -612,7 +612,7 @@ func (*LobbyService) InstallDistSync(svc framework.IService) {
 }
 ```
 
-Service add-ins may be installed in `OnBirth`, an installation hook, or `OnBuilt`, and are frozen before the `Starting` callback. Because `OnBuilt` runs after default assembly, use it to append custom add-ins; replace a default in `OnBirth` or the corresponding installation hook. Runtime add-ins may be installed or removed while running, but those operations should execute on the owning Runtime goroutine.
+Service add-ins may be installed in `OnBirth`, an installation hook, or `OnBuilt`, and are frozen before the `Starting` callback. Because `OnBuilt` runs after default assembly, use it to append custom add-ins; replace a default in `OnBirth` or the corresponding installation hook. During shutdown, regular Service add-ins are stopped in reverse installation order and removed before `OnTerminated`. The default logging and configuration add-ins implement `service.RetainedAddIn`, remain available in that callback, and do not receive `Shut`. Custom replacements that need the same lifetime must implement that marker and must not own tasks or external resources requiring explicit shutdown. Runtime add-ins may be installed or removed while running, but those operations should execute on the owning Runtime goroutine; Runtime does not apply Service add-in retention.
 
 ### Optional add-ins and tools
 

@@ -144,6 +144,10 @@ func (l *_Logger) Shut(svcCtx service.Context, rtCtx runtime.Context) {
 	l.logger.Sync()
 }
 
+// RetainAfterTermination 使日志 add-in 在 Service 终止后继续可用。
+// Runtime 不处理此标记，安装到 Runtime 的日志 add-in 仍会正常 Shut。
+func (*_Logger) RetainAfterTermination() {}
+
 // Logger 返回附加了当前 service 或 runtime 字段的结构化日志器。
 func (l *_Logger) Logger() *zap.Logger {
 	return l.logger

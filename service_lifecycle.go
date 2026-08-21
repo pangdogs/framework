@@ -53,7 +53,8 @@ type LifecycleServiceTerminating interface {
 	OnTerminating(svc IService)
 }
 
-// LifecycleServiceTerminated 在服务等待组清空且 add-in 停用后接收回调。
+// LifecycleServiceTerminated 在服务等待组清空且普通 add-in 停用后接收回调。
+// 默认日志和配置 add-in 仍保留，可在回调中继续使用。
 type LifecycleServiceTerminated interface {
 	OnTerminated(svc IService)
 }

@@ -458,7 +458,7 @@ serviceConf := svc.ServiceConf() // lobby 子树；子树不存在时可能为 n
 | `OnStarted` | 分布式服务已经 `BringUp`，节点完成订阅和注册，可以开始对外通信。 |
 | `OnHeartbeat` | 服务运行期间约每秒调用一次。 |
 | `OnTerminating` | 开始停止，可通知业务任务退出。 |
-| `OnTerminated` | 等待组和 add-in 已停止；框架随后刷新日志并关闭共享资源。 |
+| `OnTerminated` | 等待组已清空，普通 add-in 已停止并移除；保留的日志和配置仍可使用。回调返回后，框架刷新日志并关闭共享资源。 |
 
 还可实现实体原型、组件原型、全局实体注册和注销相关的 Service 生命周期接口。完整接口定义见 [`service_lifecycle.go`](./service_lifecycle.go)。
 
@@ -612,7 +612,7 @@ func (*LobbyService) InstallDistSync(svc framework.IService) {
 }
 ```
 
-服务级 add-in 可在 `OnBirth`、安装钩子或 `OnBuilt` 中安装，并在 `Starting` 回调前冻结。`OnBuilt` 发生在默认装配之后，适合追加自定义 add-in；替换默认实现应使用 `OnBirth` 或对应安装钩子。Runtime 级 add-in 支持运行期安装和卸载，但应在所属 Runtime goroutine 中操作。
+服务级 add-in 可在 `OnBirth`、安装钩子或 `OnBuilt` 中安装，并在 `Starting` 回调前冻结。`OnBuilt` 发生在默认装配之后，适合追加自定义 add-in；替换默认实现应使用 `OnBirth` 或对应安装钩子。停服时，普通 Service add-in 按安装顺序逆序停止，并在 `OnTerminated` 前移除。默认日志和配置 add-in 实现了 `service.RetainedAddIn`，不会执行 `Shut`，在该回调中仍可使用；需要相同生命周期的自定义替代实现也必须实现此标记，且不能持有需要显式关闭的任务或外部资源。Runtime 级 add-in 支持运行期安装和卸载，但应在所属 Runtime goroutine 中操作；Runtime 不应用 Service add-in 的保留语义。
 
 ### 可选 add-in 与工具
 

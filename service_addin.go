@@ -21,12 +21,14 @@ package framework
 
 // InstallServiceLogger 为服务提供自定义日志 add-in 安装钩子。
 // 仅当 Birth 阶段尚未安装同名 add-in 时调用；实现必须在返回前完成安装。
+// 若日志需供 OnTerminated 使用，安装的实例还应实现 service.RetainedAddIn。
 type InstallServiceLogger interface {
 	InstallLogger(svc IService)
 }
 
 // InstallServiceConfig 为服务提供自定义配置 add-in 安装钩子。
 // 仅当 Birth 阶段尚未安装同名 add-in 时调用；实现必须在返回前完成安装。
+// 若配置需供 OnTerminated 使用，安装的实例还应实现 service.RetainedAddIn。
 type InstallServiceConfig interface {
 	InstallConfig(svc IService)
 }

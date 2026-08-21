@@ -53,7 +53,6 @@ func newConfig(settings ...option.Setting[ConfigOptions]) IConfig {
 }
 
 type _Config struct {
-	svcCtx      service.Context
 	options     ConfigOptions
 	appConf     *viper.Viper
 	serviceConf *viper.Viper
@@ -62,8 +61,6 @@ type _Config struct {
 // Init 采用配置的 Viper 实例（未提供时新建空实例），并提取当前服务名对应的配置子树。
 func (c *_Config) Init(svcCtx service.Context) {
 	log.L(svcCtx).Info("initializing add-in", zap.String("name", AddIn.Name))
-
-	c.svcCtx = svcCtx
 
 	v := c.options.Vipper
 	if v == nil {
@@ -74,10 +71,8 @@ func (c *_Config) Init(svcCtx service.Context) {
 	c.serviceConf = v.Sub(svcCtx.Name())
 }
 
-// Shut 记录 add-in 停止；Viper 实例无需显式关闭。
-func (c *_Config) Shut(svcCtx service.Context) {
-	log.L(svcCtx).Info("shutting down add-in", zap.String("name", AddIn.Name))
-}
+// RetainAfterTermination 使配置 add-in 在 Service 终止后继续可用。
+func (*_Config) RetainAfterTermination() {}
 
 // AppConf 返回 Init 绑定的完整应用配置；调用方的修改会直接作用于共享实例。
 func (c *_Config) AppConf() *viper.Viper {
