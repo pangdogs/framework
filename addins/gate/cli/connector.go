@@ -46,7 +46,7 @@ type _Connector struct {
 }
 
 // connect 建立新客户端连接，握手成功后启动客户端主循环；失败时关闭底层连接。
-func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *Client, err error) {
+func (ctor *_Connector) connect(ctx context.Context, endpoint string) (_ *Client, err error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -95,20 +95,18 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 		}
 	}
 
+	client := ctor.newClient(ctx, endpoint)
+
 	defer func() {
 		if panicErr := types.Panic2Err(recover()); panicErr != nil {
 			err = fmt.Errorf("cli: %w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
-			if client != nil {
-				client.asyncScope.Close(err)
-				client.correlation.Close()
-			}
+			client.asyncScope.Close(err)
+			client.correlation.Close()
 			conn.Close()
 		}
 	}()
-
-	client = ctor.newClient(ctx, endpoint)
 
 	err = ctor.handshake(ctx, conn, client)
 	if err != nil {
