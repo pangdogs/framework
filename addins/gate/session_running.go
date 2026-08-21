@@ -68,7 +68,7 @@ func (s *_Session) mainLoop() {
 	}
 
 	closeInactive := func() {
-		s.close(&transport.RstError{
+		s.asyncScope.Close(&transport.RstError{
 			Code:    gtp.Code_SessionDeath,
 			Message: fmt.Sprintf("session death at %s", timeout.Format(time.RFC3339)),
 		})
@@ -147,7 +147,7 @@ loop:
 				log.L(s.gate.svcCtx).Error("session dispatching event failed, close session",
 					zap.String("session_id", s.ID().String()),
 					zap.Error(err))
-				s.close(&transport.RstError{
+				s.asyncScope.Close(&transport.RstError{
 					Code:    gtp.Code_Reject,
 					Message: err.Error(),
 				})
@@ -165,8 +165,8 @@ loop:
 		pinged = false
 	}
 
-	// 主循环退出后取消会话，并等待异步发送队列排空。
-	s.close(nil)
+	// 主循环退出后关闭会话异步作用域，并等待异步发送队列排空。
+	s.asyncScope.Close()
 	<-s.io.terminated.Signal().Done()
 	s.setState(SessionState_Death)
 

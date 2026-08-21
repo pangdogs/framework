@@ -568,7 +568,7 @@ func (*GameService) OnStarted(svc framework.IService) {
 | `ContinueOn` / `ContinueOnVoid` | Reschedules a continuation onto the owning Runtime | Continue accessing Runtime-local state after a Future completes. |
 | `async.Race` / `FirstSuccess` / `All` / `AllSettled` | Combines one-shot Futures | Select the first completion or success, or collect all results. |
 
-A `Future` retains one replayable result, a `Signal` reports result-free lifecycle completion, and a `Stream` carries continuous results to one consumer. Entity and Component helpers bind work to their respective `AsyncScope()` values. When the owner dies, background tasks and streams receive cancellation, while work or continuations not yet executed stop or return `ErrAsyncCallerNotAlive`.
+A `Future` retains one replayable result, a `Signal` reports result-free lifecycle completion, and a `Stream` carries continuous results to one consumer. Service and Runtime contexts, Entities, Components, Gate Sessions, and Clients expose an `AsyncScope()` bound to their lifetime; use `Spawn` or `SpawnVoid` to start managed background work. Once an owner starts closing, its Scope cancels existing tasks and rejects new ones.
 
 ## Add-in system
 

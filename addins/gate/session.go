@@ -28,6 +28,7 @@ import (
 	"sync/atomic"
 
 	"git.golaxy.org/core/utils/async"
+	"git.golaxy.org/core/utils/corectx"
 	"git.golaxy.org/core/utils/uid"
 	"git.golaxy.org/framework/addins/log"
 	"git.golaxy.org/framework/net/gtp"
@@ -57,9 +58,10 @@ type NetAddr struct {
 }
 
 // ISession 表示可迁移连接的已鉴权客户端会话。
-// 会话上下文在 Close 时取消；查询和 I/O 门面可被多个 goroutine 使用。
+// 会话上下文和异步作用域在 Close 时取消；查询和 I/O 门面可被多个 goroutine 使用。
 type ISession interface {
 	context.Context
+	corectx.AsyncScopeProvider
 	fmt.Stringer
 	// ID 返回服务端分配的会话 ID。
 	ID() uid.ID
@@ -79,15 +81,15 @@ type ISession interface {
 	DataIO() IDataIO
 	// EventIO 返回 GTP 事件 I/O 门面。
 	EventIO() IEventIO
-	// Close 请求以 err 为原因关闭会话，并返回关闭完成信号。
+	// Close 请求以 err 为原因关闭会话及其异步作用域，并返回资源关闭完成信号。
 	Close(err error) async.Signal
-	// Closed 返回会话关闭完成信号。
+	// Closed 返回会话资源关闭完成信号；异步任务完成信号由 AsyncScope 提供。
 	Closed() async.Signal
 }
 
 type _Session struct {
 	context.Context
-	close           context.CancelCauseFunc
+	asyncScope      *async.Scope
 	closed          async.Completer
 	gate            *_Gate
 	id              uid.ID
@@ -106,6 +108,11 @@ type _Session struct {
 	io              _SessionIO
 	stringerOnce    sync.Once
 	stringerCache   string
+}
+
+// AsyncScope 返回绑定会话生命周期的后台任务作用域。
+func (s *_Session) AsyncScope() *async.Scope {
+	return s.asyncScope
 }
 
 // String 返回包含会话 ID 和鉴权用户 ID 的缓存 JSON 文本。
@@ -161,13 +168,13 @@ func (s *_Session) EventIO() IEventIO {
 	return (*_SessionEventIO)(&s.io)
 }
 
-// Close 请求以 err 为原因关闭会话，并返回关闭完成信号。
+// Close 请求以 err 为原因关闭会话及其异步作用域，并返回资源关闭完成信号。
 func (s *_Session) Close(err error) async.Signal {
-	s.close(err)
+	s.asyncScope.Close(err)
 	return s.closed.Signal()
 }
 
-// Closed 返回会话关闭完成信号。
+// Closed 返回会话资源关闭完成信号；异步任务完成信号由 AsyncScope 提供。
 func (s *_Session) Closed() async.Signal {
 	return s.closed.Signal()
 }

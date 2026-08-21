@@ -68,7 +68,8 @@ func (acc *_Acceptor) newSession(id uid.ID, userID, token string, extensions []b
 		extensions:    extensions,
 		migrationChan: make(chan struct{}),
 	}
-	session.Context, session.close = context.WithCancelCause(acc.ctx)
+	session.asyncScope = async.NewScope(acc.ctx)
+	session.Context = session.asyncScope.Context()
 
 	// 分发器按传输、控制、业务事件的顺序尝试处理同一事件。
 	session.eventDispatcher.AutoRecover = acc.svcCtx.AutoRecover()

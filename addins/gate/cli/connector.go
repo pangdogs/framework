@@ -100,6 +100,10 @@ func (ctor *_Connector) connect(ctx context.Context, endpoint string) (client *C
 			err = fmt.Errorf("cli: %w: %w", core.ErrPanicked, panicErr)
 		}
 		if err != nil {
+			if client != nil {
+				client.asyncScope.Close(err)
+				client.correlation.Close()
+			}
 			conn.Close()
 		}
 	}()
@@ -202,7 +206,8 @@ func (ctor *_Connector) newClient(ctx context.Context, endpoint string) *Client 
 		migrationChan: make(chan struct{}),
 		logger:        ctor.options.Logger,
 	}
-	client.Context, client.close = context.WithCancelCause(ctx)
+	client.asyncScope = async.NewScope(ctx)
+	client.Context = client.asyncScope.Context()
 
 	// 未配置日志器时使用静默日志器，避免在热路径反复判空。
 	if client.logger == nil {

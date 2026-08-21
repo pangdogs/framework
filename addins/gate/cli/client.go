@@ -48,10 +48,10 @@ type NetAddr struct {
 }
 
 // Client 是支持 GTP 握手、心跳和连接迁移的并发安全客户端。
-// 其上下文在父上下文取消或 Close 被调用时取消。
+// 其上下文和异步作用域在父上下文取消或 Close 被调用时取消。
 type Client struct {
 	context.Context
-	close           context.CancelCauseFunc
+	asyncScope      *async.Scope
 	closed          async.Completer
 	options         ClientOptions
 	sessionID       uid.ID
@@ -70,6 +70,11 @@ type Client struct {
 	sugarLogger     *zap.SugaredLogger
 	stringerOnce    sync.Once
 	stringerCache   string
+}
+
+// AsyncScope 返回绑定客户端生命周期的后台任务作用域。
+func (c *Client) AsyncScope() *async.Scope {
+	return c.asyncScope
 }
 
 // String 返回包含会话 ID 和用户 ID 的 JSON 形式标识。
@@ -140,13 +145,13 @@ func (c *Client) S() *zap.SugaredLogger {
 	return c.sugarLogger
 }
 
-// Close 请求以 err 为原因关闭客户端，并返回关闭完成信号。
+// Close 请求以 err 为原因关闭客户端及其异步作用域，并返回资源关闭完成信号。
 func (c *Client) Close(err error) async.Signal {
-	c.close(err)
+	c.asyncScope.Close(err)
 	return c.closed.Signal()
 }
 
-// Closed 返回客户端关闭完成信号。
+// Closed 返回客户端资源关闭完成信号；异步任务完成信号由 AsyncScope 提供。
 func (c *Client) Closed() async.Signal {
 	return c.closed.Signal()
 }

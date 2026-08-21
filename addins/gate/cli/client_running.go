@@ -65,7 +65,7 @@ func (c *Client) mainLoop() {
 				var rstErr *transport.RstError
 				if errors.As(err, &rstErr) || errors.Is(err, transport.ErrMigrateConn) {
 					c.logger.Error("client auto reconnect aborted, close client", zap.String("session_id", c.SessionID().String()))
-					c.close(err)
+					c.asyncScope.Close(err)
 					return
 				}
 
@@ -79,7 +79,7 @@ func (c *Client) mainLoop() {
 		}
 
 		c.logger.Error("client auto reconnect retries exhausted, close client", zap.String("session_id", c.SessionID().String()))
-		c.close(ErrAutoReconnectRetriesExhausted)
+		c.asyncScope.Close(ErrAutoReconnectRetriesExhausted)
 	}
 
 	changeActive := func(b bool) {
@@ -132,7 +132,7 @@ loop:
 
 			wait := time.Until(timeout)
 			if wait <= 0 {
-				c.close(ErrInactiveTimeout)
+				c.asyncScope.Close(ErrInactiveTimeout)
 				break loop
 			}
 
@@ -148,7 +148,7 @@ loop:
 				continue
 
 			case <-timer.C:
-				c.close(ErrInactiveTimeout)
+				c.asyncScope.Close(ErrInactiveTimeout)
 				break loop
 			}
 		}
@@ -193,7 +193,7 @@ loop:
 
 				// 其他网络传输错误，关闭客户端
 				c.logger.Error("client dispatching event failed, close client", zap.String("session_id", c.SessionID().String()))
-				c.close(err)
+				c.asyncScope.Close(err)
 				continue
 			}
 
@@ -206,8 +206,8 @@ loop:
 		pinged = false
 	}
 
-	// 主循环退出后取消客户端，并等待异步发送队列排空。
-	c.close(nil)
+	// 主循环退出后关闭客户端异步作用域，并等待异步发送队列排空。
+	c.asyncScope.Close()
 	c.correlation.Close()
 	<-c.correlation.Done().Done()
 	<-c.io.terminated.Signal().Done()

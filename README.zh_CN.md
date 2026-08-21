@@ -568,7 +568,7 @@ func (*GameService) OnStarted(svc framework.IService) {
 | `ContinueOn` / `ContinueOnVoid` | 续体重新调度到所属 Runtime | 在 Future 完成后安全地继续访问 Runtime 局部状态。 |
 | `async.Race` / `FirstSuccess` / `All` / `AllSettled` | 组合一次性 Future | 分别选择首个完成、首个成功，或收集全部结果。 |
 
-`Future` 保存一个可重放结果，`Signal` 只表示生命周期操作已经完成，`Stream` 表示连续结果且由单个消费者读取。Entity 和 Component 的异步辅助绑定各自的 `AsyncScope()`；对象失活后，相关后台任务和流会收到取消，尚未执行的任务或续体会停止或返回 `ErrAsyncCallerNotAlive`。
+`Future` 保存一个可重放结果，`Signal` 只表示生命周期操作已经完成，`Stream` 表示连续结果且由单个消费者读取。Service/Runtime Context、Entity、Component、Gate Session 和 Client 均提供绑定自身生命周期的 `AsyncScope()`；可通过 `Spawn` / `SpawnVoid` 启动受管后台任务。所有者开始关闭后，Scope 会取消已有任务并拒绝新任务。
 
 ## Add-in 扩展体系
 

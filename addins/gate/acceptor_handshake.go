@@ -295,6 +295,9 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 		},
 	})
 	if err != nil {
+		if !continueFlow {
+			session.asyncScope.Close(err)
+		}
 		return nil, false, err
 	}
 
@@ -319,11 +322,15 @@ func (acc *_Acceptor) handshake(ctx context.Context, conn net.Conn) (*_Session, 
 	} else {
 		// 新会话必须先加入关闭屏障和会话表，主循环退出时负责 Done。
 		if !acc.barrier.Join(1) {
-			return nil, false, sendRst(gtp.Code_Shutdown, "service shutdown")
+			err := sendRst(gtp.Code_Shutdown, "service shutdown")
+			session.asyncScope.Close(err)
+			return nil, false, err
 		}
 		if !acc.addSession(session) {
 			acc.barrier.Done()
-			return nil, false, sendRst(gtp.Code_Reject, "session can't be confirmed")
+			err := sendRst(gtp.Code_Reject, "session can't be confirmed")
+			session.asyncScope.Close(err)
+			return nil, false, err
 		}
 		session.setState(SessionState_Confirmed)
 		go session.mainLoop()
