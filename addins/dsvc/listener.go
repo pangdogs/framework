@@ -57,27 +57,20 @@ func (d *_DistService) addListener(ctx context.Context, handler MsgHandler) (asy
 		return async.Signal{}, errors.New("dsvc: dsvc is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-d.ctx.Done():
-		}
-		cancel()
-	}()
-
 	listener := d.listeners.Subscribe(handler, d.options.ListenerInboxSize)
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer d.barrier.Done()
+		defer log.L(d.svcCtx).Debug("delete a broker message listener")
+		defer stopped.Complete()
+		defer d.listeners.Unsubscribe(listener)
 
 		for {
 			select {
 			case <-ctx.Done():
-				d.listeners.Unsubscribe(listener)
-				stopped.Complete()
-				log.L(d.svcCtx).Debug("delete a broker message listener")
+				return
+			case <-d.ctx.Done():
 				return
 			case msg := <-listener.Inbox:
 				listener.Handler.Call(d.svcCtx.AutoRecover(), d.svcCtx.ReportError(), func(panicError error) bool {

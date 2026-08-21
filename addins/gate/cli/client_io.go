@@ -191,24 +191,17 @@ func (io *_ClientDataIO) addListener(ctx context.Context, handler DataHandler) e
 		return errors.New("cli: client data i/o is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-io.client.Done():
-		}
-		cancel()
-	}()
-
 	listener := io.dataListeners.Subscribe(handler, io.client.options.DataListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
+		defer io.client.logger.Debug("delete a receive data listener", zap.String("session_id", io.client.SessionID().String()))
+		defer io.dataListeners.Unsubscribe(listener)
 		for {
 			select {
 			case <-ctx.Done():
-				io.dataListeners.Unsubscribe(listener)
-				io.client.logger.Debug("delete a receive data listener", zap.String("session_id", io.client.SessionID().String()))
+				return
+			case <-io.client.Done():
 				return
 			case data := <-listener.Inbox:
 				listener.Handler.Call(io.client.options.AutoRecover, io.client.options.ReportError, func(panicError error) bool {
@@ -261,24 +254,17 @@ func (io *_ClientEventIO) addListener(ctx context.Context, handler EventHandler)
 		return errors.New("cli: client event i/o is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-io.client.Done():
-		}
-		cancel()
-	}()
-
 	listener := io.eventListeners.Subscribe(handler, io.client.options.EventListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
+		defer io.client.logger.Debug("delete a receive event listener", zap.String("session_id", io.client.SessionID().String()))
+		defer io.eventListeners.Unsubscribe(listener)
 		for {
 			select {
 			case <-ctx.Done():
-				io.eventListeners.Unsubscribe(listener)
-				io.client.logger.Debug("delete a receive event listener", zap.String("session_id", io.client.SessionID().String()))
+				return
+			case <-io.client.Done():
 				return
 			case event := <-listener.Inbox:
 				listener.Handler.Call(io.client.options.AutoRecover, io.client.options.ReportError, func(panicError error) bool {

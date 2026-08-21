@@ -147,16 +147,16 @@ func (s *ServiceAssembler) assemble(ctx context.Context, replicaNo int) core.Ser
 				}))
 
 				if svcInst.AutoRecover() && svcInst.ReportError() != nil {
-					go func() {
+					core.SpawnVoid(svcInst, func(ctx context.Context, _ ...any) {
 						for {
 							select {
 							case err := <-svcInst.ReportError():
 								svcInst.L().Error("[Recovery from panic]", zap.Error(err))
-							case <-svcInst.Done():
+							case <-ctx.Done():
 								return
 							}
 						}
-					}()
+					})
 				}
 			case service.RunningEvent_Starting:
 				if cb, ok := s.instance.(LifecycleServiceStarting); ok {

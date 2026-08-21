@@ -20,8 +20,6 @@
 package rpcpcsr
 
 import (
-	"context"
-
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -52,7 +50,7 @@ type _ForwardProcessor struct {
 	dentq                dent.IDistEntityQuerier
 	encoder              *codec.Encoder
 	decoder              *codec.Decoder
-	stopping             context.CancelFunc
+	scope                *async.Scope
 	stopped              async.Signal
 	transitService       string
 	transitBroadcastAddr string
@@ -65,24 +63,25 @@ func (p *_ForwardProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
 	p.dentq = dent.QuerierAddIn.Require(svcCtx)
-	stoppingCtx, stopping := context.WithCancel(context.Background())
-	p.stopping = stopping
+	p.scope = async.NewScope(svcCtx)
 	p.transitBroadcastAddr = p.dsvc.NodeDetails().MakeBroadcastAddr(p.transitService)
 
 	var err error
-	p.stopped, err = p.dsvc.Listen(stoppingCtx, generic.CastDelegateVoid2(p.handleServiceMsg))
+	p.stopped, err = p.dsvc.Listen(p.scope.Context(), generic.CastDelegateVoid2(p.handleServiceMsg))
 	if err != nil {
+		p.scope.Close()
 		log.L(svcCtx).Panic("listen rpc message failed", zap.Error(err), zap.String("processor", types.FullName(*p)))
 	}
 
 	log.L(p.svcCtx).Debug("rpc processor started", zap.String("processor", types.FullName(*p)))
 }
 
-// Shut 停止监听并等待消息处理循环退出。
+// Shut 停止监听并等待消息处理循环及已接收任务退出。
 func (p *_ForwardProcessor) Shut(svcCtx service.Context) {
-	p.stopping()
+	p.scope.Close()
 
 	<-p.stopped.Done()
+	<-p.scope.Completion().Done()
 
 	log.L(p.svcCtx).Debug("rpc processor stopped", zap.String("processor", types.FullName(*p)))
 }

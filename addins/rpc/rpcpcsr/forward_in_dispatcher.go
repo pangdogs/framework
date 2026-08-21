@@ -20,6 +20,7 @@
 package rpcpcsr
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -142,7 +143,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 
 	switch cp.TargetKind {
 	case callpath.Service:
-		go func() {
+		spawnProcessorTask(p.svcCtx, p.scope, func(context.Context) {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc notify to service failed",
@@ -163,7 +164,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 
 	case callpath.Runtime:
 		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -180,8 +181,8 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc notify to runtime failed",
 					zap.String("transit", transit.Addr),
@@ -203,7 +204,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 
 	case callpath.Entity:
 		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -220,8 +221,8 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc notify to entity failed",
 					zap.String("transit", transit.Addr),
@@ -243,7 +244,7 @@ func (p *_ForwardProcessor) acceptNotify(transit, src gap.Origin, dst string, re
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 	}
 }
 
@@ -303,7 +304,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 
 	switch cp.TargetKind {
 	case callpath.Service:
-		go func() {
+		spawnProcessorTask(p.svcCtx, p.scope, func(context.Context) {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc request to service failed",
@@ -326,7 +327,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("method", cp.Method))
 			}
 			p.reply(transit, src, req.CorrID, rets, err)
-		}()
+		})
 
 	case callpath.Runtime:
 		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -345,8 +346,8 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc request to runtime failed",
 					zap.String("transit", transit.Addr),
@@ -370,7 +371,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("method", cp.Method))
 			}
 			p.reply(transit, src, req.CorrID, rets, err)
-		}()
+		})
 
 	case callpath.Entity:
 		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -389,8 +390,8 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept forwarded rpc request to entity failed",
 					zap.String("transit", transit.Addr),
@@ -414,7 +415,7 @@ func (p *_ForwardProcessor) acceptRequest(transit, src gap.Origin, dst string, r
 					zap.String("method", cp.Method))
 			}
 			p.reply(transit, src, req.CorrID, rets, err)
-		}()
+		})
 	}
 }
 

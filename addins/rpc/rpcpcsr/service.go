@@ -20,8 +20,6 @@
 package rpcpcsr
 
 import (
-	"context"
-
 	"git.golaxy.org/core/service"
 	"git.golaxy.org/core/utils/async"
 	"git.golaxy.org/core/utils/generic"
@@ -43,7 +41,7 @@ func NewServiceProcessor(permValidator PermissionValidator, reduceCallPath bool)
 type _ServiceProcessor struct {
 	svcCtx         service.Context
 	dsvc           dsvc.IDistService
-	stopping       context.CancelFunc
+	scope          *async.Scope
 	stopped        async.Signal
 	permValidator  PermissionValidator
 	reduceCallPath bool
@@ -53,23 +51,24 @@ type _ServiceProcessor struct {
 func (p *_ServiceProcessor) Init(svcCtx service.Context) {
 	p.svcCtx = svcCtx
 	p.dsvc = dsvc.AddIn.Require(svcCtx)
-	stoppingCtx, stopping := context.WithCancel(context.Background())
-	p.stopping = stopping
+	p.scope = async.NewScope(svcCtx)
 
 	var err error
-	p.stopped, err = p.dsvc.Listen(stoppingCtx, generic.CastDelegateVoid2(p.handleServiceMsg))
+	p.stopped, err = p.dsvc.Listen(p.scope.Context(), generic.CastDelegateVoid2(p.handleServiceMsg))
 	if err != nil {
+		p.scope.Close()
 		log.L(svcCtx).Panic("listen rpc message failed", zap.Error(err), zap.String("processor", types.FullName(*p)))
 	}
 
 	log.L(p.svcCtx).Debug("rpc processor started", zap.String("processor", types.FullName(*p)))
 }
 
-// Shut 停止订阅并等待消息处理循环退出。
+// Shut 停止订阅并等待消息处理循环及已接收任务退出。
 func (p *_ServiceProcessor) Shut(svcCtx service.Context) {
-	p.stopping()
+	p.scope.Close()
 
 	<-p.stopped.Done()
+	<-p.scope.Completion().Done()
 
 	log.L(p.svcCtx).Debug("rpc processor stopped", zap.String("processor", types.FullName(*p)))
 }

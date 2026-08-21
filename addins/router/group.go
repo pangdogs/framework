@@ -129,10 +129,8 @@ func (g *_Group) KeepAliveContinuous(ctx context.Context) (async.Signal, error) 
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
-		defer func() {
-			cancel()
-			g.router.barrier.Done()
-		}()
+		defer g.router.barrier.Done()
+		defer cancel()
 
 		for range keepAliveChan {
 			log.L(g.router.svcCtx).Debug("keep alive group lease heartbeat ok",

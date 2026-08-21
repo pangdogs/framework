@@ -20,6 +20,7 @@
 package rpcpcsr
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -98,7 +99,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 
 	switch cp.TargetKind {
 	case callpath.Service:
-		go func() {
+		spawnProcessorTask(p.svcCtx, p.scope, func(context.Context) {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc notify to service failed",
@@ -115,7 +116,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 
 	case callpath.Runtime:
 		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -130,8 +131,8 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc notify to runtime failed",
 					zap.String("src", src.Addr),
@@ -149,7 +150,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 
 	case callpath.Entity:
 		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -164,8 +165,8 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc notify to entity failed",
 					zap.String("src", src.Addr),
@@ -183,7 +184,7 @@ func (p *_ServiceProcessor) acceptNotify(src gap.Origin, req *gap.MsgOnewayRPC) 
 					zap.String("method", cp.Method))
 			}
 			rets.ReleaseIfSnapshot()
-		}()
+		})
 	}
 }
 
@@ -232,7 +233,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 
 	switch cp.TargetKind {
 	case callpath.Service:
-		go func() {
+		spawnProcessorTask(p.svcCtx, p.scope, func(context.Context) {
 			rets, err := CallService(p.svcCtx, cc, cp.Script, cp.Method, req.Args)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to service failed",
@@ -251,7 +252,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 					zap.String("method", cp.Method))
 			}
 			p.reply(src, req.CorrID, rets, err)
-		}()
+		})
 
 	case callpath.Runtime:
 		future, err := CallRuntime(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -268,8 +269,8 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to runtime failed",
 					zap.String("src", src.Addr),
@@ -289,7 +290,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 					zap.String("method", cp.Method))
 			}
 			p.reply(src, req.CorrID, rets, err)
-		}()
+		})
 
 	case callpath.Entity:
 		future, err := CallEntity(p.svcCtx, cc, cp.ID, cp.Script, cp.Method, req.Args)
@@ -306,8 +307,8 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 			return
 		}
 
-		go func() {
-			rets, err := waitAsyncResult(p.svcCtx, future)
+		spawnProcessorTask(p.svcCtx, p.scope, func(ctx context.Context) {
+			rets, err := waitAsyncResult(ctx, future)
 			if err != nil {
 				log.L(p.svcCtx).Error("accept rpc request to entity failed",
 					zap.String("src", src.Addr),
@@ -327,7 +328,7 @@ func (p *_ServiceProcessor) acceptRequest(src gap.Origin, req *gap.MsgRPCRequest
 					zap.String("method", cp.Method))
 			}
 			p.reply(src, req.CorrID, rets, err)
-		}()
+		})
 	}
 }
 

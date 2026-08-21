@@ -49,27 +49,20 @@ func (g *_Gate) addSessionWatcher(ctx context.Context, handler SessionEstablishe
 		return async.Signal{}, errors.New("gate: gate is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-g.ctx.Done():
-		}
-		cancel()
-	}()
-
 	watcher := g.sessionWatcher.Subscribe(handler, g.options.SessionWatcherInboxSize)
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
 		defer g.barrier.Done()
+		defer log.L(g.svcCtx).Debug("delete a session established watcher")
+		defer stopped.Complete()
+		defer g.sessionWatcher.Unsubscribe(watcher)
 
 		for {
 			select {
 			case <-ctx.Done():
-				g.sessionWatcher.Unsubscribe(watcher)
-				stopped.Complete()
-				log.L(g.svcCtx).Debug("delete a session established watcher")
+				return
+			case <-g.ctx.Done():
 				return
 			case session := <-watcher.Inbox:
 				watcher.Handler.Call(g.svcCtx.AutoRecover(), g.svcCtx.ReportError(), func(panicError error) bool {

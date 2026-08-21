@@ -25,7 +25,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // 注册 pprof 的默认 HTTP 处理器，供 initPProf 启动的服务使用。
-	"os"
 	"os/signal"
 	"strconv"
 	"sync"
@@ -287,15 +286,8 @@ func (app *App) initPProf() {
 
 func (app *App) mainLoop() {
 	// 首个退出信号取消共享上下文，通知全部服务副本停止。
-	ctx, cancel := context.WithCancel(context.Background())
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	go func() {
-		<-sigChan
-		cancel()
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	// 配置值覆盖注册时的默认副本数；无效数量按零处理。
 	wg := &sync.WaitGroup{}

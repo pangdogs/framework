@@ -202,24 +202,17 @@ func (io *_SessionDataIO) addListener(ctx context.Context, handler SessionDataHa
 		return errors.New("gate: session data i/o is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-io.session.Done():
-		}
-		cancel()
-	}()
-
 	listener := io.dataListeners.Subscribe(handler, io.session.gate.options.SessionDataListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
+		defer log.L(io.session.gate.svcCtx).Debug("delete a session data listener", zap.String("session_id", io.session.ID().String()))
+		defer io.dataListeners.Unsubscribe(listener)
 		for {
 			select {
 			case <-ctx.Done():
-				io.dataListeners.Unsubscribe(listener)
-				log.L(io.session.gate.svcCtx).Debug("delete a session data listener", zap.String("session_id", io.session.ID().String()))
+				return
+			case <-io.session.Done():
 				return
 			case data := <-listener.Inbox:
 				listener.Handler.Call(io.session.gate.svcCtx.AutoRecover(), io.session.gate.svcCtx.ReportError(), func(panicError error) bool {
@@ -274,24 +267,17 @@ func (io *_SessionEventIO) addListener(ctx context.Context, handler SessionEvent
 		return errors.New("gate: session event i/o is terminating")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-io.session.Done():
-		}
-		cancel()
-	}()
-
 	listener := io.eventListeners.Subscribe(handler, io.session.gate.options.SessionEventListenerInboxSize)
 
 	go func() {
 		defer io.barrier.Done()
+		defer log.L(io.session.gate.svcCtx).Debug("delete a session event listener", zap.String("session_id", io.session.ID().String()))
+		defer io.eventListeners.Unsubscribe(listener)
 		for {
 			select {
 			case <-ctx.Done():
-				io.eventListeners.Unsubscribe(listener)
-				log.L(io.session.gate.svcCtx).Debug("delete a session event listener", zap.String("session_id", io.session.ID().String()))
+				return
+			case <-io.session.Done():
 				return
 			case event := <-listener.Inbox:
 				listener.Handler.Call(io.session.gate.svcCtx.AutoRecover(), io.session.gate.svcCtx.ReportError(), func(panicError error) bool {

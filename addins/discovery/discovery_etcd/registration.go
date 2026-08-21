@@ -57,16 +57,11 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-r.registry.ctx.Done():
-		}
-		cancel()
-	}()
+	stopOwner := context.AfterFunc(r.registry.ctx, cancel)
 
 	keepAliveChan, err := r.registry.client.KeepAlive(ctx, r.leaseID)
 	if err != nil {
+		stopOwner()
 		cancel()
 		r.registry.barrier.Done()
 
@@ -82,10 +77,9 @@ func (r *_EtcdRegistration) KeepAliveContinuous(ctx context.Context) (async.Sign
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
-		defer func() {
-			cancel()
-			r.registry.barrier.Done()
-		}()
+		defer r.registry.barrier.Done()
+		defer cancel()
+		defer stopOwner()
 
 		for range keepAliveChan {
 			log.L(r.registry.svcCtx).Debug("keep alive etcd lease heartbeat ok",

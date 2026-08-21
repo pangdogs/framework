@@ -49,13 +49,7 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-r.ctx.Done():
-		}
-		cancel()
-	}()
+	stopOwner := context.AfterFunc(r.ctx, cancel)
 
 	key := r.options.KeyPrefix
 	if pattern != "" {
@@ -87,10 +81,9 @@ func (r *_EtcdRegistry) addWatcher(ctx context.Context, pattern string, handler 
 	stopped, stoppedSignal := async.NewSignal()
 
 	go func() {
-		defer func() {
-			cancel()
-			r.barrier.Done()
-		}()
+		defer r.barrier.Done()
+		defer cancel()
+		defer stopOwner()
 
 		log.L(r.svcCtx).Debug("watching for service changes started", zap.String("key", key), zap.Int64("revision", revision))
 
